@@ -1,0 +1,55 @@
+{
+  "version": "2.2.0",
+  "bottom_tabs": [
+    {
+      "key": "home",
+      "route": "/(tabs)/home",
+      "purpose": "private life state"
+    },
+    {
+      "key": "neighborhood",
+      "route": "/(tabs)/neighborhood",
+      "purpose": "local discovery/action"
+    },
+    {
+      "key": "community",
+      "route": "/(tabs)/community",
+      "purpose": "groups/local conversation"
+    },
+    {
+      "key": "market",
+      "route": "/(tabs)/market",
+      "purpose": "transactions/opportunities"
+    },
+    {
+      "key": "play",
+      "route": "/(tabs)/play",
+      "purpose": "time/experience/travel"
+    }
+  ],
+  "shared_routes": [
+    "/search",
+    "/map",
+    "/place/[id]",
+    "/business/[businessId]",
+    "/care/[careTrackId]",
+    "/context/[contextId]"
+  ],
+  "compatibility_aliases": {
+    "/activity/[id]": "/care/[id]"
+  },
+  "non_tabs": [
+    "map",
+    "create/post",
+    "notifications",
+    "profile/settings"
+  ],
+  "first_vertical_slice": [
+    "home",
+    "neighborhood",
+    "place_or_business_detail",
+    "action",
+    "care_state",
+    "home_return"
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "version": "2.4",
+  "generated_at": "2026-09-16",
+  "passes": [
+    "typescript_core",
+    "core_regression",
+    "adapter_regression",
+    "first_vertical_slice_logic",
+    "openapi_parse",
+    "supabase_access_static_guards",
+    "mock_api_http_smoke"
+  ],
+  "first_http_slice": [
+    "home",
+    "local_search",
+    "business_detail",
+    "care_create",
+    "care_read"
+  ],
+  "not_verified": [
+    "expo_physical_device",
+    "maplibre_device",
+    "supabase_live_rls",
+    "cloudflare_live",
+    "github_ci"
+  ]
+}

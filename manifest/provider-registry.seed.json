@@ -1,0 +1,71 @@
+{
+  "version": "1.0.0",
+  "providers": [
+    {
+      "capability": "source_control_ci",
+      "provider": "github",
+      "state": "connection_pending",
+      "activate": "now"
+    },
+    {
+      "capability": "mobile_build",
+      "provider": "expo_eas",
+      "state": "account_project_unverified",
+      "activate": "now"
+    },
+    {
+      "capability": "database_auth_realtime",
+      "provider": "supabase",
+      "state": "connected_no_project",
+      "activate": "now"
+    },
+    {
+      "capability": "edge_cache",
+      "provider": "cloudflare_workers",
+      "state": "connection_unverified",
+      "activate": "now"
+    },
+    {
+      "capability": "object_storage",
+      "provider": "cloudflare_r2",
+      "state": "connection_unverified",
+      "activate": "now"
+    },
+    {
+      "capability": "push",
+      "provider": "expo_push",
+      "state": "not_configured",
+      "activate": "after_dev_build"
+    },
+    {
+      "capability": "monitoring",
+      "provider": "sentry",
+      "state": "not_verified",
+      "activate": "after_dev_build"
+    },
+    {
+      "capability": "email",
+      "provider": "resend",
+      "state": "not_verified",
+      "activate": "when_transactional_email_exists"
+    },
+    {
+      "capability": "db_fallback",
+      "provider": "neon",
+      "state": "connected_no_project",
+      "activate": "later"
+    },
+    {
+      "capability": "auth_alternative",
+      "provider": "clerk",
+      "state": "reserved",
+      "activate": "later"
+    },
+    {
+      "capability": "lifecycle_messaging",
+      "provider": "onesignal",
+      "state": "deferred",
+      "activate": "later"
+    }
+  ]
+}

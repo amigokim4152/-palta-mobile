@@ -1,0 +1,230 @@
+openapi: 3.1.0
+info:
+  title: Palta Mobile API Preflight
+  version: 0.1.0
+  description: >
+    Development contract for the first Palta mobile vertical slice.
+    This is not a production API freeze.
+servers:
+  - url: https://api.somospalta.cl
+    description: Future production boundary
+  - url: http://localhost:8787
+    description: Local/mock development boundary
+
+paths:
+  /v1/home:
+    get:
+      summary: Compose the user's current Home candidates
+      parameters:
+        - in: query
+          name: locale
+          schema:
+            type: string
+            default: es-CL
+      responses:
+        "200":
+          description: Home composition
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HomeResponse"
+
+  /v1/local/search:
+    get:
+      summary: Search nearby canonical places/businesses
+      parameters:
+        - in: query
+          name: lat
+          required: true
+          schema: { type: number, format: double }
+        - in: query
+          name: lng
+          required: true
+          schema: { type: number, format: double }
+        - in: query
+          name: radius_m
+          schema: { type: integer, minimum: 100, maximum: 50000, default: 5000 }
+        - in: query
+          name: q
+          schema: { type: string }
+      responses:
+        "200":
+          description: Local results
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/LocalResult"
+
+  /v1/business/{businessId}:
+    get:
+      summary: Get a canonical business
+      parameters:
+        - in: path
+          name: businessId
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Business detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Business"
+
+  /v1/care:
+    post:
+      summary: Start or continue a Care track from a confirmed user action
+      parameters:
+        - in: header
+          name: Idempotency-Key
+          required: false
+          schema:
+            type: string
+          description: Stable client mutation ID used to prevent duplicate side effects.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [intent_key]
+              properties:
+                intent_key: { type: string }
+                subject_entity_id: { type: string }
+                action_type: { type: string }
+                payload: { type: object, additionalProperties: true }
+      responses:
+        "201":
+          description: Care track created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CareTrack"
+
+  /v1/care/{careTrackId}:
+    get:
+      summary: Get current Care state
+      parameters:
+        - in: path
+          name: careTrackId
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Care state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CareTrack"
+
+components:
+  schemas:
+    HomeResponse:
+      type: object
+      required: [items]
+      properties:
+        generated_at: { type: string, format: date-time }
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/HomeCandidate"
+
+    HomeCandidate:
+      type: object
+      required: [id, kind, title, source_domain, delivery]
+      properties:
+        id: { type: string }
+        kind:
+          type: string
+          enum: [action, status, alert, useful_today, content]
+        title: { type: string }
+        body: { type: string }
+        source_domain: { type: string }
+        related_entity_id: { type: string }
+        care_track_id: { type: string }
+        valid_until: { type: string, format: date-time }
+        delivery:
+          type: string
+          enum: [home, home_notify, urgent]
+        action:
+          $ref: "#/components/schemas/AppAction"
+
+    AppAction:
+      type: object
+      required: [label, target]
+      properties:
+        label: { type: string }
+        target:
+          type: string
+          description: Palta internal route/deep-link target
+
+    LocalResult:
+      type: object
+      required: [entity_id, entity_type, name, location]
+      properties:
+        entity_id: { type: string }
+        entity_type:
+          type: string
+          enum: [place, business, public_service, event]
+        name: { type: string }
+        category_key: { type: string }
+        distance_m: { type: number }
+        verification_status: { type: string }
+        location:
+          $ref: "#/components/schemas/GeoPoint"
+
+    GeoPoint:
+      type: object
+      required: [lat, lng]
+      properties:
+        lat: { type: number, format: double }
+        lng: { type: number, format: double }
+
+    Business:
+      type: object
+      required: [id, name, verification_status]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        category_key: { type: string }
+        verification_status:
+          type: string
+          enum: [unverified, claimed, verified, suspended]
+        location:
+          $ref: "#/components/schemas/GeoPoint"
+        opening_status: { type: string }
+        contact:
+          type: object
+          properties:
+            phone: { type: string }
+            whatsapp: { type: string }
+
+    CareTrack:
+      type: object
+      required: [id, state, intent_key]
+      properties:
+        id: { type: string }
+        intent_key: { type: string }
+        state:
+          type: string
+          enum:
+            - discover
+            - prepare
+            - act
+            - wait
+            - result
+            - follow_up
+            - outcome
+            - cancelled
+        waiting_for: { type: string }
+        expected_at: { type: string, format: date-time }
+        result: { type: object, additionalProperties: true }
+        outcome: { type: object, additionalProperties: true }
+        next_action:
+          $ref: "#/components/schemas/AppAction"

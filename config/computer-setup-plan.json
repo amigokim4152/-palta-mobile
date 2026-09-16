@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "day_zero_required": [
+    "git",
+    "node>=22",
+    "npm",
+    "editor",
+    "github_access"
+  ],
+  "recommended": [
+    "vscode",
+    "github_cli"
+  ],
+  "macos_native_later": [
+    "xcode_command_line_tools",
+    "xcode",
+    "watchman",
+    "cocoapods_when_required"
+  ],
+  "android_native_later": [
+    "android_studio",
+    "android_sdk",
+    "adb",
+    "jdk"
+  ],
+  "deferred_until_needed": [
+    "wrangler",
+    "supabase_cli",
+    "eas_cli",
+    "payment_provider_tools"
+  ],
+  "first_real_slice": [
+    "home",
+    "neighborhood",
+    "business",
+    "care"
+  ]
+}

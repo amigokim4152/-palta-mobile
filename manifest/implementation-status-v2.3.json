@@ -1,0 +1,30 @@
+{
+  "version": "2.3",
+  "generated_at": "2026-09-16",
+  "implemented_core": [
+    "home_composer",
+    "care_state_machine",
+    "location_context",
+    "eligibility",
+    "notification_delivery_policy",
+    "map_core_adapter_contract",
+    "palta_api_client",
+    "offline_mutation_queue",
+    "deep_link_contract",
+    "runtime_env_validation",
+    "local_business_quote_orchestration",
+    "home_api_projection"
+  ],
+  "infra_preflight": [
+    "openapi",
+    "postgres_postgis_core_schema",
+    "supabase_explicit_grants_rls"
+  ],
+  "not_verified": [
+    "supabase_live_project",
+    "expo_native_build",
+    "maplibre_device",
+    "cloudflare_inventory",
+    "github_ci"
+  ]
+}

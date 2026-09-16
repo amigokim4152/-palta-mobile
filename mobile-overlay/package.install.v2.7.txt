@@ -1,0 +1,3 @@
+# Resolve versions through Expo, do not hand-pin guessed package versions.
+npx expo install expo-location expo-sqlite
+npx expo install @maplibre/maplibre-react-native

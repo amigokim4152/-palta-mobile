@@ -1,0 +1,79 @@
+{
+  "version": "1.2",
+  "status": "implementation_contract",
+  "components": [
+    {
+      "name": "PaltaHeader",
+      "purpose": "Compact brand/locality header",
+      "states": [
+        "default",
+        "offline",
+        "notification_attention"
+      ]
+    },
+    {
+      "name": "HomeCandidateCard",
+      "purpose": "Shared structural card for action/status/alert/useful/content",
+      "states": [
+        "default",
+        "pressed",
+        "disabled",
+        "stale"
+      ]
+    },
+    {
+      "name": "NeighborhoodSearchBar",
+      "purpose": "Compact local search without replacing locality context",
+      "states": [
+        "idle",
+        "focused",
+        "typing",
+        "loading"
+      ]
+    },
+    {
+      "name": "MapResultSheet",
+      "purpose": "Map/list synchronized browsing sheet",
+      "states": [
+        "peek",
+        "half",
+        "full",
+        "loading",
+        "empty",
+        "degraded"
+      ]
+    },
+    {
+      "name": "LocalResultCard",
+      "purpose": "Canonical place/business result card",
+      "states": [
+        "default",
+        "selected",
+        "pressed",
+        "stale"
+      ]
+    },
+    {
+      "name": "TrustStatus",
+      "purpose": "Minimal verified/currentness expression",
+      "states": [
+        "verified",
+        "unverified",
+        "stale",
+        "unknown"
+      ]
+    },
+    {
+      "name": "PrimaryAction",
+      "purpose": "Single primary CTA",
+      "states": [
+        "default",
+        "pressed",
+        "loading",
+        "success",
+        "disabled",
+        "error"
+      ]
+    }
+  ]
+}

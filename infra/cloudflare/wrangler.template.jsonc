@@ -1,0 +1,16 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "palta-edge-preflight",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-16",
+  "workers_dev": true,
+  "vars": {
+    "MAP_OBJECT_KEY": "maps/santiago/santiago.pmtiles"
+  },
+  "r2_buckets": [
+    {
+      "binding": "MAPS",
+      "bucket_name": "__REUSE_EXISTING_R2_BUCKET_AFTER_INVENTORY__"
+    }
+  ]
+}

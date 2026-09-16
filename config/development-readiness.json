@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "required_to_start": [
+    "git",
+    "node>=22",
+    "npm",
+    "github_repository_access"
+  ],
+  "optional_until_vertical_needs_it": [
+    "expo_eas_account",
+    "cloudflare_account",
+    "supabase_project",
+    "payment_provider_account",
+    "apple_developer",
+    "google_play_console"
+  ],
+  "protected_branch": "main",
+  "working_branch": "integration/foundation-authorization-policy-v1",
+  "principles": [
+    "canonical_first",
+    "provider_independence",
+    "deny_by_default",
+    "no_client_secrets",
+    "not_verified_is_not_pass",
+    "mock_without_faking_capability"
+  ]
+}
