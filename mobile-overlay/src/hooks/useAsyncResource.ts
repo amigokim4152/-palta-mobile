@@ -20,6 +20,9 @@ export function useAsyncResource<T>(
 ) {
   const enabled = options?.enabled ?? true;
   const initialData = options?.initialData;
+  const isEmptyRef = useRef(options?.isEmpty);
+  isEmptyRef.current = options?.isEmpty;
+
   const [state, setState] = useState<AsyncResource<T>>(() => {
     if (initialData !== undefined) {
       return {
@@ -48,7 +51,7 @@ export function useAsyncResource<T>(
       const data = await loader();
       if (current !== generation.current) return;
       setState({
-        status: options?.isEmpty?.(data) ? 'empty' : 'ready',
+        status: isEmptyRef.current?.(data) ? 'empty' : 'ready',
         data,
       });
     } catch (error) {
@@ -61,7 +64,7 @@ export function useAsyncResource<T>(
         message: error instanceof Error ? error.message : 'Unknown error',
       }));
     }
-  }, [enabled, loader, options?.isEmpty]);
+  }, [enabled, loader]);
 
   useEffect(() => {
     if (!enabled) return;
