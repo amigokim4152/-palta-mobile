@@ -110,13 +110,42 @@ assert(realtime.envelopes[1]?.refId === 'user:user-1', 'Read realtime ref must i
 assert(Number(eventBus.published.filter((event) => event.type === 'notification.candidate').length) === 1, 'Read events must never create push/notification candidates.');
 
 await eventBus.publish({
+  id: 'outbox-domain-event-1',
+  type: 'message.domain_event_projected',
+  occurredAt: '2026-09-17T20:01:30.000Z',
+  source: 'message-core',
+  subjectRef: 'conversation:conv-1',
+  dedupeKey: 'message-outbox:outbox-domain-event-1',
+  payload: {
+    conversationId: 'conv-1',
+    scopeId: 'scope-shipment-1',
+    sequence: 9,
+    projectionId: 'projection-9',
+    domainEventId: 'shipment-event-9',
+    eventType: 'shipment.out_for_delivery',
+    sourceCore: 'commerce',
+    resourceType: 'shipment',
+    resourceId: 'shipment-1001',
+  },
+});
+assert(Number(realtime.envelopes.length) === 3, 'Projected domain event must publish one realtime envelope.');
+assert(realtime.envelopes[2]?.kind === 'domain_event', 'Projected domain event realtime kind must stay distinct from human messages.');
+assert(realtime.envelopes[2]?.scopeId === 'scope-shipment-1', 'Projected domain event must preserve Scope routing.');
+assert(realtime.envelopes[2]?.sequence === 9, 'Projected domain event must preserve canonical Conversation sequence.');
+assert(realtime.envelopes[2]?.refId === 'projection-9', 'Realtime domain event must reference durable projection row.');
+assert(
+  Number(eventBus.published.filter((event) => event.type === 'notification.candidate').length) === 1,
+  'Timeline domain projection alone must not force a push/notification candidate.',
+);
+
+await eventBus.publish({
   id: 'invalid-message-event',
   type: 'message.created',
   occurredAt: '2026-09-17T20:02:00.000Z',
   source: 'message-core',
   payload: { conversationId: 'conv-1' },
 });
-assert(Number(realtime.envelopes.length) === 2, 'Malformed event must be ignored by realtime consumer.');
+assert(Number(realtime.envelopes.length) === 3, 'Malformed event must be ignored by realtime consumer.');
 assert(Number(eventBus.published.filter((event) => event.type === 'notification.candidate').length) === 1, 'Malformed event must not create notification candidate.');
 
 await consumers.close();
@@ -125,9 +154,9 @@ await eventBus.publish({
   type: 'message.created',
   occurredAt: '2026-09-17T20:03:00.000Z',
   source: 'message-core',
-  payload: { conversationId: 'conv-1', sequence: 9, messageId: 'message-9' },
+  payload: { conversationId: 'conv-1', sequence: 10, messageId: 'message-10' },
 });
-assert(Number(realtime.envelopes.length) === 2, 'Closed consumers must stop realtime delivery.');
+assert(Number(realtime.envelopes.length) === 3, 'Closed consumers must stop realtime delivery.');
 assert(Number(eventBus.published.filter((event) => event.type === 'notification.candidate').length) === 1, 'Closed consumers must stop notification candidate creation.');
 
 console.log('Message event consumer tests passed.');
