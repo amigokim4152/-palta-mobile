@@ -27,12 +27,14 @@ export function prepareExternalFiscalIssue(
     const unitNetAmountMinor = line.unitNetAmountMinor;
     const unitGrossAmountMinor = line.unitGrossAmountMinor;
     const lineNetAmountMinor = line.lineNetAmountMinor;
+    const lineExemptAmountMinor = line.lineExemptAmountMinor;
     const lineVatAmountMinor = line.lineVatAmountMinor;
     const lineTotalAmountMinor = line.lineTotalAmountMinor;
     if (
       unitNetAmountMinor === undefined ||
       unitGrossAmountMinor === undefined ||
       lineNetAmountMinor === undefined ||
+      lineExemptAmountMinor === undefined ||
       lineVatAmountMinor === undefined ||
       lineTotalAmountMinor === undefined
     ) {
@@ -46,6 +48,7 @@ export function prepareExternalFiscalIssue(
       unitNetAmountMinor,
       unitGrossAmountMinor,
       lineNetAmountMinor,
+      lineExemptAmountMinor,
       lineVatAmountMinor,
       lineTotalAmountMinor,
       exempt: line.exempt,
