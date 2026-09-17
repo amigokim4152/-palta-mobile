@@ -24,6 +24,13 @@ import { NeighborhoodMap } from '../../components/map/NeighborhoodMap';
 import { ScreenFrame } from '../../components/ScreenFrame';
 import { mobileRuntime } from '../../services/paltaClient';
 
+const SANTIAGO_MANUAL_MAP_CENTER = {
+  latitude: -33.4489,
+  longitude: -70.6693,
+} as const;
+
+type LocationSource = 'gps' | 'manual_map' | null;
+
 function Button({ label, onPress, disabled = false }: { label: string; onPress: () => void; disabled?: boolean }) {
   return (
     <Pressable disabled={disabled} onPress={onPress} style={{ borderWidth: 1, borderRadius: 12, padding: 13, marginTop: 10, opacity: disabled ? 0.4 : 1 }}>
@@ -40,6 +47,8 @@ export function BusinessRegistrationScreen() {
   const [draft, setDraft] = useState(() => createBusinessOnboardingDraft(`local-${Date.now()}`));
   const [point, setPoint] = useState<{ latitude: number; longitude: number } | null>(null);
   const [mapCenter, setMapCenter] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [locationSource, setLocationSource] = useState<LocationSource>(null);
+  const [manualMapTouched, setManualMapTouched] = useState(false);
   const [name, setName] = useState('');
   const [results, setResults] = useState<LocalSearchItem[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -65,6 +74,11 @@ export function BusinessRegistrationScreen() {
     [businessResults, selectedId],
   );
 
+  const confirmedMapCenter =
+    locationSource === 'manual_map' && !manualMapTouched
+      ? null
+      : mapCenter;
+
   async function locate() {
     setBusy(true);
     setMessage(null);
@@ -72,12 +86,14 @@ export function BusinessRegistrationScreen() {
       let permission = await expoLocationAdapter.getPermission();
       if (permission !== 'granted_foreground') permission = await expoLocationAdapter.requestForegroundPermission();
       if (permission !== 'granted_foreground') {
-        setMessage('Para evitar duplicados, necesitamos una zona de búsqueda. El selector manual de ubicación será la alternativa al GPS.');
+        setMessage('No necesitas compartir tu GPS. Puedes ubicar la zona manualmente en el mapa.');
         return;
       }
       const next = await expoLocationAdapter.getCurrentPosition();
       setPoint(next);
       setMapCenter(next);
+      setLocationSource('gps');
+      setManualMapTouched(false);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'No pudimos obtener la ubicación.');
     } finally {
@@ -85,14 +101,27 @@ export function BusinessRegistrationScreen() {
     }
   }
 
+  function useManualMap() {
+    setPoint(SANTIAGO_MANUAL_MAP_CENTER);
+    setMapCenter(SANTIAGO_MANUAL_MAP_CENTER);
+    setLocationSource('manual_map');
+    setManualMapTouched(false);
+    setMessage('Mueve el mapa a la zona del negocio. Para un servicio a domicilio u online puedes continuar sin fijar una dirección exacta.');
+  }
+
   async function searchExisting() {
-    if (!point || mobileRuntime.status !== 'ready') return;
+    const searchCenter = mapCenter ?? point;
+    if (!searchCenter || mobileRuntime.status !== 'ready') return;
+    if (locationSource === 'manual_map' && !manualMapTouched) {
+      setMessage('Mueve primero el mapa a la zona donde está tu negocio para buscar duplicados cerca.');
+      return;
+    }
     setBusy(true);
     setMessage(null);
     try {
       const items = await mobileRuntime.client.searchLocal({
-        latitude: point.latitude,
-        longitude: point.longitude,
+        latitude: searchCenter.latitude,
+        longitude: searchCenter.longitude,
         radiusM: 5000,
         ...(name.trim() ? { query: name.trim() } : {}),
       });
@@ -123,10 +152,11 @@ export function BusinessRegistrationScreen() {
 
   function createNew() {
     if (!name.trim()) return;
-    const center = mapCenter ?? point;
     setDraft((current) => startNewBusiness(current, {
       businessName: name,
-      ...(center ? { anchorLocation: { lat: center.latitude, lng: center.longitude } } : {}),
+      ...(confirmedMapCenter
+        ? { anchorLocation: { lat: confirmedMapCenter.latitude, lng: confirmedMapCenter.longitude } }
+        : {}),
     }));
     setMessage(null);
   }
@@ -160,13 +190,15 @@ export function BusinessRegistrationScreen() {
       setDraft((current) => setBusinessPresence(current, {
         presenceModes: [mode],
         ...(areas.length ? { serviceAreaIds: areas } : {}),
-        ...(mapCenter ? { anchorLocation: { lat: mapCenter.latitude, lng: mapCenter.longitude } } : {}),
+        ...(confirmedMapCenter
+          ? { anchorLocation: { lat: confirmedMapCenter.latitude, lng: confirmedMapCenter.longitude } }
+          : {}),
       }));
       setMessage(null);
     } catch (error) {
       setMessage(error instanceof Error && error.message === 'service_area_required'
         ? 'Indica las comunas o zonas donde atiendes.'
-        : 'Un local físico necesita una ubicación real en el mapa.');
+        : 'Un local físico necesita una ubicación real. Vuelve y mueve el mapa hasta el punto correcto; no necesitas activar GPS.');
     }
   }
 
@@ -220,14 +252,36 @@ export function BusinessRegistrationScreen() {
       <ScreenFrame title="Agrega tu negocio" subtitle="Primero evita duplicados: busca si ya aparece" scroll={false}>
         <View style={{ flex: 1 }}>
           {!point ? (
-            <Button label={busy ? 'Buscando ubicación…' : 'Buscar cerca de mí'} onPress={() => void locate()} disabled={busy} />
+            <>
+              <Button label={busy ? 'Buscando ubicación…' : 'Buscar cerca de mí'} onPress={() => void locate()} disabled={busy} />
+              <Button label="Continuar sin GPS" onPress={useManualMap} disabled={busy} />
+              <Text style={{ marginTop: 10, opacity: 0.64, lineHeight: 20 }}>
+                El GPS es opcional. Si no lo usas, abre el mapa y muévelo a la zona del negocio. Los servicios a domicilio u online no necesitan publicar una dirección exacta.
+              </Text>
+            </>
           ) : (
             <>
               <TextInput value={name} onChangeText={setName} placeholder="Nombre del negocio" style={{ borderWidth: 1, borderRadius: 12, padding: 12 }} />
-              <Button label={busy ? 'Buscando…' : 'Buscar negocio'} onPress={() => void searchExisting()} disabled={busy || !name.trim()} />
+              <Button label={busy ? 'Buscando…' : 'Buscar negocio'} onPress={() => void searchExisting()} disabled={busy || !name.trim() || (locationSource === 'manual_map' && !manualMapTouched)} />
+              {locationSource === 'manual_map' && !manualMapTouched ? (
+                <Text style={{ marginTop: 8, opacity: 0.64 }}>
+                  Mueve el mapa para buscar negocios existentes cerca. Si tu actividad no tiene local fijo, también puedes escribir el nombre y agregarla como nueva.
+                </Text>
+              ) : null}
               <View style={{ minHeight: 220, flex: 1, marginTop: 12 }}>
                 {mobileRuntime.status === 'ready' && mobileRuntime.mapStyleUrl ? (
-                  <NeighborhoodMap mapStyle={mobileRuntime.mapStyleUrl} features={features} initialCenter={point} onSelectEntity={setSelectedId} onViewportChanged={(center) => setMapCenter(center)} />
+                  <NeighborhoodMap
+                    mapStyle={mobileRuntime.mapStyleUrl}
+                    features={features}
+                    initialCenter={point}
+                    onSelectEntity={setSelectedId}
+                    onViewportChanged={(center, _zoom, userInteraction) => {
+                      setMapCenter(center);
+                      if (locationSource === 'manual_map' && userInteraction) {
+                        setManualMapTouched(true);
+                      }
+                    }}
+                  />
                 ) : (
                   <View style={{ flex: 1, borderWidth: 1, alignItems: 'center', justifyContent: 'center' }}><Text>Map Core preparado</Text></View>
                 )}
@@ -302,7 +356,7 @@ export function BusinessRegistrationScreen() {
   return (
     <ScreenFrame title="Confirma el registro" subtitle="La propiedad y los controles sensibles se verifican después">
       <Text>
-        Palta guardará el negocio con estado de claim pendiente. La verificación de propietario/administrador se completa antes de activar precios, promociones u operaciones sensibles.
+        Palta guardará el negocio con estado de claim pendiente. La verificación de propietario/administrador se completa antes de activar cambios sensibles o beneficios publicados por el propietario.
       </Text>
       <Button label={busy ? 'Enviando…' : 'Enviar registro'} onPress={() => void submitRegistration()} disabled={busy} />
       {message ? <Text style={{ marginTop: 10, opacity: 0.7 }}>{message}</Text> : null}
