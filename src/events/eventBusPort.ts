@@ -6,7 +6,9 @@ export type PaltaEventType =
   | 'live.transit'
   | 'live.weather'
   | 'live.disaster'
-  | 'content.published';
+  | 'content.published'
+  | 'message.created'
+  | 'message.read_advanced';
 
 export type PaltaEvent<TPayload = Record<string, unknown>> = {
   id: string;
