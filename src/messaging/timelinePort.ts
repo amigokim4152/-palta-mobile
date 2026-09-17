@@ -1,16 +1,21 @@
 import type {
   ConversationScope,
   ConversationScopeResourceRef,
-  DomainEventReference,
   OutboxEvent,
   ParticipantState,
 } from './contracts.js';
 
-export interface ConversationDomainEventProjection extends DomainEventReference {
+export interface ConversationDomainEventProjection {
   projectionId: string;
   conversationId: string;
+  scopeId: string;
   sequence: number;
   sourceCore: string;
+  eventId: string;
+  eventType: string;
+  resourceType: string;
+  resourceId: string;
+  occurredAt: string;
   projectedAt: string;
 }
 
