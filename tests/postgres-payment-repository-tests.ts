@@ -61,6 +61,7 @@ const createdAt = '2026-09-17T14:40:00.000Z';
 const businessId = '22222222-2222-4222-8222-222222222222';
 const transactionId = '11111111-1111-4111-8111-111111111111';
 const orderId = '44444444-4444-4444-8444-444444444444';
+const providerConnectionId = '33333333-3333-4333-8333-333333333333';
 
 const baseIntent: PaymentIntent = {
   id: '55555555-5555-4555-8555-555555555555',
@@ -72,6 +73,7 @@ const baseIntent: PaymentIntent = {
   status: 'created',
   revision: 0,
   providerKey: 'mercadopago_point',
+  providerConnectionId,
   terminalId: 'TERM-1',
   settlementStatus: 'not_applicable',
   idempotencyKey: 'payment-1',
@@ -99,6 +101,7 @@ function paymentRow(intent: PaymentIntent = baseIntent): Row {
     rail: intent.rail,
     status: intent.status,
     provider_key: intent.providerKey ?? null,
+    provider_connection_id: intent.providerConnectionId ?? null,
     provider_reference: intent.providerReference ?? null,
     provider_payment_id: intent.providerPaymentId ?? null,
     terminal_id: intent.terminalId ?? null,
@@ -139,8 +142,9 @@ assert(
     created.replayed === false &&
     created.eventInserted === true &&
     created.outboxInsertedIds.length === 0 &&
-    created.intent.orderId === orderId,
-  'PaymentIntent and PaymentEvent must commit in one transaction and preserve optional order context.',
+    created.intent.orderId === orderId &&
+    created.intent.providerConnectionId === providerConnectionId,
+  'PaymentIntent and PaymentEvent must commit in one transaction and preserve order/provider connection context.',
 );
 
 const replayDb = new FakeSqlDatabase((sql, _params, inTransaction) => {
@@ -215,8 +219,11 @@ const updated = await new PostgresPaymentRepository(updateDb).commitIntentAndEve
   event: paidEvent,
 });
 assert(
-  updated.intent.status === 'paid' && updated.intent.revision === 1 && updated.eventInserted,
-  'Authoritative paid transition and its PaymentEvent must commit atomically.',
+  updated.intent.status === 'paid' &&
+    updated.intent.revision === 1 &&
+    updated.intent.providerConnectionId === providerConnectionId &&
+    updated.eventInserted,
+  'Authoritative paid transition, provider connection and PaymentEvent must commit atomically.',
 );
 
 const pendingIntent = {
