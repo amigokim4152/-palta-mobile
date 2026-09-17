@@ -6,7 +6,8 @@ import type {
 
 export type CreatePaymentInput = {
   canonicalPaymentId: string;
-  canonicalOrderId: string;
+  canonicalCommerceTransactionId: string;
+  canonicalOrderId?: string;
   canonicalMerchantId: string;
   amount: Money;
   rail: PaymentRail;
