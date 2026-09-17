@@ -23,10 +23,17 @@ function pathForProjection(projection: PublicBusinessWebProjection): string {
   return `${clean}/index.html`;
 }
 
+function isPublishableStaticPage(projection: PublicBusinessWebProjection): boolean {
+  return projection.sitemapEligible && projection.robots === 'index,follow';
+}
+
 /**
  * Builds deployable static files without coupling Local Business to Next.js,
  * Cloudflare or another web framework. A hosting adapter may write these files
  * to Pages/R2/object storage, while canonical SEO rules stay in the domain.
+ *
+ * `noindex` is not a privacy boundary, so draft/duplicate/invalid projections
+ * are not emitted into the static bundle at all.
  */
 export function buildPublicBusinessStaticBundle(
   pages: readonly PublicBusinessStaticPage[],
@@ -34,8 +41,11 @@ export function buildPublicBusinessStaticBundle(
   const files: Record<string, string> = {};
   const sitemapProjections: PublicBusinessWebProjection[] = [];
   const seenCanonicalUrls = new Set<string>();
+  let pageCount = 0;
 
   for (const page of pages) {
+    if (!isPublishableStaticPage(page.projection)) continue;
+
     const canonicalUrl = page.projection.canonicalUrl;
     if (seenCanonicalUrls.has(canonicalUrl)) {
       throw new Error(`Duplicate canonical Business page in static bundle: ${canonicalUrl}`);
@@ -48,16 +58,15 @@ export function buildPublicBusinessStaticBundle(
     }
 
     files[outputPath] = renderPublicBusinessHtml(page);
-    if (page.projection.sitemapEligible && page.projection.robots === 'index,follow') {
-      sitemapProjections.push(page.projection);
-    }
+    sitemapProjections.push(page.projection);
+    pageCount += 1;
   }
 
   files['sitemap-businesses.xml'] = renderBusinessSitemapXml(sitemapProjections);
 
   return {
     files,
-    pageCount: pages.length,
+    pageCount,
     sitemapCount: sitemapProjections.length,
   };
 }
