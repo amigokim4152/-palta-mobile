@@ -1,5 +1,5 @@
 {
-  "version": "2.2.0",
+  "version": "2.3.0",
   "bottom_tabs": [
     {
       "key": "home",
@@ -7,9 +7,14 @@
       "purpose": "private life state"
     },
     {
+      "key": "businesses",
+      "route": "/(tabs)/businesses",
+      "purpose": "local business discovery, relationship and action"
+    },
+    {
       "key": "neighborhood",
       "route": "/(tabs)/neighborhood",
-      "purpose": "local discovery/action"
+      "purpose": "local map and broader neighborhood discovery/action"
     },
     {
       "key": "community",
@@ -32,10 +37,14 @@
     "/map",
     "/place/[id]",
     "/business/[businessId]",
+    "/local-businesses/following",
+    "/business/register",
+    "/business/manage/[businessId]",
     "/care/[careTrackId]",
     "/context/[contextId]"
   ],
   "compatibility_aliases": {
+    "/local-businesses": "/(tabs)/businesses",
     "/activity/[id]": "/care/[id]"
   },
   "non_tabs": [
@@ -46,10 +55,10 @@
   ],
   "first_vertical_slice": [
     "home",
-    "neighborhood",
-    "place_or_business_detail",
+    "businesses",
+    "business_detail",
     "action",
-    "care_state",
-    "home_return"
+    "care_or_conversation_state",
+    "home_or_businesses_return"
   ]
 }
