@@ -71,7 +71,7 @@ class Factory implements PaymentPortFactory {
   async create(input: { connection: PaymentProviderConnection; terminalId?: string }): Promise<PaymentPort> {
     this.calls += 1;
     this.seenConnection = input.connection;
-    this.seenTerminalId = input.terminalId;
+    if (input.terminalId !== undefined) this.seenTerminalId = input.terminalId;
     return new Port();
   }
 }
@@ -114,7 +114,8 @@ const paused = await resolver.resolve({
 assert(paused === null, 'Paused payment connection must not perform external side effects.');
 assert(factory.calls === 1, 'Paused connection must be rejected before provider factory creation.');
 
-repository.value = { ...connection, credentialRef: undefined };
+const { credentialRef: _credentialRef, ...withoutCredential } = connection;
+repository.value = withoutCredential;
 const noCredential = await resolver.resolve({
   businessId: connection.businessId,
   providerKey: connection.providerKey,
