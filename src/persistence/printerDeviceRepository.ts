@@ -5,10 +5,16 @@ export type PrinterDeviceLookup = {
   printerId: string;
 };
 
+export type PersistedPrinterDevice = {
+  printer: PrinterIdentity;
+  enabled: boolean;
+};
+
 /**
  * Canonical printer-device read port backed by the existing printer_device table.
  * Runtime bridge/driver handles are deliberately not persisted through this port.
+ * Disabled devices remain readable so already-submitted jobs can reconcile safely.
  */
 export interface PrinterDeviceRepository {
-  findEnabledPrinter(lookup: PrinterDeviceLookup): Promise<PrinterIdentity | null>;
+  findPrinter(lookup: PrinterDeviceLookup): Promise<PersistedPrinterDevice | null>;
 }
