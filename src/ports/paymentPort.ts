@@ -40,6 +40,15 @@ export type ProviderPaymentStatus = {
   providerStatusDetail?: string;
 };
 
+export type ReconcilePaymentInput = CreatePaymentInput & {
+  /**
+   * May be absent when the original create/sale response was lost before Palta
+   * learned the provider reference. Adapters must then use a provider-safe
+   * recovery mechanism (for example same-idempotency replay or terminal last-sale lookup).
+   */
+  providerReference?: string;
+};
+
 export type RefundInput = {
   providerReference: string;
   providerPaymentId?: string;
@@ -52,5 +61,6 @@ export interface PaymentPort {
   supportsRail(rail: PaymentRail): boolean;
   createPayment(input: CreatePaymentInput): Promise<CreatePaymentResult>;
   getStatus(providerReference: string): Promise<ProviderPaymentStatus>;
+  reconcilePayment(input: ReconcilePaymentInput): Promise<ProviderPaymentStatus>;
   refund(input: RefundInput): Promise<ProviderPaymentStatus>;
 }
