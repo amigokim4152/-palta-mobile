@@ -1,28 +1,45 @@
-import { Pressable, Text, View } from 'react-native';
+import { Image, Pressable, Text, View } from 'react-native';
 import { paltaTheme } from '../theme/paltaTheme';
 
 type Props = {
   name: string;
   meta: string;
   distance?: string;
+  imageUrl?: string;
+  serviceLabels?: readonly string[];
+  highlight?: string;
   selected?: boolean;
   onPress?: () => void;
 };
+
+function firstLetter(value: string) {
+  return value.trim().charAt(0).toUpperCase() || 'P';
+}
 
 export function LocalResultCard({
   name,
   meta,
   distance,
+  imageUrl,
+  serviceLabels = [],
+  highlight,
   selected = false,
   onPress,
 }: Props) {
+  const [status, ...secondaryMeta] = meta
+    .split(' · ')
+    .map((part) => part.trim())
+    .filter(Boolean);
+  const labels = serviceLabels.filter(Boolean).slice(0, 2);
+  const isOpenNow = status === 'Abierto ahora';
+
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityState={{ selected }}
       onPress={onPress}
       style={({ pressed }) => ({
-        minHeight: paltaTheme.touch.minimum,
+        minHeight: 112,
         paddingHorizontal: selected ? paltaTheme.spacing.sm : 0,
         paddingVertical: paltaTheme.spacing.sm,
         borderBottomWidth: selected ? 0 : 1,
@@ -36,42 +53,144 @@ export function LocalResultCard({
             : paltaTheme.color.surface,
       })}
     >
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: paltaTheme.spacing.sm }}>
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Text
-            numberOfLines={2}
+      <View style={{ flexDirection: 'row', gap: paltaTheme.spacing.sm }}>
+        {imageUrl ? (
+          <Image
+            source={{ uri: imageUrl }}
+            accessibilityLabel={`Foto de ${name}`}
+            resizeMode="cover"
             style={{
-              fontSize: 17,
-              fontWeight: '700',
-              color: paltaTheme.color.textPrimary,
+              width: 88,
+              height: 88,
+              borderRadius: paltaTheme.radius.control,
+              backgroundColor: paltaTheme.color.surfaceMuted,
+            }}
+          />
+        ) : (
+          <View
+            accessibilityElementsHidden
+            style={{
+              width: 88,
+              height: 88,
+              borderRadius: paltaTheme.radius.control,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: selected
+                ? paltaTheme.color.surface
+                : paltaTheme.color.brandSoft,
             }}
           >
-            {name}
-          </Text>
-          {meta ? (
+            <Text
+              style={{
+                fontSize: 28,
+                fontWeight: '800',
+                color: paltaTheme.color.brandPrimary,
+              }}
+            >
+              {firstLetter(name)}
+            </Text>
+          </View>
+        )}
+
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <View
+            style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'flex-start',
+              gap: paltaTheme.spacing.xs,
+            }}
+          >
             <Text
               numberOfLines={2}
               style={{
-                marginTop: paltaTheme.spacing.xxs,
-                color: paltaTheme.color.textSecondary,
-                lineHeight: 19,
+                flex: 1,
+                fontSize: 17,
+                fontWeight: '800',
+                color: paltaTheme.color.textPrimary,
               }}
             >
-              {meta}
+              {name}
+            </Text>
+            {distance ? (
+              <Text
+                numberOfLines={1}
+                style={{
+                  color: paltaTheme.color.textMuted,
+                  fontSize: 12,
+                  flexShrink: 0,
+                }}
+              >
+                {distance}
+              </Text>
+            ) : null}
+          </View>
+
+          {status ? (
+            <Text
+              numberOfLines={1}
+              style={{
+                marginTop: paltaTheme.spacing.xxs,
+                color: isOpenNow
+                  ? paltaTheme.color.brandPrimary
+                  : paltaTheme.color.textSecondary,
+                fontWeight: isOpenNow ? '800' : '600',
+                fontSize: 13,
+              }}
+            >
+              {status}
             </Text>
           ) : null}
+
+          {labels.length ? (
+            <Text
+              numberOfLines={1}
+              style={{
+                marginTop: paltaTheme.spacing.xxs,
+                color: paltaTheme.color.textSecondary,
+                fontSize: 13,
+              }}
+            >
+              {labels.join(' · ')}
+            </Text>
+          ) : secondaryMeta.length ? (
+            <Text
+              numberOfLines={1}
+              style={{
+                marginTop: paltaTheme.spacing.xxs,
+                color: paltaTheme.color.textSecondary,
+                fontSize: 13,
+              }}
+            >
+              {secondaryMeta.join(' · ')}
+            </Text>
+          ) : null}
+
+          {highlight ? (
+            <View
+              style={{
+                alignSelf: 'flex-start',
+                marginTop: paltaTheme.spacing.xs,
+                maxWidth: '100%',
+                borderRadius: paltaTheme.radius.pill,
+                paddingHorizontal: paltaTheme.spacing.xs,
+                paddingVertical: paltaTheme.spacing.xxs,
+                backgroundColor: paltaTheme.color.brandSoft,
+              }}
+            >
+              <Text
+                numberOfLines={1}
+                style={{
+                  color: paltaTheme.color.textPrimary,
+                  fontSize: 12,
+                  fontWeight: '700',
+                }}
+              >
+                {highlight}
+              </Text>
+            </View>
+          ) : null}
         </View>
-        {distance ? (
-          <Text
-            style={{
-              color: paltaTheme.color.textMuted,
-              fontSize: 13,
-              flexShrink: 0,
-            }}
-          >
-            {distance}
-          </Text>
-        ) : null}
       </View>
     </Pressable>
   );
