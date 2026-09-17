@@ -14,6 +14,8 @@ create table if not exists care_resource_link (
   resource_id text not null check (length(trim(resource_id)) between 1 and 240),
   relation text not null default 'subject' check (length(trim(relation)) between 1 and 80),
   linked_at timestamptz not null default now(),
+  last_signal_sequence bigint check (last_signal_sequence is null or last_signal_sequence >= 0),
+  last_signal_occurred_at timestamptz,
   primary key (care_track_id, source_core, resource_type, resource_id, relation)
 );
 
@@ -31,10 +33,13 @@ create table if not exists care_signal_receipt (
   care_event text not null check (length(trim(care_event)) between 1 and 80),
   resource_type text not null check (length(trim(resource_type)) between 1 and 120),
   resource_id text not null check (length(trim(resource_id)) between 1 and 240),
+  source_sequence bigint check (source_sequence is null or source_sequence >= 0),
   waiting_for_key text check (waiting_for_key is null or length(trim(waiting_for_key)) between 1 and 120),
   expected_at timestamptz,
   result_ref text check (result_ref is null or length(trim(result_ref)) between 1 and 240),
   outcome_ref text check (outcome_ref is null or length(trim(outcome_ref)) between 1 and 240),
+  disposition text not null default 'applied'
+    check (disposition in ('applied', 'ignored_stale')),
   applied_at timestamptz not null default now(),
   primary key (care_track_id, source_core, signal_event_id)
 );
@@ -42,6 +47,11 @@ create table if not exists care_signal_receipt (
 create index if not exists care_signal_receipt_applied_idx
   on care_signal_receipt(care_track_id, applied_at desc);
 
+-- When source_sequence is supplied by the owning domain it is the preferred
+-- ordering guard. Otherwise last_signal_occurred_at provides a weaker stale-event
+-- guard. Equal timestamps are not ordered implicitly; the domain should provide
+-- source_sequence whenever its lifecycle can emit same-time transitions.
+--
 -- No public grants are added here. These are internal orchestration tables.
 -- Home and Notification consume care.updated; they do not read these tables
 -- directly and they do not receive domain payload through this linkage.
