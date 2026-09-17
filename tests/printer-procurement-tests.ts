@@ -79,11 +79,41 @@ const usbReceipt: PrinterCertificationRecord = {
 
 const requirement = fixed.requirements[0];
 if (!requirement) throw new Error('fixed package must require receipt printer');
-const networkDecision = assessProcurementCandidate({ record: networkReceipt, requirement, now });
-const usbDecision = assessProcurementCandidate({ record: usbReceipt, requirement, now });
+const networkDecision = assessProcurementCandidate({
+  record: networkReceipt,
+  requirement,
+  platform: 'windows',
+  now,
+});
+const usbDecision = assessProcurementCandidate({
+  record: usbReceipt,
+  requirement,
+  platform: 'windows',
+  now,
+});
 assertEqual(networkDecision.eligible, true, 'Preferred Chile network candidate should be eligible.');
 assertEqual(usbDecision.eligible, true, 'Available Chile USB candidate should remain eligible.');
 assert(networkDecision.score > usbDecision.score, 'Preferred Chile network candidate should score higher.');
+assert(
+  networkDecision.reasons.includes('platform:windows'),
+  'Eligible procurement decision should preserve the certified host platform in its rationale.',
+);
+
+const wrongPlatformDecision = assessProcurementCandidate({
+  record: networkReceipt,
+  requirement,
+  platform: 'android',
+  now,
+});
+assertEqual(
+  wrongPlatformDecision.eligible,
+  false,
+  'Windows certification must not make a printer eligible for an Android POS purchase.',
+);
+assert(
+  wrongPlatformDecision.reasons.includes('platform_not_certified'),
+  'Platform mismatch must expose a stable procurement reason code.',
+);
 
 const unavailable: PrinterCertificationRecord = {
   ...networkReceipt,
@@ -91,7 +121,12 @@ const unavailable: PrinterCertificationRecord = {
   procurementStatus: 'unavailable_chile',
 };
 assertEqual(
-  assessProcurementCandidate({ record: unavailable, requirement, now }).eligible,
+  assessProcurementCandidate({
+    record: unavailable,
+    requirement,
+    platform: 'windows',
+    now,
+  }).eligible,
   false,
   'Unavailable Chile hardware should not be eligible for procurement.',
 );
