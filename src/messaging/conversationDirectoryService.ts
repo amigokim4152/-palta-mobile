@@ -44,7 +44,7 @@ export class ConversationDirectoryService {
     private readonly runtime: ConversationDirectoryRuntime,
   ) {}
 
-  private async assertActorAuthority(
+  private async assertActorReadAuthority(
     principalUserId: string,
     actor: ActorRef,
   ): Promise<void> {
@@ -52,17 +52,18 @@ export class ConversationDirectoryService {
     if (actor.actorType === 'user' || actor.principalUserId !== principalUserId) {
       throw new ConversationDirectoryError(
         'ACTOR_NOT_AUTHORIZED',
-        'Authenticated principal cannot act as requested inbox actor.',
+        'Authenticated principal cannot read the requested inbox actor.',
       );
     }
     const allowed = await this.actorAuthorization.canActAs({
       principalUserId,
       actor,
+      operation: 'read',
     });
     if (!allowed) {
       throw new ConversationDirectoryError(
         'ACTOR_NOT_AUTHORIZED',
-        'Authenticated principal cannot act as requested inbox actor.',
+        'Authenticated principal cannot read the requested inbox actor.',
       );
     }
   }
@@ -108,7 +109,7 @@ export class ConversationDirectoryService {
   }): Promise<ConversationInboxItem[]> {
     required(input.principalUserId, 'principalUserId');
     required(input.actor.actorId, 'actor.actorId');
-    await this.assertActorAuthority(input.principalUserId, input.actor);
+    await this.assertActorReadAuthority(input.principalUserId, input.actor);
     const limit = Math.min(100, Math.max(1, Math.trunc(input.limit ?? 30)));
     return this.directory.listForActor({
       actor: input.actor,
