@@ -187,12 +187,23 @@ function nextOpenLocal(rules, localDate, localTime) {
   return undefined;
 }
 
+function hasConfiguredSchedule(rules) {
+  const weeklyHasHours = Object.values(rules.weekly ?? {}).some(
+    (intervals) => Array.isArray(intervals) && intervals.length > 0,
+  );
+  const seasonalHasHours = (rules.seasonalSchedules ?? []).some((season) =>
+    Object.values(season.weekly ?? {}).some(
+      (intervals) => Array.isArray(intervals) && intervals.length > 0,
+    ),
+  );
+  return weeklyHasHours || seasonalHasHours;
+}
+
 function ensureRules(businessId) {
   let rules = seededRules.get(businessId);
   if (!rules) {
     rules = {
       timezone: 'America/Santiago',
-      confirmedAt: new Date().toISOString(),
       weekly: {},
       seasonalSchedules: [],
       seasonalClosures: [],
@@ -243,6 +254,15 @@ function operationalProjection(rules, now = new Date()) {
     };
   }
 
+  if (!hasConfiguredSchedule(rules) && !exception) {
+    return {
+      operational_state: 'unknown_or_stale',
+      local_date: clock.localDate,
+      local_time: clock.localTime,
+      schedule_confirmed_at: rules.confirmedAt,
+    };
+  }
+
   const intervals = scheduleForDate(rules, clock.localDate);
   const minute = minuteOfDay(clock.localTime) ?? 0;
   const previousOpen = previousOvernightOpen(rules, clock.localDate, minute);
@@ -270,14 +290,21 @@ function applyProjectionToBusiness(business, projection) {
     closed_today: 'Cerrado hoy',
     temporarily_closed: 'Cerrado temporalmente',
     seasonal_closed: 'Cerrado por temporada',
+    unknown_or_stale: 'Horario por confirmar',
   };
   business.opening_status = labels[projection.operational_state] ?? 'Horario por confirmar';
 }
 
+export function refreshBusinessOperationalState(business, now = new Date()) {
+  const rules = ensureRules(business.id);
+  const projection = operationalProjection(rules, now);
+  applyProjectionToBusiness(business, projection);
+  return projection;
+}
+
 function responseFor(business) {
   const rules = ensureRules(business.id);
-  const projection = operationalProjection(rules);
-  applyProjectionToBusiness(business, projection);
+  const projection = refreshBusinessOperationalState(business);
   return {
     business_id: business.id,
     rules,
