@@ -18,6 +18,7 @@ const roots = [
   'src/commerce',
   'src/payment',
   'src/fiscal',
+  'src/printing',
 ];
 
 const forbiddenImports = [
@@ -58,7 +59,7 @@ for (const root of roots) {
 
     for (const token of forbiddenImports) {
       const importPattern = new RegExp(
-        `(?:from\\s+['"][^'"]*${token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}|import\\s*\\([^)]*${token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`,
+        `(?:from\\s+['\"][^'\"]*${token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}|import\\s*\\([^)]*${token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`,
         'i',
       );
       if (importPattern.test(text)) {
