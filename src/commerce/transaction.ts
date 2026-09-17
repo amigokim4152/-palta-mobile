@@ -54,14 +54,17 @@ export type CommerceTransactionRelations = {
 const ALLOWED_TRANSITIONS: Record<CommerceTransactionState, readonly CommerceTransactionState[]> = {
   draft: ['ready_for_payment', 'cancelled'],
   ready_for_payment: ['payment_pending', 'partially_paid', 'payment_confirmed', 'cancelled'],
-  payment_pending: ['payment_confirmed', 'partially_paid', 'ready_for_payment', 'cancelled'],
+  // An unresolved provider attempt must first reconcile/decline back to
+  // ready_for_payment before cancellation. This prevents cancelling a sale while
+  // a terminal/provider may still capture money.
+  payment_pending: ['payment_confirmed', 'partially_paid', 'ready_for_payment'],
   // Once any money is authoritatively collected the sale must not be silently
   // cancelled. It either receives the remaining payment or enters refund flow.
   partially_paid: ['payment_pending', 'payment_confirmed', 'refund_pending'],
   payment_confirmed: ['completed', 'refund_pending'],
   completed: ['refund_pending'],
   cancelled: [],
-  refund_pending: ['refunded', 'completed', 'partially_paid'],
+  refund_pending: ['refunded', 'completed'],
   refunded: [],
 };
 
