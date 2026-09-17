@@ -43,19 +43,13 @@ export default function BusinessQuoteRequestScreen() {
     setSubmitting(true);
     setMessage(null);
     try {
-      const care = await mobileRuntime.client.createCare({
-        intentKey: 'local_business_quote',
-        subjectEntityId: businessId,
-        actionType: 'quote_request',
-        payload: {
-          description: cleanDescription,
-          recipient_business_ids: [businessId],
-          ...(requestedForIso ? { requested_for: requestedForIso } : {}),
-          source: 'business_profile',
-        },
+      const quote = await mobileRuntime.client.quotes.createQuoteRequest({
+        description: cleanDescription,
+        recipientBusinessIds: [businessId],
+        ...(requestedForIso ? { requestedFor: requestedForIso } : {}),
         idempotencyKey: createClientMutationId(Date.now(), Math.random()),
       });
-      router.replace(`/care/${encodeURIComponent(care.id)}`);
+      router.replace(`/care/${encodeURIComponent(quote.care_track_id)}`);
     } catch (error) {
       setMessage(
         error instanceof Error
@@ -120,7 +114,7 @@ export default function BusinessQuoteRequestScreen() {
         </View>
 
         <Text style={{ opacity: 0.62, lineHeight: 20 }}>
-          Esta solicitud queda vinculada al negocio y al Care flow de Palta. Más adelante el mismo contrato permite enviarla a varios negocios y comparar respuestas sin volver a escribir todo.
+          Palta crea una sola solicitud de cotización y la enlaza al Care flow compartido. El mismo contrato permite sumar más negocios después sin duplicar el seguimiento.
         </Text>
 
         <Pressable
