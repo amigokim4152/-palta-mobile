@@ -60,13 +60,18 @@ create index if not exists msg_message_cursor_idx
 create table if not exists msg_attachment (
   id uuid primary key default gen_random_uuid(),
   message_id uuid not null references msg_message(id) on delete cascade,
-  media_id text not null,
-  attachment_kind text not null,
+  -- Palta provider-neutral Asset Core identifier. Never an R2/S3 URL or object key.
+  asset_id text not null,
+  attachment_kind text not null check (attachment_kind in ('image', 'voice', 'file')),
   mime_type text not null,
-  size_bytes bigint,
-  duration_ms bigint,
-  created_at timestamptz not null default now()
+  size_bytes bigint check (size_bytes is null or size_bytes >= 0),
+  duration_ms bigint check (duration_ms is null or duration_ms >= 0),
+  created_at timestamptz not null default now(),
+  unique (message_id, asset_id)
 );
+
+create index if not exists msg_attachment_asset_idx
+  on msg_attachment(asset_id, message_id);
 
 create table if not exists msg_conversation_context (
   conversation_id uuid not null references msg_conversation(id) on delete cascade,
@@ -130,6 +135,7 @@ create table if not exists msg_report (
 -- Auth-provider foreign keys / RLS implementation.
 -- Realtime provider tables (realtime stays behind an adapter).
 -- Push provider tokens (Notification Core owns them).
+-- Physical asset storage provider / signed URL schema (Asset Core owns them).
 -- Quote/reservation/order/POS domain payloads (Message Core stores references only).
 -- AI provider-specific result schemas (artifacts stay versioned and optional).
 -- E2EE key material and device-key lifecycle.
