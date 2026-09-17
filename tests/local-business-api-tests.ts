@@ -172,4 +172,58 @@ assert(!('marketing_consent' in (relationshipRequestBody ?? {})), 'Save/follow e
 assert(!('notification_allowed' in (relationshipRequestBody ?? {})), 'Save/follow endpoint must not own notification permission.');
 assert(relationship.saved === true && relationship.following === false, 'Save API should preserve independent relationship dimensions.');
 
-console.log('PASS: Local Business onboarding privacy + owner guidance + public links + relationship API');
+let couponRequestPath = '';
+let couponRequestMethod = '';
+let couponRequestBody: Record<string, unknown> | null = null;
+const couponClient = new PaltaApiClient({
+  baseUrl: 'https://api.test',
+  fetch: async (input, init) => {
+    couponRequestPath = input;
+    couponRequestMethod = init?.method ?? 'GET';
+    couponRequestBody = init?.body
+      ? JSON.parse(init.body) as Record<string, unknown>
+      : null;
+    return {
+      ok: true,
+      status: 200,
+      async json() {
+        const revoked = couponRequestBody?.['status'] === 'revoked';
+        return {
+          business_id: 'biz-test',
+          items: revoked
+            ? []
+            : [{
+                id: 'coupon-1',
+                title: String(couponRequestBody?.['title'] ?? 'Cupón'),
+                audience: couponRequestBody?.['audience'] ?? 'public',
+                expires_at: couponRequestBody?.['expires_at'],
+              }],
+        };
+      },
+    };
+  },
+});
+const couponResult = await couponClient.upsertBusinessBasicCoupon('biz-test', {
+  title: '10% en tu próxima visita',
+  description: 'Beneficio simple',
+  redemptionInstruction: 'Muéstralo antes de pagar.',
+  audience: 'followers',
+  expiresAt: '2026-10-01T23:59:59-03:00',
+});
+assert(
+  couponRequestPath.endsWith('/v1/business/biz-test/basic-coupon'),
+  'Basic coupon should use the business-scoped free coupon endpoint.',
+);
+assert(couponRequestMethod === 'PUT', 'Basic coupon upsert should use idempotent PUT semantics.');
+assert(couponRequestBody?.['audience'] === 'followers', 'Basic coupon should preserve simple audience choice.');
+assert(couponRequestBody?.['redemption_instruction'] === 'Muéstralo antes de pagar.', 'Basic coupon should preserve redemption instruction.');
+assert(!('segment_id' in (couponRequestBody ?? {})), 'Free basic coupon must not embed advanced segmentation.');
+assert(!('automation' in (couponRequestBody ?? {})), 'Free basic coupon must not self-enable campaign automation.');
+assert(!('entitlement' in (couponRequestBody ?? {})), 'Free basic coupon must not require a paid entitlement field.');
+assert(couponResult.items[0]?.title === '10% en tu próxima visita', 'Basic coupon API should return the public projection.');
+
+const revokedCoupons = await couponClient.revokeBusinessBasicCoupon('biz-test');
+assert(couponRequestBody?.['status'] === 'revoked', 'Coupon revocation should be explicit and simple.');
+assert(revokedCoupons.items.length === 0, 'Revoked coupon should disappear from the active projection.');
+
+console.log('PASS: Local Business onboarding privacy + owner guidance + public links + relationship + coupon API');
