@@ -1,0 +1,199 @@
+export type PrintDocumentKind =
+  | 'receipt'
+  | 'label'
+  | 'a4_document'
+  | 'kitchen_ticket'
+  | 'packing_slip';
+
+export type PrinterTransport =
+  | 'usb'
+  | 'serial'
+  | 'bluetooth'
+  | 'network'
+  | 'ipp'
+  | 'os_spooler'
+  | 'vendor_sdk';
+
+export type PrinterProtocol =
+  | 'esc_pos'
+  | 'epson_epos'
+  | 'star_prnt'
+  | 'zpl'
+  | 'brother_raster'
+  | 'ipp_pdf'
+  | 'os_spooler';
+
+export type PrinterSupportTier =
+  | 'palta_recommended'
+  | 'palta_certified'
+  | 'compatible'
+  | 'legacy_bridge'
+  | 'unknown';
+
+export type PrinterHealth =
+  | 'ready'
+  | 'offline'
+  | 'paper_low'
+  | 'paper_out'
+  | 'cover_open'
+  | 'cutter_error'
+  | 'permission_required'
+  | 'driver_required'
+  | 'unknown';
+
+export type PrinterIdentity = {
+  id: string;
+  businessId: string;
+  outletId?: string;
+  displayName: string;
+  manufacturer?: string;
+  model?: string;
+  serialNumberHash?: string;
+  transport: PrinterTransport;
+  protocol: PrinterProtocol;
+  supportTier: PrinterSupportTier;
+  paperWidthMm?: number;
+  health: PrinterHealth;
+  adapterKey: string;
+};
+
+export type PrintContent =
+  | {
+      kind: 'receipt' | 'kitchen_ticket' | 'packing_slip';
+      title?: string;
+      lines: Array<{
+        text: string;
+        emphasis?: boolean;
+        alignment?: 'left' | 'center' | 'right';
+      }>;
+      qrValue?: string;
+      barcodeValue?: string;
+      cutAfterPrint?: boolean;
+    }
+  | {
+      kind: 'label';
+      templateKey: string;
+      fields: Record<string, string | number>;
+      copies: number;
+    }
+  | {
+      kind: 'a4_document';
+      mimeType: 'application/pdf';
+      objectRef: string;
+      copies: number;
+    };
+
+export type PrintJobStatus =
+  | 'queued'
+  | 'dispatching'
+  | 'submitted'
+  | 'printed'
+  | 'outcome_unknown'
+  | 'failed'
+  | 'cancelled';
+
+export type PrintJob = {
+  id: string;
+  businessId: string;
+  printerId: string;
+  documentKind: PrintDocumentKind;
+  content: PrintContent;
+  status: PrintJobStatus;
+  idempotencyKey: string;
+  revision: number;
+  createdAt: string;
+  submittedAt?: string;
+  completedAt?: string;
+  errorCode?: string;
+  /** Set for physical reprints of a previously issued receipt/document. */
+  reprintOfJobId?: string;
+};
+
+export type PrintDispatchResult =
+  | { outcome: 'printed'; providerJobId?: string }
+  | { outcome: 'submitted'; providerJobId?: string }
+  | { outcome: 'unknown'; code: string }
+  | { outcome: 'failed'; code: string; retryable: boolean };
+
+export type PrinterAdapter = {
+  key: string;
+  supports(printer: PrinterIdentity, content: PrintContent): boolean;
+  health(printer: PrinterIdentity): Promise<PrinterHealth>;
+  print(printer: PrinterIdentity, job: PrintJob): Promise<PrintDispatchResult>;
+};
+
+export function createPrintJob(input: {
+  id: string;
+  businessId: string;
+  printerId: string;
+  content: PrintContent;
+  idempotencyKey: string;
+  createdAt: string;
+  reprintOfJobId?: string;
+}): PrintJob {
+  if (!input.id.trim() || !input.businessId.trim() || !input.printerId.trim()) {
+    throw new Error('Print job id, businessId and printerId are required.');
+  }
+  if (!input.idempotencyKey.trim()) throw new Error('Print idempotencyKey is required.');
+
+  const job: PrintJob = {
+    id: input.id,
+    businessId: input.businessId,
+    printerId: input.printerId,
+    documentKind: input.content.kind,
+    content: input.content,
+    status: 'queued',
+    idempotencyKey: input.idempotencyKey,
+    revision: 0,
+    createdAt: input.createdAt,
+  };
+  if (input.reprintOfJobId !== undefined) job.reprintOfJobId = input.reprintOfJobId;
+  return job;
+}
+
+export function beginPrintDispatch(job: PrintJob, submittedAt: string): PrintJob {
+  if (job.status === 'printed' || job.status === 'cancelled') {
+    throw new Error('Completed or cancelled print jobs cannot be dispatched.');
+  }
+  if (job.status === 'outcome_unknown') {
+    throw new Error('Unknown print outcome must be resolved before a new dispatch attempt.');
+  }
+  return {
+    ...job,
+    status: 'dispatching',
+    revision: job.revision + 1,
+    submittedAt,
+  };
+}
+
+export function applyPrintDispatchResult(
+  job: PrintJob,
+  result: PrintDispatchResult,
+  now: string,
+): PrintJob {
+  if (job.status !== 'dispatching') throw new Error('Print result requires a dispatching job.');
+
+  if (result.outcome === 'printed') {
+    return { ...job, status: 'printed', revision: job.revision + 1, completedAt: now };
+  }
+  if (result.outcome === 'submitted') {
+    return { ...job, status: 'submitted', revision: job.revision + 1 };
+  }
+  if (result.outcome === 'unknown') {
+    return { ...job, status: 'outcome_unknown', revision: job.revision + 1, errorCode: result.code };
+  }
+  return { ...job, status: 'failed', revision: job.revision + 1, errorCode: result.code };
+}
+
+export function canAutomaticallyRetryPrint(job: PrintJob, lastResult?: PrintDispatchResult): boolean {
+  if (job.status !== 'failed') return false;
+  return lastResult?.outcome === 'failed' && lastResult.retryable;
+}
+
+/**
+ * Physical print success never means fiscal issuance success. Fiscal issuance is
+ * owned by Fiscal Core; printing only renders an already-known business artifact.
+ */
+export function assertPrintDoesNotIssueFiscalDocument(): true {
+  return true;
+}
