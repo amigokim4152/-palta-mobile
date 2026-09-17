@@ -4,6 +4,18 @@ import { randomUUID } from 'node:crypto';
 const host = process.env.PALTA_MOCK_HOST ?? '127.0.0.1';
 const port = Number(process.env.PALTA_MOCK_PORT ?? '8787');
 
+const channelLabels = {
+  instagram: 'Instagram',
+  facebook: 'Facebook',
+  tiktok: 'TikTok',
+  google_business: 'Google',
+  whatsapp: 'WhatsApp',
+  website: 'Sitio web',
+  delivery_marketplace: 'Delivery',
+  marketplace: 'Marketplace',
+  other: 'Otro canal',
+};
+
 const businesses = [
   {
     id: 'biz-taller-1',
@@ -76,7 +88,7 @@ function json(res, status, body) {
     'Cache-Control': 'no-store',
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Authorization, Content-Type, Idempotency-Key',
-    'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
+    'Access-Control-Allow-Methods': 'GET,POST,PUT,OPTIONS',
   });
   res.end(payload);
 }
@@ -93,6 +105,20 @@ function normalize(value) {
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase();
+}
+
+function normalizeSafePublicUrl(value) {
+  if (typeof value !== 'string') return null;
+  const candidate = value.trim();
+  if (!candidate) return null;
+  try {
+    const parsed = new URL(candidate);
+    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return null;
+    if (!parsed.hostname || parsed.username || parsed.password) return null;
+    return parsed.toString();
+  } catch {
+    return null;
+  }
 }
 
 function ownerGuidanceFor(business) {
@@ -126,8 +152,8 @@ function ownerGuidanceFor(business) {
     items.push({
       id: `${business.id}:channels`,
       class: 'free_practical_improvement',
-      title: 'Conecta el canal que ya usas',
-      reason: 'Puedes enlazar Instagram, Facebook, Google, WhatsApp o tu sitio sin dejar de usarlos.',
+      title: 'Agrega los enlaces que ya usas',
+      reason: 'Puedes mostrar Instagram, Facebook, TikTok, Google, WhatsApp o tu sitio. Solo necesitamos el enlace público.',
       target: `/business/manage/${business.id}/channels`,
       action_required: false,
       commercial: 'free',
@@ -157,7 +183,7 @@ const server = http.createServer(async (req, res) => {
     const url = new URL(req.url, `http://${req.headers.host ?? `${host}:${port}`}`);
 
     if (req.method === 'GET' && url.pathname === '/health') {
-      return json(res, 200, { ok: true, service: 'palta-mock-api', version: '0.4.0' });
+      return json(res, 200, { ok: true, service: 'palta-mock-api', version: '0.5.0' });
     }
 
     if (req.method === 'GET' && url.pathname === '/v1/home') {
@@ -267,6 +293,40 @@ const server = http.createServer(async (req, res) => {
         idempotencyBusinessResults.set(idempotencyKey, result);
       }
       return json(res, 201, result);
+    }
+
+    const channelLinksMatch = req.method === 'PUT'
+      ? url.pathname.match(/^\/v1\/business\/([^/]+)\/channel-links$/)
+      : null;
+    if (channelLinksMatch) {
+      const id = decodeURIComponent(channelLinksMatch[1]);
+      const business = businesses.find((item) => item.id === id);
+      if (!business) return json(res, 404, { error: 'business_not_found' });
+
+      const body = await readJson(req);
+      if (!Array.isArray(body.links)) {
+        return json(res, 400, { error: 'links_required' });
+      }
+
+      const safeLinks = [];
+      const seen = new Set();
+      for (const raw of body.links) {
+        const provider = raw?.provider;
+        if (typeof provider !== 'string' || !(provider in channelLabels)) {
+          return json(res, 400, { error: 'unsupported_channel_provider' });
+        }
+        const safeUrl = normalizeSafePublicUrl(raw?.url);
+        if (!safeUrl) return json(res, 400, { error: 'unsafe_public_channel_url' });
+        const key = `${provider}:${safeUrl}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        safeLinks.push({ provider, label: channelLabels[provider], url: safeUrl });
+      }
+
+      // Development adapter: production must also authorize the caller as an
+      // allowed owner/staff member for this business before this replacement.
+      business.channel_links = safeLinks;
+      return json(res, 200, { business_id: business.id, links: safeLinks });
     }
 
     const ownerGuidanceMatch = req.method === 'GET'
