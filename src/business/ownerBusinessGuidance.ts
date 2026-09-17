@@ -1,6 +1,9 @@
 import type { BusinessVerificationStatus } from './businessActionPolicy.js';
 import type { BusinessOperationalState } from './businessOperationalState.js';
-import type { BusinessChannelConnection } from './businessChannelConnection.js';
+import {
+  canExposeChannelLink,
+  type BusinessChannelConnection,
+} from './businessChannelConnection.js';
 import type { OwnerPartnerAction } from './ownerPartnerActions.js';
 
 export type OwnerBusinessGuidanceInput = {
@@ -18,6 +21,12 @@ export type OwnerBusinessGuidanceInput = {
   hasActiveBasicCoupon: boolean;
   followerCount?: number;
   channels?: readonly BusinessChannelConnection[];
+  /**
+   * Aggregate operational evidence only. This should count repeated owner work,
+   * not inspect private unrelated content.
+   */
+  repeatedCrossChannelPublishingCount7d?: number;
+  hasCrossChannelAutomation?: boolean;
   searchAliasOpportunities?: readonly {
     alias: string;
     evidenceRef: string;
@@ -135,19 +144,40 @@ export function buildOwnerBusinessGuidance(
     });
   }
 
-  const activeExternalChannel = (input.channels ?? []).some(
-    (channel) => channel.provider !== 'palta' && channel.status === 'active',
+  const publicExternalChannels = (input.channels ?? []).filter(
+    (channel) => channel.provider !== 'palta' && canExposeChannelLink(channel),
   );
-  if (!activeExternalChannel) {
+  if (publicExternalChannels.length === 0) {
     actions.push({
       id: `${input.businessId}:connect-channel`,
       class: 'free_practical_improvement',
-      title: 'Conecta el canal que ya usas',
-      reason: 'Puedes enlazar Instagram, Facebook, Google, WhatsApp o tu sitio sin dejar de usarlos.',
+      title: 'Agrega los enlaces que ya usas',
+      reason: 'Puedes mostrar Instagram, Facebook, TikTok, Google, WhatsApp o tu sitio para que el cliente llegue con un toque. Solo guardamos el enlace público; no necesitas conectar una API.',
       target: `/business/manage/${encodeURIComponent(input.businessId)}/channels`,
-      evidenceRefs: [`business:${input.businessId}:external-channel:none`],
+      evidenceRefs: [`business:${input.businessId}:public-channel-link:none`],
       actionRequired: false,
       commercial: 'free',
+    });
+  }
+
+  const repeatedPublishing = input.repeatedCrossChannelPublishingCount7d ?? 0;
+  if (
+    publicExternalChannels.length >= 2 &&
+    repeatedPublishing >= 2 &&
+    !input.hasCrossChannelAutomation
+  ) {
+    actions.push({
+      id: `${input.businessId}:cross-channel-automation`,
+      class: 'optional_automation',
+      title: 'Publica una vez en varios canales',
+      reason: 'Estás repitiendo trabajo entre varios canales. Si te sirve, Palta puede automatizar esa tarea cuando el canal sea compatible y esté autorizado.',
+      target: `/business/manage/${encodeURIComponent(input.businessId)}/automation`,
+      evidenceRefs: [
+        `business:${input.businessId}:public-channel-count:${publicExternalChannels.length}`,
+        `business:${input.businessId}:cross-channel-publishing-7d:${repeatedPublishing}`,
+      ],
+      actionRequired: false,
+      commercial: 'may_be_paid',
     });
   }
 
