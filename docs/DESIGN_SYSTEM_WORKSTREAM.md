@@ -101,37 +101,66 @@ Do not request appearance first. Request behavior and semantics first.
 
 ### Gate A — Visual primitives + semantic tokens
 
-Status: IN PROGRESS
+Status: CENTRAL CANDIDATE IMPLEMENTED / DEVICE VALIDATION PENDING
 
-Ready:
+Implemented:
 - semantic state names
 - token namespace contract
 - centralized ownership rule
+- shared TypeScript token interface: `src/ui/tokens.ts`
+- candidate spacing scale
+- candidate radius scale
+- semantic elevation roles
+- typography hierarchy candidate for ES-CL/KO stress testing
+- minimum/preferred touch-target candidate
+- explicit rule that brand colors stay value-unfrozen
 
 Not frozen:
 - brand color values
-- font family/exact type metrics
-- final spacing/radius/elevation numeric scale
+- font family
+- final type metrics
+- final spacing/radius/elevation scale
+- exact motion duration/easing/spring values
+
+Reference: `docs/DESIGN_PRIMITIVES_CANDIDATE_V1.md`.
 
 ### Gate B — Palta Core Icon Set v1
 
-Status: IN PROGRESS
+Status: SEMANTIC REGISTRY IMPLEMENTED / VISUAL GEOMETRY PENDING
 
-Ready:
+Implemented:
 - functional icon/reaction/character separation
 - no random emoji for core branded UI
 - centralized canonical meaning requirement
+- TypeScript icon registry: `src/ui/icons.ts`
+- navigation/action/location/domain/trust/status semantic keys
+- automated duplicate/emoji boundary check
 
 Not frozen:
 - final icon geometry
-- stroke/optical metrics
-- complete icon assets
+- stroke/fill policy
+- optical metrics
+- complete SVG/icon assets
+
+Reference: `docs/PALTA_CORE_ICON_SET_V1.md`.
 
 ### Gate C — Core components + ES/KO length validation
 
-Status: CONTRACT READY / IMPLEMENTATION PENDING
+Status: CONTRACT IMPLEMENTED / RENDER ADAPTERS + LOCALE QA PENDING
 
-Registry v2 defines the first shared primitives, components and patterns. Real component implementation and locale stress tests are still pending.
+Implemented:
+- shared TypeScript UI contracts: `src/ui/contracts.ts`
+- shared export layer: `src/ui/index.ts`
+- Button/Input/Card/BottomSheet/Status/Trust/Empty/Error/Profile contracts
+- Community Post and Local Result cross-domain contracts
+- screen-pattern contract
+
+Pending:
+- React Native adapter/components
+- Web/PWA adapter where needed
+- ES-CL long-copy stress test
+- KO stress test
+- Dynamic Type/font-scale test
 
 ### Gate D — Motion/Haptic/Gesture/Accessibility
 
@@ -139,26 +168,62 @@ Status: BASELINE APPROVED / NUMERIC IMPLEMENTATION PENDING
 
 Meaning categories are stable. Exact duration/easing/spring values require real-device testing.
 
-### Gate E onward
+### Gate E — Cross-surface consistency slice
 
-Pending representative vertical slices and cross-domain adoption.
+Status: STRUCTURAL PROTOTYPE READY / DEVICE REVIEW PENDING
+
+Implemented:
+- Home slice
+- Neighborhood Map + Result Sheet slice
+- Community Feed/Thread slice
+- same candidate spacing/typography/radius hierarchy across all three
+- neutral placeholder palette so unfinished brand colors are not accidentally frozen
+
+References:
+- `docs/DESIGN_VERTICAL_SLICE_V1.md`
+- `prototype/design-system-v1.html`
+
+### Gate F onward
+
+Pending representative real-domain integration and cross-domain regression.
+
+## Automated guardrails
+
+`npm run check:design-system` checks the Design System foundation for:
+
+- required contract/registry files
+- accidental brand hex freeze in `src/ui/tokens.ts`
+- Unicode emoji in the core icon registry
+- duplicate core icon semantic keys
+- required shared semantic component contracts
+- motion remaining explicitly unfrozen until device validation
+- prohibition of domain-specific icon packs
+
+`npm run verify` now includes this check on the Design System branch.
+
+## Verification status
+
+- `src/ui` TypeScript contracts: PASS under TypeScript 5.8.3 strict settings in an isolated equivalent compiler check.
+- GitHub branch-wide CI: NOT VERIFIED; no workflow/status run was attached to the latest Design System commits at review time.
+- real-device UI measurement: NOT VERIFIED.
+- final brand color/font/icon geometry: NOT FROZEN by upstream source, intentionally.
 
 ## First implementation sequence
 
-1. Semantic token interfaces
-2. Typography roles
-3. Shared primitive interfaces
-4. Core action/input/surface components
-5. Header/search/chip/status/trust components
-6. BottomSheet/modal/toast/error/empty/loading states
-7. Icon meaning registry and canonical mappings
-8. Home pattern implementation
-9. Discovery + Map/Sheet pattern implementation
-10. Feed + Thread pattern implementation
-11. Character/expression binding
-12. Accessibility/state/locale QA checklist
-13. Domain adoption guide
-14. Cross-domain regression
+1. Semantic token interfaces — IMPLEMENTED
+2. Typography roles — CANDIDATE IMPLEMENTED
+3. Shared primitive interfaces — IMPLEMENTED
+4. Core action/input/surface contracts — IMPLEMENTED
+5. Header/search/chip/status/trust contracts — REGISTRY READY
+6. BottomSheet/modal/toast/error/empty/loading contracts — REGISTRY READY
+7. Icon meaning registry and canonical mappings — IMPLEMENTED
+8. Home pattern structural prototype — READY
+9. Discovery + Map/Sheet structural prototype — READY
+10. Feed + Thread structural prototype — READY
+11. Character/expression binding — NEXT
+12. Accessibility/state/locale QA checklist — NEXT
+13. Domain adoption guide — READY
+14. Cross-domain regression — PENDING REAL ADAPTERS
 
 ## Design freeze policy
 
