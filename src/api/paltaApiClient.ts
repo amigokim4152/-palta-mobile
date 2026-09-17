@@ -1,5 +1,8 @@
 import type { BusinessCapability } from '../business/businessActionPolicy.js';
-import type { PublicBusinessChannelLink } from '../business/businessChannelConnection.js';
+import type {
+  BusinessChannelProvider,
+  PublicBusinessChannelLink,
+} from '../business/businessChannelConnection.js';
 import type { BusinessOperationalState } from '../business/businessOperationalState.js';
 import type { OwnerPartnerActionClass } from '../business/ownerPartnerActions.js';
 
@@ -88,6 +91,26 @@ export type OwnerBusinessGuidanceApiResponse = {
   business_id: string;
   generated_at?: string;
   items: OwnerBusinessGuidanceApiItem[];
+};
+
+export type BusinessPublicChannelProvider = Exclude<
+  BusinessChannelProvider,
+  'palta' | 'pos'
+>;
+
+/**
+ * Free Business Profile input. It intentionally accepts only provider + public
+ * URL. OAuth tokens, external account ids and automation capabilities belong to
+ * paid/entitled integration endpoints, never this endpoint.
+ */
+export type BusinessPublicChannelLinkInput = {
+  provider: BusinessPublicChannelProvider;
+  url: string;
+};
+
+export type BusinessPublicChannelLinksApiResponse = {
+  business_id: string;
+  links: PublicBusinessChannelLink[];
 };
 
 export type BusinessOnboardingApiInput = {
@@ -207,6 +230,28 @@ export class PaltaApiClient {
       throw new Error('GET /v1/business/{id}/owner-guidance returned invalid guidance');
     }
     return result as OwnerBusinessGuidanceApiResponse;
+  }
+
+  async replaceBusinessPublicChannelLinks(
+    businessId: string,
+    links: readonly BusinessPublicChannelLinkInput[],
+  ): Promise<BusinessPublicChannelLinksApiResponse> {
+    const result = expectObject(
+      await this.request(`/v1/business/${encodeURIComponent(businessId)}/channel-links`, {
+        method: 'PUT',
+        body: {
+          links: links.map((link) => ({
+            provider: link.provider,
+            url: link.url,
+          })),
+        },
+      }),
+      'PUT /v1/business/{id}/channel-links',
+    );
+    if (typeof result.business_id !== 'string' || !Array.isArray(result.links)) {
+      throw new Error('PUT /v1/business/{id}/channel-links returned invalid links');
+    }
+    return result as BusinessPublicChannelLinksApiResponse;
   }
 
   async submitBusinessOnboarding(input: BusinessOnboardingApiInput): Promise<BusinessOnboardingApiResult> {
