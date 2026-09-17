@@ -22,8 +22,14 @@
       }
     ]
   },
+  "secrets": {
+    "required": [
+      "PALTA_CREDENTIAL_KEK_V1"
+    ]
+  },
   "vars": {
     "PALTA_RUNTIME": "payment_worker",
-    "OUTBOX_LEASE_SECONDS": "30"
+    "OUTBOX_LEASE_SECONDS": "30",
+    "PALTA_CREDENTIAL_KEK_CURRENT_ID": "kek-v1"
   }
 }
