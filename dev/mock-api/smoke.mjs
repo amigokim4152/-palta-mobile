@@ -23,6 +23,38 @@ const businessId = local.body.items[0].entity_id;
 const business = await json(`/v1/business/${encodeURIComponent(businessId)}`);
 assert(business.response.ok && business.body.id === businessId, 'business detail failed');
 
+const channelLinks = await json(`/v1/business/${encodeURIComponent(businessId)}/channel-links`, {
+  method: 'PUT',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    links: [
+      { provider: 'instagram', url: 'https://www.instagram.com/palta-demo/' },
+      { provider: 'website', url: 'https://example.cl/' },
+    ],
+  }),
+});
+assert(channelLinks.response.ok, 'public channel link update failed');
+assert(channelLinks.body.links.length === 2, 'public channel link update should return two links');
+
+const businessAfterLinks = await json(`/v1/business/${encodeURIComponent(businessId)}`);
+assert(
+  businessAfterLinks.response.ok && businessAfterLinks.body.channel_links.length === 2,
+  'public channel links should persist on the canonical mock Business',
+);
+
+const unsafeChannelLink = await json(`/v1/business/${encodeURIComponent(businessId)}/channel-links`, {
+  method: 'PUT',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    links: [{ provider: 'website', url: 'javascript:alert(1)' }],
+  }),
+});
+assert(
+  unsafeChannelLink.response.status === 400 &&
+    unsafeChannelLink.body.error === 'unsafe_public_channel_url',
+  'unsafe public channel links must be rejected',
+);
+
 const idempotencyKey = 'smoke-quote-1';
 const care = await json('/v1/care', {
   method: 'POST',
@@ -38,7 +70,6 @@ const care = await json('/v1/care', {
   }),
 });
 assert(care.response.status === 201 && care.body.state === 'wait', 'care create failed');
-
 
 const careRepeat = await json('/v1/care', {
   method: 'POST',
@@ -66,5 +97,6 @@ console.log(JSON.stringify({
   homeItems: home.body.items.length,
   localItems: local.body.items.length,
   businessId,
+  publicChannelLinks: businessAfterLinks.body.channel_links.length,
   careId: care.body.id,
 }, null, 2));
