@@ -1,5 +1,6 @@
 export type BridgeTransport = 'local_network' | 'ethernet' | 'wifi';
 export type BridgePrinterTransport = 'usb' | 'serial' | 'bluetooth_classic' | 'bluetooth_le' | 'network';
+export type PrintBridgeProtocolVersion = 1 | 2;
 
 export type PrintBridgeIdentity = {
   bridgeId: string;
@@ -8,7 +9,7 @@ export type PrintBridgeIdentity = {
   displayName: string;
   publicKeyFingerprint: string;
   softwareVersion: string;
-  protocolVersion: 1;
+  protocolVersion: PrintBridgeProtocolVersion;
   transports: BridgeTransport[];
   advertisedService: '_palta-print._tcp';
 };
@@ -40,7 +41,7 @@ export type BridgePairingResult = {
 };
 
 export type BridgePrintEnvelope = {
-  protocolVersion: 1;
+  protocolVersion: PrintBridgeProtocolVersion;
   requestId: string;
   bridgeId: string;
   printerEndpointId: string;
@@ -58,6 +59,39 @@ export type BridgePrintAck = {
   code?: string;
 };
 
+/**
+ * Protocol v2 adds a durable status ledger. The query never causes printing; it
+ * only asks what happened to an already-known idempotent physical print request.
+ */
+export type BridgePrintStatusRequest = {
+  protocolVersion: 2;
+  requestId: string;
+  bridgeId: string;
+  printJobId: string;
+  idempotencyKey: string;
+};
+
+export type BridgePrintStatusResult = {
+  requestId: string;
+  printJobId: string;
+  idempotencyKey: string;
+  outcome:
+    | 'accepted'
+    | 'printed'
+    | 'failed_before_output'
+    | 'unknown'
+    | 'not_found';
+  providerJobId?: string;
+  code?: string;
+  observedAt: string;
+};
+
+export function bridgeSupportsPrintReconciliation(
+  bridge: Pick<PrintBridgeIdentity, 'protocolVersion'>,
+): boolean {
+  return bridge.protocolVersion >= 2;
+}
+
 export function assertValidBridgePairingRequest(request: BridgePairingRequest): void {
   if (!request.bridgeId.trim() || !request.clientDeviceId.trim()) {
     throw new Error('Bridge and client device IDs are required.');
@@ -71,7 +105,9 @@ export function assertValidBridgePairingRequest(request: BridgePairingRequest): 
 }
 
 export function assertValidBridgePrintEnvelope(envelope: BridgePrintEnvelope): void {
-  if (envelope.protocolVersion !== 1) throw new Error('Unsupported Print Bridge protocol version.');
+  if (envelope.protocolVersion !== 1 && envelope.protocolVersion !== 2) {
+    throw new Error('Unsupported Print Bridge protocol version.');
+  }
   if (!envelope.requestId.trim() || !envelope.bridgeId.trim() || !envelope.printerEndpointId.trim()) {
     throw new Error('Bridge print envelope identifiers are required.');
   }
@@ -80,6 +116,40 @@ export function assertValidBridgePrintEnvelope(envelope: BridgePrintEnvelope): v
   }
   if (!envelope.artifactRef.trim() || !/^[a-f0-9]{64}$/i.test(envelope.artifactSha256)) {
     throw new Error('Bridge print envelope requires an artifact reference and SHA-256 digest.');
+  }
+}
+
+export function assertValidBridgePrintStatusRequest(request: BridgePrintStatusRequest): void {
+  if (request.protocolVersion !== 2) {
+    throw new Error('Print status reconciliation requires Print Bridge protocol v2.');
+  }
+  if (!request.requestId.trim() || !request.bridgeId.trim()) {
+    throw new Error('Bridge status request identifiers are required.');
+  }
+  if (!request.printJobId.trim() || !request.idempotencyKey.trim()) {
+    throw new Error('Bridge status request requires printJobId and idempotencyKey.');
+  }
+}
+
+export function assertBridgeStatusMatchesRequest(
+  request: BridgePrintStatusRequest,
+  result: BridgePrintStatusResult,
+): void {
+  if (
+    result.requestId !== request.requestId ||
+    result.printJobId !== request.printJobId ||
+    result.idempotencyKey !== request.idempotencyKey
+  ) {
+    throw new Error('Bridge print status response does not match the requested print operation.');
+  }
+  if (result.providerJobId !== undefined && !result.providerJobId.trim()) {
+    throw new Error('Bridge providerJobId cannot be blank.');
+  }
+  if (result.code !== undefined && !result.code.trim()) {
+    throw new Error('Bridge print status code cannot be blank.');
+  }
+  if (!Number.isFinite(Date.parse(result.observedAt))) {
+    throw new Error('Bridge print status observedAt must be a valid timestamp.');
   }
 }
 
