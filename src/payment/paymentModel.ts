@@ -5,6 +5,12 @@ export type PaymentRail =
   | 'cash'
   | 'other';
 
+export type CardFundingType =
+  | 'debit'
+  | 'credit'
+  | 'prepaid'
+  | 'unknown';
+
 export type PaymentStatus =
   | 'created'
   | 'pending'
@@ -62,6 +68,15 @@ export type PaymentIntent = {
   authorizationCode?: string;
   cardBrand?: string;
   cardLast4?: string;
+  /**
+   * Provider-confirmed card funding classification. POS UI should not require a
+   * cashier to preselect debit/credit when the terminal can determine it.
+   */
+  cardFundingType?: CardFundingType;
+  /** Provider-confirmed installment count when the card transaction exposes it. */
+  installmentCount?: number;
+  /** Provider-confirmed per-installment amount when exposed by the terminal/provider. */
+  installmentAmount?: Money;
   fee?: Money;
   settlementStatus: SettlementStatus;
   settlementReference?: string;
