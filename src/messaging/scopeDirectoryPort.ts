@@ -29,6 +29,7 @@ export interface ConversationScopeDirectoryPort {
   ): Promise<EnsureConversationScopeResult>;
 
   attachResource(input: {
+    conversationId: string;
     scopeId: string;
     resource: ConversationScopeResourceRef;
   }): Promise<ConversationScopeResourceRef>;
