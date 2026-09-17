@@ -85,6 +85,14 @@ export type BusinessOperatingRulesProjection = Readonly<{
   override?: BusinessOperationalOverride;
 }>;
 
+export type BusinessOperatingStateInput = Readonly<{
+  override?: BusinessOperationalOverride;
+  scheduledOpenNow?: boolean;
+  scheduledClosedToday?: boolean;
+  scheduleConfirmedAt?: string;
+  scheduleNextOpenAt?: string;
+}>;
+
 const WEEKDAYS: readonly BusinessWeekday[] = [
   'sunday',
   'monday',
@@ -242,13 +250,18 @@ function scheduleForDate(
   };
 }
 
-function intervalContainsMinute(interval: BusinessOperatingInterval, minute: number): boolean {
+/** Current-date overnight intervals count only after their opening time. */
+function intervalContainsOnStartDate(
+  interval: BusinessOperatingInterval,
+  minute: number,
+): boolean {
   const opens = minuteOfDay(interval.opensAt);
   const closes = minuteOfDay(interval.closesAt);
   if (opens < closes) return minute >= opens && minute < closes;
-  return minute >= opens || minute < closes;
+  return minute >= opens;
 }
 
+/** After-midnight portion belongs to the previous local date's overnight rule. */
 function previousDayOvernightContains(
   rules: BusinessOperatingRules,
   localDate: string,
@@ -268,8 +281,8 @@ function opensLaterToday(
   minute: number,
 ): string | undefined {
   const candidates = intervals
-    .map((interval) => ({ interval, opens: minuteOfDay(interval.opensAt), closes: minuteOfDay(interval.closesAt) }))
-    .filter(({ opens, closes }) => opens < closes && opens > minute)
+    .map((interval) => ({ interval, opens: minuteOfDay(interval.opensAt) }))
+    .filter(({ opens }) => opens > minute)
     .sort((a, b) => a.opens - b.opens);
   return candidates[0]?.interval.opensAt;
 }
@@ -280,9 +293,11 @@ function findNextOpenLocal(
   localTime: string,
 ): BusinessLocalOpening | undefined {
   const minute = minuteOfDay(localTime);
-  const today = scheduleForDate(rules, localDate);
-  const laterToday = opensLaterToday(today.intervals, minute);
-  if (laterToday) return { localDate, localTime: laterToday };
+  if (!activeSeasonalClosure(localDate, rules.seasonalClosures ?? [])) {
+    const today = scheduleForDate(rules, localDate);
+    const laterToday = opensLaterToday(today.intervals, minute);
+    if (laterToday) return { localDate, localTime: laterToday };
+  }
 
   for (let offset = 1; offset <= 370; offset += 1) {
     const candidateDate = addLocalDays(localDate, offset);
@@ -418,7 +433,7 @@ export function projectBusinessOperatingRules(input: {
   }
 
   const openFromToday = schedule.intervals.some((interval) =>
-    intervalContainsMinute(interval, minute),
+    intervalContainsOnStartDate(interval, minute),
   );
   const openFromPreviousOvernight = previousDayOvernightContains(
     input.rules,
@@ -436,10 +451,47 @@ export function projectBusinessOperatingRules(input: {
     localDate: input.clock.localDate,
     localTime: input.clock.localTime,
     scheduledOpenNow,
-    scheduledClosedToday: schedule.intervals.length === 0,
+    scheduledClosedToday: !scheduledOpenNow && schedule.intervals.length === 0,
     scheduleConfirmedAt: input.rules.confirmedAt,
     activeScheduleSource: schedule.source,
     ...(schedule.sourceId ? { activeScheduleId: schedule.sourceId } : {}),
     ...(nextOpenLocal ? { nextOpenLocal } : {}),
+  };
+}
+
+/**
+ * Bridges normalized owner rules into the existing operational-state resolver.
+ * Conversion of a future local opening to an absolute instant is injected by the
+ * time adapter so this domain module never guesses DST/offset rules.
+ */
+export function businessOperatingRulesToOperationalInput(
+  projection: BusinessOperatingRulesProjection,
+  localOpeningToInstant?: (
+    opening: BusinessLocalOpening,
+    timezone: string,
+  ) => string | undefined,
+): BusinessOperatingStateInput {
+  const nextOpenAt = projection.nextOpenLocal && localOpeningToInstant
+    ? localOpeningToInstant(projection.nextOpenLocal, projection.timezone)
+    : undefined;
+
+  if (projection.override) {
+    return {
+      override: {
+        ...projection.override,
+        ...(nextOpenAt ? { nextOpenAt } : {}),
+      },
+    };
+  }
+
+  return {
+    ...(projection.scheduledOpenNow !== undefined
+      ? { scheduledOpenNow: projection.scheduledOpenNow }
+      : {}),
+    ...(projection.scheduledClosedToday !== undefined
+      ? { scheduledClosedToday: projection.scheduledClosedToday }
+      : {}),
+    scheduleConfirmedAt: projection.scheduleConfirmedAt,
+    ...(nextOpenAt ? { scheduleNextOpenAt: nextOpenAt } : {}),
   };
 }
