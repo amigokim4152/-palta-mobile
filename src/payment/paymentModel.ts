@@ -8,9 +8,12 @@ export type PaymentRail =
 export type PaymentStatus =
   | 'created'
   | 'pending'
+  | 'processing'
   | 'requires_action'
   | 'authorized'
   | 'paid'
+  | 'declined'
+  | 'unknown'
   | 'failed'
   | 'cancelled'
   | 'refund_pending'
@@ -30,13 +33,19 @@ export type Money = {
 
 export type PaymentIntent = {
   id: string; // canonical Palta payment ID
-  orderId: string; // canonical Palta order ID
+  orderId: string; // compatibility: canonical order ID where an order exists
+  commerceTransactionId?: string; // canonical commerce transaction for POS/service/other sales
   merchantId: string; // canonical Palta merchant/business ID
   amount: Money;
   rail: PaymentRail;
   status: PaymentStatus;
   providerKey?: string;
   providerReference?: string;
+  providerPaymentId?: string;
+  terminalId?: string;
+  authorizationCode?: string;
+  cardBrand?: string;
+  cardLast4?: string;
   fee?: Money;
   settlementStatus: SettlementStatus;
   settlementReference?: string;
@@ -48,8 +57,11 @@ export type PaymentIntent = {
 export type PaymentEventType =
   | 'payment_created'
   | 'payment_pending'
+  | 'payment_processing'
   | 'payment_authorized'
   | 'payment_paid'
+  | 'payment_declined'
+  | 'payment_unknown'
   | 'payment_failed'
   | 'payment_cancelled'
   | 'refund_requested'
