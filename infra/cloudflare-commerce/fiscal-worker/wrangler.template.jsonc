@@ -1,0 +1,35 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "palta-fiscal-worker",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-17",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": false,
+  "hyperdrive": [
+    {
+      "binding": "PALTA_DB",
+      "id": "__PALTA_FISCAL_WORKER_HYPERDRIVE_ID__"
+    }
+  ],
+  "queues": {
+    "consumers": [
+      {
+        "queue": "__PALTA_FISCAL_QUEUE__",
+        "max_batch_size": 5,
+        "max_batch_timeout": 2,
+        "max_retries": 5,
+        "dead_letter_queue": "__PALTA_FISCAL_DLQ__"
+      }
+    ]
+  },
+  "r2_buckets": [
+    {
+      "binding": "FISCAL_ARCHIVE",
+      "bucket_name": "__PALTA_FISCAL_ARCHIVE_BUCKET__"
+    }
+  ],
+  "vars": {
+    "PALTA_RUNTIME": "fiscal_worker",
+    "OUTBOX_LEASE_SECONDS": "60"
+  }
+}
