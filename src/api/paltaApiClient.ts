@@ -43,6 +43,28 @@ export type BusinessApiPostSummary = {
   published_at?: string;
 };
 
+export type BusinessBasicCouponApiItem = {
+  id: string;
+  title: string;
+  description?: string;
+  redemption_instruction?: string;
+  audience: 'public' | 'followers';
+  expires_at?: string;
+};
+
+export type BusinessBasicCouponsApiResponse = {
+  business_id: string;
+  items: BusinessBasicCouponApiItem[];
+};
+
+export type BusinessBasicCouponUpsertInput = {
+  title: string;
+  description?: string;
+  redemptionInstruction?: string;
+  audience: 'public' | 'followers';
+  expiresAt: string;
+};
+
 /**
  * Public Business Profile projection.
  *
@@ -270,6 +292,56 @@ export class PaltaApiClient {
       throw new Error('PUT /v1/business/{id}/relationship returned invalid relationship');
     }
     return result as BusinessRelationshipApiResponse;
+  }
+
+  async getBusinessBasicCoupons(businessId: string): Promise<BusinessBasicCouponsApiResponse> {
+    const result = expectObject(
+      await this.request(`/v1/business/${encodeURIComponent(businessId)}/basic-coupons`),
+      'GET /v1/business/{id}/basic-coupons',
+    );
+    if (typeof result.business_id !== 'string' || !Array.isArray(result.items)) {
+      throw new Error('GET /v1/business/{id}/basic-coupons returned invalid coupons');
+    }
+    return result as BusinessBasicCouponsApiResponse;
+  }
+
+  async upsertBusinessBasicCoupon(
+    businessId: string,
+    input: BusinessBasicCouponUpsertInput,
+  ): Promise<BusinessBasicCouponsApiResponse> {
+    const result = expectObject(
+      await this.request(`/v1/business/${encodeURIComponent(businessId)}/basic-coupon`, {
+        method: 'PUT',
+        body: {
+          title: input.title,
+          ...(input.description ? { description: input.description } : {}),
+          ...(input.redemptionInstruction
+            ? { redemption_instruction: input.redemptionInstruction }
+            : {}),
+          audience: input.audience,
+          expires_at: input.expiresAt,
+        },
+      }),
+      'PUT /v1/business/{id}/basic-coupon',
+    );
+    if (typeof result.business_id !== 'string' || !Array.isArray(result.items)) {
+      throw new Error('PUT /v1/business/{id}/basic-coupon returned invalid coupons');
+    }
+    return result as BusinessBasicCouponsApiResponse;
+  }
+
+  async revokeBusinessBasicCoupon(businessId: string): Promise<BusinessBasicCouponsApiResponse> {
+    const result = expectObject(
+      await this.request(`/v1/business/${encodeURIComponent(businessId)}/basic-coupon`, {
+        method: 'PUT',
+        body: { status: 'revoked' },
+      }),
+      'PUT /v1/business/{id}/basic-coupon',
+    );
+    if (typeof result.business_id !== 'string' || !Array.isArray(result.items)) {
+      throw new Error('PUT /v1/business/{id}/basic-coupon returned invalid coupons');
+    }
+    return result as BusinessBasicCouponsApiResponse;
   }
 
   async getOwnerBusinessGuidance(businessId: string): Promise<OwnerBusinessGuidanceApiResponse> {
