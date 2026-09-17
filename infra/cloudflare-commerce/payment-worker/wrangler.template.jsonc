@@ -1,0 +1,29 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "palta-payment-worker",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-17",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": false,
+  "hyperdrive": [
+    {
+      "binding": "PALTA_DB",
+      "id": "__PALTA_PAYMENT_WORKER_HYPERDRIVE_ID__"
+    }
+  ],
+  "queues": {
+    "consumers": [
+      {
+        "queue": "__PALTA_PAYMENT_QUEUE__",
+        "max_batch_size": 10,
+        "max_batch_timeout": 2,
+        "max_retries": 5,
+        "dead_letter_queue": "__PALTA_PAYMENT_DLQ__"
+      }
+    ]
+  },
+  "vars": {
+    "PALTA_RUNTIME": "payment_worker",
+    "OUTBOX_LEASE_SECONDS": "30"
+  }
+}
