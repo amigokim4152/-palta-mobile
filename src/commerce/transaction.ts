@@ -26,6 +26,7 @@ export type CommerceTransaction = {
   id: string;
   businessId: string;
   idempotencyKey: string;
+  revision: number;
   state: CommerceTransactionState;
   currency: string;
   totalAmountMinor: number;
@@ -70,6 +71,13 @@ export function calculateLineAmountMinor(quantity: number, unitAmountMinor: numb
   return amount;
 }
 
+function nextRevision(transaction: CommerceTransaction): number {
+  if (!Number.isSafeInteger(transaction.revision) || transaction.revision < 0) {
+    throw new Error('Commerce transaction revision must be a non-negative safe integer.');
+  }
+  return transaction.revision + 1;
+}
+
 export function createCommerceTransaction(input: {
   id: string;
   businessId: string;
@@ -101,6 +109,7 @@ export function createCommerceTransaction(input: {
     id: input.id,
     businessId: input.businessId,
     idempotencyKey: input.idempotencyKey,
+    revision: 0,
     state: 'draft',
     currency: input.currency ?? 'CLP',
     totalAmountMinor,
@@ -128,7 +137,12 @@ export function transitionCommerceTransaction(
   if (!ALLOWED_TRANSITIONS[transaction.state].includes(next)) {
     throw new Error(`Invalid commerce transaction transition: ${transaction.state} -> ${next}`);
   }
-  return { ...transaction, state: next, updatedAt: occurredAt };
+  return {
+    ...transaction,
+    revision: nextRevision(transaction),
+    state: next,
+    updatedAt: occurredAt,
+  };
 }
 
 export function attachPaymentIntent(
@@ -139,6 +153,7 @@ export function attachPaymentIntent(
   if (transaction.paymentIntentIds.includes(paymentIntentId)) return transaction;
   return {
     ...transaction,
+    revision: nextRevision(transaction),
     paymentIntentIds: [...transaction.paymentIntentIds, paymentIntentId],
     updatedAt: occurredAt,
   };
@@ -152,6 +167,7 @@ export function attachFiscalRequest(
   if (transaction.fiscalRequestIds.includes(fiscalRequestId)) return transaction;
   return {
     ...transaction,
+    revision: nextRevision(transaction),
     fiscalRequestIds: [...transaction.fiscalRequestIds, fiscalRequestId],
     updatedAt: occurredAt,
   };
