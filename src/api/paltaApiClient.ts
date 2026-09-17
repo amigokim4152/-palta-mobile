@@ -77,6 +77,19 @@ export type BusinessApiDetail = {
   };
 };
 
+export type BusinessRelationshipApiResponse = {
+  business_id: string;
+  saved: boolean;
+  following: boolean;
+  regular_customer: boolean;
+  updated_at?: string;
+};
+
+export type BusinessRelationshipUpdate = {
+  saved?: boolean;
+  following?: boolean;
+};
+
 export type OwnerBusinessGuidanceApiItem = {
   id: string;
   class: OwnerPartnerActionClass;
@@ -219,6 +232,44 @@ export class PaltaApiClient {
       throw new Error('GET /v1/business/{id} returned invalid business');
     }
     return result as BusinessApiDetail;
+  }
+
+  async getBusinessRelationship(businessId: string): Promise<BusinessRelationshipApiResponse> {
+    const result = expectObject(
+      await this.request(`/v1/business/${encodeURIComponent(businessId)}/relationship`),
+      'GET /v1/business/{id}/relationship',
+    );
+    if (
+      typeof result.business_id !== 'string' ||
+      typeof result.saved !== 'boolean' ||
+      typeof result.following !== 'boolean' ||
+      typeof result.regular_customer !== 'boolean'
+    ) {
+      throw new Error('GET /v1/business/{id}/relationship returned invalid relationship');
+    }
+    return result as BusinessRelationshipApiResponse;
+  }
+
+  async updateBusinessRelationship(
+    businessId: string,
+    update: BusinessRelationshipUpdate,
+  ): Promise<BusinessRelationshipApiResponse> {
+    const result = expectObject(
+      await this.request(`/v1/business/${encodeURIComponent(businessId)}/relationship`, {
+        method: 'PUT',
+        body: update,
+      }),
+      'PUT /v1/business/{id}/relationship',
+    );
+    if (
+      typeof result.business_id !== 'string' ||
+      typeof result.saved !== 'boolean' ||
+      typeof result.following !== 'boolean' ||
+      typeof result.regular_customer !== 'boolean'
+    ) {
+      throw new Error('PUT /v1/business/{id}/relationship returned invalid relationship');
+    }
+    return result as BusinessRelationshipApiResponse;
   }
 
   async getOwnerBusinessGuidance(businessId: string): Promise<OwnerBusinessGuidanceApiResponse> {
