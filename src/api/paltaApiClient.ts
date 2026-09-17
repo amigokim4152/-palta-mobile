@@ -1,3 +1,5 @@
+import type { BusinessCapability } from '../business/businessActionPolicy.js';
+
 export type FetchLike = (
   input: string,
   init?: { method?: string; headers?: Record<string, string>; body?: string },
@@ -26,14 +28,40 @@ export type LocalSearchItem = {
   location: { lat: number; lng: number };
 };
 
+export type BusinessApiPostSummary = {
+  id: string;
+  title: string;
+  published_at?: string;
+};
+
+/**
+ * Public Business Profile projection.
+ *
+ * Free profile data and enabled capability projection are deliberately separate.
+ * `enabled_capabilities` says what this Business can currently offer; it does not
+ * say whether the capability was granted free, through subscription, transaction
+ * policy, promotion, trial or another Entitlement/Access rule.
+ */
 export type BusinessApiDetail = {
   id: string;
   name: string;
   category_key?: string;
   verification_status: 'unverified' | 'claimed' | 'verified' | 'suspended';
   opening_status?: string;
+  description?: string;
+  hours_summary?: string;
+  service_labels?: string[];
+  service_area_labels?: string[];
+  photo_urls?: string[];
+  posts?: BusinessApiPostSummary[];
+  enabled_capabilities?: BusinessCapability[];
   location?: { lat: number; lng: number };
-  contact?: { phone?: string; whatsapp?: string };
+  contact?: {
+    phone?: string;
+    whatsapp?: string;
+    website?: string;
+    instagram?: string;
+  };
 };
 
 export type BusinessOnboardingApiInput = {
