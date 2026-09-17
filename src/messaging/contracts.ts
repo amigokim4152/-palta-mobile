@@ -91,14 +91,22 @@ export interface ConversationScopeResourceRef extends ResourceRef {
   accessMode?: ScopeAccessMode;
 }
 
-export interface MessageAttachment {
-  attachmentId: string;
-  messageId: string;
-  mediaId: string;
+/**
+ * Client/server attachment input after Asset Core upload, before a canonical
+ * MessageAttachment ID exists. assetId is a Palta provider-neutral asset ID,
+ * never an R2/S3/Cloudinary URL or provider object key.
+ */
+export interface MessageAttachmentDraft {
+  assetId: string;
   kind: AttachmentKind;
   mimeType: string;
   sizeBytes?: number;
   durationMs?: number;
+}
+
+export interface MessageAttachment extends MessageAttachmentDraft {
+  attachmentId: string;
+  messageId: string;
 }
 
 export interface ActionReference extends ResourceRef {
@@ -118,6 +126,7 @@ export interface Message {
   sequence: number;
   type: MessageType;
   body?: string;
+  attachments?: MessageAttachment[];
   replyToMessageId?: string;
   actionRef?: ActionReference;
   createdAt: string;
