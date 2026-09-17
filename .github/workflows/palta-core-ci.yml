@@ -92,3 +92,5 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -f infra/db/tests/customer_delivery_smoke.sql
       - name: Verify printer device/routing RLS invariants
         run: psql -v ON_ERROR_STOP=1 -f infra/db/tests/print_device_routing_smoke.sql
+      - name: Verify durable print job RLS/idempotency invariants
+        run: psql -v ON_ERROR_STOP=1 -f infra/db/tests/print_job_runtime_smoke.sql
