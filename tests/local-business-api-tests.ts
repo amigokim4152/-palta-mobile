@@ -226,4 +226,66 @@ const revokedCoupons = await couponClient.revokeBusinessBasicCoupon('biz-test');
 assert(couponRequestBody?.['status'] === 'revoked', 'Coupon revocation should be explicit and simple.');
 assert(revokedCoupons.items.length === 0, 'Revoked coupon should disappear from the active projection.');
 
-console.log('PASS: Local Business onboarding privacy + owner guidance + public links + relationship + coupon API');
+let postRequestPath = '';
+let postRequestMethod = '';
+let postRequestBody: Record<string, unknown> | null = null;
+let postRequestHeaders: Record<string, string> | undefined;
+const postClient = new PaltaApiClient({
+  baseUrl: 'https://api.test',
+  fetch: async (input, init) => {
+    postRequestPath = input;
+    postRequestMethod = init?.method ?? 'GET';
+    postRequestBody = init?.body
+      ? JSON.parse(init.body) as Record<string, unknown>
+      : null;
+    postRequestHeaders = init?.headers;
+    const archived = postRequestBody?.['status'] === 'archived';
+    return {
+      ok: true,
+      status: archived ? 200 : 201,
+      async json() {
+        return {
+          business_id: 'biz-test',
+          items: archived
+            ? []
+            : [{
+                id: 'post-1',
+                title: String(postRequestBody?.['title'] ?? 'Novedad'),
+                ...(typeof postRequestBody?.['body'] === 'string'
+                  ? { body: postRequestBody['body'] }
+                  : {}),
+                published_at: '2026-09-17T13:30:00-03:00',
+              }],
+        };
+      },
+    };
+  },
+});
+const postResult = await postClient.publishBusinessBasicPost('biz-test', {
+  title: 'Abrimos también este sábado',
+  body: 'Atenderemos de 10:00 a 14:00.',
+  idempotencyKey: 'post-request-1',
+});
+assert(
+  postRequestPath.endsWith('/v1/business/biz-test/basic-posts'),
+  'Free business news should use the business-scoped basic-post endpoint.',
+);
+assert(postRequestMethod === 'POST', 'Publishing a new business post should create a new resource.');
+assert(postRequestHeaders?.['Idempotency-Key'] === 'post-request-1', 'Post publish should carry an idempotency key for safe retry.');
+assert(postRequestBody?.['title'] === 'Abrimos también este sábado', 'Post publish should preserve the title.');
+assert(postRequestBody?.['body'] === 'Atenderemos de 10:00 a 14:00.', 'Post publish should preserve the body.');
+assert(!('schedule_at' in (postRequestBody ?? {})), 'Free basic post must not embed scheduled publishing.');
+assert(!('segment_id' in (postRequestBody ?? {})), 'Free basic post must not embed campaign segmentation.');
+assert(!('channels' in (postRequestBody ?? {})), 'Free basic post must not self-enable cross-channel automation.');
+assert(postResult.items[0]?.body === 'Atenderemos de 10:00 a 14:00.', 'Basic post API should return the profile projection.');
+
+const archivedPosts = await postClient.archiveBusinessBasicPost('biz-test', 'post-1');
+assert(
+  postRequestPath.endsWith('/v1/business/biz-test/basic-posts/post-1'),
+  'Archiving a post should target the exact business-scoped post resource.',
+);
+assert(postRequestMethod === 'PUT', 'Archiving the free post should use explicit state replacement.');
+assert(postRequestBody?.['status'] === 'archived', 'Post archive should send only explicit archived state.');
+assert(archivedPosts.items.length === 0, 'Archived post should disappear from the active projection.');
+
+console.log('PASS: Local Business onboarding privacy + owner guidance + public links + relationship + coupon + post API');
