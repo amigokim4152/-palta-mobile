@@ -1,0 +1,29 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "palta-commerce-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-17",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "hyperdrive": [
+    {
+      "binding": "PALTA_DB",
+      "id": "__PALTA_COMMERCE_API_HYPERDRIVE_ID__"
+    }
+  ],
+  "queues": {
+    "producers": [
+      {
+        "binding": "PAYMENT_QUEUE",
+        "queue": "__PALTA_PAYMENT_QUEUE__"
+      },
+      {
+        "binding": "FISCAL_QUEUE",
+        "queue": "__PALTA_FISCAL_QUEUE__"
+      }
+    ]
+  },
+  "vars": {
+    "PALTA_RUNTIME": "commerce_api"
+  }
+}
