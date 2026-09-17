@@ -26,8 +26,8 @@ export type DiscoveredPrinterCandidate = {
   candidateId: string;
   displayName: string;
   fingerprint: PrinterDiscoveryFingerprint;
-  transports: PrinterTransport[];
-  protocolHints: PrinterProtocol[];
+  transports: readonly PrinterTransport[];
+  protocolHints: readonly PrinterProtocol[];
   paperWidthMm?: number;
 };
 
