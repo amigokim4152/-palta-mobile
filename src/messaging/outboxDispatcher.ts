@@ -17,6 +17,9 @@ export interface MessageOutboxDispatchResult {
 function eventTypeFor(outbox: ClaimedOutboxEvent): PaltaEventType | null {
   if (outbox.eventType === 'message.created') return 'message.created';
   if (outbox.eventType === 'participant.read_advanced') return 'message.read_advanced';
+  if (outbox.eventType === 'message.domain_event_projected') {
+    return 'message.domain_event_projected';
+  }
   return null;
 }
 
