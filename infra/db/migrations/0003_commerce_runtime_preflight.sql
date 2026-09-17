@@ -42,7 +42,7 @@ create table if not exists pos_register (
   business_id uuid not null references business(entity_id) on delete restrict,
   name text not null,
   cash_control text not null default 'none' check (cash_control in ('none', 'tracked')),
-  status text not null default 'active' check (status in ('active', 'disabled')),
+  status text not null default 'active' check (status in ('active', 'inactive')),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -84,7 +84,6 @@ create table if not exists pos_cash_entry (
   business_id uuid not null references business(entity_id) on delete restrict,
   session_id uuid not null references pos_session(id) on delete restrict,
   entry_type text not null check (entry_type in (
-    'opening',
     'cash_sale',
     'cash_refund',
     'cash_in',
