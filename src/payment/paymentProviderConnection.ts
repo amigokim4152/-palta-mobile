@@ -39,15 +39,30 @@ const ALLOWED_CONNECTION_TRANSITIONS: Record<
   paused: ['pending_credentials', 'ready_for_test', 'testing', 'connected'],
 };
 
+/**
+ * Runtime execution gate.
+ *
+ * Sandbox may use ready_for_test/testing/connected to support controlled
+ * provider certification flows. Production is intentionally stricter: only a
+ * production connection in connected state may perform an external payment
+ * operation. This prevents a production worker from accidentally charging with
+ * sandbox/testing credentials.
+ */
 export function paymentConnectionCanPerformExternalOperation(
   connection: PaymentProviderConnection,
+  runtimeEnvironment: PaymentProviderEnvironment = 'sandbox',
 ): boolean {
+  if (connection.environment !== runtimeEnvironment) return false;
+  if (!connection.credentialRef?.trim()) return false;
+
+  if (runtimeEnvironment === 'production') {
+    return connection.status === 'connected';
+  }
+
   return (
-    (connection.status === 'ready_for_test' ||
-      connection.status === 'testing' ||
-      connection.status === 'connected') &&
-    typeof connection.credentialRef === 'string' &&
-    connection.credentialRef.trim().length > 0
+    connection.status === 'ready_for_test' ||
+    connection.status === 'testing' ||
+    connection.status === 'connected'
   );
 }
 
