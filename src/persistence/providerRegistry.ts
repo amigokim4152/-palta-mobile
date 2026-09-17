@@ -3,6 +3,9 @@ export type ProviderRole =
   | 'database'
   | 'object_storage'
   | 'edge'
+  | 'async_queue'
+  | 'secret_store'
+  | 'observability'
   | 'notifications'
   | 'maps'
   | 'analytics';
