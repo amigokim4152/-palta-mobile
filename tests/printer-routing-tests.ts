@@ -1,5 +1,8 @@
 import {
   canFailoverAfterDispatch,
+  createFixedPrinterRoute,
+  disablePrinterFallback,
+  enableExplicitPrinterFallback,
   resolvePrinterRoute,
   selectReadyPrinter,
   type PrinterRoute,
@@ -38,33 +41,20 @@ const printerB: PrinterIdentity = {
   displayName: 'Caja 2',
 };
 
-const routes: PrinterRoute[] = [
-  {
-    businessId: 'biz-1',
-    outletId: 'main',
-    role: 'receipt',
-    primaryPrinterId: 'printer-b',
-    fallbackPrinterIds: [],
-  },
-  {
-    businessId: 'biz-1',
-    outletId: 'main',
-    registerId: 'caja-1',
-    role: 'receipt',
-    primaryPrinterId: 'printer-a',
-    fallbackPrinterIds: ['printer-b'],
-    failoverMode: 'disabled',
-  },
-  {
-    businessId: 'biz-1',
-    outletId: 'main',
-    registerId: 'caja-2',
-    role: 'receipt',
-    primaryPrinterId: 'printer-b',
-    fallbackPrinterIds: ['printer-a'],
-    failoverMode: 'disabled',
-  },
-];
+const outletDefault = createFixedPrinterRoute({
+  businessId: 'biz-1', outletId: 'main', role: 'receipt', primaryPrinterId: 'printer-b',
+});
+const caja1Fixed = createFixedPrinterRoute({
+  businessId: 'biz-1', outletId: 'main', registerId: 'caja-1', role: 'receipt', primaryPrinterId: 'printer-a',
+});
+const caja2Fixed = createFixedPrinterRoute({
+  businessId: 'biz-1', outletId: 'main', registerId: 'caja-2', role: 'receipt', primaryPrinterId: 'printer-b',
+});
+
+assert(caja1Fixed.failoverMode === 'disabled', 'Normal printer assignment must disable fallback by default.');
+assert(caja1Fixed.fallbackPrinterIds.length === 0, 'Normal printer assignment must start with no fallback printers.');
+
+const routes: PrinterRoute[] = [outletDefault, caja1Fixed, caja2Fixed];
 
 const caja1Route = resolvePrinterRoute(routes, {
   businessId: 'biz-1', outletId: 'main', registerId: 'caja-1', role: 'receipt',
@@ -100,10 +90,8 @@ assertThrows(
   'Fixed route must not silently switch to another printer when its assigned printer is offline.',
 );
 
-const explicitFallbackRoute: PrinterRoute = {
-  ...caja1Route,
-  failoverMode: 'explicit',
-};
+const explicitFallbackRoute = enableExplicitPrinterFallback(caja1Route, ['printer-b']);
+assert(explicitFallbackRoute.failoverMode === 'explicit', 'Fallback must require the separate explicit setup action.');
 const selectedFallback = selectReadyPrinter({
   route: explicitFallbackRoute,
   printers: [offlineA, printerB],
@@ -111,6 +99,18 @@ const selectedFallback = selectReadyPrinter({
   supports: () => true,
 });
 assert(selectedFallback.id === 'printer-b', 'Fallback printer may be used only after explicit route opt-in.');
+
+const fixedAgain = disablePrinterFallback(explicitFallbackRoute);
+assert(fixedAgain.failoverMode === 'disabled' && fixedAgain.fallbackPrinterIds.length === 0, 'Disabling fallback must restore a single fixed physical printer route.');
+
+assertThrows(
+  () => enableExplicitPrinterFallback(caja1Route, ['printer-a']),
+  'Primary printer must never also be configured as its own fallback.',
+);
+assertThrows(
+  () => enableExplicitPrinterFallback(caja1Route, ['printer-b', 'printer-b']),
+  'Duplicate fallback assignments must be rejected.',
+);
 
 assert(
   !canFailoverAfterDispatch({ outcome: 'failed', code: 'no_connection', retryable: true }),
