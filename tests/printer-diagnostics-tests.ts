@@ -15,6 +15,7 @@ function assertThrows(fn: () => unknown, message: string): void {
   if (!threw) throw new Error(message);
 }
 
+const fingerprintHash = '7'.repeat(64);
 const printer: PrinterIdentity = {
   id: 'printer-1',
   businessId: 'biz-private-do-not-export',
@@ -22,7 +23,7 @@ const printer: PrinterIdentity = {
   manufacturer: 'Epson',
   model: 'TM-T20IV-SP',
   firmwareVersion: '01.02',
-  connectionFingerprint: 'sha256:7b0d9aee',
+  connectionFingerprintHash: fingerprintHash,
   transport: 'network',
   protocol: 'epson_epos',
   supportTier: 'compatible',
@@ -47,7 +48,7 @@ assertSanitizedPrinterDiagnosticPayload(diagnostic as unknown as Record<string, 
 const serialized = JSON.stringify(diagnostic);
 assert(!serialized.includes('biz-private-do-not-export'), 'Support diagnostic must not contain business ID.');
 assert(!serialized.includes('Caja receipt printer'), 'Support diagnostic must not contain user-assigned printer display name.');
-assert(diagnostic.connectionFingerprintHash === 'sha256:7b0d9aee', 'Only the sanitized connection fingerprint may cross the support boundary.');
+assert(diagnostic.connectionFingerprintHash === fingerprintHash, 'Only SHA-256 connection identity may cross the support boundary.');
 
 assertThrows(
   () => assertSanitizedPrinterDiagnosticPayload({ ...diagnostic, receiptText: 'customer purchase details' }),
@@ -70,6 +71,6 @@ const observationJson = JSON.stringify(observation);
 assert(observation.manufacturer === 'Epson' && observation.model === 'TM-T20IV-SP', 'Compatibility observation should retain device family metadata.');
 assert(observation.failureCode === 'EPOS.NETWORK.TIMEOUT', 'Compatibility observation should retain normalized failure code.');
 assert(!observationJson.includes('diag-1'), 'Aggregated compatibility observations should not retain diagnostic IDs.');
-assert(!observationJson.includes('sha256:7b0d9aee'), 'Aggregated compatibility observations should not retain connection fingerprints.');
+assert(!observationJson.includes(fingerprintHash), 'Aggregated compatibility observations should not retain connection fingerprints.');
 
 console.log('printer-diagnostics-tests: ok');
