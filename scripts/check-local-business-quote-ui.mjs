@@ -77,7 +77,7 @@ assert(
   'Quote UI must wait for Shared Media instead of creating a Local Business-only upload path.',
 );
 assert(
-  quote.includes('description.trim().length < 10') && quote.includes('maxLength={2000}'),
+  quote.includes('cleanDescription.length < 10') && quote.includes('maxLength={2000}'),
   'Quote request must require a useful bounded description.',
 );
 
