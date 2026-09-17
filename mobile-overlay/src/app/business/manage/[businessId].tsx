@@ -50,11 +50,12 @@ export default function BusinessOwnerHomeScreen() {
   const loadOwnerHome = useCallback(async () => {
     if (!businessId) throw new Error('Business ID missing');
     if (mobileRuntime.status !== 'ready') throw new Error(mobileRuntime.message);
-    const [business, guidance] = await Promise.all([
+    const [business, guidance, coupons] = await Promise.all([
       mobileRuntime.client.getBusiness(businessId),
       mobileRuntime.client.getOwnerBusinessGuidance(businessId),
+      mobileRuntime.client.getBusinessBasicCoupons(businessId),
     ]);
-    return { business, guidance };
+    return { business, guidance, coupon: coupons.items[0] };
   }, [businessId]);
 
   const { state, refresh } = useAsyncResource(loadOwnerHome);
@@ -77,6 +78,7 @@ export default function BusinessOwnerHomeScreen() {
 
   const business = state.data?.business;
   const guidance = state.data?.guidance;
+  const activeCoupon = state.data?.coupon;
   if (!business || !guidance) return null;
 
   const verificationText =
@@ -130,6 +132,18 @@ export default function BusinessOwnerHomeScreen() {
             router.push(`/business/manage/${encodeURIComponent(business.id)}/channels`)
           }
         />
+        {business.verification_status === 'verified' ? (
+          <OwnerCard
+            title="Cupón básico"
+            body={activeCoupon
+              ? `${activeCoupon.title}${activeCoupon.audience === 'followers' ? ' · Sólo seguidores' : ' · Visible para todos'}`
+              : 'Publica un beneficio simple sin pagar por una campaña, segmentación o automatización.'}
+            badge="SIN COSTO"
+            onPress={() =>
+              router.push(`/business/manage/${encodeURIComponent(business.id)}/coupons`)
+            }
+          />
+        ) : null}
         <Text style={{ opacity: 0.66, lineHeight: 20 }}>
           Tu presencia básica, la información pública y el descubrimiento orgánico no dependen de contratar un módulo adicional.
         </Text>
