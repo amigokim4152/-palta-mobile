@@ -51,6 +51,10 @@ class FakePersistence implements MessagePersistencePort {
   ): Promise<T> {
     const snapshot = {
       conversation: { ...this.conversation },
+      participants: this.participants.map((item) => ({
+        ...item,
+        actor: { ...item.actor },
+      })),
       messages: this.messages.slice(),
       outbox: this.outbox.slice(),
     };
@@ -86,6 +90,28 @@ class FakePersistence implements MessagePersistencePort {
           lastActivityAt: input.lastActivityAt,
         };
       },
+      advanceRead: async (input) => {
+        const index = this.participants.findIndex(
+          (participant) =>
+            participant.conversationId === input.conversationId &&
+            participant.actor.actorType === input.actor.actorType &&
+            participant.actor.actorId === input.actor.actorId &&
+            participant.leftAt === undefined,
+        );
+        if (index < 0) return null;
+        const current = this.participants[index];
+        if (!current) return null;
+        const capped = Math.min(input.throughSequence, this.conversation.lastSequence);
+        const nextRead = Math.max(current.lastReadSequence, capped);
+        const nextDelivered = Math.max(current.lastDeliveredSequence, nextRead);
+        const next = {
+          ...current,
+          lastReadSequence: nextRead,
+          lastDeliveredSequence: nextDelivered,
+        };
+        this.participants[index] = next;
+        return next;
+      },
       insertOutbox: async (event) => {
         if (this.failOutbox) throw new Error('OUTBOX_INSERT_FAILED');
         this.outbox.push(event);
@@ -96,6 +122,7 @@ class FakePersistence implements MessagePersistencePort {
       return await run(tx);
     } catch (error) {
       this.conversation = snapshot.conversation;
+      this.participants = snapshot.participants;
       this.messages = snapshot.messages;
       this.outbox = snapshot.outbox;
       throw error;
@@ -278,5 +305,29 @@ const afterSequenceOne = await service.listAfter({
 });
 assert(afterSequenceOne.length === 1, 'Cursor sync must return only messages after the requested sequence.');
 assert(afterSequenceOne[0]?.messageId === businessReply.message.messageId, 'Cursor sync must preserve conversation order.');
+
+const outboxBeforeRead = persistence.outbox.length;
+const read = await service.advanceRead({
+  principalUserId: 'user-1',
+  conversationId: 'conv-1',
+  actor: userActor,
+  throughSequence: 999,
+  occurredAt: '2026-09-17T19:05:00.000Z',
+});
+assert(read.lastReadSequence === persistence.conversation.lastSequence, 'Read cursor must be capped at canonical conversation sequence.');
+assert(read.lastDeliveredSequence >= read.lastReadSequence, 'Read cursor must also advance delivered cursor.');
+assert(persistence.outbox.length === outboxBeforeRead + 1, 'Forward read movement must emit one outbox event.');
+assert(persistence.outbox.at(-1)?.eventType === 'participant.read_advanced', 'Read movement must emit participant.read_advanced.');
+
+const outboxAfterRead = persistence.outbox.length;
+const readAgain = await service.advanceRead({
+  principalUserId: 'user-1',
+  conversationId: 'conv-1',
+  actor: userActor,
+  throughSequence: 1,
+  occurredAt: '2026-09-17T19:05:10.000Z',
+});
+assert(readAgain.lastReadSequence === read.lastReadSequence, 'Read cursor must never move backwards.');
+assert(persistence.outbox.length === outboxAfterRead, 'Non-advancing read update must not emit duplicate realtime work.');
 
 console.log('Message application service tests passed.');
