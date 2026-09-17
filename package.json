@@ -6,7 +6,7 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "build": "tsc",
-    "test": "npm run build && node dist/tests/run-tests.js && node dist/tests/local-business-onboarding-tests.js && node dist/tests/local-business-service-resolver-tests.js && node dist/tests/local-business-discovery-tests.js && node dist/tests/local-business-api-tests.js && node dist/tests/local-business-profile-tests.js && node dist/tests/local-business-public-web-tests.js",
+    "test": "npm run build && node dist/tests/run-tests.js && node dist/tests/local-business-onboarding-tests.js && node dist/tests/local-business-service-resolver-tests.js && node dist/tests/local-business-discovery-tests.js && node dist/tests/local-business-api-tests.js && node dist/tests/local-business-profile-tests.js && node dist/tests/local-business-public-web-tests.js && node dist/tests/local-business-growth-contract-tests.js",
     "mock:api": "node dev/mock-api/server.mjs",
     "mock:smoke": "node dev/mock-api/smoke.mjs",
     "check:independence": "node scripts/check-core-independence.mjs",
