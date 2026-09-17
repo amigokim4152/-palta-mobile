@@ -1,3 +1,4 @@
+import type { CommerceOutboxEvent } from '../commerce/outbox.js';
 import type { PaymentEvent, PaymentIntent } from '../payment/paymentModel.js';
 
 export type PaymentIntentLookup = {
@@ -15,11 +16,17 @@ export type PaymentAtomicCommit = {
   /** null creates revision 0; a number updates using compare-and-swap. */
   expectedRevision: number | null;
   event: PaymentEvent;
+  /**
+   * Follow-up work that must never be lost between payment state persistence and
+   * asynchronous processing. Example: pending/unknown -> payment.reconcile.
+   */
+  outboxEvents?: readonly CommerceOutboxEvent[];
 };
 
 export type PaymentAtomicCommitResult = {
   intent: PaymentIntent;
   eventInserted: boolean;
+  outboxInsertedIds: readonly string[];
   replayed: boolean;
 };
 
