@@ -108,7 +108,8 @@ function operationalLabel(state?: BusinessOperationalState): string | undefined 
  *
  * One canonical Business produces one canonical public URL. Category/comuna
  * discovery pages may link here, but they must not clone the same Business page
- * under multiple SEO URLs.
+ * under multiple SEO URLs. Publication is fail-closed: only an explicitly
+ * `public` Business may be indexed or enter a sitemap.
  */
 export function buildPublicBusinessWebProjection(
   input: PublicBusinessWebInput,
@@ -134,7 +135,7 @@ export function buildPublicBusinessWebProjection(
     .join(' · ');
   const description = (input.description?.trim() || fallbackDescription).slice(0, 320);
 
-  const noIndex = input.publicationState === 'draft' || input.publicationState === 'duplicate' || input.publicationState === 'invalid';
+  const indexable = input.publicationState === 'public';
   const sameAs = [
     input.websiteUrl,
     input.instagramUrl,
@@ -201,8 +202,8 @@ export function buildPublicBusinessWebProjection(
     canonicalUrl,
     title,
     description,
-    robots: noIndex ? 'noindex,follow' : 'index,follow',
-    sitemapEligible: !noIndex,
+    robots: indexable ? 'index,follow' : 'noindex,follow',
+    sitemapEligible: indexable,
     ...(input.updatedAt || input.operationalConfirmedAt
       ? { lastModified: input.updatedAt ?? input.operationalConfirmedAt }
       : {}),
