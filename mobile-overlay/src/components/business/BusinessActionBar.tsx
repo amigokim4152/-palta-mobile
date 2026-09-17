@@ -6,10 +6,9 @@ import {
 } from '../../../../src/business/businessActionPolicy';
 import { PaltaButton } from '../common/PaltaButton';
 
-const labels: Record<BusinessCapability, string> = {
+const labels: Record<Exclude<BusinessCapability, 'save' | 'follow'>, string> = {
   call: 'Llamar',
   whatsapp: 'WhatsApp',
-  save: 'Guardar',
   quote: 'Cotizar',
   reservation: 'Reservar',
   queue: 'Tomar turno',
@@ -18,13 +17,24 @@ const labels: Record<BusinessCapability, string> = {
   pricing: 'Precios',
 };
 
+function actionLabel(
+  capability: BusinessCapability,
+  relationship: { saved: boolean; following: boolean },
+): string {
+  if (capability === 'save') return relationship.saved ? 'Guardado' : 'Guardar';
+  if (capability === 'follow') return relationship.following ? 'Siguiendo' : 'Seguir';
+  return labels[capability];
+}
+
 export function BusinessActionBar({
   capabilities,
   verificationStatus,
+  relationship = { saved: false, following: false },
   onAction,
 }: {
   capabilities: readonly BusinessCapability[];
   verificationStatus: BusinessVerificationStatus;
+  relationship?: { saved: boolean; following: boolean };
   onAction: (capability: BusinessCapability) => void;
 }) {
   const actions = resolveBusinessActions({
@@ -32,23 +42,28 @@ export function BusinessActionBar({
     verificationStatus,
   });
 
+  const visible = actions.filter(
+    (action) =>
+      action.priority !== 'overflow' ||
+      action.capability === 'save' ||
+      action.capability === 'follow',
+  );
+
   return (
     <View style={{ gap: 10 }}>
-      {actions
-        .filter((action) => action.priority !== 'overflow')
-        .map((action) => (
-          <PaltaButton
-            key={action.capability}
-            label={labels[action.capability]}
-            variant={
-              action.priority === 'primary'
-                ? 'primary'
-                : 'secondary'
-            }
-            disabled={!action.enabled}
-            onPress={() => onAction(action.capability)}
-          />
-        ))}
+      {visible.map((action) => (
+        <PaltaButton
+          key={action.capability}
+          label={actionLabel(action.capability, relationship)}
+          variant={
+            action.priority === 'primary'
+              ? 'primary'
+              : 'secondary'
+          }
+          disabled={!action.enabled}
+          onPress={() => onAction(action.capability)}
+        />
+      ))}
     </View>
   );
 }
