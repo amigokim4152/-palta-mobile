@@ -17,6 +17,7 @@ import {
 } from '../../components/AsyncStateBlock';
 import { ScreenFrame } from '../../components/ScreenFrame';
 import { BusinessActionBar } from '../../components/business/BusinessActionBar';
+import { BusinessPhotoStrip } from '../../components/business/BusinessPhotoStrip';
 import { SectionHeading } from '../../components/common/SectionHeading';
 import { useAsyncResource } from '../../hooks/useAsyncResource';
 import { mobileRuntime } from '../../services/paltaClient';
@@ -312,6 +313,7 @@ export default function BusinessDetailScreen() {
   return (
     <ScreenFrame title={business.name} subtitle={statusLine}>
       <View style={{ gap: 18 }}>
+        <BusinessPhotoStrip photoUrls={business.photo_urls ?? []} />
         <ProfileSection title="Sobre este negocio" body={business.description} />
         <ProfileSection title="Servicios" body={services} />
         <ProfileSection title="Horario" body={business.hours_summary} />
