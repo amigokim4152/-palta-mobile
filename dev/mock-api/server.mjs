@@ -32,7 +32,12 @@ const businesses = [
     service_area_labels: ['Vitacura', 'Las Condes'],
     photo_urls: [],
     posts: [
-      { id: 'post-taller-1', title: 'Agenda disponible esta semana', published_at: '2026-09-16T14:00:00-03:00' },
+      {
+        id: 'post-taller-1',
+        title: 'Agenda disponible esta semana',
+        body: 'Consulta por horario antes de venir.',
+        published_at: '2026-09-16T14:00:00-03:00',
+      },
     ],
     enabled_capabilities: ['quote'],
     channel_links: [
@@ -69,6 +74,7 @@ const businesses = [
 
 const idempotencyCareIds = new Map();
 const idempotencyBusinessResults = new Map();
+const idempotencyPostIds = new Map();
 const businessRelationships = new Map();
 const businessCoupons = new Map([
   ['biz-farmacia-1', {
@@ -183,6 +189,11 @@ function ownerCouponProjection(businessId) {
   return couponProjection(businessCoupons.get(businessId));
 }
 
+function currentPostItems(business) {
+  return [...(business.posts ?? [])]
+    .sort((a, b) => Date.parse(b.published_at ?? '1970-01-01') - Date.parse(a.published_at ?? '1970-01-01'));
+}
+
 function ownerGuidanceFor(business) {
   const items = [];
 
@@ -245,7 +256,7 @@ const server = http.createServer(async (req, res) => {
     const url = new URL(req.url, `http://${req.headers.host ?? `${host}:${port}`}`);
 
     if (req.method === 'GET' && url.pathname === '/health') {
-      return json(res, 200, { ok: true, service: 'palta-mock-api', version: '0.8.0' });
+      return json(res, 200, { ok: true, service: 'palta-mock-api', version: '0.9.0' });
     }
 
     if (req.method === 'GET' && url.pathname === '/v1/home') {
@@ -394,13 +405,8 @@ const server = http.createServer(async (req, res) => {
       const id = decodeURIComponent(ownerCouponMatch[1]);
       const business = businesses.find((item) => item.id === id);
       if (!business) return json(res, 404, { error: 'business_not_found' });
-      // Mock has one development identity. Production must authorize owner/staff
-      // before returning this management projection.
       const coupon = ownerCouponProjection(id);
-      return json(res, 200, {
-        business_id: id,
-        ...(coupon ? { coupon } : {}),
-      });
+      return json(res, 200, { business_id: id, ...(coupon ? { coupon } : {}) });
     }
 
     const couponWriteMatch = req.method === 'PUT'
@@ -453,6 +459,72 @@ const server = http.createServer(async (req, res) => {
       businessCoupons.set(id, coupon);
       business.enabled_capabilities = [...new Set([...(business.enabled_capabilities ?? []), 'coupon'])];
       return json(res, 200, { business_id: id, items: activeCouponItems(id) });
+    }
+
+    const basicPostsCreateMatch = req.method === 'POST'
+      ? url.pathname.match(/^\/v1\/business\/([^/]+)\/basic-posts$/)
+      : null;
+    if (basicPostsCreateMatch) {
+      const id = decodeURIComponent(basicPostsCreateMatch[1]);
+      const business = businesses.find((item) => item.id === id);
+      if (!business) return json(res, 404, { error: 'business_not_found' });
+      if (business.verification_status !== 'verified') {
+        return json(res, 403, { error: 'verified_owner_required' });
+      }
+
+      const idempotencyKey = req.headers['idempotency-key'];
+      if (typeof idempotencyKey === 'string') {
+        const existingId = idempotencyPostIds.get(`${id}:${idempotencyKey}`);
+        if (existingId && (business.posts ?? []).some((post) => post.id === existingId)) {
+          return json(res, 200, { business_id: id, items: currentPostItems(business) });
+        }
+      }
+
+      const body = await readJson(req);
+      if (typeof body.title !== 'string' || !body.title.trim()) {
+        return json(res, 400, { error: 'post_title_required' });
+      }
+      if (body.title.trim().length > 120) {
+        return json(res, 400, { error: 'post_title_too_long' });
+      }
+      if (body.body !== undefined && typeof body.body !== 'string') {
+        return json(res, 400, { error: 'post_body_must_be_string' });
+      }
+      if (typeof body.body === 'string' && body.body.length > 2000) {
+        return json(res, 400, { error: 'post_body_too_long' });
+      }
+
+      const post = {
+        id: `post-${randomUUID()}`,
+        title: body.title.trim(),
+        ...(typeof body.body === 'string' && body.body.trim() ? { body: body.body.trim() } : {}),
+        published_at: new Date().toISOString(),
+      };
+      business.posts = [post, ...(business.posts ?? [])];
+      if (typeof idempotencyKey === 'string') {
+        idempotencyPostIds.set(`${id}:${idempotencyKey}`, post.id);
+      }
+      return json(res, 201, { business_id: id, items: currentPostItems(business) });
+    }
+
+    const basicPostArchiveMatch = req.method === 'PUT'
+      ? url.pathname.match(/^\/v1\/business\/([^/]+)\/basic-posts\/([^/]+)$/)
+      : null;
+    if (basicPostArchiveMatch) {
+      const id = decodeURIComponent(basicPostArchiveMatch[1]);
+      const postId = decodeURIComponent(basicPostArchiveMatch[2]);
+      const business = businesses.find((item) => item.id === id);
+      if (!business) return json(res, 404, { error: 'business_not_found' });
+      if (business.verification_status !== 'verified') {
+        return json(res, 403, { error: 'verified_owner_required' });
+      }
+      const body = await readJson(req);
+      if (body.status !== 'archived') return json(res, 400, { error: 'archived_status_required' });
+      if (!(business.posts ?? []).some((post) => post.id === postId)) {
+        return json(res, 404, { error: 'post_not_found' });
+      }
+      business.posts = (business.posts ?? []).filter((post) => post.id !== postId);
+      return json(res, 200, { business_id: id, items: currentPostItems(business) });
     }
 
     const channelLinksMatch = req.method === 'PUT'
