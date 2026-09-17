@@ -44,6 +44,29 @@ export type MercadoPagoPointOrder = {
   };
 };
 
+export type MercadoPagoPointTerminal = {
+  id: string;
+  pos_id?: string;
+  store_id?: string;
+  external_pos_id?: string;
+  operating_mode: 'PDV' | 'STANDALONE' | 'UNDEFINED' | string;
+};
+
+export type MercadoPagoPointTerminalList = {
+  data?: {
+    terminals?: MercadoPagoPointTerminal[];
+  };
+  paging?: {
+    total?: number;
+    offset?: number;
+    limit?: number;
+  };
+};
+
+export type MercadoPagoPointTerminalSetup = {
+  terminals?: MercadoPagoPointTerminal[];
+};
+
 export type MercadoPagoApiError = {
   code?: string;
   error?: string;
@@ -144,6 +167,29 @@ function throwHttpFailure(
   });
 }
 
+function terminalQuery(input?: {
+  limit?: number;
+  offset?: number;
+  storeId?: string;
+  posId?: string;
+}): string {
+  const limit = input?.limit ?? 50;
+  const offset = input?.offset ?? 0;
+  if (!Number.isSafeInteger(limit) || limit < 1 || limit > 50) {
+    throw new Error('Mercado Pago terminal list limit must be between 1 and 50.');
+  }
+  if (!Number.isSafeInteger(offset) || offset < 0) {
+    throw new Error('Mercado Pago terminal list offset must be a non-negative integer.');
+  }
+  const params = new URLSearchParams({
+    limit: String(limit),
+    offset: String(offset),
+  });
+  if (input?.storeId?.trim()) params.set('store_id', input.storeId.trim());
+  if (input?.posId?.trim()) params.set('pos_id', input.posId.trim());
+  return params.toString();
+}
+
 export class MercadoPagoPointAdapter implements PaymentPort {
   readonly providerKey = 'mercadopago_point';
 
@@ -155,6 +201,84 @@ export class MercadoPagoPointAdapter implements PaymentPort {
 
   supportsRail(rail: CreatePaymentInput['rail']): boolean {
     return rail === 'card' || rail === 'wallet';
+  }
+
+  async listTerminals(input?: {
+    limit?: number;
+    offset?: number;
+    storeId?: string;
+    posId?: string;
+  }): Promise<MercadoPagoPointTerminal[]> {
+    const token = await this.accessTokenProvider();
+    let response: JsonHttpResponse<MercadoPagoPointTerminalList | MercadoPagoApiError>;
+    try {
+      response = await this.http.request<MercadoPagoPointTerminalList | MercadoPagoApiError>({
+        method: 'GET',
+        url: `${this.baseUrl}/terminals/v1/list?${terminalQuery(input)}`,
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+    } catch (error) {
+      if (error instanceof PaymentProviderOperationError) throw error;
+      throw new PaymentProviderOperationError({
+        providerKey: this.providerKey,
+        incidentKind: 'transient_provider_error',
+        message: 'Mercado Pago terminal discovery failed; retry after provider connectivity recovers.',
+      });
+    }
+    if (response.status < 200 || response.status >= 300) {
+      throwHttpFailure('list terminals', response as JsonHttpResponse<MercadoPagoApiError>);
+    }
+    const terminals = (response.body as MercadoPagoPointTerminalList).data?.terminals ?? [];
+    for (const terminal of terminals) {
+      if (!terminal.id?.trim() || !terminal.operating_mode?.trim()) {
+        throw new Error('Mercado Pago terminal response is missing canonical terminal identity or operating mode.');
+      }
+    }
+    return terminals.map((terminal) => ({ ...terminal }));
+  }
+
+  async configureTerminalPdv(terminalId: string): Promise<MercadoPagoPointTerminal> {
+    if (!terminalId.trim()) throw new Error('Mercado Pago terminalId is required for PDV setup.');
+    const token = await this.accessTokenProvider();
+    let response: JsonHttpResponse<MercadoPagoPointTerminalSetup | MercadoPagoApiError>;
+    try {
+      response = await this.http.request<MercadoPagoPointTerminalSetup | MercadoPagoApiError>({
+        method: 'PATCH',
+        url: `${this.baseUrl}/terminals/v1/setup`,
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: {
+          terminals: [
+            {
+              id: terminalId,
+              operating_mode: 'PDV',
+            },
+          ],
+        },
+      });
+    } catch (error) {
+      if (error instanceof PaymentProviderOperationError) throw error;
+      throw new PaymentProviderOperationError({
+        providerKey: this.providerKey,
+        incidentKind: 'transient_provider_error',
+        message: 'Mercado Pago terminal PDV setup failed before confirmation; verify terminal mode before retrying.',
+      });
+    }
+    if (response.status < 200 || response.status >= 300) {
+      throwHttpFailure('configure terminal PDV mode', response as JsonHttpResponse<MercadoPagoApiError>);
+    }
+    const terminal = (response.body as MercadoPagoPointTerminalSetup).terminals?.find(
+      (candidate) => candidate.id === terminalId,
+    );
+    if (!terminal || terminal.operating_mode !== 'PDV') {
+      throw new Error('Mercado Pago did not confirm PDV mode for the requested terminal.');
+    }
+    return { ...terminal };
   }
 
   async createPayment(input: CreatePaymentInput): Promise<CreatePaymentResult> {
