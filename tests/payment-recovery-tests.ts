@@ -38,6 +38,7 @@ function payment(status: PaymentIntent['status'], providerReference?: string): P
 
 const originalRequest: CreatePaymentInput = {
   canonicalPaymentId: 'pay-1',
+  canonicalCommerceTransactionId: 'tx-1',
   canonicalOrderId: 'order-1',
   canonicalMerchantId: 'biz-1',
   amount: { currency: 'CLP', amountMinor: 45000 },
