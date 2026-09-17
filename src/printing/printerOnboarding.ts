@@ -90,57 +90,6 @@ function assertSha256Hex(value: string, field: string): void {
   }
 }
 
-function assessmentFromManifest(input: {
-  supportTier: PrinterSupportTier;
-  protocol: PrinterProtocol;
-  transport: PrinterTransport;
-  adapterKey: string;
-  manifest: PrinterCompatibilityManifest;
-  runtime?: PrinterRuntimeContext;
-  now?: string;
-  maxManifestAgeDays?: number;
-}): PrinterDiscoveryAssessment {
-  let freshness: ManifestFreshness | undefined;
-  if (input.now !== undefined) {
-    const freshnessInput: {
-      manifest: PrinterCompatibilityManifest;
-      now: string;
-      maxAgeDays?: number;
-    } = {
-      manifest: input.manifest,
-      now: input.now,
-    };
-    if (input.maxManifestAgeDays !== undefined) {
-      freshnessInput.maxAgeDays = input.maxManifestAgeDays;
-    }
-    freshness = assessCompatibilityManifestFreshness(freshnessInput);
-  }
-
-  if (input.runtime !== undefined) {
-    const matched = matchCompatibilityEntry(
-      input.manifest,
-      input.manifest.entries.find((entry) => entry.adapterKey === input.adapterKey)?.manufacturer ?? '',
-      '',
-    );
-    void matched;
-  }
-
-  const assessment: PrinterDiscoveryAssessment = {
-    supportTier: input.supportTier,
-    protocol: input.protocol,
-    transport: input.transport,
-    adapterKey: input.adapterKey,
-    reason: 'manifest_match',
-  };
-  if (freshness !== undefined) assessment.manifestFreshness = freshness;
-
-  if (freshness !== undefined && !mayClaimFreshCertification(freshness)) {
-    assessment.supportTier = 'unknown';
-    assessment.reason = 'manifest_stale';
-  }
-  return assessment;
-}
-
 export function assessDiscoveredPrinter(input: {
   candidate: DiscoveredPrinterCandidate;
   manifest: PrinterCompatibilityManifest;
