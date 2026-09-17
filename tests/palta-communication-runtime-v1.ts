@@ -155,6 +155,7 @@ const runtime = await startPaltaCommunicationRuntime({
           action: {
             label: '견적 보기',
             target: '/quotes/quote-1',
+            kind: 'internal',
           },
         };
       },
