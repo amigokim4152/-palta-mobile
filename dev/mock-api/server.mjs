@@ -194,6 +194,45 @@ function currentPostItems(business) {
     .sort((a, b) => Date.parse(b.published_at ?? '1970-01-01') - Date.parse(a.published_at ?? '1970-01-01'));
 }
 
+function followedUpdateItems() {
+  const items = [];
+  for (const business of businesses) {
+    const relationship = businessRelationships.get(business.id);
+    if (!relationship?.following) continue;
+
+    for (const post of currentPostItems(business)) {
+      if (!post.published_at || !Number.isFinite(Date.parse(post.published_at))) continue;
+      items.push({
+        id: `post:${post.id}`,
+        business_id: business.id,
+        business_name: business.name,
+        kind: 'post',
+        title: post.title,
+        ...(post.body ? { body: post.body } : {}),
+        occurred_at: post.published_at,
+      });
+    }
+
+    if (isCanonicalCouponActive(business.id)) {
+      const coupon = businessCoupons.get(business.id);
+      const occurredAt = coupon?.starts_at ?? coupon?.issued_by_verified_owner_at;
+      if (coupon && occurredAt && Number.isFinite(Date.parse(occurredAt))) {
+        items.push({
+          id: `coupon:${coupon.id}`,
+          business_id: business.id,
+          business_name: business.name,
+          kind: 'coupon',
+          title: coupon.title,
+          ...(coupon.description ? { body: coupon.description } : {}),
+          occurred_at: occurredAt,
+          ...(coupon.expires_at ? { expires_at: coupon.expires_at } : {}),
+        });
+      }
+    }
+  }
+  return items.sort((a, b) => Date.parse(b.occurred_at) - Date.parse(a.occurred_at));
+}
+
 function ownerGuidanceFor(business) {
   const items = [];
 
@@ -256,7 +295,7 @@ const server = http.createServer(async (req, res) => {
     const url = new URL(req.url, `http://${req.headers.host ?? `${host}:${port}`}`);
 
     if (req.method === 'GET' && url.pathname === '/health') {
-      return json(res, 200, { ok: true, service: 'palta-mock-api', version: '0.9.0' });
+      return json(res, 200, { ok: true, service: 'palta-mock-api', version: '1.0.0' });
     }
 
     if (req.method === 'GET' && url.pathname === '/v1/home') {
@@ -305,6 +344,13 @@ const server = http.createServer(async (req, res) => {
           distance_m: index === 0 ? 850 : 1200,
           location: business.location,
         })),
+      });
+    }
+
+    if (req.method === 'GET' && url.pathname === '/v1/local-business/following-updates') {
+      return json(res, 200, {
+        generated_at: new Date().toISOString(),
+        items: followedUpdateItems(),
       });
     }
 
