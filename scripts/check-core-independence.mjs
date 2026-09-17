@@ -15,6 +15,9 @@ const roots = [
   'src/map',
   'src/api',
   'src/verticalSlice',
+  'src/commerce',
+  'src/payment',
+  'src/fiscal',
 ];
 
 const forbiddenImports = [
