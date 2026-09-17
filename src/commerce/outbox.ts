@@ -50,13 +50,16 @@ export function markOutboxProcessing(
   if (event.status !== 'pending' && event.status !== 'retryable_error') {
     throw new Error(`Outbox event cannot enter processing from ${event.status}.`);
   }
+  const {
+    nextAttemptAt: _nextAttemptAt,
+    lastError: _lastError,
+    ...rest
+  } = event;
   return {
-    ...event,
+    ...rest,
     status: 'processing',
     attempts: event.attempts + 1,
     updatedAt: occurredAt,
-    nextAttemptAt: undefined,
-    lastError: undefined,
   };
 }
 
