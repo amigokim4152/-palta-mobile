@@ -130,4 +130,20 @@ assert(
   'Print recovery lookup must remain business scoped.',
 );
 
+const recoveryDb = new ScriptDb([{ rows: [dbRow(failed), dbRow(dispatching)], rowCount: 2 }]);
+const recoverable = await new PostgresPrintJobRepository(recoveryDb).listRecoverable({
+  businessId: created.businessId,
+  limit: 25,
+});
+assert(recoverable.length === 2, 'Recovery scan must return durable recoverable jobs.');
+assert(
+  recoveryDb.calls[0]?.sql.includes("status in ('queued', 'dispatching', 'submitted', 'outcome_unknown')") &&
+    recoveryDb.calls[0]?.sql.includes("status = 'failed' and retry_authorized = true"),
+  'Recovery scan must include unresolved and explicitly retry-authorized work only.',
+);
+assert(
+  recoveryDb.calls[0]?.params[0] === created.businessId && recoveryDb.calls[0]?.params[1] === 25,
+  'Recovery scan must stay business scoped and bounded.',
+);
+
 console.log('PASS: Postgres print job CAS repository tests');
