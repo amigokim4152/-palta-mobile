@@ -3,6 +3,7 @@ import {
   canExposeChannelLink,
   canUseChannelLevel,
   entitlementRequiredForChannelLevel,
+  normalizeOwnerPublicChannelInput,
   normalizeSafePublicChannelUrl,
   projectPublicBusinessChannelLinks,
   resolveContentDistributionMode,
@@ -54,6 +55,21 @@ assert(
 assert(
   normalizeSafePublicChannelUrl('data:text/html,hello') === null,
   'Data URLs must never project from an owner-controlled public link.',
+);
+assert(
+  normalizeOwnerPublicChannelInput('instagram', '@cafe.palta') ===
+    'https://www.instagram.com/cafe.palta/',
+  'Instagram handles should become a safe public URL without requiring the owner to copy the full address.',
+);
+assert(
+  normalizeOwnerPublicChannelInput('whatsapp', '9 1234 5678') ===
+    'https://wa.me/56912345678',
+  'A Chilean mobile number should become a WhatsApp public link deterministically.',
+);
+assert(
+  normalizeOwnerPublicChannelInput('website', 'mitienda.cl') ===
+    'https://mitienda.cl/',
+  'A bare website domain should become an https public link.',
 );
 
 const personalInstagram: BusinessChannelConnection = {
