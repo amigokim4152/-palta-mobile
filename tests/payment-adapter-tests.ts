@@ -90,6 +90,7 @@ const http = new QueueHttpClient([
 const adapter = new MercadoPagoPointAdapter(http, async () => 'secret-test-token');
 const originalPaymentInput = {
   canonicalPaymentId: 'pay:canonical/1',
+  canonicalCommerceTransactionId: 'tx-1',
   canonicalOrderId: 'order-1',
   canonicalMerchantId: 'merchant-1',
   amount: { currency: 'CLP', amountMinor: 45000 },
@@ -189,6 +190,7 @@ let transbankUnknown = false;
 try {
   await transbankAdapter.createPayment({
     canonicalPaymentId: 'pay-tbk-001',
+    canonicalCommerceTransactionId: 'tx-tbk-1',
     canonicalOrderId: 'order-tbk-1',
     canonicalMerchantId: 'merchant-1',
     amount: { currency: 'CLP', amountMinor: 25000 },
@@ -204,6 +206,7 @@ try {
 assert(transbankUnknown, 'Lost Transbank sale response must become outcome_unknown, not failed.');
 const transbankRecovered = await transbankAdapter.reconcilePayment({
   canonicalPaymentId: 'pay-tbk-001',
+  canonicalCommerceTransactionId: 'tx-tbk-1',
   canonicalOrderId: 'order-tbk-1',
   canonicalMerchantId: 'merchant-1',
   amount: { currency: 'CLP', amountMinor: 25000 },
