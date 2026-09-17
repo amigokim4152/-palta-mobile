@@ -270,7 +270,7 @@ assert(
   postRequestPath.endsWith('/v1/business/biz-test/basic-posts'),
   'Free business news should use the business-scoped basic-post endpoint.',
 );
-assert(postRequestMethod === 'POST', 'Publishing a new business post should create a new resource.');
+assert(String(postRequestMethod) === 'POST', 'Publishing a new business post should create a new resource.');
 assert(postRequestHeaders?.['Idempotency-Key'] === 'post-request-1', 'Post publish should carry an idempotency key for safe retry.');
 assert(postRequestBody?.['title'] === 'Abrimos también este sábado', 'Post publish should preserve the title.');
 assert(postRequestBody?.['body'] === 'Atenderemos de 10:00 a 14:00.', 'Post publish should preserve the body.');
@@ -284,7 +284,7 @@ assert(
   postRequestPath.endsWith('/v1/business/biz-test/basic-posts/post-1'),
   'Archiving a post should target the exact business-scoped post resource.',
 );
-assert(postRequestMethod === 'PUT', 'Archiving the free post should use explicit state replacement.');
+assert(String(postRequestMethod) === 'PUT', 'Archiving the free post should use explicit state replacement.');
 assert(postRequestBody?.['status'] === 'archived', 'Post archive should send only explicit archived state.');
 assert(archivedPosts.items.length === 0, 'Archived post should disappear from the active projection.');
 
