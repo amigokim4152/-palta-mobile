@@ -70,7 +70,7 @@ jobs:
             echo "Applying ${migration}"
             psql -v ON_ERROR_STOP=1 -f "${migration}"
           done
-      - name: Verify Message Core migration objects
+      - name: Verify Core migration objects
         run: |
           set -euo pipefail
           test "$(psql -Atqc "select to_regclass('public.msg_conversation') is not null")" = "t"
@@ -78,3 +78,5 @@ jobs:
           test "$(psql -Atqc "select to_regclass('public.msg_scope_identity') is not null")" = "t"
           test "$(psql -Atqc "select to_regclass('public.msg_timeline_domain_event') is not null")" = "t"
           test "$(psql -Atqc "select to_regclass('public.msg_outbox') is not null")" = "t"
+          test "$(psql -Atqc "select to_regclass('public.care_resource_link') is not null")" = "t"
+          test "$(psql -Atqc "select to_regclass('public.care_signal_receipt') is not null")" = "t"
