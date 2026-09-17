@@ -1,6 +1,7 @@
 import {
   canAutoPublishToChannel,
   canExposeChannelLink,
+  projectPublicBusinessChannelLinks,
   resolveContentDistributionMode,
   validateBusinessChannelConnection,
   type BusinessChannelConnection,
@@ -32,6 +33,32 @@ assert(canExposeChannelLink(personalInstagram), 'A personal social account can s
 assert(!canAutoPublishToChannel(personalInstagram), 'A public/personal social link must never imply API publish authorization.');
 assert(resolveContentDistributionMode(personalInstagram) === 'assisted', 'Assisted share should remain a first-class fallback.');
 assert(validateBusinessChannelConnection(personalInstagram).length === 0, 'Valid assisted-share connection should pass validation.');
+
+const publicTikTok: BusinessChannelConnection = {
+  businessId: 'biz-1',
+  provider: 'tiktok',
+  level: 'link_only',
+  status: 'active',
+  accountKind: 'personal',
+  publicUrl: 'https://www.tiktok.com/@example',
+  capabilities: ['public_link'],
+};
+const restrictedFacebook: BusinessChannelConnection = {
+  businessId: 'biz-1',
+  provider: 'facebook',
+  level: 'link_only',
+  status: 'restricted',
+  publicUrl: 'https://facebook.com/example',
+  capabilities: ['public_link'],
+};
+const publicLinks = projectPublicBusinessChannelLinks([
+  personalInstagram,
+  publicTikTok,
+  restrictedFacebook,
+]);
+assert(publicLinks.length === 2, 'Only safe public external links should project to the free Business page.');
+assert(publicLinks.some((link) => link.label === 'TikTok'), 'TikTok should work as a first-class link-only channel.');
+assert(!publicLinks.some((link) => link.provider === 'facebook'), 'Restricted channels must not leak into the public profile.');
 
 const connectedGoogle: BusinessChannelConnection = {
   businessId: 'biz-1',
