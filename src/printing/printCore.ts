@@ -159,12 +159,14 @@ export function createPrintJob(input: {
   return job;
 }
 
+/**
+ * Initial dispatch is deliberately restricted to a never-dispatched queued job.
+ * submitted / dispatching / outcome_unknown must never be sent again blindly because
+ * the printer may already have produced physical output.
+ */
 export function beginPrintDispatch(job: PrintJob, submittedAt: string): PrintJob {
-  if (job.status === 'printed' || job.status === 'cancelled') {
-    throw new Error('Completed or cancelled print jobs cannot be dispatched.');
-  }
-  if (job.status === 'outcome_unknown') {
-    throw new Error('Unknown print outcome must be resolved before a new dispatch attempt.');
+  if (job.status !== 'queued') {
+    throw new Error('Only queued print jobs can begin initial dispatch.');
   }
   return {
     ...job,
@@ -196,6 +198,28 @@ export function applyPrintDispatchResult(
 export function canAutomaticallyRetryPrint(job: PrintJob, lastResult?: PrintDispatchResult): boolean {
   if (job.status !== 'failed') return false;
   return lastResult?.outcome === 'failed' && lastResult.retryable;
+}
+
+/**
+ * A retry is a separate safety path. It is allowed only when the preceding adapter
+ * result definitively says that no physical output was produced and retry is safe.
+ * If that evidence is unavailable after a restart, automatic retry is intentionally
+ * unavailable and the job must be reconciled/manually reviewed instead.
+ */
+export function beginPrintRetry(
+  job: PrintJob,
+  lastResult: PrintDispatchResult,
+  submittedAt: string,
+): PrintJob {
+  if (!canAutomaticallyRetryPrint(job, lastResult)) {
+    throw new Error('Print retry requires a definitive retryable failure with no ambiguous output.');
+  }
+  return {
+    ...job,
+    status: 'dispatching',
+    revision: job.revision + 1,
+    submittedAt,
+  };
 }
 
 /**
