@@ -43,10 +43,10 @@ export function createOutboxEvent<TPayload extends Record<string, unknown>>(inpu
   };
 }
 
-export function markOutboxProcessing(
-  event: CommerceOutboxEvent,
+export function markOutboxProcessing<TPayload extends Record<string, unknown>>(
+  event: CommerceOutboxEvent<TPayload>,
   occurredAt: string,
-): CommerceOutboxEvent {
+): CommerceOutboxEvent<TPayload> {
   if (event.status !== 'pending' && event.status !== 'retryable_error') {
     throw new Error(`Outbox event cannot enter processing from ${event.status}.`);
   }
@@ -63,20 +63,20 @@ export function markOutboxProcessing(
   };
 }
 
-export function markOutboxDelivered(
-  event: CommerceOutboxEvent,
+export function markOutboxDelivered<TPayload extends Record<string, unknown>>(
+  event: CommerceOutboxEvent<TPayload>,
   occurredAt: string,
-): CommerceOutboxEvent {
+): CommerceOutboxEvent<TPayload> {
   if (event.status !== 'processing') throw new Error('Only a processing event can be delivered.');
   return { ...event, status: 'delivered', updatedAt: occurredAt };
 }
 
-export function markOutboxRetryable(
-  event: CommerceOutboxEvent,
+export function markOutboxRetryable<TPayload extends Record<string, unknown>>(
+  event: CommerceOutboxEvent<TPayload>,
   occurredAt: string,
   nextAttemptAt: string,
   error: string,
-): CommerceOutboxEvent {
+): CommerceOutboxEvent<TPayload> {
   if (event.status !== 'processing') throw new Error('Only a processing event can become retryable.');
   return {
     ...event,
@@ -87,11 +87,11 @@ export function markOutboxRetryable(
   };
 }
 
-export function markOutboxDeadLetter(
-  event: CommerceOutboxEvent,
+export function markOutboxDeadLetter<TPayload extends Record<string, unknown>>(
+  event: CommerceOutboxEvent<TPayload>,
   occurredAt: string,
   error: string,
-): CommerceOutboxEvent {
+): CommerceOutboxEvent<TPayload> {
   if (event.status !== 'processing' && event.status !== 'retryable_error') {
     throw new Error('Only a failed processing event can enter dead-letter.');
   }
