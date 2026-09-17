@@ -53,6 +53,35 @@ export type POSSession = {
   cashDifferenceMinor?: number;
 };
 
+export type POSSessionCloseReadiness = {
+  /** Money-moving operations whose final provider state is not authoritative yet. */
+  unresolvedMoneyOperationCount: number;
+  /** Local/offline mutations that have not yet reached canonical Palta persistence. */
+  unsyncedLocalMutationCount: number;
+};
+
+function assertCount(value: number, field: string): void {
+  if (!Number.isSafeInteger(value) || value < 0) {
+    throw new Error(`${field} must be a non-negative safe integer.`);
+  }
+}
+
+export function assertPOSSessionCloseReady(readiness: POSSessionCloseReadiness): void {
+  assertCount(readiness.unresolvedMoneyOperationCount, 'unresolvedMoneyOperationCount');
+  assertCount(readiness.unsyncedLocalMutationCount, 'unsyncedLocalMutationCount');
+
+  if (readiness.unresolvedMoneyOperationCount > 0) {
+    throw new Error(
+      'POS session cannot close while payment/refund outcomes are unresolved. Reconcile them first.',
+    );
+  }
+  if (readiness.unsyncedLocalMutationCount > 0) {
+    throw new Error(
+      'POS session cannot close while local mutations are waiting to synchronize.',
+    );
+  }
+}
+
 export function createPOSRegister(input: {
   id: string;
   businessId: string;
@@ -180,10 +209,12 @@ export function closePOSSession(input: {
   session: POSSession;
   closedAt: string;
   closedBy: string;
+  readiness: POSSessionCloseReadiness;
   countedCashMinor?: number;
 }): POSSession {
   if (input.session.status !== 'open') throw new Error('POS session is already closed.');
   if (!input.closedBy.trim()) throw new Error('closedBy is required.');
+  assertPOSSessionCloseReady(input.readiness);
 
   if (input.session.cashControl === 'none') {
     if (input.countedCashMinor !== undefined) {
