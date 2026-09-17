@@ -26,6 +26,19 @@ export type PaymentProviderConnection = {
   updatedAt: string;
 };
 
+const ALLOWED_CONNECTION_TRANSITIONS: Record<
+  PaymentProviderConnectionStatus,
+  readonly PaymentProviderConnectionStatus[]
+> = {
+  draft: ['pending_credentials', 'paused'],
+  pending_credentials: ['ready_for_test', 'error', 'paused'],
+  ready_for_test: ['testing', 'pending_credentials', 'error', 'paused'],
+  testing: ['connected', 'ready_for_test', 'error', 'paused'],
+  connected: ['testing', 'pending_credentials', 'error', 'paused'],
+  error: ['pending_credentials', 'ready_for_test', 'testing', 'paused'],
+  paused: ['pending_credentials', 'ready_for_test', 'testing', 'connected'],
+};
+
 export function paymentConnectionCanPerformExternalOperation(
   connection: PaymentProviderConnection,
 ): boolean {
@@ -53,4 +66,69 @@ export function assertPaymentProviderConnection(
   ) {
     throw new Error('credentialRef must be an opaque secret reference, not raw credential material.');
   }
+}
+
+export function transitionPaymentProviderConnection(
+  connection: PaymentProviderConnection,
+  next: PaymentProviderConnectionStatus,
+  occurredAt: string,
+): PaymentProviderConnection {
+  assertPaymentProviderConnection(connection);
+  if (connection.status === next) return connection;
+  if (!ALLOWED_CONNECTION_TRANSITIONS[connection.status].includes(next)) {
+    throw new Error(`Invalid payment provider connection transition: ${connection.status} -> ${next}`);
+  }
+  if (
+    (next === 'ready_for_test' || next === 'testing' || next === 'connected') &&
+    !connection.credentialRef?.trim()
+  ) {
+    throw new Error(`Payment provider connection cannot enter ${next} without credentialRef.`);
+  }
+  return {
+    ...connection,
+    status: next,
+    revision: connection.revision + 1,
+    updatedAt: occurredAt,
+  };
+}
+
+/**
+ * Attaches only an opaque credential reference after encrypted credential
+ * persistence succeeds. Raw token material must never pass through this model.
+ */
+export function attachPaymentCredentialReference(
+  connection: PaymentProviderConnection,
+  input: {
+    credentialRef: string;
+    occurredAt: string;
+    merchantRef?: string;
+  },
+): PaymentProviderConnection {
+  if (!input.credentialRef.trim() || input.credentialRef.includes('Bearer ')) {
+    throw new Error('Payment credential reference must be a non-empty opaque reference.');
+  }
+  const withCredential: PaymentProviderConnection = {
+    ...connection,
+    credentialRef: input.credentialRef,
+    ...(input.merchantRef === undefined ? {} : { merchantRef: input.merchantRef }),
+    revision: connection.revision + 1,
+    updatedAt: input.occurredAt,
+  };
+  assertPaymentProviderConnection(withCredential);
+  return withCredential;
+}
+
+export function markPaymentConnectionVerified(
+  connection: PaymentProviderConnection,
+  occurredAt: string,
+): PaymentProviderConnection {
+  if (connection.status !== 'testing' && connection.status !== 'connected') {
+    throw new Error('Only a testing/connected payment connection can be verification-stamped.');
+  }
+  return {
+    ...connection,
+    lastVerifiedAt: occurredAt,
+    revision: connection.revision + 1,
+    updatedAt: occurredAt,
+  };
 }
