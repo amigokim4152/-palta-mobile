@@ -27,6 +27,10 @@ export type SubmitBusinessCorrectionInput = {
   note?: string;
 };
 
+export type ResolveBusinessCorrectionInput = {
+  resolution: 'not_an_issue' | 'reviewed_and_addressed';
+};
+
 export type BusinessCorrectionsApiClientOptions = {
   baseUrl: string;
   fetch: FetchLike;
@@ -42,6 +46,25 @@ function expectObject(value: unknown, label: string): Record<string, unknown> {
     throw new Error(`${label} returned a non-object payload`);
   }
   return value as Record<string, unknown>;
+}
+
+function validateCorrectionResult(
+  value: unknown,
+  label: string,
+): BusinessCorrectionApiItem {
+  const result = expectObject(value, label);
+  if (
+    typeof result.id !== 'string' ||
+    typeof result.business_id !== 'string' ||
+    typeof result.field !== 'string' ||
+    typeof result.reason !== 'string' ||
+    typeof result.status !== 'string' ||
+    typeof result.reported_at !== 'string' ||
+    typeof result.queue_target !== 'string'
+  ) {
+    throw new Error(`${label} returned invalid correction`);
+  }
+  return result as BusinessCorrectionApiItem;
 }
 
 export class BusinessCorrectionsApiClient {
@@ -82,7 +105,7 @@ export class BusinessCorrectionsApiClient {
     businessId: string,
     input: SubmitBusinessCorrectionInput,
   ): Promise<BusinessCorrectionApiItem> {
-    const result = expectObject(
+    return validateCorrectionResult(
       await this.request(`/v1/business/${encodeURIComponent(businessId)}/corrections`, {
         method: 'POST',
         body: {
@@ -93,18 +116,6 @@ export class BusinessCorrectionsApiClient {
       }),
       'POST /v1/business/{id}/corrections',
     );
-    if (
-      typeof result.id !== 'string' ||
-      typeof result.business_id !== 'string' ||
-      typeof result.field !== 'string' ||
-      typeof result.reason !== 'string' ||
-      typeof result.status !== 'string' ||
-      typeof result.reported_at !== 'string' ||
-      typeof result.queue_target !== 'string'
-    ) {
-      throw new Error('POST /v1/business/{id}/corrections returned invalid correction');
-    }
-    return result as BusinessCorrectionApiItem;
   }
 
   async getOwnerBusinessCorrections(businessId: string): Promise<BusinessCorrectionsApiResponse> {
@@ -116,5 +127,22 @@ export class BusinessCorrectionsApiClient {
       throw new Error('GET /v1/business/{id}/owner-corrections returned invalid corrections');
     }
     return result as BusinessCorrectionsApiResponse;
+  }
+
+  async resolveOwnerBusinessCorrection(
+    businessId: string,
+    correctionId: string,
+    input: ResolveBusinessCorrectionInput,
+  ): Promise<BusinessCorrectionApiItem> {
+    return validateCorrectionResult(
+      await this.request(
+        `/v1/business/${encodeURIComponent(businessId)}/owner-corrections/${encodeURIComponent(correctionId)}`,
+        {
+          method: 'PUT',
+          body: { resolution: input.resolution },
+        },
+      ),
+      'PUT /v1/business/{id}/owner-corrections/{correctionId}',
+    );
   }
 }
