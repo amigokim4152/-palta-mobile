@@ -55,7 +55,8 @@ export type PrinterIdentity = {
   model?: string;
   serialNumberHash?: string;
   firmwareVersion?: string;
-  connectionFingerprint?: string;
+  /** SHA-256 hex digest only. Never a raw IP, MAC, USB path or serial identifier. */
+  connectionFingerprintHash?: string;
   transport: PrinterTransport;
   protocol: PrinterProtocol;
   supportTier: PrinterSupportTier;
