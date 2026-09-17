@@ -6,6 +6,7 @@ import type {
   PrinterTransport,
 } from '../printing/printCore.js';
 import type {
+  PersistedPrinterDevice,
   PrinterDeviceLookup,
   PrinterDeviceRepository,
 } from './printerDeviceRepository.js';
@@ -27,6 +28,7 @@ type PrinterDeviceRow = {
   adapter_key: string;
   paper_width_mm: number | string | null;
   health: PrinterHealth;
+  enabled: boolean;
 };
 
 function optionalText(value: string | null): string | undefined {
@@ -43,7 +45,7 @@ function paperWidth(value: number | string | null): number | undefined {
   return parsed;
 }
 
-function rowToPrinter(row: PrinterDeviceRow): PrinterIdentity {
+function rowToPrinter(row: PrinterDeviceRow): PersistedPrinterDevice {
   const printer: PrinterIdentity = {
     id: row.id,
     businessId: row.business_id,
@@ -68,13 +70,13 @@ function rowToPrinter(row: PrinterDeviceRow): PrinterIdentity {
   if (serialNumberHash !== undefined) printer.serialNumberHash = serialNumberHash;
   if (width !== undefined) printer.paperWidthMm = width;
 
-  return printer;
+  return { printer, enabled: row.enabled };
 }
 
 export class PostgresPrinterDeviceRepository implements PrinterDeviceRepository {
   constructor(private readonly db: SqlDatabase) {}
 
-  async findEnabledPrinter(lookup: PrinterDeviceLookup): Promise<PrinterIdentity | null> {
+  async findPrinter(lookup: PrinterDeviceLookup): Promise<PersistedPrinterDevice | null> {
     if (!lookup.businessId.trim() || !lookup.printerId.trim()) {
       throw new Error('Printer device lookup requires businessId and printerId.');
     }
@@ -83,11 +85,11 @@ export class PostgresPrinterDeviceRepository implements PrinterDeviceRepository 
       `select
          id, business_id, outlet_key, display_name, manufacturer, model,
          firmware_version, serial_number_hash, connection_fingerprint_hash,
-         transport, protocol, support_tier, adapter_key, paper_width_mm, health
+         transport, protocol, support_tier, adapter_key, paper_width_mm, health,
+         enabled
        from printer_device
        where business_id = $1
          and id = $2
-         and enabled = true
        limit 1`,
       [lookup.businessId, lookup.printerId],
     );
