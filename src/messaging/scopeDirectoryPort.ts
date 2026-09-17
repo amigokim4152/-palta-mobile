@@ -28,6 +28,8 @@ export interface ConversationScopeDirectoryPort {
     input: EnsureConversationScopeInput,
   ): Promise<EnsureConversationScopeResult>;
 
+  find(scopeId: string): Promise<ConversationScope | null>;
+
   attachResource(input: {
     conversationId: string;
     scopeId: string;
