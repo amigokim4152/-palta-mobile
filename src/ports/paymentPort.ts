@@ -11,6 +11,8 @@ export type CreatePaymentInput = {
   amount: Money;
   rail: PaymentRail;
   idempotencyKey: string;
+  terminalId?: string;
+  description?: string;
   returnUrl?: string;
   metadata?: Record<string, string>;
 };
@@ -19,6 +21,9 @@ export type CreatePaymentResult = {
   providerKey: string;
   providerReference: string;
   status: PaymentStatus;
+  providerPaymentId?: string;
+  providerStatus?: string;
+  providerStatusDetail?: string;
   checkoutUrl?: string;
   clientAction?: {
     kind: 'redirect' | 'qr' | 'native';
@@ -30,6 +35,9 @@ export type ProviderPaymentStatus = {
   providerKey: string;
   providerReference: string;
   status: PaymentStatus;
+  providerPaymentId?: string;
+  providerStatus?: string;
+  providerStatusDetail?: string;
 };
 
 export type RefundInput = {
