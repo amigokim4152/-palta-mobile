@@ -22,6 +22,8 @@ export type ProviderPaymentEvidence = {
   authorizationCode?: string;
   cardBrand?: string;
   cardLast4?: string;
+  /** Provider-confirmed processed/authorized amount when explicitly reported. */
+  processedAmount?: Money;
 };
 
 export type CreatePaymentResult = ProviderPaymentEvidence & {
