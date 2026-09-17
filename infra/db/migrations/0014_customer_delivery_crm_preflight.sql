@@ -23,6 +23,7 @@ create table if not exists public.customer_artifact (
   title text not null check (length(title) between 1 and 240),
   created_at timestamptz not null default now(),
   expires_at timestamptz,
+  unique (business_id, id),
   unique (business_id, kind, source_id),
   check (expires_at is null or expires_at > created_at)
 );
@@ -45,7 +46,8 @@ create table if not exists public.customer_share_link (
   use_count integer not null default 0 check (use_count >= 0),
   revoked_at timestamptz,
   unique (token_hash),
-  foreign key (artifact_id) references public.customer_artifact(id) on delete restrict,
+  foreign key (business_id, artifact_id)
+    references public.customer_artifact(business_id, id) on delete restrict,
   check (expires_at > created_at),
   check (max_uses is null or use_count <= max_uses)
 );
@@ -74,8 +76,10 @@ create table if not exists public.customer_delivery (
   revision bigint not null default 0 check (revision >= 0),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
+  unique (business_id, id),
   unique (business_id, idempotency_key),
-  foreign key (artifact_id) references public.customer_artifact(id) on delete restrict
+  foreign key (business_id, artifact_id)
+    references public.customer_artifact(business_id, id) on delete restrict
 );
 
 create index if not exists customer_delivery_business_customer_idx
@@ -100,7 +104,8 @@ create table if not exists public.customer_relationship_touchpoint (
   occurred_at timestamptz not null,
   grants_future_permission boolean not null default false check (grants_future_permission = false),
   unique (business_id, delivery_id),
-  foreign key (delivery_id) references public.customer_delivery(id) on delete restrict
+  foreign key (business_id, delivery_id)
+    references public.customer_delivery(business_id, id) on delete restrict
 );
 
 create index if not exists customer_relationship_touchpoint_customer_idx
