@@ -42,7 +42,7 @@ const epsonCandidate = {
   fingerprint: {
     manufacturer: 'Epson',
     model: 'TM-T20IV-SP',
-    connectionFingerprint: 'network:sha256:epson-1',
+    connectionFingerprintHash: 'a'.repeat(64),
   },
   transports: ['network', 'usb'] as const,
   protocolHints: ['epson_epos', 'esc_pos'] as const,
@@ -57,7 +57,7 @@ const genericReceiptCandidate = {
   candidateId: 'candidate-generic',
   displayName: 'Generic 80mm POS Printer',
   fingerprint: {
-    connectionFingerprint: 'usb:sha256:generic-1',
+    connectionFingerprintHash: 'b'.repeat(64),
   },
   transports: ['usb'] as const,
   protocolHints: ['esc_pos'] as const,
@@ -71,7 +71,7 @@ const unknownCandidate = {
   candidateId: 'candidate-unknown',
   displayName: 'Mystery Printer',
   fingerprint: {
-    connectionFingerprint: 'usb:sha256:mystery',
+    connectionFingerprintHash: 'c'.repeat(64),
   },
   transports: ['usb'] as const,
   protocolHints: [] as const,
@@ -106,7 +106,7 @@ const registered = createPrinterIdentityFromDiscovery({
   initialHealth: 'ready',
 });
 assert(registered.protocol === 'esc_pos', 'Registered generic receipt printer must preserve detected protocol.');
-assert(registered.connectionFingerprint === 'usb:sha256:generic-1', 'Printer connection fingerprint must be retained for stable reconnect.');
+assert(registered.connectionFingerprintHash === 'b'.repeat(64), 'Only hashed connection identity must be retained for stable reconnect.');
 assert(printerHealthAction('paper_out') === 'add_paper', 'Paper-out must translate to a direct user action.');
 assert(printerHealthAction('bridge_unreachable') === 'restart_bridge', 'Bridge outage must translate to a bridge recovery action.');
 assert(printerHealthAction('network_unreachable') === 'check_network', 'Network outage must translate to a network recovery action.');
