@@ -80,32 +80,34 @@ export function assessBusinessFact(input: {
     .filter((entry): entry is { item: BusinessFactEvidence; at: number } => entry.at !== null)
     .sort((a, b) => b.at - a.at);
 
-  const latest = relevant[0];
-  const stale = input.maxAgeMs === undefined
-    ? false
-    : !latest || nowMs - latest.at > input.maxAgeMs;
+  const isFresh = (at: number): boolean =>
+    input.maxAgeMs === undefined || nowMs - at <= input.maxAgeMs;
 
+  const latest = relevant[0];
+  const latestIsFresh = Boolean(latest && isFresh(latest.at));
   const owner = relevant.find((entry) => entry.item.source === 'owner');
+  const ownerIsFresh = Boolean(owner && isFresh(owner.at));
   const confirming = relevant.filter((entry) => sourceCanConfirmField(entry.item.source));
-  const confirmingFingerprints = [...new Set(
-    confirming
+  const freshConfirming = confirming.filter((entry) => isFresh(entry.at));
+  const freshConfirmingFingerprints = [...new Set(
+    freshConfirming
       .map((entry) => entry.item.valueFingerprint?.trim())
       .filter((value): value is string => Boolean(value)),
   )];
 
-  const conflict = confirmingFingerprints.length > 1;
+  const conflict = freshConfirmingFingerprints.length > 1;
   if (conflict) {
     return {
       status: 'conflict',
-      stale,
+      stale: false,
       ...(latest ? { latestEvidenceAt: latest.item.assertedAt } : {}),
       ...(owner ? { ownerConfirmedAt: owner.item.assertedAt } : {}),
       evidenceCount: relevant.length,
-      conflictFingerprints: confirmingFingerprints,
+      conflictFingerprints: freshConfirmingFingerprints,
     };
   }
 
-  if (owner && !stale) {
+  if (owner && ownerIsFresh) {
     return {
       status: 'confirmed',
       stale: false,
@@ -115,7 +117,7 @@ export function assessBusinessFact(input: {
     };
   }
 
-  if (confirming.length >= 2 && confirmingFingerprints.length <= 1 && !stale) {
+  if (freshConfirming.length >= 2 && freshConfirmingFingerprints.length <= 1) {
     return {
       status: 'corroborated',
       stale: false,
@@ -124,11 +126,12 @@ export function assessBusinessFact(input: {
     };
   }
 
-  if (latest && !stale) {
+  if (latest && latestIsFresh) {
     return {
       status: 'recent_unconfirmed',
       stale: false,
       latestEvidenceAt: latest.item.assertedAt,
+      ...(owner ? { ownerConfirmedAt: owner.item.assertedAt } : {}),
       evidenceCount: relevant.length,
     };
   }
