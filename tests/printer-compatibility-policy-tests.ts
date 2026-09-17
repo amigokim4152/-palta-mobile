@@ -94,8 +94,17 @@ const oldAdapter = assessPrinterRuntimeCompatibility({
 assert(!oldAdapter.compatible, 'Old adapter must not claim compatibility.');
 assertEqual(oldAdapter.action, 'update_adapter', 'Old adapter must request adapter update.');
 
+const entryWithoutRequirements: CompatibilityManifestEntry = {
+  manufacturer: entry.manufacturer,
+  modelPattern: entry.modelPattern,
+  protocol: entry.protocol,
+  transports: [...entry.transports],
+  adapterKey: entry.adapterKey,
+  supportTier: entry.supportTier,
+  paperWidthsMm: [...(entry.paperWidthsMm ?? [])],
+};
 const noRequirements = assessPrinterRuntimeCompatibility({
-  entry: { ...entry, runtimeRequirements: undefined },
+  entry: entryWithoutRequirements,
   runtime: { appVersion: '1.0.0', adapterVersions: {} },
 });
 assert(noRequirements.compatible, 'Manifest entries without runtime requirements remain backward compatible.');
