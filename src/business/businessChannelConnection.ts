@@ -151,6 +151,26 @@ export function canUseChannelLevel(
 }
 
 /**
+ * Public external links are intentionally simple and cheap, but they are still
+ * untrusted owner input. Only ordinary web URLs are exposed from the common
+ * Business Profile. Custom/deep-link schemes belong behind explicit adapters.
+ */
+export function normalizeSafePublicChannelUrl(value: string): string | null {
+  const candidate = value.trim();
+  if (!candidate) return null;
+
+  try {
+    const parsed = new URL(candidate);
+    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return null;
+    if (!parsed.hostname) return null;
+    if (parsed.username || parsed.password) return null;
+    return parsed.toString();
+  } catch {
+    return null;
+  }
+}
+
+/**
  * A public link is first-class. Small merchants must not be forced to convert
  * a personal/social account merely to have it represented in Palta.
  */
@@ -159,6 +179,7 @@ export function canExposeChannelLink(
 ): boolean {
   return Boolean(
     connection.publicUrl &&
+      normalizeSafePublicChannelUrl(connection.publicUrl) &&
       connection.status !== 'restricted' &&
       connection.capabilities.includes('public_link'),
   );
@@ -176,23 +197,26 @@ export function projectPublicBusinessChannelLinks(
   const links: PublicBusinessChannelLink[] = [];
 
   for (const connection of connections) {
+    const safeUrl = connection.publicUrl
+      ? normalizeSafePublicChannelUrl(connection.publicUrl)
+      : null;
     if (
       connection.provider === 'palta' ||
       connection.provider === 'pos' ||
       !canExposeChannelLink(connection) ||
-      !connection.publicUrl
+      !safeUrl
     ) {
       continue;
     }
 
-    const key = `${connection.provider}:${connection.publicUrl}`;
+    const key = `${connection.provider}:${safeUrl}`;
     if (seen.has(key)) continue;
     seen.add(key);
 
     links.push({
       provider: connection.provider,
       label: providerLabel[connection.provider] ?? 'Canal externo',
-      url: connection.publicUrl,
+      url: safeUrl,
     });
   }
 
@@ -248,6 +272,13 @@ export function validateBusinessChannelConnection(
     !connection.authorizedAt
   ) {
     issues.push('authorization_required_for_connected_access');
+  }
+
+  if (
+    connection.publicUrl &&
+    !normalizeSafePublicChannelUrl(connection.publicUrl)
+  ) {
+    issues.push('public_url_must_be_safe_http_url');
   }
 
   if (
