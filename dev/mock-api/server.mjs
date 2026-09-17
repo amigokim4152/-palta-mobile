@@ -1,5 +1,6 @@
 import http from 'node:http';
 import { randomUUID } from 'node:crypto';
+import { handleOperatingRulesRequest } from './operating-rules-state.mjs';
 
 const host = process.env.PALTA_MOCK_HOST ?? '127.0.0.1';
 const port = Number(process.env.PALTA_MOCK_PORT ?? '8787');
@@ -411,6 +412,16 @@ const server = http.createServer(async (req, res) => {
       if (typeof idempotencyKey === 'string') idempotencyBusinessResults.set(idempotencyKey, result);
       return json(res, 201, result);
     }
+
+    const operatingRulesHandled = await handleOperatingRulesRequest({
+      req,
+      res,
+      url,
+      businesses,
+      json,
+      readJson,
+    });
+    if (operatingRulesHandled) return;
 
     const relationshipMatch = url.pathname.match(/^\/v1\/business\/([^/]+)\/relationship$/);
     if (relationshipMatch && (req.method === 'GET' || req.method === 'PUT')) {
