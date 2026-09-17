@@ -2,6 +2,8 @@ import type {
   BusinessDateException,
   BusinessOperatingInterval,
   BusinessOperatingRules,
+  BusinessSeasonalClosure,
+  BusinessSeasonalSchedule,
   BusinessTemporaryClosure,
   BusinessWeekday,
   BusinessWeeklySchedule,
@@ -37,8 +39,59 @@ function assertIntervals(intervals: readonly BusinessOperatingInterval[]): void 
   }
 }
 
+function assertWeekly(weekly: BusinessWeeklySchedule): void {
+  for (const intervals of Object.values(weekly)) {
+    if (intervals) assertIntervals(intervals);
+  }
+}
+
 function assertConfirmedAt(value: string): void {
   assertIsoInstant(value);
+}
+
+function monthDayOrdinal(value: string): number {
+  if (!/^\d{2}-\d{2}$/.test(value)) throw new Error('Invalid recurring month-day');
+  const [monthText, dayText] = value.split('-');
+  const month = Number(monthText);
+  const day = Number(dayText);
+  const probe = new Date(Date.UTC(2024, month - 1, day));
+  if (
+    month < 1 ||
+    month > 12 ||
+    day < 1 ||
+    day > 31 ||
+    probe.getUTCMonth() !== month - 1 ||
+    probe.getUTCDate() !== day
+  ) {
+    throw new Error('Invalid recurring month-day');
+  }
+  const yearStart = Date.UTC(2024, 0, 1);
+  return Math.floor((probe.getTime() - yearStart) / (24 * 60 * 60 * 1000));
+}
+
+function annualRangeOrdinals(startsOn: string, endsOn: string): Set<number> {
+  const start = monthDayOrdinal(startsOn);
+  const end = monthDayOrdinal(endsOn);
+  const values = new Set<number>();
+  if (start <= end) {
+    for (let day = start; day <= end; day += 1) values.add(day);
+    return values;
+  }
+  for (let day = start; day <= 365; day += 1) values.add(day);
+  for (let day = 0; day <= end; day += 1) values.add(day);
+  return values;
+}
+
+function rangesOverlap(
+  a: { startsOn: string; endsOn: string },
+  b: { startsOn: string; endsOn: string },
+): boolean {
+  const aDays = annualRangeOrdinals(a.startsOn, a.endsOn);
+  const bDays = annualRangeOrdinals(b.startsOn, b.endsOn);
+  for (const day of aDays) {
+    if (bDays.has(day)) return true;
+  }
+  return false;
 }
 
 function replaceDateException(
@@ -59,9 +112,7 @@ export function replaceBusinessWeeklySchedule(input: {
   confirmedAt: string;
 }): BusinessOperatingRules {
   assertConfirmedAt(input.confirmedAt);
-  for (const intervals of Object.values(input.weekly)) {
-    if (intervals) assertIntervals(intervals);
-  }
+  assertWeekly(input.weekly);
   return {
     ...input.rules,
     weekly: input.weekly,
@@ -84,6 +135,98 @@ export function setBusinessOperatingDay(input: {
       ...input.rules.weekly,
       [input.weekday]: [...input.intervals],
     },
+  };
+}
+
+export function upsertBusinessSeasonalSchedule(input: {
+  rules: BusinessOperatingRules;
+  scheduleId: string;
+  startsOn: string;
+  endsOn: string;
+  weekly: BusinessWeeklySchedule;
+  confirmedAt: string;
+}): BusinessOperatingRules {
+  const id = input.scheduleId.trim();
+  if (!id) throw new Error('Seasonal schedule id is required');
+  annualRangeOrdinals(input.startsOn, input.endsOn);
+  assertWeekly(input.weekly);
+  assertConfirmedAt(input.confirmedAt);
+
+  const others = (input.rules.seasonalSchedules ?? []).filter((item) => item.id !== id);
+  const candidate: BusinessSeasonalSchedule = {
+    id,
+    startsOn: input.startsOn,
+    endsOn: input.endsOn,
+    weekly: input.weekly,
+  };
+  if (others.some((item) => rangesOverlap(item, candidate))) {
+    throw new Error('Seasonal operating schedules cannot overlap');
+  }
+
+  return {
+    ...input.rules,
+    confirmedAt: input.confirmedAt,
+    seasonalSchedules: [...others, candidate],
+  };
+}
+
+export function removeBusinessSeasonalSchedule(input: {
+  rules: BusinessOperatingRules;
+  scheduleId: string;
+  confirmedAt: string;
+}): BusinessOperatingRules {
+  const id = input.scheduleId.trim();
+  if (!id) throw new Error('Seasonal schedule id is required');
+  assertConfirmedAt(input.confirmedAt);
+  return {
+    ...input.rules,
+    confirmedAt: input.confirmedAt,
+    seasonalSchedules: (input.rules.seasonalSchedules ?? []).filter((item) => item.id !== id),
+  };
+}
+
+export function upsertBusinessSeasonalClosure(input: {
+  rules: BusinessOperatingRules;
+  closureId: string;
+  startsOn: string;
+  endsOn: string;
+  confirmedAt: string;
+}): BusinessOperatingRules {
+  const id = input.closureId.trim();
+  if (!id) throw new Error('Seasonal closure id is required');
+  annualRangeOrdinals(input.startsOn, input.endsOn);
+  assertConfirmedAt(input.confirmedAt);
+
+  const others = (input.rules.seasonalClosures ?? []).filter((item) => item.id !== id);
+  const candidate: BusinessSeasonalClosure = {
+    id,
+    startsOn: input.startsOn,
+    endsOn: input.endsOn,
+    confirmedAt: input.confirmedAt,
+  };
+  if (others.some((item) => rangesOverlap(item, candidate))) {
+    throw new Error('Seasonal closures cannot overlap');
+  }
+
+  return {
+    ...input.rules,
+    confirmedAt: input.confirmedAt,
+    seasonalClosures: [...others, candidate],
+  };
+}
+
+export function removeBusinessSeasonalClosure(input: {
+  rules: BusinessOperatingRules;
+  closureId: string;
+  confirmedAt: string;
+}): BusinessOperatingRules {
+  const id = input.closureId.trim();
+  if (!id) throw new Error('Seasonal closure id is required');
+  assertConfirmedAt(input.confirmedAt);
+  return {
+    ...input.rules,
+    confirmedAt: input.confirmedAt,
+    seasonalClosures: (input.rules.seasonalClosures ?? []).filter((item) => item.id !== id),
   };
 }
 
