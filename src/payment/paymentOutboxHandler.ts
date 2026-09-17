@@ -12,6 +12,7 @@ import type {
 import { PaymentProviderOperationError } from './paymentIncident.js';
 import {
   transitionPaymentIntent,
+  type Money,
   type PaymentEvent,
   type PaymentEventType,
   type PaymentIntent,
@@ -142,6 +143,26 @@ function eventTypeForStatus(status: PaymentStatus): PaymentEventType {
   }
 }
 
+function sameMoney(left: Money | undefined, right: Money | undefined): boolean {
+  if (left === undefined || right === undefined) return left === right;
+  return left.currency === right.currency && left.amountMinor === right.amountMinor;
+}
+
+function validatedProcessedAmount(
+  intent: PaymentIntent,
+  result: ProviderPaymentStatus,
+): Money | undefined {
+  const amount = result.processedAmount;
+  if (amount === undefined) return undefined;
+  if (amount.currency !== intent.amount.currency) {
+    throw new Error('Provider processed amount currency does not match requested payment currency.');
+  }
+  if (!Number.isSafeInteger(amount.amountMinor) || amount.amountMinor <= 0) {
+    throw new Error('Provider processed amount must be a positive safe integer in minor units.');
+  }
+  return { ...amount };
+}
+
 function evidenceChanged(
   intent: PaymentIntent,
   result: ProviderPaymentStatus,
@@ -152,7 +173,8 @@ function evidenceChanged(
     intent.providerPaymentId !== result.providerPaymentId ||
     intent.authorizationCode !== result.authorizationCode ||
     intent.cardBrand !== result.cardBrand ||
-    intent.cardLast4 !== result.cardLast4
+    intent.cardLast4 !== result.cardLast4 ||
+    (result.processedAmount !== undefined && !sameMoney(intent.processedAmount, result.processedAmount))
   );
 }
 
@@ -168,6 +190,7 @@ function applyProviderResult(
     throw new Error('Provider payment result requires providerReference.');
   }
 
+  const processedAmount = validatedProcessedAmount(intent, result);
   const statusChanged = intent.status !== result.status;
   const changedEvidence = evidenceChanged(intent, result);
   if (!statusChanged && !changedEvidence) return intent;
@@ -189,6 +212,7 @@ function applyProviderResult(
   if (result.authorizationCode !== undefined) updated.authorizationCode = result.authorizationCode;
   if (result.cardBrand !== undefined) updated.cardBrand = result.cardBrand;
   if (result.cardLast4 !== undefined) updated.cardLast4 = result.cardLast4;
+  if (processedAmount !== undefined) updated.processedAmount = processedAmount;
   return updated;
 }
 
@@ -214,6 +238,10 @@ function paymentEvent(input: {
   }
   if (input.result?.providerStatusDetail !== undefined) {
     metadata.providerStatusDetail = input.result.providerStatusDetail;
+  }
+  if (input.result?.processedAmount !== undefined) {
+    metadata.processedAmountMinor = input.result.processedAmount.amountMinor;
+    metadata.processedAmountCurrency = input.result.processedAmount.currency;
   }
   if (input.errorCode !== undefined) metadata.errorCode = input.errorCode;
 
