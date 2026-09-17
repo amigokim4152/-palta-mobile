@@ -59,7 +59,8 @@ export class ConversationTimelineServiceError extends Error {
       | 'SCOPE_NOT_FOUND'
       | 'SCOPE_CONVERSATION_MISMATCH'
       | 'SCOPE_ARCHIVED'
-      | 'RESOURCE_NOT_LINKED',
+      | 'RESOURCE_NOT_LINKED'
+      | 'IDEMPOTENCY_CONFLICT',
     message: string,
   ) {
     super(message);
@@ -76,6 +77,19 @@ function required(value: string, label: string): string {
     );
   }
   return normalized;
+}
+
+function sameProjectionIdentity(
+  existing: ConversationDomainEventProjection,
+  command: ProjectDomainEventCommand,
+): boolean {
+  return (
+    existing.scopeId === command.scopeId &&
+    existing.sourceCore === command.sourceCore &&
+    existing.eventType === command.eventType &&
+    existing.resourceType === command.resource.resourceType &&
+    existing.resourceId === command.resource.resourceId
+  );
 }
 
 export class ConversationTimelineService {
@@ -137,7 +151,15 @@ export class ConversationTimelineService {
         sourceCore: command.sourceCore,
         domainEventId: command.domainEventId,
       });
-      if (existing) return { event: existing, replayed: true };
+      if (existing) {
+        if (!sameProjectionIdentity(existing, command)) {
+          throw new ConversationTimelineServiceError(
+            'IDEMPOTENCY_CONFLICT',
+            'domainEventId was already used for different timeline projection metadata.',
+          );
+        }
+        return { event: existing, replayed: true };
+      }
 
       const scope = await tx.findScope(command.scopeId);
       if (!scope) {
