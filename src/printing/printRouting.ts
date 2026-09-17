@@ -7,6 +7,12 @@ import type {
 
 export type PrinterRole = 'receipt' | 'label' | 'a4' | 'kitchen' | 'packing';
 export type PrinterFailoverMode = 'disabled' | 'explicit';
+export type PrinterCompatibilityPlatform =
+  | 'windows'
+  | 'android'
+  | 'ios'
+  | 'macos'
+  | 'linux_bridge';
 
 export type PrinterRoute = {
   businessId: string;
@@ -233,6 +239,10 @@ export type CompatibilityManifestEntry = {
   adapterKey: string;
   supportTier: PrinterIdentity['supportTier'];
   paperWidthsMm?: number[];
+  /** Exact host platforms covered by this certification-derived entry. */
+  platforms?: PrinterCompatibilityPlatform[];
+  /** Exact firmware versions covered when certification recorded firmware. */
+  firmwareVersions?: string[];
   runtimeRequirements?: PrinterRuntimeRequirements;
 };
 
@@ -243,15 +253,54 @@ export type PrinterCompatibilityManifest = {
   entries: CompatibilityManifestEntry[];
 };
 
+export type PrinterCompatibilityMatchContext = {
+  platform?: PrinterCompatibilityPlatform;
+  firmwareVersion?: string;
+  transports?: readonly PrinterIdentity['transport'][];
+};
+
+function matchesCompatibilityScope(
+  entry: CompatibilityManifestEntry,
+  context: PrinterCompatibilityMatchContext | undefined,
+): boolean {
+  if (entry.platforms !== undefined && entry.platforms.length > 0) {
+    if (context?.platform === undefined || !entry.platforms.includes(context.platform)) return false;
+  }
+
+  if (entry.firmwareVersions !== undefined && entry.firmwareVersions.length > 0) {
+    const firmwareVersion = context?.firmwareVersion?.trim();
+    if (!firmwareVersion || !entry.firmwareVersions.some((value) => value.trim() === firmwareVersion)) {
+      return false;
+    }
+  }
+
+  const transports = context?.transports;
+  if (
+    transports !== undefined &&
+    transports.length > 0 &&
+    !entry.transports.some((transport) => transports.includes(transport))
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
 /**
  * Compatibility manifests are data only. Executable adapter code is shipped
  * through the signed Palta app/device-bridge release channel, never downloaded
  * and executed from a remote manifest.
+ *
+ * Certification-derived scope is fail-closed: when an entry names platform or
+ * firmware constraints, Palta only returns it when the current environment proves
+ * those same constraints. This prevents a certification from leaking across an
+ * untested OS/firmware combination.
  */
 export function matchCompatibilityEntry(
   manifest: PrinterCompatibilityManifest,
   manufacturer: string,
   model: string,
+  context?: PrinterCompatibilityMatchContext,
 ): CompatibilityManifestEntry | undefined {
   const normalizedManufacturer = manufacturer.trim().toLowerCase();
   for (const entry of manifest.entries) {
@@ -262,7 +311,9 @@ export function matchCompatibilityEntry(
     } catch {
       continue;
     }
-    if (expression.test(model)) return entry;
+    if (!expression.test(model)) continue;
+    if (!matchesCompatibilityScope(entry, context)) continue;
+    return entry;
   }
   return undefined;
 }
