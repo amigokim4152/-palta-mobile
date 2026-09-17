@@ -1,11 +1,10 @@
 import {
   PaymentOutboxHandler,
-  StaticPaymentPortResolver,
+  type PaymentPortResolver,
   type PaymentWorkerIdFactory,
 } from '../payment/paymentOutboxHandler.js';
 import type { PaymentRepository } from '../persistence/paymentRepository.js';
 import type { OutboxRepository } from '../persistence/outboxRepository.js';
-import type { PaymentPort } from '../ports/paymentPort.js';
 import {
   consumeOutboxQueueMessage,
   type OutboxConsumerResult,
@@ -15,7 +14,7 @@ export type PaymentWorkerRuntimeInput = {
   rawMessage: unknown;
   outboxRepository: OutboxRepository;
   paymentRepository: PaymentRepository;
-  paymentPorts: readonly PaymentPort[];
+  paymentPortResolver: PaymentPortResolver;
   ids: PaymentWorkerIdFactory;
   workerId: string;
   now: () => string;
@@ -35,22 +34,19 @@ function leaseExpiry(now: string, seconds: number): string {
  * Provider-neutral Payment Worker composition root.
  *
  * Runtime-specific adapters (Cloudflare Workers today, another runtime later)
- * inject repositories, provider ports, IDs and clock. This function owns no
- * Cloudflare, Supabase, Hyperdrive or provider SDK dependency.
+ * inject repositories, a business-scoped provider resolver, IDs and clock. This
+ * function owns no Cloudflare, Supabase, Hyperdrive or provider SDK dependency.
  */
 export async function processPaymentQueueMessage(
   input: PaymentWorkerRuntimeInput,
 ): Promise<OutboxConsumerResult> {
   if (!input.workerId.trim()) throw new Error('Payment Worker workerId is required.');
-  if (input.paymentPorts.length === 0) {
-    throw new Error('Payment Worker requires at least one configured payment provider port.');
-  }
 
   const now = input.now();
   const leaseSeconds = input.leaseSeconds ?? 30;
   const handler = new PaymentOutboxHandler(
     input.paymentRepository,
-    new StaticPaymentPortResolver(input.paymentPorts),
+    input.paymentPortResolver,
     input.ids,
     input.now,
   );
