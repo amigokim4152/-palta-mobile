@@ -1,7 +1,9 @@
 import { useMemo, useState } from 'react';
+import { router } from 'expo-router';
 import { Pressable, Text, TextInput, View } from 'react-native';
 import type { LocalSearchItem } from '../../../../src/api/paltaApiClient';
 import type { MapFeature } from '../../../../src/adapters/mapCore';
+import { createClientMutationId } from '../../../../src/api/retryPolicy';
 import {
   chooseExistingBusiness,
   confirmBusinessServices,
@@ -24,21 +26,14 @@ import { mobileRuntime } from '../../services/paltaClient';
 
 function Button({ label, onPress, disabled = false }: { label: string; onPress: () => void; disabled?: boolean }) {
   return (
-    <Pressable
-      disabled={disabled}
-      onPress={onPress}
-      style={{ borderWidth: 1, borderRadius: 12, padding: 13, marginTop: 10, opacity: disabled ? 0.4 : 1 }}
-    >
+    <Pressable disabled={disabled} onPress={onPress} style={{ borderWidth: 1, borderRadius: 12, padding: 13, marginTop: 10, opacity: disabled ? 0.4 : 1 }}>
       <Text style={{ fontWeight: '700' }}>{label}</Text>
     </Pressable>
   );
 }
 
 function areaIds(value: string): string[] {
-  return value
-    .split(',')
-    .map((item) => item.trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))
-    .filter(Boolean);
+  return value.split(',').map((item) => item.trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')).filter(Boolean);
 }
 
 export function BusinessRegistrationScreen() {
@@ -187,6 +182,39 @@ export function BusinessRegistrationScreen() {
     setMessage(null);
   }
 
+  async function submitRegistration() {
+    if (mobileRuntime.status !== 'ready') {
+      setMessage('La conexión con Palta no está configurada.');
+      return;
+    }
+    if (draft.mode === 'undecided' || !draft.businessName || !draft.ownerDescription) {
+      setMessage('El registro aún no está completo.');
+      return;
+    }
+    setBusy(true);
+    setMessage(null);
+    try {
+      const result = await mobileRuntime.client.submitBusinessOnboarding({
+        mode: draft.mode,
+        ...(draft.businessId ? { businessId: draft.businessId } : {}),
+        businessName: draft.businessName,
+        ownerDescription: draft.ownerDescription,
+        confirmedServiceIds: draft.confirmedServiceIds,
+        presenceModes: draft.presenceModes,
+        serviceAreaIds: draft.serviceAreaIds,
+        ...(draft.anchorLocation ? { anchorLocation: draft.anchorLocation } : {}),
+        ...(draft.addressLabel ? { addressLabel: draft.addressLabel } : {}),
+        contact: draft.publicContact,
+        idempotencyKey: createClientMutationId(Date.now(), Math.random()),
+      });
+      router.replace(`/business/manage/${encodeURIComponent(result.business_id)}`);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'No pudimos enviar el registro.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
   if (draft.stage === 'find_business') {
     return (
       <ScreenFrame title="Agrega tu negocio" subtitle="Primero evita duplicados: busca si ya aparece" scroll={false}>
@@ -272,9 +300,12 @@ export function BusinessRegistrationScreen() {
   }
 
   return (
-    <ScreenFrame title="Verifica tu relación con el negocio" subtitle="Protege precios, promociones y acciones del negocio">
-      <Text>El registro mínimo está listo. La verificación real de propietario/administrador debe completarse antes de activar controles sensibles.</Text>
-      <Text style={{ marginTop: 12, opacity: 0.65 }}>Estado: {draft.verificationStatus}</Text>
+    <ScreenFrame title="Confirma el registro" subtitle="La propiedad y los controles sensibles se verifican después">
+      <Text>
+        Palta guardará el negocio con estado de claim pendiente. La verificación de propietario/administrador se completa antes de activar precios, promociones u operaciones sensibles.
+      </Text>
+      <Button label={busy ? 'Enviando…' : 'Enviar registro'} onPress={() => void submitRegistration()} disabled={busy} />
+      {message ? <Text style={{ marginTop: 10, opacity: 0.7 }}>{message}</Text> : null}
     </ScreenFrame>
   );
 }
