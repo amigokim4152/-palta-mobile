@@ -129,7 +129,8 @@ paths:
       description: >
         Authenticated principal must be an active participant or be authorized by
         the server to act as the requested business/organization actor. Client
-        never supplies principal_user_id.
+        never supplies principal_user_id. Attachments expose Palta provider-neutral
+        asset IDs only; physical storage URLs are resolved through Asset Core.
       parameters:
         - $ref: "#/components/parameters/ConversationId"
         - in: query
@@ -160,7 +161,8 @@ paths:
         client_message_id is the canonical retry/idempotency key. For offline
         mobile delivery it should be the stable mutation ID. acting_actor asks to
         speak as a business/organization; the server still verifies the signed-in
-        principal's authority. created_at is server-assigned.
+        principal's authority. created_at is server-assigned. Before any supplied
+        asset_id can be attached, the server must verify it through Asset Core.
       parameters:
         - $ref: "#/components/parameters/ConversationId"
         - in: header
@@ -187,8 +189,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Message"
-        "400": { description: Invalid message or scope }
-        "403": { description: Principal cannot act as requested participant }
+        "400": { description: Invalid message, attachment shape or scope }
+        "403": { description: Principal cannot act as requested participant or attach requested asset }
         "404": { description: Conversation or scope not found }
 
   /v1/messages/conversations/{conversationId}/read:
@@ -352,6 +354,31 @@ components:
         action: { type: string }
         contract_version: { type: string }
 
+    MessageAttachment:
+      type: object
+      required: [asset_id, kind, mime_type]
+      properties:
+        attachment_id:
+          type: string
+          format: uuid
+          description: Server-assigned on persisted responses; omitted on send request.
+        asset_id:
+          type: string
+          minLength: 1
+          description: Palta provider-neutral Asset Core ID; never a storage-provider URL.
+        kind:
+          type: string
+          enum: [image, voice, file]
+        mime_type:
+          type: string
+          minLength: 1
+        size_bytes:
+          type: integer
+          minimum: 0
+        duration_ms:
+          type: integer
+          minimum: 0
+
     SendMessageRequest:
       type: object
       required: [client_message_id, message_type]
@@ -371,6 +398,14 @@ components:
         body:
           type: string
           maxLength: 10000
+        attachments:
+          type: array
+          maxItems: 10
+          items:
+            $ref: "#/components/schemas/MessageAttachment"
+          description: >
+            voice requires exactly one voice attachment; image/file require one or
+            more matching attachments. Other message types do not accept attachments.
         reply_to_message_id:
           type: string
           format: uuid
@@ -399,6 +434,10 @@ components:
           type: string
           enum: [text, voice, image, file, location, resource_card, action_card]
         body: { type: string }
+        attachments:
+          type: array
+          items:
+            $ref: "#/components/schemas/MessageAttachment"
         reply_to_message_id: { type: string, format: uuid }
         action_ref:
           $ref: "#/components/schemas/MessageActionRef"
