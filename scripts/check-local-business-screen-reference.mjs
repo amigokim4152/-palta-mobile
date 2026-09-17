@@ -5,6 +5,7 @@ import ts from 'typescript';
 const root = process.cwd();
 const cardPath = path.join(root, 'mobile-overlay/src/components/LocalResultCard.tsx');
 const detailPath = path.join(root, 'mobile-overlay/src/app/business/[businessId].tsx');
+const liveReferencePath = path.join(root, 'mobile-overlay/src/features/business/BusinessReferenceScreen.tsx');
 const referencePath = path.join(root, 'docs/LOCAL_BUSINESS_SCREEN_REFERENCE_V1.md');
 
 function assert(condition, message) {
@@ -35,6 +36,7 @@ function readTsx(file) {
 
 const card = readTsx(cardPath);
 const detail = readTsx(detailPath);
+const liveReference = readTsx(liveReferencePath);
 assert(fs.existsSync(referencePath), 'Local Business screen reference must exist.');
 
 assert(
@@ -50,6 +52,10 @@ assert(
 assert(
   card.includes('firstLetter(name)') && card.includes('accessibilityLabel={`Foto de ${name}`}'),
   'Discovery card must gracefully fall back when no real business photo exists instead of inventing stock imagery.',
+);
+assert(
+  card.includes('isPublicMetaLabel') && card.includes("return !value.includes('_')"),
+  'Consumer cards must suppress internal taxonomy keys instead of rendering developer identifiers.',
 );
 
 const actionIndex = detail.indexOf('title="¿Qué quieres hacer?"');
@@ -69,6 +75,16 @@ assert(
   detail.includes('business.posts.slice(0, 3)') &&
   detail.includes('reviews.items.slice(0, 5)'),
   'Profile should progressively disclose useful updates and verified-use reviews instead of flooding the first viewport.',
+);
+
+assert(
+  liveReference.includes('<LocalResultCard') && liveReference.includes('<BusinessActionBar'),
+  'The live screen reference must reuse production components instead of becoming a disconnected mock design.',
+);
+assert(
+  liveReference.includes('Muestra A · resultado de búsqueda') &&
+  liveReference.includes('Muestra B · primera vista del perfil'),
+  'The live reference must keep both discovery-card and profile-first-viewport samples visible to implementers.',
 );
 
 console.log('PASS: Local Business screen reference');
