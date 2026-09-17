@@ -31,6 +31,27 @@ Status: ACTIVE FOUNDATION / NOT YET FINAL-FROZEN
 - Neighborhood Map + Result Sheet
 - Community Feed / Thread
 
+### Figma working foundation
+
+Working file: `Palta Design System v1 — Working Foundation`
+File key: `AyZocGds73DgyXYmLbScqn`
+
+Phase 1 Foundation status: PASS
+
+- 2 variable collections
+- 73 total variables
+- 32 primitive candidates
+- 41 semantic aliases
+- 41/41 semantic alias readback PASS
+- zero `ALL_SCOPES` variables
+- 12 typography QA styles
+- 3 elevation QA styles
+- all working values explicitly marked `NOT FROZEN`
+
+Figma Phase 2 status: BLOCKED — PLAN LIMIT
+
+The current Figma Starter team file has reached the plan's three-page-per-file limit with `00 Cover`, `01 Getting Started`, and `02 Foundations`. Components/Utilities pages were intentionally not faked or split into a second unofficial source file. See `docs/FIGMA_WORKING_FOUNDATION_V1.md`.
+
 ### Automated guardrail
 `npm run check:design-system` is wired into `npm run verify` and checks shared files, semantic contracts, no premature color freeze, no Unicode emoji as product icon/reaction defaults, canonical character/scenario presence, locale/accessibility QA coverage and platform adapter boundaries.
 
@@ -40,6 +61,11 @@ Status: ACTIVE FOUNDATION / NOT YET FINAL-FROZEN
 Status: PASS
 
 Verified under TypeScript 5.8.3 strict/NodeNext-equivalent compiler settings after Character, Reaction, Living Example, Locale, Accessibility, QA Persona and Platform Adapter additions.
+
+### Figma Foundation readback
+Status: PASS
+
+The two working collections, 73 variables, semantic aliases, explicit scopes, 12 text styles and 3 effect styles were read back after creation and matched the expected counts. This validates Figma foundation structure only; it does not freeze brand appearance.
 
 ### Full repository CI / npm verify
 Status: NOT VERIFIED
@@ -66,11 +92,17 @@ Pending actual Expo/React Native runtime shell and iOS/Android adapter implement
 
 Domains must not invent local permanent replacements for these items.
 
-## Current blocker to rendered native components
+## Current blockers
+
+### Rendered native components
 
 The repository currently contains a planned Expo Router/native source topology guide but not the final Expo/React Native runtime shell/dependencies. Therefore this branch stops at framework-neutral UI contracts and platform-adapter interfaces rather than adding fake/unbuildable React Native components.
 
-When the native shell exists, the next implementation is:
+### Full Figma component-library structure
+
+The connected Starter-plan Figma team limits Design files to three pages. The working file has reached that limit. Until the Figma workspace limitation changes or the file architecture is explicitly revised, Figma Phase 2 remains BLOCKED and Phase 3 component-library creation is not marked complete.
+
+## Next implementation when blockers clear
 
 1. React Native Palta platform adapter
 2. PaltaText / PaltaIcon / PaltaButton / PaltaInput / PaltaSurface
