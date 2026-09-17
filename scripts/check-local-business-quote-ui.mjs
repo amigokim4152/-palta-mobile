@@ -5,6 +5,7 @@ import ts from 'typescript';
 const root = process.cwd();
 const detailPath = path.join(root, 'mobile-overlay/src/app/business/[businessId].tsx');
 const quotePath = path.join(root, 'mobile-overlay/src/app/business/[businessId]/quote.tsx');
+const carePath = path.join(root, 'mobile-overlay/src/app/care/[careTrackId].tsx');
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
@@ -57,20 +58,21 @@ function readChecked(file) {
 
 const detail = readChecked(detailPath);
 const quote = readChecked(quotePath);
+const care = readChecked(carePath);
 
 assert(
   detail.includes("case 'quote':") && detail.includes('/quote`'),
   'Business detail quote action must open the quote request form instead of sending a placeholder request.',
 );
 assert(
-  quote.includes("intentKey: 'local_business_quote'") &&
-  quote.includes("actionType: 'quote_request'") &&
-  quote.includes('recipient_business_ids: [businessId]'),
-  'Quote form must create the canonical Local Business quote Care request with recipient Business ids.',
+  quote.includes('mobileRuntime.client.quotes.createQuoteRequest') &&
+  quote.includes('recipientBusinessIds: [businessId]') &&
+  quote.includes('quote.care_track_id'),
+  'Quote form must use quote orchestration and navigate with the Shared Care Track returned by the server.',
 );
 assert(
-  quote.includes("source: 'business_profile'") && quote.includes('idempotencyKey:'),
-  'Quote request must preserve source context and idempotency.',
+  quote.includes('idempotencyKey:') && !quote.includes('mobileRuntime.client.createCare({'),
+  'Quote request must be idempotent without client-authored duplicate Care creation.',
 );
 assert(
   quote.includes('Shared Media') && !quote.includes('uploadPhoto') && !quote.includes('uploadImage'),
@@ -80,5 +82,13 @@ assert(
   quote.includes('cleanDescription.length < 10') && quote.includes('maxLength={2000}'),
   'Quote request must require a useful bounded description.',
 );
+assert(
+  care.includes('getQuoteByCareTrack') && care.includes('quote.responses.map') && care.includes('Elegir este negocio'),
+  'Shared Care UI must project quote responses and allow explicit user selection.',
+);
+assert(
+  care.includes('mobileRuntime.client.quotes.selectBusiness') && care.includes('response.business_id'),
+  'Quote selection must go through the quote domain client using canonical Business ids.',
+);
 
-console.log('PASS: Local Business quote request UI source check');
+console.log('PASS: Local Business quote orchestration UI source check');
