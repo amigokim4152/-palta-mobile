@@ -88,6 +88,8 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -f infra/db/tests/commerce_migration_smoke.sql
       - name: Verify split payment commerce state
         run: psql -v ON_ERROR_STOP=1 -f infra/db/tests/split_payment_state_smoke.sql
+      - name: Verify provider-confirmed processed payment amount
+        run: psql -v ON_ERROR_STOP=1 -f infra/db/tests/payment_processed_amount_smoke.sql
       - name: Verify fiscal execution/provider migration and RLS invariants
         run: psql -v ON_ERROR_STOP=1 -f infra/db/tests/fiscal_execution_smoke.sql
       - name: Verify customer delivery/share-link/CRM RLS invariants
