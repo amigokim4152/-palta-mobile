@@ -154,6 +154,16 @@ export default function BusinessOwnerHomeScreen() {
             router.push(`/business/manage/${encodeURIComponent(business.id)}/hours`)
           }
         />
+        {business.verification_status === 'claimed' || business.verification_status === 'verified' ? (
+          <OwnerCard
+            title="Información por revisar"
+            body="Mira avisos de personas que encontraron un horario, dirección, contacto u otro dato que podría estar incorrecto. Ningún aviso cambia tu perfil automáticamente."
+            badge="SIN COSTO"
+            onPress={() =>
+              router.push(`/business/manage/${encodeURIComponent(business.id)}/corrections`)
+            }
+          />
+        ) : null}
         <OwnerCard
           title="Enlaces públicos"
           body={channelSummary || 'Agrega Instagram, Facebook, TikTok, Google, WhatsApp o tu sitio. Sólo son enlaces: no necesitas conectar cuentas ni una API.'}
