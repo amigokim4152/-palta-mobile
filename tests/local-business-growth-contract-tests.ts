@@ -1,10 +1,13 @@
 import {
   canAutoPublishToChannel,
   canExposeChannelLink,
+  canUseChannelLevel,
+  entitlementRequiredForChannelLevel,
   projectPublicBusinessChannelLinks,
   resolveContentDistributionMode,
   validateBusinessChannelConnection,
   type BusinessChannelConnection,
+  type BusinessChannelEntitlementSnapshot,
 } from '../src/business/businessChannelConnection.js';
 import {
   rankOwnerPartnerActions,
@@ -20,6 +23,25 @@ function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
 }
 
+const freeChannelAccess: BusinessChannelEntitlementSnapshot = { grants: [] };
+const paidSocialAccess: BusinessChannelEntitlementSnapshot = {
+  grants: [
+    'external_channel_assisted_share',
+    'external_channel_connected_read',
+    'external_channel_connected_publish',
+  ],
+};
+
+assert(
+  entitlementRequiredForChannelLevel('link_only') === null,
+  'Public link-only presence must not require a paid entitlement.',
+);
+assert(
+  entitlementRequiredForChannelLevel('connected_publish') ===
+    'external_channel_connected_publish',
+  'External publishing must require an explicit entitlement grant.',
+);
+
 const personalInstagram: BusinessChannelConnection = {
   businessId: 'biz-1',
   provider: 'instagram',
@@ -30,8 +52,18 @@ const personalInstagram: BusinessChannelConnection = {
   capabilities: ['public_link', 'assisted_share'],
 };
 assert(canExposeChannelLink(personalInstagram), 'A personal social account can still be linked from the free profile.');
-assert(!canAutoPublishToChannel(personalInstagram), 'A public/personal social link must never imply API publish authorization.');
-assert(resolveContentDistributionMode(personalInstagram) === 'assisted', 'Assisted share should remain a first-class fallback.');
+assert(
+  !canUseChannelLevel(personalInstagram, freeChannelAccess, 'assisted_share'),
+  'Free Business Profile must not silently unlock assisted social distribution.',
+);
+assert(
+  resolveContentDistributionMode(personalInstagram, freeChannelAccess) === 'link_only',
+  'Without entitlement, a social account must resolve to its safe free public link.',
+);
+assert(
+  resolveContentDistributionMode(personalInstagram, paidSocialAccess) === 'assisted',
+  'With entitlement, assisted distribution can become available when technically supported.',
+);
 assert(validateBusinessChannelConnection(personalInstagram).length === 0, 'Valid assisted-share connection should pass validation.');
 
 const publicTikTok: BusinessChannelConnection = {
@@ -66,10 +98,26 @@ const connectedGoogle: BusinessChannelConnection = {
   level: 'connected_publish',
   status: 'active',
   accountKind: 'business',
+  publicUrl: 'https://www.google.com/maps?cid=123',
   authorizedAt: '2026-09-17T08:00:00-03:00',
-  capabilities: ['read_profile', 'publish_content', 'sync_business_facts'],
+  capabilities: ['public_link', 'read_profile', 'publish_content', 'sync_business_facts'],
 };
-assert(canAutoPublishToChannel(connectedGoogle), 'Explicit provider authorization + publish capability should enable automatic distribution.');
+assert(
+  !canAutoPublishToChannel(connectedGoogle, freeChannelAccess),
+  'OAuth/provider readiness alone must never unlock paid automatic publishing.',
+);
+assert(
+  canAutoPublishToChannel(connectedGoogle, paidSocialAccess),
+  'Provider authorization plus explicit entitlement should enable automatic distribution.',
+);
+assert(
+  resolveContentDistributionMode(connectedGoogle, freeChannelAccess) === 'link_only',
+  'When paid access ends, the Google public link should remain while automation stops.',
+);
+assert(
+  projectPublicBusinessChannelLinks([connectedGoogle]).length === 1,
+  'Paid cancellation must not remove an otherwise valid public channel link.',
+);
 
 const actions: OwnerPartnerAction[] = [
   {
