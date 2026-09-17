@@ -83,6 +83,7 @@ export default function BusinessOwnerHomeScreen() {
       guidance,
       coupon: ownerCoupon.coupon,
       correctionCount: corrections.items.length,
+      ownerManaged,
     };
   }, [businessId]);
 
@@ -108,6 +109,7 @@ export default function BusinessOwnerHomeScreen() {
   const guidance = state.data?.guidance;
   const ownerCoupon = state.data?.coupon;
   const correctionCount = state.data?.correctionCount ?? 0;
+  const ownerManaged = state.data?.ownerManaged ?? false;
   if (!business || !guidance) return null;
 
   const verificationText =
@@ -159,7 +161,11 @@ export default function BusinessOwnerHomeScreen() {
             ...(business.channel_links ?? []).slice(0, 2).map((channel) => channel.label),
           ]
             .filter(Boolean)
-            .join(' · ') || 'Completa categoría, horario y forma de contacto.'}
+            .join(' · ') || 'Completa descripción y forma de contacto.'}
+          badge={ownerManaged ? 'SIN COSTO' : undefined}
+          onPress={ownerManaged
+            ? () => router.push(`/business/manage/${encodeURIComponent(business.id)}/profile`)
+            : undefined}
         />
         <OwnerCard
           title="Horario y estado de hoy"
