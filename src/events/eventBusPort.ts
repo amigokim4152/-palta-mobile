@@ -1,4 +1,5 @@
 export type PaltaEventType =
+  | 'care.signal'
   | 'care.updated'
   | 'notification.candidate'
   | 'canonical.changed'
