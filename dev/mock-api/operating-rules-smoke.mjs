@@ -33,8 +33,47 @@ const replaced = await json(`/v1/business/${businessId}/operating-rules/weekly`,
   }),
 });
 assert(replaced.response.ok, 'weekly operating schedule replacement failed');
-assert(!replaced.body.rules.weekly.monday, 'weekly replacement should support a low-season Fri-Sun pattern');
+assert(!replaced.body.rules.weekly.monday, 'weekly replacement should support a Fri-Sun pattern');
 assert(replaced.body.rules.weekly.friday?.[0]?.opensAt === '12:00', 'weekly replacement should persist owner hours');
+
+const lowSeason = await json(`/v1/business/${businessId}/operating-rules/seasons/low-season`, {
+  method: 'PUT',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    starts_on: '05-01',
+    ends_on: '08-31',
+    weekly: {
+      friday: [{ opensAt: '13:00', closesAt: '19:00' }],
+      saturday: [{ opensAt: '13:00', closesAt: '19:00' }],
+      sunday: [{ opensAt: '13:00', closesAt: '19:00' }],
+    },
+  }),
+});
+assert(lowSeason.response.ok, 'recurring low-season schedule upsert failed');
+assert(lowSeason.body.rules.seasonalSchedules.length === 1, 'low season should be stored separately from normal weekly hours');
+assert(lowSeason.body.rules.seasonalSchedules[0]?.startsOn === '05-01', 'low-season recurring start should persist');
+assert(lowSeason.body.rules.weekly.friday?.[0]?.opensAt === '12:00', 'seasonal schedule must not rewrite normal weekly hours');
+
+const removedLowSeason = await json(`/v1/business/${businessId}/operating-rules/seasons/low-season`, {
+  method: 'DELETE',
+});
+assert(removedLowSeason.response.ok, 'recurring low-season schedule delete failed');
+assert(removedLowSeason.body.rules.seasonalSchedules.length === 0, 'deleting low season should remove only that recurring rule');
+assert(removedLowSeason.body.rules.weekly.friday?.[0]?.opensAt === '12:00', 'deleting low season must preserve normal weekly hours');
+
+const winterClosure = await json(`/v1/business/${businessId}/operating-rules/seasonal-closures/winter-closure`, {
+  method: 'PUT',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ starts_on: '06-01', ends_on: '07-15' }),
+});
+assert(winterClosure.response.ok, 'recurring seasonal closure upsert failed');
+assert(winterClosure.body.rules.seasonalClosures.length === 1, 'seasonal full closure should be stored separately');
+
+const removedWinterClosure = await json(`/v1/business/${businessId}/operating-rules/seasonal-closures/winter-closure`, {
+  method: 'DELETE',
+});
+assert(removedWinterClosure.response.ok, 'recurring seasonal closure delete failed');
+assert(removedWinterClosure.body.rules.seasonalClosures.length === 0, 'seasonal closure should be independently removable');
 
 const closedToday = await json(`/v1/business/${businessId}/operating-rules/quick-action`, {
   method: 'POST',
