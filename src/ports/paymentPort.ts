@@ -42,6 +42,7 @@ export type ProviderPaymentStatus = {
 
 export type RefundInput = {
   providerReference: string;
+  providerPaymentId?: string;
   amount?: Money;
   idempotencyKey: string;
 };
