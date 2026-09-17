@@ -273,20 +273,28 @@ Examples:
 
 Raw identifiable search history is not automatically permanent personalization memory.
 
-## 11. Business PR assistance — free baseline should make the owner look more capable
+## 11. Business PR assistance — free presence, paid repeated-work removal
 
-Free/low-cost Palta tools should help an owner communicate clearly even without a marketer:
+The free Business Profile should help an owner communicate clearly even without a marketer, without requiring OAuth or third-party API authorization.
+
+Free baseline:
 - QR to canonical Business page;
 - printable counter/storefront/opening-hours card from Business data;
-- simple share card/image template;
-- basic post/news and verified-owner coupon;
+- simple Palta share card/image template;
+- basic Palta post/news and verified-owner coupon;
 - profile-completeness/freshness guidance;
 - photo/service/price presentation tips;
-- public Instagram/Facebook/website links;
-- assisted-share output when API automation is not available.
+- public Instagram/Facebook/TikTok/Google/WhatsApp/website links;
+- one-tap outbound navigation to those public channels where applicable.
 
-Paid/advanced value begins when Palta materially does more work:
+**FREE external-channel boundary: `LINK_ONLY`.**
+
+A merchant can paste a public Instagram, Facebook, TikTok, Google, WhatsApp, website or marketplace URL and expose it from the Palta Business Profile. This must not require the merchant to convert an account type, authorize OAuth, give Palta an API token, or buy a plan.
+
+Paid/entitled value begins when Palta materially performs work across external channels:
+- assisted-share workflows that Palta prepares/manages beyond a plain public link;
 - publish once to supported authorized channels;
+- read/sync supported channel data or metrics;
 - schedule/adapt content;
 - consolidate metrics;
 - customer segmentation under consent;
@@ -295,6 +303,8 @@ Paid/advanced value begins when Palta materially does more work:
 - team workflows;
 - advanced fiscal/admin preparation.
 
+The owner should not be shown an automation upsell merely because links exist. A paid suggestion should be grounded in real friction such as repeated cross-channel publishing or another observed repetitive task.
+
 ## 12. External channel doctrine
 
 Each external channel should be represented as an adapter/connection to the canonical Business, not as a duplicate business system.
@@ -302,19 +312,37 @@ Each external channel should be represented as an adapter/connection to the cano
 Connection levels:
 
 ```text
-LINK_ONLY
-ASSISTED_SHARE
-CONNECTED_READ
-CONNECTED_PUBLISH
-CONNECTED_OPERATE
+LINK_ONLY          = free public URL / outbound navigation
+ASSISTED_SHARE     = entitlement required
+CONNECTED_READ     = entitlement + provider authorization/capability required
+CONNECTED_PUBLISH  = entitlement + provider authorization/capability required
+CONNECTED_OPERATE  = entitlement + provider authorization/capability required
 ```
 
 Important implications:
 - a personal Instagram account can still be a useful public link even when API publishing is unavailable;
-- automated publishing requires explicit provider capability and authorization;
+- a public URL never proves OAuth/API authorization;
+- a technically authorized external account never proves commercial entitlement;
+- automated publishing requires both explicit provider capability/authorization **and** an active Palta entitlement;
 - owner authorization/consent is mandatory before managing a Google Business Profile or other third-party account;
 - secrets/tokens remain server-side in the integration layer, not public Business data;
-- external marketplaces remain sources/channels, not canonical Business/Product/Customer truth.
+- external marketplaces remain sources/channels, not canonical Business/Product/Customer truth;
+- plan/pricing decisions belong to Shared Entitlement/Pricing policy, not Local Business code.
+
+### 12.1 Downgrade / cancellation rule
+
+If a merchant loses or cancels the entitlement for an external-channel integration:
+
+```text
+CONNECTED_PUBLISH / ASSISTED_SHARE / CONNECTED_*
+        -> automation/integration stops
+        -> public URL remains
+        -> effective free mode becomes LINK_ONLY
+```
+
+Do not punish plan cancellation by deleting the merchant's Instagram/Facebook/TikTok/Google/website link from the free Business Profile. OAuth/token retention or revocation is a separate security/integration-lifecycle decision; public link presence is not.
+
+This protects the free profile's usefulness while keeping the paid value proposition honest: Palta charges for doing work, not for showing a URL.
 
 ## 13. Reviews and reputation
 
@@ -346,7 +374,7 @@ Possible first-contact value:
 - `Here is your free QR.`
 - `Your winter hours appear uncertain; confirm with one tap.`
 - `Customers search this service term; do you actually offer it?`
-- `Connect Instagram/WhatsApp so people can reach you.`
+- `Add your Instagram/WhatsApp link so people can reach you.`
 
 The relationship should feel like help first, not a disguised sales call.
 
@@ -358,14 +386,14 @@ Current implementation direction:
 1. living Business operational truth
 2. canonical free profile
 3. canonical public-web/SEO projection
-4. social/external channel connection contract
+4. free LINK_ONLY external-channel projection
 5. owner next-best-action policy
 6. operator AI-readable messaging bridge contract
 7. actual public web renderer + sitemap when web runtime is chosen
 8. save/follow/coupon/customer relationship implementation
 9. aggregate local/category pages only after real inventory/data quality exists
 10. Search Console / aggregate search-demand feedback after public web launch
-11. authorized external publishing connectors only when provider/API readiness is proven
+11. entitled external-channel adapters only when real owner friction + provider/API readiness are proven
 ```
 
 Do not create a second Business identity, second messaging engine, second map or second independently maintained business website while implementing this sequence.
@@ -374,9 +402,11 @@ Do not create a second Business identity, second messaging engine, second map or
 
 The work in this document should start with low fixed cost:
 - organic Google indexing has no indexing fee;
+- public external-channel links require no OAuth/API infrastructure and should remain the free default;
 - canonical/static/edge-rendered pages should reuse existing Business data rather than require AI per page view;
 - JSON-LD, sitemap generation, QR and templated assets are deterministic and should not require generative AI per request;
 - AI should be reserved for ambiguous classification, translation/operator assistance, content help or higher-value automation rather than every read;
-- third-party APIs/providers are attached only when value and pricing justify them.
+- third-party APIs/providers are attached only when value and pricing justify them;
+- a paid external-channel integration should be evaluated on owner time saved and provider/API cost before activation.
 
 Any future paid provider must be benchmarked before activation. Current Local Business contracts do not require a new paid provider.
