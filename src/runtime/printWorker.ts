@@ -3,6 +3,7 @@ import {
   beginPrintDispatch,
   beginPrintRetry,
   canAutomaticallyRetryPrint,
+  type PrintDispatchResult,
   type PrintJob,
   type PrinterAdapter,
   type PrinterIdentity,
@@ -155,14 +156,14 @@ async function dispatchOneAttempt(
     throw error;
   }
 
-  let dispatchResult;
+  let dispatchResult: PrintDispatchResult;
   try {
     dispatchResult = await resolution.adapter.print(resolution.printer, claimed);
   } catch {
     // Once the adapter call starts, an exception is ambiguous unless the adapter
     // explicitly returns a definitive failed-before-output result. Default to
     // unknown so a caller retry cannot duplicate physical output.
-    dispatchResult = { outcome: 'unknown' as const, code: 'adapter_exception' };
+    dispatchResult = { outcome: 'unknown', code: 'adapter_exception' };
   }
 
   const completed = applyPrintDispatchResult(
