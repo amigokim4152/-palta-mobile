@@ -26,6 +26,17 @@ export type BusinessWeeklyScheduleWriteInput = {
   weekly: BusinessWeeklySchedule;
 };
 
+export type BusinessSeasonalScheduleWriteInput = {
+  startsOn: string;
+  endsOn: string;
+  weekly: BusinessWeeklySchedule;
+};
+
+export type BusinessSeasonalClosureWriteInput = {
+  startsOn: string;
+  endsOn: string;
+};
+
 export type BusinessOperatingQuickActionInput =
   | { action: 'close_today' }
   | { action: 'clear_today_exception' }
@@ -134,6 +145,73 @@ export class BusinessOperatingRulesApiClient {
         },
       ),
       'PUT /v1/business/{id}/operating-rules/weekly',
+    );
+  }
+
+  async upsertSeasonalSchedule(
+    businessId: string,
+    scheduleId: string,
+    input: BusinessSeasonalScheduleWriteInput,
+  ): Promise<BusinessOperatingRulesApiResponse> {
+    return validateResponse(
+      await this.request(
+        `/v1/business/${encodeURIComponent(businessId)}/operating-rules/seasons/${encodeURIComponent(scheduleId)}`,
+        {
+          method: 'PUT',
+          body: {
+            starts_on: input.startsOn,
+            ends_on: input.endsOn,
+            weekly: input.weekly,
+          },
+        },
+      ),
+      'PUT /v1/business/{id}/operating-rules/seasons/{seasonId}',
+    );
+  }
+
+  async removeSeasonalSchedule(
+    businessId: string,
+    scheduleId: string,
+  ): Promise<BusinessOperatingRulesApiResponse> {
+    return validateResponse(
+      await this.request(
+        `/v1/business/${encodeURIComponent(businessId)}/operating-rules/seasons/${encodeURIComponent(scheduleId)}`,
+        { method: 'DELETE' },
+      ),
+      'DELETE /v1/business/{id}/operating-rules/seasons/{seasonId}',
+    );
+  }
+
+  async upsertSeasonalClosure(
+    businessId: string,
+    closureId: string,
+    input: BusinessSeasonalClosureWriteInput,
+  ): Promise<BusinessOperatingRulesApiResponse> {
+    return validateResponse(
+      await this.request(
+        `/v1/business/${encodeURIComponent(businessId)}/operating-rules/seasonal-closures/${encodeURIComponent(closureId)}`,
+        {
+          method: 'PUT',
+          body: {
+            starts_on: input.startsOn,
+            ends_on: input.endsOn,
+          },
+        },
+      ),
+      'PUT /v1/business/{id}/operating-rules/seasonal-closures/{closureId}',
+    );
+  }
+
+  async removeSeasonalClosure(
+    businessId: string,
+    closureId: string,
+  ): Promise<BusinessOperatingRulesApiResponse> {
+    return validateResponse(
+      await this.request(
+        `/v1/business/${encodeURIComponent(businessId)}/operating-rules/seasonal-closures/${encodeURIComponent(closureId)}`,
+        { method: 'DELETE' },
+      ),
+      'DELETE /v1/business/{id}/operating-rules/seasonal-closures/{closureId}',
     );
   }
 
