@@ -21,6 +21,12 @@ import { expoLocationAdapter } from '../../adapters/expoLocationAdapter';
 import { useAsyncResource } from '../../hooks/useAsyncResource';
 import { mobileRuntime } from '../../services/paltaClient';
 import { useNeighborhoodState } from '../../state/NeighborhoodStateProvider';
+import {
+  localBusinessDiscoveryCacheKey,
+  readLocalBusinessDiscoveryCache,
+  writeLocalBusinessDiscoveryCache,
+} from './localBusinessDiscoveryCache';
+import { paltaTheme } from '../../theme/paltaTheme';
 
 const SANTIAGO_EXPLORATION_ORIGIN = {
   latitude: -33.4489,
@@ -29,6 +35,10 @@ const SANTIAGO_EXPLORATION_ORIGIN = {
 
 const FILTER_OPEN_NOW = 'local_business:open_now';
 const FILTER_VERIFIED = 'local_business:verified';
+
+function isEmptyResults(items: readonly unknown[]) {
+  return items.length === 0;
+}
 
 function formatDistance(distanceM?: number): string | undefined {
   if (distanceM === undefined) return undefined;
@@ -78,19 +88,49 @@ export function LocalBusinessDiscoveryScreen() {
   const openNowOnly = neighborhood.activeFilters.includes(FILTER_OPEN_NOW);
   const searchPoint = neighborhood.searchOrigin ?? neighborhood.effectiveLocation;
 
+  const discoveryCacheKey = useMemo(
+    () =>
+      searchPoint
+        ? localBusinessDiscoveryCacheKey({
+            latitude: searchPoint.latitude,
+            longitude: searchPoint.longitude,
+            ...(neighborhood.query ? { query: neighborhood.query } : {}),
+          })
+        : null,
+    [searchPoint?.latitude, searchPoint?.longitude, neighborhood.query],
+  );
+
+  const cachedResults = useMemo(
+    () =>
+      discoveryCacheKey
+        ? readLocalBusinessDiscoveryCache(discoveryCacheKey)
+        : undefined,
+    [discoveryCacheKey],
+  );
+
   const loadResults = useCallback(async () => {
     if (!searchPoint) return [];
     if (mobileRuntime.status !== 'ready') throw new Error(mobileRuntime.message);
-    return mobileRuntime.client.searchLocal({
+    const items = await mobileRuntime.client.searchLocal({
       latitude: searchPoint.latitude,
       longitude: searchPoint.longitude,
       ...(neighborhood.query ? { query: neighborhood.query } : {}),
     });
-  }, [searchPoint?.latitude, searchPoint?.longitude, neighborhood.query]);
+    if (discoveryCacheKey) {
+      writeLocalBusinessDiscoveryCache(discoveryCacheKey, items);
+    }
+    return items;
+  }, [
+    searchPoint?.latitude,
+    searchPoint?.longitude,
+    neighborhood.query,
+    discoveryCacheKey,
+  ]);
 
   const { state, refresh } = useAsyncResource(loadResults, {
     enabled: searchPoint !== null,
-    isEmpty: (items) => items.length === 0,
+    isEmpty: isEmptyResults,
+    ...(cachedResults ? { initialData: cachedResults } : {}),
   });
 
   const businesses = useMemo(() => {
@@ -203,22 +243,31 @@ export function LocalBusinessDiscoveryScreen() {
         action={
           <Pressable
             onPress={() => router.push('/business/register')}
-            style={{ paddingVertical: 8 }}
+            style={{ paddingVertical: paltaTheme.spacing.xs }}
           >
-            <Text style={{ fontWeight: '800' }}>Mi negocio</Text>
+            <Text style={{ fontWeight: '800', color: paltaTheme.color.textPrimary }}>Mi negocio</Text>
           </Pressable>
         }
       >
-        <View style={{ gap: 14 }}>
-          <Text style={{ fontSize: 22, fontWeight: '800' }}>¿Qué necesitas cerca?</Text>
-          <Text style={{ opacity: 0.66, lineHeight: 21 }}>
+        <View style={{ gap: paltaTheme.spacing.sm }}>
+          <Text style={{ fontSize: 22, fontWeight: '800', color: paltaTheme.color.textPrimary }}>
+            ¿Qué necesitas cerca?
+          </Text>
+          <Text style={{ color: paltaTheme.color.textSecondary, lineHeight: 21 }}>
             Puedes buscar desde tu ubicación o empezar explorando Santiago. Tu ubicación exacta no es obligatoria para usar esta sección.
           </Text>
 
           <Pressable
             disabled={locationBusy}
             onPress={() => void useMyLocation()}
-            style={{ borderWidth: 1, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 13 }}
+            style={{
+              borderWidth: 1,
+              borderColor: paltaTheme.color.border,
+              borderRadius: paltaTheme.radius.control,
+              paddingHorizontal: paltaTheme.spacing.sm,
+              paddingVertical: paltaTheme.spacing.sm,
+              backgroundColor: paltaTheme.color.surface,
+            }}
           >
             <Text style={{ fontWeight: '800', opacity: locationBusy ? 0.5 : 1 }}>
               {locationBusy ? 'Buscando…' : 'Buscar cerca de mí'}
@@ -227,22 +276,31 @@ export function LocalBusinessDiscoveryScreen() {
 
           <Pressable
             onPress={exploreSantiago}
-            style={{ borderWidth: 1, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 13 }}
+            style={{
+              borderWidth: 1,
+              borderColor: paltaTheme.color.border,
+              borderRadius: paltaTheme.radius.control,
+              paddingHorizontal: paltaTheme.spacing.sm,
+              paddingVertical: paltaTheme.spacing.sm,
+              backgroundColor: paltaTheme.color.surface,
+            }}
           >
             <Text style={{ fontWeight: '800' }}>Explorar Santiago</Text>
-            <Text style={{ marginTop: 4, opacity: 0.62 }}>
+            <Text style={{ marginTop: paltaTheme.spacing.xxs, color: paltaTheme.color.textSecondary }}>
               Después puedes mover el mapa y buscar en otra zona.
             </Text>
           </Pressable>
 
           <Pressable
             onPress={() => router.push('/local-businesses/following')}
-            style={{ paddingVertical: 8 }}
+            style={{ paddingVertical: paltaTheme.spacing.xs }}
           >
             <Text style={{ fontWeight: '800' }}>Ver negocios que sigo</Text>
           </Pressable>
 
-          {locationError ? <Text style={{ opacity: 0.66 }}>{locationError}</Text> : null}
+          {locationError ? (
+            <Text style={{ color: paltaTheme.color.textSecondary }}>{locationError}</Text>
+          ) : null}
         </View>
       </ScreenFrame>
     );
@@ -254,16 +312,16 @@ export function LocalBusinessDiscoveryScreen() {
       subtitle="Busca por lo que necesitas y mira qué puedes usar ahora"
       scroll={false}
       action={
-        <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
+        <View style={{ flexDirection: 'row', gap: paltaTheme.spacing.sm, alignItems: 'center' }}>
           <Pressable
             onPress={() => router.push('/local-businesses/following')}
-            style={{ paddingVertical: 8 }}
+            style={{ paddingVertical: paltaTheme.spacing.xs }}
           >
             <Text style={{ fontWeight: '800' }}>Siguiendo</Text>
           </Pressable>
           <Pressable
             onPress={() => router.push('/business/register')}
-            style={{ paddingVertical: 8 }}
+            style={{ paddingVertical: paltaTheme.spacing.xs }}
           >
             <Text style={{ fontWeight: '800' }}>Mi negocio</Text>
           </Pressable>
@@ -271,24 +329,41 @@ export function LocalBusinessDiscoveryScreen() {
       }
     >
       <View style={{ flex: 1 }}>
-        <View style={{ flexDirection: 'row', gap: 8, marginBottom: 10 }}>
+        <View style={{ flexDirection: 'row', gap: paltaTheme.spacing.xs, marginBottom: 10 }}>
           <TextInput
             value={draftQuery}
             onChangeText={setDraftQuery}
             onSubmitEditing={() => submitSearch()}
             placeholder="Ej. gasfiter, corte de pelo, neumáticos"
+            placeholderTextColor={paltaTheme.color.textMuted}
             returnKeyType="search"
-            style={{ flex: 1, borderWidth: 1, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 10 }}
+            style={{
+              flex: 1,
+              minHeight: paltaTheme.touch.minimum,
+              borderWidth: 1,
+              borderColor: paltaTheme.color.border,
+              borderRadius: paltaTheme.radius.control,
+              paddingHorizontal: paltaTheme.spacing.sm,
+              paddingVertical: paltaTheme.spacing.xs,
+              backgroundColor: paltaTheme.color.surface,
+              color: paltaTheme.color.textPrimary,
+            }}
           />
           <Pressable
             onPress={() => submitSearch()}
-            style={{ borderWidth: 1, borderRadius: 14, paddingHorizontal: 14, justifyContent: 'center' }}
+            style={{
+              minHeight: paltaTheme.touch.minimum,
+              borderRadius: paltaTheme.radius.control,
+              paddingHorizontal: paltaTheme.spacing.sm,
+              justifyContent: 'center',
+              backgroundColor: paltaTheme.color.brandPrimary,
+            }}
           >
-            <Text style={{ fontWeight: '800' }}>Buscar</Text>
+            <Text style={{ fontWeight: '800', color: paltaTheme.color.surface }}>Buscar</Text>
           </Pressable>
         </View>
 
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: paltaTheme.spacing.xs, marginBottom: 10 }}>
           {LOCAL_BUSINESS_SHORTCUTS.map((shortcut) => (
             <FilterChip
               key={shortcut.id}
@@ -312,9 +387,20 @@ export function LocalBusinessDiscoveryScreen() {
               }
             />
           ) : (
-            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', borderWidth: 1 }}>
-              <Text>Map Core preparado</Text>
-              <Text style={{ marginTop: 6, opacity: 0.6 }}>Falta conectar el estilo de mapa del runtime.</Text>
+            <View
+              style={{
+                flex: 1,
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderWidth: 1,
+                borderColor: paltaTheme.color.border,
+                backgroundColor: paltaTheme.color.surfaceMuted,
+              }}
+            >
+              <Text style={{ color: paltaTheme.color.textPrimary }}>Map Core preparado</Text>
+              <Text style={{ marginTop: 6, color: paltaTheme.color.textSecondary }}>
+                Falta conectar el estilo de mapa del runtime.
+              </Text>
             </View>
           )}
 
@@ -330,14 +416,18 @@ export function LocalBusinessDiscoveryScreen() {
                 position: 'absolute',
                 alignSelf: 'center',
                 top: 14,
-                paddingHorizontal: 14,
-                paddingVertical: 9,
+                minHeight: paltaTheme.touch.minimum,
+                paddingHorizontal: paltaTheme.spacing.sm,
+                justifyContent: 'center',
                 borderWidth: 1,
-                borderRadius: 999,
-                backgroundColor: 'white',
+                borderColor: paltaTheme.color.border,
+                borderRadius: paltaTheme.radius.pill,
+                backgroundColor: paltaTheme.color.surface,
               }}
             >
-              <Text style={{ fontWeight: '800' }}>Buscar en esta zona</Text>
+              <Text style={{ fontWeight: '800', color: paltaTheme.color.textPrimary }}>
+                Buscar en esta zona
+              </Text>
             </Pressable>
           ) : null}
         </View>
@@ -347,11 +437,18 @@ export function LocalBusinessDiscoveryScreen() {
           onSnapChange={(snap) => dispatch({ type: 'set_sheet_snap', snap })}
         >
           {selectedBusiness ? (
-            <View style={{ marginBottom: 12, borderWidth: 1, borderRadius: 14, padding: 12, gap: 8 }}>
-              <Text style={{ fontSize: 12, fontWeight: '800', opacity: 0.58 }}>
+            <View style={{ marginBottom: paltaTheme.spacing.sm, gap: paltaTheme.spacing.xs }}>
+              <Text
+                style={{
+                  fontSize: 12,
+                  fontWeight: '800',
+                  color: paltaTheme.color.textMuted,
+                }}
+              >
                 SELECCIONADO EN EL MAPA
               </Text>
               <LocalResultCard
+                selected
                 name={selectedBusiness.name}
                 meta={[
                   formatOperationalState(selectedBusiness.operational_state, selectedBusiness.next_open_at),
@@ -365,18 +462,29 @@ export function LocalBusinessDiscoveryScreen() {
               />
               <Pressable
                 onPress={() => dispatch({ type: 'select_entity', entityId: null })}
-                style={{ alignSelf: 'flex-start', paddingVertical: 6 }}
+                style={{ alignSelf: 'flex-start', minHeight: 44, justifyContent: 'center' }}
               >
-                <Text style={{ fontWeight: '700', opacity: 0.64 }}>Cerrar selección</Text>
+                <Text style={{ fontWeight: '700', color: paltaTheme.color.textSecondary }}>
+                  Cerrar selección
+                </Text>
               </Pressable>
             </View>
           ) : null}
 
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, paddingBottom: 10, flexWrap: 'wrap' }}>
-            <Text style={{ fontSize: 13, fontWeight: '800', opacity: 0.6 }}>
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: paltaTheme.spacing.xs,
+              paddingBottom: 10,
+              flexWrap: 'wrap',
+            }}
+          >
+            <Text style={{ fontSize: 13, fontWeight: '800', color: paltaTheme.color.textMuted }}>
               {neighborhood.query ? 'RESULTADOS' : 'NEGOCIOS CERCA'}
             </Text>
-            <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+            <View style={{ flexDirection: 'row', gap: paltaTheme.spacing.xs, flexWrap: 'wrap' }}>
               <FilterChip
                 label="Abiertos ahora"
                 selected={openNowOnly}
