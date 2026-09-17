@@ -1,5 +1,5 @@
 import { Image, ScrollView, View } from 'react-native';
-import { SectionHeading } from '../common/SectionHeading';
+import { paltaTheme } from '../../theme/paltaTheme';
 
 export function BusinessPhotoStrip({
   photoUrls,
@@ -10,12 +10,13 @@ export function BusinessPhotoStrip({
   if (!photos.length) return null;
 
   return (
-    <View style={{ gap: 8 }}>
-      <SectionHeading title="Fotos" />
+    <View>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ gap: 10 }}
+        snapToAlignment="start"
+        decelerationRate="fast"
+        contentContainerStyle={{ gap: paltaTheme.spacing.xs }}
       >
         {photos.map((url, index) => (
           <Image
@@ -23,7 +24,12 @@ export function BusinessPhotoStrip({
             source={{ uri: url }}
             accessibilityLabel={`Foto ${index + 1} del negocio`}
             resizeMode="cover"
-            style={{ width: 220, height: 150, borderRadius: 16 }}
+            style={{
+              width: index === 0 ? 286 : 238,
+              height: 188,
+              borderRadius: paltaTheme.radius.surface,
+              backgroundColor: paltaTheme.color.surfaceMuted,
+            }}
           />
         ))}
       </ScrollView>
