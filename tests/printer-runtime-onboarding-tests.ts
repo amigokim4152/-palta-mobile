@@ -21,6 +21,8 @@ const manifest: PrinterCompatibilityManifest = {
       adapterKey: 'epson-epos',
       supportTier: 'palta_certified',
       paperWidthsMm: [80],
+      platforms: ['windows'],
+      firmwareVersions: ['10.01'],
       runtimeRequirements: {
         minAppVersion: '2.5.0',
         minBridgeVersion: '1.4.0',
@@ -37,6 +39,7 @@ const candidate = {
   fingerprint: {
     manufacturer: 'Epson',
     model: 'TM-T20IV-SP',
+    firmwareVersion: '10.01',
     connectionFingerprintHash: 'a'.repeat(64),
   },
   transports: ['network', 'usb'] as const,
@@ -47,6 +50,7 @@ const candidate = {
 const ready = assessDiscoveredPrinter({
   candidate,
   manifest,
+  platform: 'windows',
   now: '2026-09-17T20:00:00Z',
   runtime: {
     appVersion: '2.5.0',
@@ -62,6 +66,7 @@ assertEqual(ready.manifestFreshness, 'fresh', 'Onboarding must expose manifest f
 const oldBridge = assessDiscoveredPrinter({
   candidate,
   manifest,
+  platform: 'windows',
   now: '2026-09-17T20:00:00Z',
   runtime: {
     appVersion: '2.5.0',
@@ -77,6 +82,7 @@ assertEqual(oldBridge.runtimeAction, 'update_bridge', 'Onboarding should tell th
 const stale = assessDiscoveredPrinter({
   candidate,
   manifest,
+  platform: 'windows',
   now: '2026-11-01T12:00:00Z',
   runtime: {
     appVersion: '2.5.0',
@@ -88,6 +94,49 @@ const stale = assessDiscoveredPrinter({
 assertEqual(stale.reason, 'manifest_stale', 'Stale compatibility data must be explicit.');
 assertEqual(stale.supportTier, 'unknown', 'Stale data must not create a new certification promise.');
 assertEqual(stale.manifestFreshness, 'stale', 'Stale timestamp must be surfaced for support diagnostics.');
+
+const wrongPlatform = assessDiscoveredPrinter({
+  candidate,
+  manifest,
+  platform: 'android',
+  now: '2026-09-17T20:00:00Z',
+});
+assertEqual(
+  wrongPlatform.supportTier,
+  'unknown',
+  'Windows-only certification must not leak a Certified promise onto Android.',
+);
+assertEqual(
+  wrongPlatform.adapterKey,
+  undefined,
+  'Platform mismatch must not select the certification-derived executable adapter.',
+);
+
+const wrongFirmwareCandidate = {
+  ...candidate,
+  candidateId: 'candidate-wrong-firmware',
+  fingerprint: {
+    ...candidate.fingerprint,
+    firmwareVersion: '11.00',
+    connectionFingerprintHash: 'c'.repeat(64),
+  },
+};
+const wrongFirmware = assessDiscoveredPrinter({
+  candidate: wrongFirmwareCandidate,
+  manifest,
+  platform: 'windows',
+  now: '2026-09-17T20:00:00Z',
+});
+assertEqual(
+  wrongFirmware.supportTier,
+  'unknown',
+  'A different firmware must not inherit an exact physical certification.',
+);
+assertEqual(
+  wrongFirmware.adapterKey,
+  undefined,
+  'Firmware mismatch must not select the certification-derived executable adapter.',
+);
 
 const genericCandidate = {
   candidateId: 'candidate-2',
