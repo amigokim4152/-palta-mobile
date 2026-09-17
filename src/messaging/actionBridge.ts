@@ -3,6 +3,7 @@ import type { ActionReference, ActorRef } from './contracts.js';
 export interface DomainActionRequest {
   requestId: string;
   conversationId: string;
+  scopeId?: string;
   sourceMessageId: string;
   requestedBy: ActorRef;
   target: ActionReference;
@@ -12,6 +13,7 @@ export interface DomainActionRequest {
 export function buildDomainActionRequest(input: {
   requestId: string;
   conversationId: string;
+  scopeId?: string;
   sourceMessageId: string;
   requestedBy: ActorRef;
   actionRef: ActionReference;
@@ -20,6 +22,7 @@ export function buildDomainActionRequest(input: {
   return {
     requestId: input.requestId,
     conversationId: input.conversationId,
+    ...(input.scopeId !== undefined ? { scopeId: input.scopeId } : {}),
     sourceMessageId: input.sourceMessageId,
     requestedBy: input.requestedBy,
     target: input.actionRef,
