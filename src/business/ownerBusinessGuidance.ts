@@ -1,0 +1,169 @@
+import type { BusinessVerificationStatus } from './businessActionPolicy.js';
+import type { BusinessOperationalState } from './businessOperationalState.js';
+import type { BusinessChannelConnection } from './businessChannelConnection.js';
+import type { OwnerPartnerAction } from './ownerPartnerActions.js';
+
+export type OwnerBusinessGuidanceInput = {
+  businessId: string;
+  verificationStatus: BusinessVerificationStatus;
+  operationalState?: BusinessOperationalState;
+  hoursConfirmedAt?: string;
+  now: string | Date;
+  maxHoursConfirmationAgeMs?: number;
+  photoCount: number;
+  hasDescription: boolean;
+  serviceCount: number;
+  hasPublicContact: boolean;
+  hasPublicWebPage: boolean;
+  hasActiveBasicCoupon: boolean;
+  followerCount?: number;
+  channels?: readonly BusinessChannelConnection[];
+  searchAliasOpportunities?: readonly {
+    alias: string;
+    evidenceRef: string;
+    ownerConfirmedServiceMatch: boolean;
+  }[];
+};
+
+function toMs(value: string | Date): number {
+  const result = value instanceof Date ? value.getTime() : Date.parse(value);
+  if (!Number.isFinite(result)) throw new Error('Invalid owner guidance time');
+  return result;
+}
+
+function needsHoursReconfirmation(input: OwnerBusinessGuidanceInput): boolean {
+  if (input.operationalState === 'permanently_closed') return false;
+  if (input.maxHoursConfirmationAgeMs === undefined) return false;
+  if (!input.hoursConfirmedAt) return true;
+  const confirmedAt = Date.parse(input.hoursConfirmedAt);
+  if (!Number.isFinite(confirmedAt)) return true;
+  return toMs(input.now) - confirmedAt > input.maxHoursConfirmationAgeMs;
+}
+
+/**
+ * Deterministic, cheap baseline guidance. AI can later improve wording or handle
+ * ambiguous cases, but ordinary profile-care suggestions should not require an
+ * LLM call on every owner-home view.
+ */
+export function buildOwnerBusinessGuidance(
+  input: OwnerBusinessGuidanceInput,
+): OwnerPartnerAction[] {
+  const actions: OwnerPartnerAction[] = [];
+
+  if (needsHoursReconfirmation(input)) {
+    actions.push({
+      id: `${input.businessId}:confirm-hours`,
+      class: 'stale_or_inaccurate_truth',
+      title: 'Confirma tu horario',
+      reason: 'Tu horario necesita una confirmación reciente para que Palta no muestre información desactualizada.',
+      target: `/business/manage/${encodeURIComponent(input.businessId)}/hours`,
+      evidenceRefs: [`business:${input.businessId}:hours`],
+      actionRequired: true,
+      commercial: 'free',
+      urgency: 2,
+    });
+  }
+
+  if (input.photoCount === 0) {
+    actions.push({
+      id: `${input.businessId}:add-photo`,
+      class: 'free_practical_improvement',
+      title: 'Agrega una foto que explique tu negocio',
+      reason: 'Una imagen real ayuda a que una persona entienda más rápido qué encontrará aquí.',
+      target: `/business/manage/${encodeURIComponent(input.businessId)}/photos`,
+      evidenceRefs: [`business:${input.businessId}:photo-count:0`],
+      actionRequired: false,
+      commercial: 'free',
+    });
+  }
+
+  if (!input.hasDescription || input.serviceCount === 0) {
+    actions.push({
+      id: `${input.businessId}:explain-services`,
+      class: 'free_practical_improvement',
+      title: 'Cuenta claramente qué haces o vendes',
+      reason: 'Una descripción y servicios concretos mejoran la comprensión del cliente y la coincidencia con búsquedas reales.',
+      target: `/business/manage/${encodeURIComponent(input.businessId)}/services`,
+      evidenceRefs: [
+        `business:${input.businessId}:description:${input.hasDescription ? 'yes' : 'no'}`,
+        `business:${input.businessId}:service-count:${input.serviceCount}`,
+      ],
+      actionRequired: false,
+      commercial: 'free',
+    });
+  }
+
+  if (!input.hasPublicContact) {
+    actions.push({
+      id: `${input.businessId}:add-contact`,
+      class: 'free_practical_improvement',
+      title: 'Agrega una forma simple de contacto',
+      reason: 'Si una persona entiende tu negocio pero no puede contactarte, la visita al perfil se pierde.',
+      target: `/business/manage/${encodeURIComponent(input.businessId)}/contact`,
+      evidenceRefs: [`business:${input.businessId}:contact:none`],
+      actionRequired: false,
+      commercial: 'free',
+    });
+  }
+
+  if (input.hasPublicWebPage) {
+    actions.push({
+      id: `${input.businessId}:create-qr`,
+      class: 'free_practical_improvement',
+      title: 'Crea tu QR de Palta',
+      reason: 'Ponlo en el mesón, empaque o boleta para que tus clientes vuelvan a encontrar horario, novedades y beneficios sin buscar de nuevo.',
+      target: `/business/manage/${encodeURIComponent(input.businessId)}/qr`,
+      evidenceRefs: [`business:${input.businessId}:public-page`],
+      actionRequired: false,
+      commercial: 'free',
+    });
+  }
+
+  if (
+    input.verificationStatus === 'verified' &&
+    !input.hasActiveBasicCoupon
+  ) {
+    actions.push({
+      id: `${input.businessId}:basic-coupon`,
+      class: 'free_practical_improvement',
+      title: 'Prueba un beneficio simple para tus clientes',
+      reason: 'El cupón básico está disponible para negocios verificados y puede dar una razón concreta para volver o probar tu negocio.',
+      target: `/business/manage/${encodeURIComponent(input.businessId)}/coupons`,
+      evidenceRefs: [`business:${input.businessId}:verified`, `business:${input.businessId}:coupon:none`],
+      actionRequired: false,
+      commercial: 'free',
+    });
+  }
+
+  const activeExternalChannel = (input.channels ?? []).some(
+    (channel) => channel.provider !== 'palta' && channel.status === 'active',
+  );
+  if (!activeExternalChannel) {
+    actions.push({
+      id: `${input.businessId}:connect-channel`,
+      class: 'free_practical_improvement',
+      title: 'Conecta el canal que ya usas',
+      reason: 'Puedes enlazar Instagram, Facebook, Google, WhatsApp o tu sitio sin dejar de usarlos.',
+      target: `/business/manage/${encodeURIComponent(input.businessId)}/channels`,
+      evidenceRefs: [`business:${input.businessId}:external-channel:none`],
+      actionRequired: false,
+      commercial: 'free',
+    });
+  }
+
+  for (const opportunity of input.searchAliasOpportunities ?? []) {
+    if (!opportunity.ownerConfirmedServiceMatch) continue;
+    actions.push({
+      id: `${input.businessId}:search-alias:${opportunity.alias}`,
+      class: 'free_practical_improvement',
+      title: `Tus clientes también buscan “${opportunity.alias}”`,
+      reason: 'Si esta palabra describe realmente un servicio que ofreces, agregarla ayuda a que Palta entienda mejor cuándo mostrar tu negocio.',
+      target: `/business/manage/${encodeURIComponent(input.businessId)}/services`,
+      evidenceRefs: [opportunity.evidenceRef],
+      actionRequired: false,
+      commercial: 'free',
+    });
+  }
+
+  return actions;
+}
