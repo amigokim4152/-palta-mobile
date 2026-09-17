@@ -5,6 +5,7 @@ export interface CareSignalPayload extends Record<string, unknown> {
   resourceType: string;
   resourceId: string;
   careEvent: CareEvent;
+  sourceSequence?: number;
   expectedAt?: string;
   waitingForKey?: string;
   resultRef?: string;
@@ -18,6 +19,7 @@ export interface ParsedCareSignal {
   resourceId: string;
   careEvent: CareEvent;
   occurredAt: string;
+  sourceSequence?: number;
   expectedAt?: string;
   waitingForKey?: string;
   resultRef?: string;
@@ -51,6 +53,12 @@ function optionalString(value: unknown): string | undefined {
   return normalized.length > 0 ? normalized : undefined;
 }
 
+function optionalSequence(value: unknown): number | undefined | null {
+  if (value === undefined) return undefined;
+  if (typeof value !== 'number' || !Number.isInteger(value) || value < 0) return null;
+  return value;
+}
+
 export function buildCareSignalEvent(input: {
   eventId: string;
   sourceCore: string;
@@ -59,6 +67,7 @@ export function buildCareSignalEvent(input: {
   careEvent: CareEvent;
   occurredAt: string;
   dedupeKey?: string;
+  sourceSequence?: number;
   expectedAt?: string;
   waitingForKey?: string;
   resultRef?: string;
@@ -69,6 +78,12 @@ export function buildCareSignalEvent(input: {
   const resourceType = required(input.resourceType, 'resourceType');
   const resourceId = required(input.resourceId, 'resourceId');
   const occurredAt = required(input.occurredAt, 'occurredAt');
+  if (
+    input.sourceSequence !== undefined &&
+    (!Number.isInteger(input.sourceSequence) || input.sourceSequence < 0)
+  ) {
+    throw new Error('sourceSequence must be a non-negative integer.');
+  }
 
   return {
     id: eventId,
@@ -81,6 +96,7 @@ export function buildCareSignalEvent(input: {
       resourceType,
       resourceId,
       careEvent: input.careEvent,
+      ...(input.sourceSequence !== undefined ? { sourceSequence: input.sourceSequence } : {}),
       ...(input.expectedAt !== undefined ? { expectedAt: required(input.expectedAt, 'expectedAt') } : {}),
       ...(input.waitingForKey !== undefined
         ? { waitingForKey: required(input.waitingForKey, 'waitingForKey') }
@@ -101,6 +117,7 @@ export function parseCareSignalEvent(event: PaltaEvent): ParsedCareSignal | null
   const sourceCore = optionalString(event.source);
   const eventId = optionalString(event.id);
   const occurredAt = optionalString(event.occurredAt);
+  const sourceSequence = optionalSequence(payload.sourceSequence);
 
   if (
     !resourceType ||
@@ -109,7 +126,8 @@ export function parseCareSignalEvent(event: PaltaEvent): ParsedCareSignal | null
     !CARE_EVENTS.has(careEvent) ||
     !sourceCore ||
     !eventId ||
-    !occurredAt
+    !occurredAt ||
+    sourceSequence === null
   ) {
     return null;
   }
@@ -126,6 +144,7 @@ export function parseCareSignalEvent(event: PaltaEvent): ParsedCareSignal | null
     resourceId,
     careEvent,
     occurredAt,
+    ...(sourceSequence !== undefined ? { sourceSequence } : {}),
     ...(expectedAt !== undefined ? { expectedAt } : {}),
     ...(waitingForKey !== undefined ? { waitingForKey } : {}),
     ...(resultRef !== undefined ? { resultRef } : {}),
