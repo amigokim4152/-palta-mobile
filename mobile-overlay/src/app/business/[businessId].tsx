@@ -6,11 +6,6 @@ import {
   type BusinessCapability,
 } from '../../../../src/business/businessActionPolicy';
 import type { BusinessApiDetail } from '../../../../src/api/paltaApiClient';
-import { enqueueMutation } from '../../../../src/mobile/offlineMutationQueue';
-import {
-  createClientMutationId,
-  isRetryableMutationError,
-} from '../../../../src/api/retryPolicy';
 import {
   ErrorState,
   LoadingState,
@@ -21,7 +16,6 @@ import { BusinessPhotoStrip } from '../../components/business/BusinessPhotoStrip
 import { SectionHeading } from '../../components/common/SectionHeading';
 import { useAsyncResource } from '../../hooks/useAsyncResource';
 import { mobileRuntime } from '../../services/paltaClient';
-import { useMutationQueueStore } from '../../services/useMutationQueueStore';
 
 function ProfileSection({
   title,
@@ -102,7 +96,6 @@ function buildPhoneUrl(business: BusinessApiDetail): string | undefined {
 
 export default function BusinessDetailScreen() {
   const { businessId } = useLocalSearchParams<{ businessId: string }>();
-  const queueStore = useMutationQueueStore();
   const [submitting, setSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState<string | null>(null);
 
@@ -135,51 +128,6 @@ export default function BusinessDetailScreen() {
   }, [businessId]);
 
   const { state, refresh } = useAsyncResource(loadBusiness);
-
-  async function requestQuote() {
-    if (!businessId || mobileRuntime.status !== 'ready') return;
-    setSubmitting(true);
-    setSubmitMessage(null);
-
-    const description = 'Solicitud iniciada desde el detalle del negocio.';
-    const mutationId = createClientMutationId(Date.now(), Math.random());
-
-    try {
-      const care = await mobileRuntime.client.createCare({
-        intentKey: 'local_business_quote',
-        subjectEntityId: businessId,
-        actionType: 'quote_request',
-        payload: { description },
-        idempotencyKey: mutationId,
-      });
-      router.push(`/care/${encodeURIComponent(care.id)}`);
-    } catch (error) {
-      if (isRetryableMutationError(error)) {
-        await queueStore.put(
-          enqueueMutation({
-            id: mutationId,
-            kind: 'business_quote_request',
-            payload: {
-              businessId,
-              description,
-            },
-            now: new Date().toISOString(),
-          }),
-        );
-        setSubmitMessage(
-          'Guardamos tu solicitud. Palta volverá a enviarla cuando recupere conexión.',
-        );
-      } else {
-        setSubmitMessage(
-          error instanceof Error
-            ? `No se pudo enviar: ${error.message}`
-            : 'No se pudo enviar la solicitud.',
-        );
-      }
-    } finally {
-      setSubmitting(false);
-    }
-  }
 
   async function updateRelationship(capability: 'save' | 'follow') {
     if (!businessId || mobileRuntime.status !== 'ready' || !state.data) return;
@@ -222,7 +170,9 @@ export default function BusinessDetailScreen() {
 
     switch (capability) {
       case 'quote':
-        void requestQuote();
+        if (business) {
+          router.push(`/business/${encodeURIComponent(business.id)}/quote`);
+        }
         return;
       case 'save':
       case 'follow':
