@@ -5,6 +5,25 @@ export type ParticipantRole = 'member' | 'customer' | 'owner' | 'manager' | 'sta
 export type DeliveryState = 'persisted' | 'queued' | 'delivered' | 'read';
 export type AttachmentKind = 'image' | 'voice' | 'file';
 export type ContextRelation = 'primary' | 'subject' | 'vehicle' | 'business' | 'listing' | 'job' | 'property' | 'quote' | 'booking' | 'order' | 'service_request' | 'other';
+export type ScopeState = 'active' | 'resolved' | 'archived';
+export type ScopeResourceRelation =
+  | 'primary'
+  | 'subject'
+  | 'vehicle'
+  | 'listing'
+  | 'job'
+  | 'property'
+  | 'quote'
+  | 'booking'
+  | 'order'
+  | 'shipment'
+  | 'delivery'
+  | 'artifact'
+  | 'service_request'
+  | 'payment'
+  | 'receipt'
+  | 'other';
+export type ScopeAccessMode = 'view_status' | 'participate' | 'communicate';
 export type AIArtifactType = 'transcript' | 'translation' | 'summary' | 'intent' | 'entities' | 'suggested_action' | 'moderation';
 
 export interface ActorRef {
@@ -20,6 +39,19 @@ export interface Conversation {
   createdAt: string;
   lastSequence: number;
   lastActivityAt: string;
+}
+
+export interface ConversationScope {
+  scopeId: string;
+  conversationId: string;
+  /** Open domain-neutral label such as service_case, order, shipment, application. */
+  scopeType: string;
+  /** Human-safe display label only. Canonical domain data remains in the owning core. */
+  label?: string;
+  state: ScopeState;
+  createdAt: string;
+  resolvedAt?: string;
+  archivedAt?: string;
 }
 
 export interface ParticipantState {
@@ -39,11 +71,24 @@ export interface ResourceRef {
   resourceId: string;
 }
 
+/** Relationship-wide context. Case/order-specific resources belong on ConversationScope. */
 export interface ConversationContextRef extends ResourceRef {
   conversationId: string;
   relation: ContextRelation;
   /** Optional immutable display snapshot version; the domain object remains canonical. */
   snapshotVersion?: string;
+}
+
+export interface ConversationScopeResourceRef extends ResourceRef {
+  scopeId: string;
+  relation: ScopeResourceRelation;
+  /** Optional immutable display snapshot version; the domain object remains canonical. */
+  snapshotVersion?: string;
+  /** Owning/authorizing core, e.g. commerce, reservation, jobs. */
+  sourceCore?: string;
+  /** Non-secret evidence identifier from the owning core. Never a bearer/share token. */
+  authorizationEvidenceRef?: string;
+  accessMode?: ScopeAccessMode;
 }
 
 export interface MessageAttachment {
@@ -65,6 +110,8 @@ export interface ActionReference extends ResourceRef {
 export interface Message {
   messageId: string;
   conversationId: string;
+  /** Optional case/order/job scope within a long-lived relationship conversation. */
+  scopeId?: string;
   /** Client-generated idempotency token. Unique per sender within a conversation. */
   clientMessageId: string;
   sender: ActorRef;
@@ -81,6 +128,7 @@ export interface Message {
 export interface DomainEventReference extends ResourceRef {
   eventId: string;
   eventType: string;
+  scopeId?: string;
   occurredAt: string;
 }
 
@@ -96,7 +144,7 @@ export interface AIArtifactReference {
 
 export interface OutboxEvent {
   outboxEventId: string;
-  aggregateType: 'conversation' | 'message';
+  aggregateType: 'conversation' | 'scope' | 'message';
   aggregateId: string;
   eventType: string;
   createdAt: string;
@@ -109,6 +157,7 @@ export type TimelineItem =
 
 export interface RealtimeEnvelope {
   conversationId: string;
+  scopeId?: string;
   sequence: number;
   kind: 'message_created' | 'message_updated' | 'read_advanced' | 'domain_event';
   refId: string;
