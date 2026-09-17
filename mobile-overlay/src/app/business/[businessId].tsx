@@ -280,6 +280,26 @@ export default function BusinessDetailScreen() {
           </View>
         ) : null}
 
+        {business.posts?.length ? (
+          <View style={{ gap: 8 }}>
+            <SectionHeading
+              title="Novedades"
+              subtitle="Información publicada por este negocio. Seguirlo no activa notificaciones promocionales por sí solo."
+            />
+            {business.posts.slice(0, 5).map((post) => (
+              <View key={post.id} style={{ borderWidth: 1, borderRadius: 14, padding: 14, gap: 5 }}>
+                <Text style={{ fontSize: 16, fontWeight: '800' }}>{post.title}</Text>
+                {post.body ? <Text style={{ lineHeight: 20 }}>{post.body}</Text> : null}
+                {post.published_at ? (
+                  <Text style={{ opacity: 0.55, fontSize: 12 }}>
+                    {new Date(post.published_at).toLocaleString('es-CL')}
+                  </Text>
+                ) : null}
+              </View>
+            ))}
+          </View>
+        ) : null}
+
         <ExternalChannels links={business.channel_links ?? []} />
 
         <SectionHeading
@@ -296,17 +316,6 @@ export default function BusinessDetailScreen() {
           }}
           onAction={handleAction}
         />
-
-        {business.posts?.length ? (
-          <View style={{ gap: 8 }}>
-            <SectionHeading title="Novedades" />
-            {business.posts.slice(0, 3).map((post) => (
-              <Text key={post.id} style={{ lineHeight: 21 }}>
-                {post.title}
-              </Text>
-            ))}
-          </View>
-        ) : null}
 
         {submitting ? (
           <Text style={{ opacity: 0.62 }}>Actualizando…</Text>
