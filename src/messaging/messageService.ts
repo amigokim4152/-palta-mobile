@@ -175,6 +175,12 @@ export class MessageService {
         aggregateType: 'message',
         aggregateId: message.messageId,
         eventType: 'message.created',
+        payload: {
+          conversationId: message.conversationId,
+          ...(message.scopeId !== undefined ? { scopeId: message.scopeId } : {}),
+          sequence: message.sequence,
+          messageId: message.messageId,
+        },
         createdAt: command.createdAt,
       };
 
