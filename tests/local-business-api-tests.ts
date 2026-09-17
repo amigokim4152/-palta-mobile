@@ -33,9 +33,10 @@ await client.submitBusinessOnboarding({
   anchorLocation: { lat: -33.39, lng: -70.57 },
   addressLabel: 'Dirección privada',
 });
-assert(lastBody !== null, 'Onboarding request should be sent.');
-assert(!('anchor_location' in lastBody), 'Customer-site provider must not expose registration anchor.');
-assert(!('address_label' in lastBody), 'Customer-site provider must not expose private address label.');
+const mobileBody = lastBody as Record<string, unknown> | null;
+assert(mobileBody !== null, 'Onboarding request should be sent.');
+assert(!('anchor_location' in mobileBody), 'Customer-site provider must not expose registration anchor.');
+assert(!('address_label' in mobileBody), 'Customer-site provider must not expose private address label.');
 
 await client.submitBusinessOnboarding({
   mode: 'create_new',
@@ -47,7 +48,9 @@ await client.submitBusinessOnboarding({
   anchorLocation: { lat: -33.39, lng: -70.57 },
   addressLabel: 'Av. Ejemplo 123',
 });
-assert(lastBody !== null && 'anchor_location' in lastBody, 'Storefront should publish its fixed location.');
-assert(lastBody.address_label === 'Av. Ejemplo 123', 'Storefront address should be submitted.');
+const storefrontBody = lastBody as Record<string, unknown> | null;
+assert(storefrontBody !== null, 'Storefront onboarding request should be sent.');
+assert('anchor_location' in storefrontBody, 'Storefront should publish its fixed location.');
+assert(storefrontBody['address_label'] === 'Av. Ejemplo 123', 'Storefront address should be submitted.');
 
 console.log('PASS: Local Business onboarding API privacy');
