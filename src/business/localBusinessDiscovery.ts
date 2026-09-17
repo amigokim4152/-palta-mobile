@@ -13,7 +13,11 @@ export type LocalBusinessDiscoveryItem = {
   verificationStatus?: string;
   operationalState?: BusinessOperationalState;
   operationalConfirmedAt?: string;
-  location: { lat: number; lng: number };
+  /**
+   * Exact public point is optional. Service-area, private-home and hidden-location
+   * businesses can remain discoverable in the list without exposing a precise pin.
+   */
+  location?: { lat: number; lng: number };
 };
 
 export type LocalBusinessShortcut = {
