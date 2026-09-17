@@ -10,6 +10,10 @@ import {
   openPOSSession,
 } from '../src/commerce/posSession.js';
 import {
+  decideCommerceRuntimeOperation,
+  type CommerceRuntimePolicyInput,
+} from '../src/commerce/runtimePolicy.js';
+import {
   canCreateReplacementPayment,
   paymentIsAuthoritativelyPaid,
   paymentRequiresReconciliation,
@@ -217,4 +221,76 @@ event = markOutboxProcessing(event, '2026-09-17T10:01:00.000Z');
 event = markOutboxDelivered(event, '2026-09-17T10:01:01.000Z');
 assert(event.status === 'delivered' && event.attempts === 2, 'Outbox must preserve retry attempts and eventually deliver exactly once.');
 
-console.log('PASS: independent commerce/payment/fiscal/POS core tests');
+const healthyRuntime: CommerceRuntimePolicyInput = {
+  dependencies: {
+    database: 'healthy',
+    asyncQueue: 'healthy',
+    paymentProvider: 'healthy',
+    sii: 'healthy',
+    objectStorage: 'healthy',
+    localJournal: 'healthy',
+  },
+  offlineManualSalesAllowed: true,
+  fiscalDeferralAllowed: true,
+};
+
+const queueOutagePayment = decideCommerceRuntimeOperation('integrated_payment', {
+  ...healthyRuntime,
+  dependencies: { ...healthyRuntime.dependencies, asyncQueue: 'unavailable' },
+});
+assert(
+  queueOutagePayment.decision === 'allow_degraded' &&
+    queueOutagePayment.reason === 'queue_degraded_outbox_durable',
+  'Queue outage must not block an integrated payment when DB Outbox remains durable.',
+);
+
+const dbOutageCard = decideCommerceRuntimeOperation('integrated_payment', {
+  ...healthyRuntime,
+  dependencies: { ...healthyRuntime.dependencies, database: 'unavailable' },
+});
+assert(
+  dbOutageCard.decision === 'block',
+  'Integrated payment must not start when canonical payment state cannot be durably stored.',
+);
+
+const dbOutageCash = decideCommerceRuntimeOperation('manual_payment_record', {
+  ...healthyRuntime,
+  dependencies: { ...healthyRuntime.dependencies, database: 'unavailable' },
+});
+assert(
+  dbOutageCash.decision === 'allow_degraded' &&
+    dbOutageCash.userState === 'saved_locally_pending_sync',
+  'Manual/cash operation may continue through the local journal when offline policy permits it.',
+);
+
+const siiOutageDeferred = decideCommerceRuntimeOperation('fiscal_send', {
+  ...healthyRuntime,
+  dependencies: { ...healthyRuntime.dependencies, sii: 'unavailable' },
+});
+assert(
+  siiOutageDeferred.decision === 'allow_degraded' &&
+    siiOutageDeferred.userState === 'fiscal_pending',
+  'SII outage must become fiscal pending when the Chile Fiscal layer explicitly permits deferral.',
+);
+
+const siiOutageBlocking = decideCommerceRuntimeOperation('fiscal_send', {
+  ...healthyRuntime,
+  fiscalDeferralAllowed: false,
+  dependencies: { ...healthyRuntime.dependencies, sii: 'unavailable' },
+});
+assert(
+  siiOutageBlocking.decision === 'block',
+  'Core must not invent fiscal deferral when the Chile Fiscal layer says it is not allowed.',
+);
+
+const archiveOutage = decideCommerceRuntimeOperation('fiscal_archive', {
+  ...healthyRuntime,
+  dependencies: { ...healthyRuntime.dependencies, objectStorage: 'unavailable' },
+});
+assert(
+  archiveOutage.decision === 'allow_degraded' &&
+    archiveOutage.userState === 'fiscal_archive_pending',
+  'Archive outage should create a monitored backlog rather than roll back the commercial transaction.',
+);
+
+console.log('PASS: independent commerce/payment/fiscal/POS/runtime core tests');
