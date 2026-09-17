@@ -66,7 +66,7 @@ const client = new PaltaApiClient({
 
 const opened = await client.openBusinessConversation('business-1');
 assert(opened.created === false, 'Mobile client must preserve open/reuse result.');
-assert(calls.length === 1, 'Opening a business conversation must make one API request.');
+assert(Number(calls.length) === 1, 'Opening a business conversation must make one API request.');
 const openCall = calls[0]!;
 assert(openCall.method === 'POST', 'Business conversation open must use POST.');
 assert(openCall.url.endsWith('/v1/messages/businesses/business-1/conversation'), 'Business ID must be encoded in relationship endpoint.');
@@ -85,7 +85,7 @@ await client.listConversationInbox({
     conversationId: '00000000-0000-4000-8000-000000000001',
   },
 });
-assert(calls.length === 2, 'Inbox load must make one additional request.');
+assert(Number(calls.length) === 2, 'Inbox load must make one additional request.');
 const inboxUrl = new URL(calls[1]!.url);
 assert(inboxUrl.pathname === '/v1/messages/conversations', 'Inbox must use relationship conversation collection endpoint.');
 assert(inboxUrl.searchParams.get('limit') === '25', 'Inbox limit must be explicit.');
