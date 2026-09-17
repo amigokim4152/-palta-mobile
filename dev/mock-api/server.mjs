@@ -95,6 +95,60 @@ function normalize(value) {
     .toLowerCase();
 }
 
+function ownerGuidanceFor(business) {
+  const items = [];
+
+  if (business.verification_status !== 'verified') {
+    items.push({
+      id: `${business.id}:verification`,
+      class: 'stale_or_inaccurate_truth',
+      title: 'Completa la verificación del negocio',
+      reason: 'La verificación permite controlar cambios sensibles y publicar beneficios del propietario con confianza.',
+      target: `/business/manage/${business.id}/verification`,
+      action_required: true,
+      commercial: 'free',
+    });
+  }
+
+  if (!(business.photo_urls ?? []).length) {
+    items.push({
+      id: `${business.id}:photo`,
+      class: 'free_practical_improvement',
+      title: 'Agrega una foto que explique tu negocio',
+      reason: 'Una foto real ayuda a que alguien entienda más rápido qué encontrará aquí.',
+      target: `/business/manage/${business.id}/photos`,
+      action_required: false,
+      commercial: 'free',
+    });
+  }
+
+  if (!(business.channel_links ?? []).length) {
+    items.push({
+      id: `${business.id}:channels`,
+      class: 'free_practical_improvement',
+      title: 'Conecta el canal que ya usas',
+      reason: 'Puedes enlazar Instagram, Facebook, Google, WhatsApp o tu sitio sin dejar de usarlos.',
+      target: `/business/manage/${business.id}/channels`,
+      action_required: false,
+      commercial: 'free',
+    });
+  }
+
+  if (business.verification_status === 'verified') {
+    items.push({
+      id: `${business.id}:coupon`,
+      class: 'free_practical_improvement',
+      title: 'Prueba un beneficio simple para tus clientes',
+      reason: 'El cupón básico puede dar una razón concreta para probar o volver a tu negocio.',
+      target: `/business/manage/${business.id}/coupons`,
+      action_required: false,
+      commercial: 'free',
+    });
+  }
+
+  return items.slice(0, 5);
+}
+
 const server = http.createServer(async (req, res) => {
   try {
     if (!req.url || !req.method) return json(res, 400, { error: 'bad_request' });
@@ -103,7 +157,7 @@ const server = http.createServer(async (req, res) => {
     const url = new URL(req.url, `http://${req.headers.host ?? `${host}:${port}`}`);
 
     if (req.method === 'GET' && url.pathname === '/health') {
-      return json(res, 200, { ok: true, service: 'palta-mock-api', version: '0.3.0' });
+      return json(res, 200, { ok: true, service: 'palta-mock-api', version: '0.4.0' });
     }
 
     if (req.method === 'GET' && url.pathname === '/v1/home') {
@@ -213,6 +267,21 @@ const server = http.createServer(async (req, res) => {
         idempotencyBusinessResults.set(idempotencyKey, result);
       }
       return json(res, 201, result);
+    }
+
+    const ownerGuidanceMatch = req.method === 'GET'
+      ? url.pathname.match(/^\/v1\/business\/([^/]+)\/owner-guidance$/)
+      : null;
+    if (ownerGuidanceMatch) {
+      const id = decodeURIComponent(ownerGuidanceMatch[1]);
+      const business = businesses.find((item) => item.id === id);
+      return business
+        ? json(res, 200, {
+            business_id: business.id,
+            generated_at: new Date().toISOString(),
+            items: ownerGuidanceFor(business),
+          })
+        : json(res, 404, { error: 'business_not_found' });
     }
 
     if (req.method === 'GET' && url.pathname.startsWith('/v1/business/')) {
