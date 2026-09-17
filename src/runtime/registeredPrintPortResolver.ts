@@ -75,13 +75,6 @@ export class RegisteredPrintPortResolver implements PrintPortResolver {
     if (binding.adapter.key !== persisted.printer.adapterKey) {
       throw new Error('Live print adapter does not match canonical printer adapterKey.');
     }
-    if (!binding.adapter.supports(persisted.printer, { kind: 'receipt', lines: [] })) {
-      // The worker performs the authoritative content-specific supports() check.
-      // This lightweight check catches bindings that reject the canonical device
-      // itself without coupling the resolver to a specific PrintJob payload.
-      // An adapter that only supports a non-receipt class is allowed below by
-      // skipping this heuristic through adapter-key identity; do not reject it.
-    }
 
     return {
       printer: persisted.printer,
