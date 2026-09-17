@@ -193,9 +193,6 @@ export function normalizeOwnerPublicChannelInput(
   const alreadyUrl = normalizeSafePublicChannelUrl(candidate);
   if (alreadyUrl) return alreadyUrl;
 
-  const bareWeb = normalizeBareWebAddress(candidate);
-  if (bareWeb) return bareWeb;
-
   if (provider === 'instagram') {
     const handle = candidate.replace(/^@/, '');
     if (/^[A-Za-z0-9._]{1,30}$/.test(handle)) {
@@ -225,7 +222,7 @@ export function normalizeOwnerPublicChannelInput(
     }
   }
 
-  return null;
+  return normalizeBareWebAddress(candidate);
 }
 
 /**
