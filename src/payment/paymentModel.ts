@@ -36,7 +36,14 @@ export type PaymentIntent = {
   commerceTransactionId: string; // canonical commercial action being paid
   orderId?: string; // optional order context when the transaction came from an order
   merchantId: string; // canonical Palta merchant/business ID
+  /** Requested amount. Never rewrite this after a provider partially approves a payment. */
   amount: Money;
+  /**
+   * Provider-confirmed amount actually processed/authorized for this intent when
+   * the provider reports it. This is separate from the requested amount so
+   * partial approvals cannot make Commerce believe the full request was paid.
+   */
+  processedAmount?: Money;
   rail: PaymentRail;
   status: PaymentStatus;
   /** Optimistic concurrency revision for provider callbacks/reconciliation races. */
