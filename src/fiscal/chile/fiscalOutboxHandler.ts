@@ -69,9 +69,7 @@ function executionId(event: CommerceOutboxEvent): string {
 }
 
 function reconciliationInput(execution: FiscalExecution, originalIssue: ExternalFiscalIssueInput) {
-  if (execution.providerReference !== undefined) {
-    return { providerReference: execution.providerReference };
-  }
+  if (execution.providerReference !== undefined) return { providerReference: execution.providerReference };
   if (execution.providerTicketReference !== undefined) {
     return { queueTicketReference: execution.providerTicketReference };
   }
@@ -130,9 +128,16 @@ export class ExternalFiscalOutboxHandler implements OutboxEventHandler {
       originalIssue = prepareExternalFiscalIssue(request);
     } catch {
       if (execution.status === 'created') {
-        const failed = transitionFiscalExecution(execution, 'submitting', this.now());
-        const finalFailed = transitionFiscalExecution(failed, 'failed', this.now());
-        await this.executions.saveExecution({ execution: finalFailed, expectedRevision: execution.revision });
+        const submitting = transitionFiscalExecution(execution, 'submitting', this.now());
+        const savedSubmitting = await this.executions.saveExecution({
+          execution: submitting,
+          expectedRevision: execution.revision,
+        });
+        const failed = transitionFiscalExecution(savedSubmitting, 'failed', this.now());
+        await this.executions.saveExecution({
+          execution: failed,
+          expectedRevision: savedSubmitting.revision,
+        });
       }
       return { kind: 'dead_letter', errorCode: 'fiscal_preparation_failed' };
     }
@@ -153,7 +158,8 @@ export class ExternalFiscalOutboxHandler implements OutboxEventHandler {
     }
 
     let current = execution;
-    if (current.status === 'created') {
+    const wasCreatedThisAttempt = current.status === 'created';
+    if (wasCreatedThisAttempt) {
       const submitting = transitionFiscalExecution(current, 'submitting', this.now());
       current = await this.executions.saveExecution({
         execution: submitting,
@@ -163,7 +169,10 @@ export class ExternalFiscalOutboxHandler implements OutboxEventHandler {
 
     const occurredAt = this.now();
     try {
-      const result = current.status === 'submitting' && current.revision === 1
+      // Only the first delivery may call issue(). Any redelivery/restart uses
+      // reconcile(), which may replay only the exact same provider idempotency identity.
+      const firstProviderAttempt = wasCreatedThisAttempt && event.attempts <= 1;
+      const result = firstProviderAttempt
         ? await port.issue(originalIssue)
         : await port.reconcile(reconciliationInput(current, originalIssue));
 
@@ -213,9 +222,13 @@ export class ExternalFiscalOutboxHandler implements OutboxEventHandler {
     }
 
     if (incident.retrySameOperation) {
-      // Keep submitting: the next attempt goes through reconcile(), which may
-      // replay only the same provider idempotency identity.
       return retryable(event, occurredAt, incident.kind);
+    }
+
+    // An auth/config/validation error while a document is already queued or at
+    // the authority is an access/operation incident, not proof the DTE failed.
+    if (execution.status !== 'submitting') {
+      return { kind: 'dead_letter', errorCode: incident.kind };
     }
 
     const failed = transitionFiscalExecution(execution, 'failed', occurredAt);
