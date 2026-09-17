@@ -78,6 +78,15 @@ export type MessageApiActionRef = {
   contract_version: string;
 };
 
+export type MessageApiAttachment = {
+  attachment_id?: string;
+  asset_id: string;
+  kind: 'image' | 'voice' | 'file';
+  mime_type: string;
+  size_bytes?: number;
+  duration_ms?: number;
+};
+
 export type MessageApiItem = {
   message_id: string;
   conversation_id: string;
@@ -87,6 +96,7 @@ export type MessageApiItem = {
   sequence: number;
   message_type: 'text' | 'voice' | 'image' | 'file' | 'location' | 'resource_card' | 'action_card';
   body?: string;
+  attachments?: MessageApiAttachment[];
   reply_to_message_id?: string;
   action_ref?: MessageApiActionRef;
   created_at: string;
@@ -303,6 +313,7 @@ export class PaltaApiClient {
     actingActor?: MessageApiActor;
     messageType: MessageApiItem['message_type'];
     body?: string;
+    attachments?: MessageApiAttachment[];
     replyToMessageId?: string;
     actionRef?: MessageApiActionRef;
   }): Promise<MessageApiItem> {
@@ -313,6 +324,7 @@ export class PaltaApiClient {
     if (input.scopeId) body.scope_id = input.scopeId;
     if (input.actingActor) body.acting_actor = input.actingActor;
     if (input.body !== undefined) body.body = input.body;
+    if (input.attachments !== undefined) body.attachments = input.attachments;
     if (input.replyToMessageId) body.reply_to_message_id = input.replyToMessageId;
     if (input.actionRef) body.action_ref = input.actionRef;
 
