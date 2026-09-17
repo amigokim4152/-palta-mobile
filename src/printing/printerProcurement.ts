@@ -2,6 +2,7 @@ import type { PrintDocumentKind, PrinterSupportTier, PrinterTransport } from './
 import {
   certificationIsCurrent,
   supportTierFromCertification,
+  type PrinterCertificationPlatform,
   type PrinterCertificationRecord,
 } from './printerCertification.js';
 
@@ -164,16 +165,21 @@ function transportPreferenceScore(
 /**
  * Procurement eligibility is intentionally based only on tested certification
  * records. A model being popular or listed online is not enough for Palta to
- * recommend buying it.
+ * recommend buying it. The intended POS/bridge platform must match the platform
+ * that was actually certified; another platform needs its own certification record.
  */
 export function assessProcurementCandidate(input: {
   record: PrinterCertificationRecord;
   requirement: PrinterPackageRequirement;
+  platform: PrinterCertificationPlatform;
   now: string;
 }): ProcurementCandidateDecision {
   const reasons: string[] = [];
   if (!certificationIsCurrent(input.record, input.now)) {
     return { eligible: false, score: 0, supportTier: 'unknown', reasons: ['certification_expired'] };
+  }
+  if (input.record.platform !== input.platform) {
+    return { eligible: false, score: 0, supportTier: 'unknown', reasons: ['platform_not_certified'] };
   }
   if (!input.requirement.documentKinds.every((kind) => input.record.documentKinds.includes(kind))) {
     return { eligible: false, score: 0, supportTier: 'unknown', reasons: ['document_kind_not_certified'] };
@@ -202,6 +208,7 @@ export function assessProcurementCandidate(input: {
   if (input.requirement.preferredTransports.includes(input.record.transport)) {
     reasons.push(`preferred_transport:${input.record.transport}`);
   }
+  reasons.push(`platform:${input.record.platform}`);
   reasons.push(`support:${supportTier}`);
 
   return { eligible: true, score, supportTier, reasons };
