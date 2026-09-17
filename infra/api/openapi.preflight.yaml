@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Palta Mobile API Preflight
-  version: 0.1.0
+  version: 0.2.0
   description: >
     Development contract for the first Palta mobile vertical slice.
     This is not a production API freeze.
@@ -195,12 +195,14 @@ paths:
 
   /v1/messages/conversations/{conversationId}/messages:
     get:
-      summary: Sync canonical messages after a conversation sequence cursor
+      summary: Sync canonical human messages after a conversation sequence cursor
       description: >
         Authenticated principal must be an active participant or be authorized by
         the server to act as the requested business/organization actor. Client
         never supplies principal_user_id. Attachments expose Palta provider-neutral
         asset IDs only; physical storage URLs are resolved through Asset Core.
+        This endpoint returns messages only. Use /timeline when the client needs
+        message and durable domain-event ordering in one sequence.
       parameters:
         - $ref: "#/components/parameters/ConversationId"
         - in: query
@@ -262,6 +264,42 @@ paths:
         "400": { description: Invalid message, attachment shape or scope }
         "403": { description: Principal cannot act as requested participant or attach requested asset }
         "404": { description: Conversation or scope not found }
+
+  /v1/messages/conversations/{conversationId}/timeline:
+    get:
+      summary: Sync messages and durable domain-event references in one ordered sequence
+      description: >
+        Read-only mixed timeline for authenticated participants. Message Core does
+        not copy order, booking, shipment, repair or payment payloads here; domain
+        entries contain only stable references to the owning core. Domain events
+        are projected internally from canonical.changed after the referenced
+        resource has already been authorized and linked to a Conversation Scope.
+        There is intentionally no public POST endpoint for domain-event projection.
+      parameters:
+        - $ref: "#/components/parameters/ConversationId"
+        - in: query
+          name: after_sequence
+          schema: { type: integer, minimum: 0, default: 0 }
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 200, default: 50 }
+        - in: query
+          name: acting_actor_type
+          schema:
+            $ref: "#/components/schemas/ActorType"
+        - in: query
+          name: acting_actor_id
+          schema: { type: string }
+      responses:
+        "200":
+          description: Mixed timeline ordered by the Conversation sequence
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TimelineListResponse"
+        "400": { description: Invalid sequence cursor }
+        "403": { description: Principal cannot act as participant }
+        "404": { description: Conversation not found }
 
   /v1/messages/conversations/{conversationId}/read:
     post:
@@ -589,6 +627,79 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Message"
+        next_after_sequence: { type: integer, minimum: 0 }
+        has_more: { type: boolean }
+
+    DomainTimelineEvent:
+      type: object
+      description: >
+        Durable reference to a canonical domain event. The domain payload remains
+        in its owning core and is resolved separately under that core's authorization.
+      required:
+        - projection_id
+        - conversation_id
+        - scope_id
+        - sequence
+        - source_core
+        - domain_event_id
+        - event_type
+        - resource_type
+        - resource_id
+        - occurred_at
+        - projected_at
+      properties:
+        projection_id: { type: string, format: uuid }
+        conversation_id: { type: string, format: uuid }
+        scope_id: { type: string, format: uuid }
+        sequence: { type: integer, minimum: 1 }
+        source_core: { type: string }
+        domain_event_id: { type: string }
+        event_type: { type: string }
+        resource_type: { type: string }
+        resource_id: { type: string }
+        occurred_at: { type: string, format: date-time }
+        projected_at: { type: string, format: date-time }
+
+    TimelineMessageItem:
+      type: object
+      required: [kind, sequence, message]
+      properties:
+        kind:
+          type: string
+          const: message
+        sequence: { type: integer, minimum: 1 }
+        message:
+          $ref: "#/components/schemas/Message"
+
+    TimelineDomainEventItem:
+      type: object
+      required: [kind, sequence, event]
+      properties:
+        kind:
+          type: string
+          const: domain_event
+        sequence: { type: integer, minimum: 1 }
+        event:
+          $ref: "#/components/schemas/DomainTimelineEvent"
+
+    TimelineItem:
+      oneOf:
+        - $ref: "#/components/schemas/TimelineMessageItem"
+        - $ref: "#/components/schemas/TimelineDomainEventItem"
+      discriminator:
+        propertyName: kind
+        mapping:
+          message: "#/components/schemas/TimelineMessageItem"
+          domain_event: "#/components/schemas/TimelineDomainEventItem"
+
+    TimelineListResponse:
+      type: object
+      required: [items, next_after_sequence, has_more]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/TimelineItem"
         next_after_sequence: { type: integer, minimum: 0 }
         has_more: { type: boolean }
 
