@@ -135,15 +135,19 @@ function parseProviderClpAmount(value: string): number {
 function providerStatusResult(order: MercadoPagoPointOrder): ProviderPaymentStatus {
   const payment = firstPayment(order);
   const detail = order.status_detail ?? payment?.status_detail;
+  const status = mapMercadoPagoPointStatus(order.status, detail);
   const result: ProviderPaymentStatus = {
     providerKey: 'mercadopago_point',
     providerReference: order.id,
-    status: mapMercadoPagoPointStatus(order.status, detail),
+    status,
     providerStatus: order.status,
   };
   if (detail !== undefined) result.providerStatusDetail = detail;
   if (payment?.id !== undefined) result.providerPaymentId = payment.id;
-  if (payment?.amount !== undefined) {
+  // Orders may expose the requested transaction amount before the terminal has
+  // actually completed payment. Treat it as authoritative processed evidence
+  // only after Mercado Pago has confirmed the order as paid.
+  if (status === 'paid' && payment?.amount !== undefined) {
     result.processedAmount = {
       currency: 'CLP',
       amountMinor: parseProviderClpAmount(payment.amount),
