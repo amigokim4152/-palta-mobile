@@ -31,7 +31,8 @@ export type RoutedPrintJobRequest = {
 };
 
 function stableJson(value: unknown): string {
-  if (value === null || typeof value !== 'object') return JSON.stringify(value);
+  if (value === undefined) return 'undefined';
+  if (value === null || typeof value !== 'object') return JSON.stringify(value) ?? 'undefined';
   if (Array.isArray(value)) return `[${value.map(stableJson).join(',')}]`;
   const object = value as Record<string, unknown>;
   return `{${Object.keys(object)
@@ -67,7 +68,6 @@ function assertRequest(request: RoutedPrintJobRequest): void {
 async function liveCandidates(input: {
   routePrinterIds: readonly string[];
   businessId: string;
-  content: PrintContent;
   portResolver: PrintPortResolver;
 }): Promise<{
   printers: PrinterIdentity[];
@@ -147,7 +147,6 @@ export function createRoutedPrintJobService(input: {
       const live = await liveCandidates({
         routePrinterIds,
         businessId: request.businessId,
-        content: request.content,
         portResolver: input.portResolver,
       });
       const selected = selectReadyPrinter({
