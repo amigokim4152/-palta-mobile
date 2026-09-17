@@ -114,32 +114,19 @@ function createInput(intent: PaymentIntent): CreatePaymentInput {
 
 function eventTypeForStatus(status: PaymentStatus): PaymentEventType {
   switch (status) {
-    case 'created':
-      return 'payment_created';
-    case 'pending':
-      return 'payment_pending';
-    case 'processing':
-      return 'payment_processing';
-    case 'requires_action':
-      return 'payment_requires_action';
-    case 'authorized':
-      return 'payment_authorized';
-    case 'paid':
-      return 'payment_paid';
-    case 'declined':
-      return 'payment_declined';
-    case 'unknown':
-      return 'payment_unknown';
-    case 'failed':
-      return 'payment_failed';
-    case 'cancelled':
-      return 'payment_cancelled';
-    case 'refund_pending':
-      return 'refund_requested';
-    case 'partially_refunded':
-      return 'refund_partially_completed';
-    case 'refunded':
-      return 'refund_completed';
+    case 'created': return 'payment_created';
+    case 'pending': return 'payment_pending';
+    case 'processing': return 'payment_processing';
+    case 'requires_action': return 'payment_requires_action';
+    case 'authorized': return 'payment_authorized';
+    case 'paid': return 'payment_paid';
+    case 'declined': return 'payment_declined';
+    case 'unknown': return 'payment_unknown';
+    case 'failed': return 'payment_failed';
+    case 'cancelled': return 'payment_cancelled';
+    case 'refund_pending': return 'refund_requested';
+    case 'partially_refunded': return 'refund_partially_completed';
+    case 'refunded': return 'refund_completed';
   }
 }
 
@@ -148,19 +135,33 @@ function sameMoney(left: Money | undefined, right: Money | undefined): boolean {
   return left.currency === right.currency && left.amountMinor === right.amountMinor;
 }
 
-function validatedProcessedAmount(
+function validatedProviderMoney(
   intent: PaymentIntent,
-  result: ProviderPaymentStatus,
+  amount: Money | undefined,
+  field: string,
 ): Money | undefined {
-  const amount = result.processedAmount;
   if (amount === undefined) return undefined;
   if (amount.currency !== intent.amount.currency) {
-    throw new Error('Provider processed amount currency does not match requested payment currency.');
+    throw new Error(`${field} currency does not match requested payment currency.`);
   }
   if (!Number.isSafeInteger(amount.amountMinor) || amount.amountMinor <= 0) {
-    throw new Error('Provider processed amount must be a positive safe integer in minor units.');
+    throw new Error(`${field} must be a positive safe integer in minor units.`);
   }
   return { ...amount };
+}
+
+function validateInstallments(intent: PaymentIntent, result: ProviderPaymentStatus): void {
+  if (result.installmentCount !== undefined) {
+    if (!Number.isSafeInteger(result.installmentCount) || result.installmentCount <= 0) {
+      throw new Error('Provider installmentCount must be a positive safe integer.');
+    }
+  }
+  if (result.installmentAmount !== undefined) {
+    if (result.installmentCount === undefined) {
+      throw new Error('Provider installmentAmount requires installmentCount evidence.');
+    }
+    validatedProviderMoney(intent, result.installmentAmount, 'Provider installmentAmount');
+  }
 }
 
 function evidenceChanged(
@@ -174,6 +175,9 @@ function evidenceChanged(
     intent.authorizationCode !== result.authorizationCode ||
     intent.cardBrand !== result.cardBrand ||
     intent.cardLast4 !== result.cardLast4 ||
+    intent.cardFundingType !== result.cardFundingType ||
+    intent.installmentCount !== result.installmentCount ||
+    (result.installmentAmount !== undefined && !sameMoney(intent.installmentAmount, result.installmentAmount)) ||
     (result.processedAmount !== undefined && !sameMoney(intent.processedAmount, result.processedAmount))
   );
 }
@@ -190,7 +194,9 @@ function applyProviderResult(
     throw new Error('Provider payment result requires providerReference.');
   }
 
-  const processedAmount = validatedProcessedAmount(intent, result);
+  const processedAmount = validatedProviderMoney(intent, result.processedAmount, 'Provider processed amount');
+  const installmentAmount = validatedProviderMoney(intent, result.installmentAmount, 'Provider installmentAmount');
+  validateInstallments(intent, result);
   const statusChanged = intent.status !== result.status;
   const changedEvidence = evidenceChanged(intent, result);
   if (!statusChanged && !changedEvidence) return intent;
@@ -212,6 +218,9 @@ function applyProviderResult(
   if (result.authorizationCode !== undefined) updated.authorizationCode = result.authorizationCode;
   if (result.cardBrand !== undefined) updated.cardBrand = result.cardBrand;
   if (result.cardLast4 !== undefined) updated.cardLast4 = result.cardLast4;
+  if (result.cardFundingType !== undefined) updated.cardFundingType = result.cardFundingType;
+  if (result.installmentCount !== undefined) updated.installmentCount = result.installmentCount;
+  if (installmentAmount !== undefined) updated.installmentAmount = installmentAmount;
   if (processedAmount !== undefined) updated.processedAmount = processedAmount;
   return updated;
 }
@@ -233,15 +242,17 @@ function paymentEvent(input: {
   errorCode?: string;
 }): PaymentEvent {
   const metadata: NonNullable<PaymentEvent['metadata']> = {};
-  if (input.result?.providerStatus !== undefined) {
-    metadata.providerStatus = input.result.providerStatus;
-  }
-  if (input.result?.providerStatusDetail !== undefined) {
-    metadata.providerStatusDetail = input.result.providerStatusDetail;
-  }
+  if (input.result?.providerStatus !== undefined) metadata.providerStatus = input.result.providerStatus;
+  if (input.result?.providerStatusDetail !== undefined) metadata.providerStatusDetail = input.result.providerStatusDetail;
   if (input.result?.processedAmount !== undefined) {
     metadata.processedAmountMinor = input.result.processedAmount.amountMinor;
     metadata.processedAmountCurrency = input.result.processedAmount.currency;
+  }
+  if (input.result?.cardFundingType !== undefined) metadata.cardFundingType = input.result.cardFundingType;
+  if (input.result?.installmentCount !== undefined) metadata.installmentCount = input.result.installmentCount;
+  if (input.result?.installmentAmount !== undefined) {
+    metadata.installmentAmountMinor = input.result.installmentAmount.amountMinor;
+    metadata.installmentAmountCurrency = input.result.installmentAmount.currency;
   }
   if (input.errorCode !== undefined) metadata.errorCode = input.errorCode;
 
@@ -252,9 +263,7 @@ function paymentEvent(input: {
     occurredAt: input.occurredAt,
   };
   if (input.intent.providerKey !== undefined) event.providerKey = input.intent.providerKey;
-  if (input.intent.providerReference !== undefined) {
-    event.providerReference = input.intent.providerReference;
-  }
+  if (input.intent.providerReference !== undefined) event.providerReference = input.intent.providerReference;
   if (Object.keys(metadata).length > 0) event.metadata = metadata;
   return event;
 }
@@ -273,46 +282,28 @@ export class PaymentOutboxHandler implements OutboxEventHandler {
     }
 
     const id = paymentIntentId(event);
-    const intent = await this.payments.findIntent({
-      businessId: event.businessId,
-      paymentIntentId: id,
-    });
+    const intent = await this.payments.findIntent({ businessId: event.businessId, paymentIntentId: id });
     if (!intent) return { kind: 'dead_letter', errorCode: 'payment_intent_not_found' };
-    if (intent.merchantId !== event.businessId) {
-      return { kind: 'dead_letter', errorCode: 'payment_business_mismatch' };
-    }
-    if (!intent.providerKey) {
-      return { kind: 'dead_letter', errorCode: 'payment_provider_not_selected' };
-    }
+    if (intent.merchantId !== event.businessId) return { kind: 'dead_letter', errorCode: 'payment_business_mismatch' };
+    if (!intent.providerKey) return { kind: 'dead_letter', errorCode: 'payment_provider_not_selected' };
+
     const port = await this.providers.resolve({
       businessId: intent.merchantId,
       providerKey: intent.providerKey,
-      ...(intent.providerConnectionId === undefined
-        ? {}
-        : { providerConnectionId: intent.providerConnectionId }),
+      ...(intent.providerConnectionId === undefined ? {} : { providerConnectionId: intent.providerConnectionId }),
       ...(intent.terminalId === undefined ? {} : { terminalId: intent.terminalId }),
     });
     if (!port) return { kind: 'dead_letter', errorCode: 'payment_provider_adapter_missing' };
-    if (port.providerKey !== intent.providerKey) {
-      return { kind: 'dead_letter', errorCode: 'payment_provider_resolution_mismatch' };
-    }
+    if (port.providerKey !== intent.providerKey) return { kind: 'dead_letter', errorCode: 'payment_provider_resolution_mismatch' };
 
-    if (!paymentRequiresReconciliation(intent.status) && intent.status !== 'created') {
-      return { kind: 'delivered' };
-    }
-    if (paymentRequiresOperatorAction(intent.status)) {
-      return { kind: 'dead_letter', errorCode: 'payment_operator_action_required' };
-    }
+    if (!paymentRequiresReconciliation(intent.status) && intent.status !== 'created') return { kind: 'delivered' };
+    if (paymentRequiresOperatorAction(intent.status)) return { kind: 'dead_letter', errorCode: 'payment_operator_action_required' };
 
     const occurredAt = this.now();
     try {
       const providerResult = intent.status === 'created'
         ? await port.createPayment(createInput(intent))
-        : await reconcilePaymentOutcome({
-            intent,
-            port,
-            originalRequest: createInput(intent),
-          });
+        : await reconcilePaymentOutcome({ intent, port, originalRequest: createInput(intent) });
 
       const updated = applyProviderResult(intent, providerResult, occurredAt);
       if (updated !== intent) {
@@ -328,12 +319,8 @@ export class PaymentOutboxHandler implements OutboxEventHandler {
         });
       }
 
-      if (paymentRequiresOperatorAction(updated.status)) {
-        return { kind: 'dead_letter', errorCode: 'payment_operator_action_required' };
-      }
-      if (paymentRequiresReconciliation(updated.status)) {
-        return retryable(event, occurredAt, 'payment_status_not_final');
-      }
+      if (paymentRequiresOperatorAction(updated.status)) return { kind: 'dead_letter', errorCode: 'payment_operator_action_required' };
+      if (paymentRequiresReconciliation(updated.status)) return retryable(event, occurredAt, 'payment_status_not_final');
       return { kind: 'delivered' };
     } catch (error) {
       if (!(error instanceof PaymentProviderOperationError)) throw error;
@@ -350,10 +337,7 @@ export class PaymentOutboxHandler implements OutboxEventHandler {
     const { recovery } = input.error.incident;
     const code = input.error.incident.kind;
 
-    if (
-      recovery === 'retry_same_operation_same_key' ||
-      recovery === 'wait_and_retry_same_operation_same_key'
-    ) {
+    if (recovery === 'retry_same_operation_same_key' || recovery === 'wait_and_retry_same_operation_same_key') {
       return retryable(input.event, input.occurredAt, code);
     }
 
