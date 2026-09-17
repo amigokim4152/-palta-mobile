@@ -42,6 +42,13 @@ export type PaymentIntent = {
   /** Optimistic concurrency revision for provider callbacks/reconciliation races. */
   revision: number;
   providerKey?: string;
+  /**
+   * Business-scoped provider connection reference. The secret itself never lives
+   * on PaymentIntent; runtime resolves this ID to credentials through a secret
+   * boundary. Optional during manual/cash flows and migration, but integrated
+   * provider runtimes should persist it before the external side effect.
+   */
+  providerConnectionId?: string;
   providerReference?: string;
   providerPaymentId?: string;
   terminalId?: string;
