@@ -13,6 +13,9 @@ import {
   transitionFiscalRequest,
 } from '../src/fiscal/chile/fiscalModel.js';
 import {
+  reserveNextFolioInState,
+} from '../src/fiscal/chile/folioStore.js';
+import {
   createOutboxEvent,
   markOutboxDelivered,
   markOutboxProcessing,
@@ -45,9 +48,11 @@ let transaction = createCommerceTransaction({
   createdAt: t0,
 });
 assert(transaction.totalAmountMinor === 45000, 'Commerce total must derive from canonical lines.');
+assert(transaction.revision === 0, 'New commerce transaction must start at revision zero.');
 transaction = transitionCommerceTransaction(transaction, 'ready_for_payment', t1);
 transaction = transitionCommerceTransaction(transaction, 'payment_pending', t2);
 assert(transaction.state === 'payment_pending', 'Commerce transaction must expose payment pending separately.');
+assert(transaction.revision === 2, 'Every canonical commerce mutation must advance revision.');
 
 assert(paymentRequiresReconciliation('unknown'), 'Unknown provider outcome must require reconciliation.');
 assert(paymentRequiresReconciliation('processing'), 'Processing payment must require reconciliation.');
@@ -83,11 +88,50 @@ let fiscal = createFiscalRequest({
 });
 fiscal = transitionFiscalRequest(fiscal, 'validating', t1);
 fiscal = transitionFiscalRequest(fiscal, 'ready_to_reserve_folio', t2);
-fiscal = attachFolio(fiscal, {
-  folio: 101,
-  cafRef: 'caf-ref-1',
+
+const folioRequest = {
+  businessId: 'biz-1',
+  issuerRut: '76123456-7',
+  documentType: 'boleta_39' as const,
+  fiscalRequestId: fiscal.id,
+  idempotencyKey: fiscal.idempotencyKey,
+};
+const firstAllocation = reserveNextFolioInState({
+  range: {
+    businessId: 'biz-1',
+    issuerRut: '76123456-7',
+    documentType: 'boleta_39',
+    cafRef: 'caf-ref-1',
+    firstFolio: 101,
+    lastFolio: 102,
+    nextFolio: 101,
+    revision: 0,
+    status: 'active',
+  },
+  request: folioRequest,
   reservedAt: '2026-09-17T10:00:03.000Z',
 });
+assert(
+  firstAllocation.reservation.folio === 101 &&
+    firstAllocation.range.nextFolio === 102 &&
+    firstAllocation.range.revision === 1 &&
+    firstAllocation.reused === false,
+  'Atomic folio allocation must reserve once and advance the CAF range revision.',
+);
+const replayedAllocation = reserveNextFolioInState({
+  range: firstAllocation.range,
+  request: folioRequest,
+  existingReservation: firstAllocation.reservation,
+  reservedAt: '2026-09-17T10:00:04.000Z',
+});
+assert(
+  replayedAllocation.reservation.folio === 101 &&
+    replayedAllocation.range.revision === 1 &&
+    replayedAllocation.reused === true,
+  'Idempotent fiscal retry must reuse the original folio without consuming another one.',
+);
+
+fiscal = attachFolio(fiscal, replayedAllocation.reservation);
 assert(fiscal.folio === 101 && fiscal.status === 'ready_to_sign', 'Validated fiscal request must own its reserved folio before signing.');
 
 let event = createOutboxEvent({
