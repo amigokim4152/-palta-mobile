@@ -34,6 +34,7 @@ export function reduceNeighborhood(
           center: action.location,
           zoom: state.camera?.zoom ?? 14,
         },
+        selectedEntityId: null,
         mapMovedSinceSearch: false,
       };
     case 'set_viewport_center':
@@ -49,7 +50,12 @@ export function reduceNeighborhood(
     case 'select_entity':
       return { ...state, selectedEntityId: action.entityId };
     case 'set_query':
-      return { ...state, query: action.query };
+      return {
+        ...state,
+        query: action.query,
+        selectedEntityId: null,
+        sheetSnap: 'half',
+      };
     case 'set_filters':
       return { ...state, activeFilters: action.filters };
     case 'set_sheet_snap':
@@ -61,6 +67,7 @@ export function reduceNeighborhood(
         ...state,
         searchOrigin: state.camera?.center ?? state.effectiveLocation,
         resultIds: action.resultIds,
+        selectedEntityId: null,
         mapMovedSinceSearch: false,
       };
     case 'set_degraded':
