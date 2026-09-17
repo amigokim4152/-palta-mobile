@@ -7,9 +7,18 @@ import { SectionHeading } from '../../../components/common/SectionHeading';
 import { useAsyncResource } from '../../../hooks/useAsyncResource';
 import { mobileRuntime } from '../../../services/paltaClient';
 
-function OwnerCard({ title, body }: { title: string; body: string }) {
+function OwnerCard({
+  title,
+  body,
+  badge,
+}: {
+  title: string;
+  body: string;
+  badge?: string;
+}) {
   return (
     <View style={{ borderWidth: 1, borderRadius: 14, padding: 14, gap: 5 }}>
+      {badge ? <Text style={{ fontSize: 12, fontWeight: '800', opacity: 0.58 }}>{badge}</Text> : null}
       <Text style={{ fontSize: 17, fontWeight: '800' }}>{title}</Text>
       <Text style={{ opacity: 0.68, lineHeight: 20 }}>{body}</Text>
     </View>
@@ -19,13 +28,17 @@ function OwnerCard({ title, body }: { title: string; body: string }) {
 export default function BusinessOwnerHomeScreen() {
   const { businessId } = useLocalSearchParams<{ businessId: string }>();
 
-  const loadBusiness = useCallback(async () => {
+  const loadOwnerHome = useCallback(async () => {
     if (!businessId) throw new Error('Business ID missing');
     if (mobileRuntime.status !== 'ready') throw new Error(mobileRuntime.message);
-    return mobileRuntime.client.getBusiness(businessId);
+    const [business, guidance] = await Promise.all([
+      mobileRuntime.client.getBusiness(businessId),
+      mobileRuntime.client.getOwnerBusinessGuidance(businessId),
+    ]);
+    return { business, guidance };
   }, [businessId]);
 
-  const { state, refresh } = useAsyncResource(loadBusiness);
+  const { state, refresh } = useAsyncResource(loadOwnerHome);
 
   if (state.status === 'loading' && !state.data) {
     return (
@@ -43,8 +56,9 @@ export default function BusinessOwnerHomeScreen() {
     );
   }
 
-  const business = state.data;
-  if (!business) return null;
+  const business = state.data?.business;
+  const guidance = state.data?.guidance;
+  if (!business || !guidance) return null;
 
   const verificationText =
     business.verification_status === 'verified'
@@ -80,6 +94,7 @@ export default function BusinessOwnerHomeScreen() {
             business.opening_status,
             business.contact?.whatsapp ? 'WhatsApp' : undefined,
             business.contact?.phone ? 'Teléfono' : undefined,
+            ...(business.channel_links ?? []).slice(0, 2).map((channel) => channel.label),
           ]
             .filter(Boolean)
             .join(' · ') || 'Completa categoría, horario y forma de contacto.'}
@@ -89,32 +104,40 @@ export default function BusinessOwnerHomeScreen() {
         </Text>
 
         <SectionHeading
-          title="Lo que requiere atención"
-          subtitle="Palta muestra tareas reales, no un panel lleno por llenar."
+          title="Ahora conviene esto"
+          subtitle="Palta prioriza tareas reales y mejoras gratuitas antes que venderte otra función."
         />
-        {business.verification_status !== 'verified' ? (
-          <OwnerCard
-            title="Completa la verificación"
-            body="Confirma tu relación con el negocio para poder controlar información sensible y activar funciones que requieren autorización del propietario."
-          />
+        {guidance.items.length ? (
+          guidance.items.slice(0, 5).map((item) => (
+            <OwnerCard
+              key={item.id}
+              title={item.title}
+              body={item.reason}
+              badge={item.commercial === 'free' ? 'SIN COSTO' : item.commercial === 'may_be_paid' ? 'OPCIONAL' : undefined}
+            />
+          ))
         ) : (
           <OwnerCard
-            title="Perfil activo"
-            body="No hay una tarea crítica pendiente en este momento."
+            title="Todo tranquilo por ahora"
+            body="No hay una tarea útil que Palta necesite ponerte delante en este momento."
           />
         )}
 
         <SectionHeading
           title="Haz más fácil tu trabajo"
-          subtitle="Las herramientas adicionales aparecen cuando sirven para una necesidad real de tu negocio."
+          subtitle="Las herramientas adicionales aparecen cuando resuelven una necesidad real de tu negocio."
         />
         <OwnerCard
-          title="Capacidades opcionales"
-          body="Cotizaciones, reservas, pedidos, promociones, POS, inventario, CRM, equipo y automatización se conectan al mismo negocio. No necesitas volver a registrarte ni mantener otro perfil."
+          title="Un mismo negocio, más herramientas cuando hagan falta"
+          body="Cotizaciones, reservas, pedidos, POS, inventario, clientes, equipo y automatización se conectan al mismo negocio. No necesitas volver a registrarte ni mantener otro perfil."
         />
         <Text style={{ opacity: 0.6, lineHeight: 20 }}>
           Que una función exista no define por sí solo su precio. Planes, límites y cobros deben venir de la política comercial vigente de Palta.
         </Text>
+
+        {state.status === 'error' ? (
+          <ErrorState message={state.message} onRetry={() => void refresh()} />
+        ) : null}
       </View>
     </ScreenFrame>
   );
