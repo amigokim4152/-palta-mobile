@@ -21,3 +21,68 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run verify
+
+  postgres-preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgis/postgis:17-3.5
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: palta_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d palta_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: palta_ci
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+      - name: Bootstrap Supabase-compatible CI roles
+        run: |
+          psql -v ON_ERROR_STOP=1 <<'SQL'
+          do $$
+          begin
+            create role anon nologin;
+          exception when duplicate_object then null;
+          end $$;
+
+          do $$
+          begin
+            create role authenticated nologin;
+          exception when duplicate_object then null;
+          end $$;
+
+          do $$
+          begin
+            create role service_role nologin;
+          exception when duplicate_object then null;
+          end $$;
+
+          create schema if not exists auth;
+          create or replace function auth.uid()
+          returns uuid
+          language sql
+          stable
+          as $$ select null::uuid $$;
+          SQL
+      - name: Apply Palta migrations in order
+        run: |
+          for migration in infra/db/migrations/*.sql; do
+            echo "Applying ${migration}"
+            psql -v ON_ERROR_STOP=1 -f "${migration}"
+          done
+      - name: Verify migration and RLS invariants
+        run: psql -v ON_ERROR_STOP=1 -f infra/db/tests/commerce_migration_smoke.sql
