@@ -78,6 +78,16 @@ assert(
   'Free Business Profile photo strip must stay bounded and horizontally browsable.',
 );
 assert(
+  detail.includes('mobileRuntime.client.reviews.getBusinessReviews') &&
+  detail.includes('Opiniones con atención verificada') &&
+  detail.includes('review.verified_interaction') === false,
+  'Business detail must render only the already-public verified-interaction review projection.',
+);
+assert(
+  detail.includes('Atención verificada') && detail.includes('review.evidence_label'),
+  'Business detail must explain why a review is treated as verified interaction.',
+);
+assert(
   detail.includes('Messaging Core compartido') && detail.includes('no crearemos un chat paralelo'),
   'Local Business inquiry must keep the Shared Messaging Core boundary explicit until the shared transport is connected.',
 );
