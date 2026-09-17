@@ -11,16 +11,35 @@ function OwnerCard({
   title,
   body,
   badge,
+  onPress,
 }: {
   title: string;
   body: string;
   badge?: string;
+  onPress?: () => void;
 }) {
-  return (
-    <View style={{ borderWidth: 1, borderRadius: 14, padding: 14, gap: 5 }}>
+  const content = (
+    <>
       {badge ? <Text style={{ fontSize: 12, fontWeight: '800', opacity: 0.58 }}>{badge}</Text> : null}
       <Text style={{ fontSize: 17, fontWeight: '800' }}>{title}</Text>
       <Text style={{ opacity: 0.68, lineHeight: 20 }}>{body}</Text>
+    </>
+  );
+
+  if (onPress) {
+    return (
+      <Pressable
+        onPress={onPress}
+        style={{ borderWidth: 1, borderRadius: 14, padding: 14, gap: 5 }}
+      >
+        {content}
+      </Pressable>
+    );
+  }
+
+  return (
+    <View style={{ borderWidth: 1, borderRadius: 14, padding: 14, gap: 5 }}>
+      {content}
     </View>
   );
 }
@@ -67,6 +86,10 @@ export default function BusinessOwnerHomeScreen() {
         ? 'Verificación de propietario pendiente'
         : 'Este negocio todavía no está verificado';
 
+  const channelSummary = (business.channel_links ?? [])
+    .map((channel) => channel.label)
+    .join(' · ');
+
   return (
     <ScreenFrame
       title={business.name}
@@ -99,6 +122,14 @@ export default function BusinessOwnerHomeScreen() {
             .filter(Boolean)
             .join(' · ') || 'Completa categoría, horario y forma de contacto.'}
         />
+        <OwnerCard
+          title="Enlaces públicos"
+          body={channelSummary || 'Agrega Instagram, Facebook, TikTok, Google, WhatsApp o tu sitio. Sólo son enlaces: no necesitas conectar cuentas ni una API.'}
+          badge="SIN COSTO"
+          onPress={() =>
+            router.push(`/business/manage/${encodeURIComponent(business.id)}/channels`)
+          }
+        />
         <Text style={{ opacity: 0.66, lineHeight: 20 }}>
           Tu presencia básica, la información pública y el descubrimiento orgánico no dependen de contratar un módulo adicional.
         </Text>
@@ -114,6 +145,7 @@ export default function BusinessOwnerHomeScreen() {
               title={item.title}
               body={item.reason}
               badge={item.commercial === 'free' ? 'SIN COSTO' : item.commercial === 'may_be_paid' ? 'OPCIONAL' : undefined}
+              onPress={() => router.push(item.target as never)}
             />
           ))
         ) : (
