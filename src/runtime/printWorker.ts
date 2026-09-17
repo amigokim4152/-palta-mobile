@@ -16,6 +16,7 @@ import {
 import {
   PrintJobConcurrencyError,
   type PrintJobRepository,
+  type RecoverablePrintJobRepository,
 } from '../persistence/printJobRepository.js';
 
 export type PrintDispatchResolution = {
@@ -51,6 +52,12 @@ export type PrintWorkerRuntimeInput = {
   businessId: string;
   printJobId: string;
   now: () => string;
+};
+
+export type PrintRecoveryBatchResult = {
+  businessId: string;
+  scanned: number;
+  results: Array<{ printJobId: string; result: PrintWorkerResult }>;
 };
 
 function requireTimestamp(now: () => string): string {
@@ -226,4 +233,46 @@ export async function processPrintJob(
   }
 
   return { kind: 'terminal', job: current };
+}
+
+/**
+ * Startup/reconnect recovery for one business. The DB query returns only queued,
+ * unresolved and explicitly retry-authorized jobs. Each item is re-read inside
+ * processPrintJob, so stale batch rows cannot bypass CAS/reconciliation rules.
+ */
+export async function processRecoverablePrintJobs(input: {
+  repository: RecoverablePrintJobRepository;
+  portResolver: PrintPortResolver;
+  businessId: string;
+  now: () => string;
+  limit?: number;
+}): Promise<PrintRecoveryBatchResult> {
+  if (!input.businessId.trim()) throw new Error('Print recovery batch requires businessId.');
+  const limit = input.limit ?? 20;
+  if (!Number.isSafeInteger(limit) || limit < 1 || limit > 100) {
+    throw new Error('Print recovery batch limit must be an integer between 1 and 100.');
+  }
+
+  const jobs = await input.repository.listRecoverable({
+    businessId: input.businessId,
+    limit,
+  });
+  const results: PrintRecoveryBatchResult['results'] = [];
+
+  for (const job of jobs) {
+    const result = await processPrintJob({
+      repository: input.repository,
+      portResolver: input.portResolver,
+      businessId: input.businessId,
+      printJobId: job.id,
+      now: input.now,
+    });
+    results.push({ printJobId: job.id, result });
+  }
+
+  return {
+    businessId: input.businessId,
+    scanned: jobs.length,
+    results,
+  };
 }
