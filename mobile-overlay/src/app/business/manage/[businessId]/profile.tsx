@@ -95,6 +95,17 @@ export default function BusinessOwnerProfileScreen() {
           </Text>
         </Pressable>
 
+        <Pressable
+          disabled={!businessId}
+          onPress={() => businessId && router.push(`/business/manage/${encodeURIComponent(businessId)}/location`)}
+          style={{ borderWidth: 1, borderRadius: 14, padding: 13, gap: 4 }}
+        >
+          <Text style={{ fontWeight: '800' }}>Ubicación</Text>
+          <Text style={{ opacity: 0.64, lineHeight: 19 }}>
+            Corrige la dirección visible y decide si mostrar un punto exacto, sólo la zona o ninguna ubicación.
+          </Text>
+        </Pressable>
+
         <View style={{ gap: 6 }}>
           <Text style={{ fontWeight: '800' }}>Descripción</Text>
           <TextInput
