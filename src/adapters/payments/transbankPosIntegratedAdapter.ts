@@ -107,16 +107,17 @@ function ticketNumber(canonicalPaymentId: string): string {
 }
 
 function providerResult(result: TransbankTransportResult): ProviderPaymentStatus {
+  const status = mapTransbankTransportStatus(result.status);
   const mapped: ProviderPaymentStatus = {
     providerKey: 'transbank_pos_integrated',
     providerReference: result.reference,
-    status: mapTransbankTransportStatus(result.status),
+    status,
     providerStatus: result.status,
   };
   if (result.paymentId !== undefined) mapped.providerPaymentId = result.paymentId;
   if (result.authorizationCode !== undefined) mapped.authorizationCode = result.authorizationCode;
   if (result.responseCode !== undefined) mapped.providerStatusDetail = result.responseCode;
-  if (result.amountPesos !== undefined) {
+  if (status === 'paid' && result.amountPesos !== undefined) {
     mapped.processedAmount = {
       currency: 'CLP',
       amountMinor: assertClp(result.amountPesos, 'CLP'),
