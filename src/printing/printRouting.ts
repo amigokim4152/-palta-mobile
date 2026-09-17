@@ -214,6 +214,17 @@ export function canFailoverAfterDispatch(
   return failoverMode === 'explicit' && result.outcome === 'failed' && result.retryable;
 }
 
+export type PrinterRuntimeRequirements = {
+  /** Minimum Palta app/shell version required by this compatibility profile. */
+  minAppVersion?: string;
+  /** Minimum local Print Bridge version when the selected path uses a bridge. */
+  minBridgeVersion?: string;
+  /** Minimum Bridge protocol version; independent from bridge software version. */
+  minBridgeProtocolVersion?: number;
+  /** Minimum executable adapter version shipped in the app/bridge. */
+  minAdapterVersion?: string;
+};
+
 export type CompatibilityManifestEntry = {
   manufacturer: string;
   modelPattern: string;
@@ -222,6 +233,7 @@ export type CompatibilityManifestEntry = {
   adapterKey: string;
   supportTier: PrinterIdentity['supportTier'];
   paperWidthsMm?: number[];
+  runtimeRequirements?: PrinterRuntimeRequirements;
 };
 
 export type PrinterCompatibilityManifest = {
