@@ -102,15 +102,23 @@ export class BusinessQuotesApiClient {
     this.getAccessToken = options.getAccessToken;
   }
 
+  private async headers(input?: { hasBody?: boolean; idempotencyKey?: string }): Promise<Record<string, string>> {
+    const token = this.getAccessToken ? await this.getAccessToken() : null;
+    const headers: Record<string, string> = { Accept: 'application/json' };
+    if (token) headers.Authorization = `Bearer ${token}`;
+    if (input?.hasBody) headers['Content-Type'] = 'application/json';
+    if (input?.idempotencyKey) headers['Idempotency-Key'] = input.idempotencyKey;
+    return headers;
+  }
+
   private async request(
     path: string,
     init?: { method?: string; body?: unknown; idempotencyKey?: string },
   ): Promise<unknown> {
-    const token = this.getAccessToken ? await this.getAccessToken() : null;
-    const headers: Record<string, string> = { Accept: 'application/json' };
-    if (token) headers.Authorization = `Bearer ${token}`;
-    if (init?.body !== undefined) headers['Content-Type'] = 'application/json';
-    if (init?.idempotencyKey) headers['Idempotency-Key'] = init.idempotencyKey;
+    const headers = await this.headers({
+      hasBody: init?.body !== undefined,
+      ...(init?.idempotencyKey ? { idempotencyKey: init.idempotencyKey } : {}),
+    });
     const requestInit: { method?: string; headers: Record<string, string>; body?: string } = { headers };
     if (init?.method) requestInit.method = init.method;
     if (init?.body !== undefined) requestInit.body = JSON.stringify(init.body);
@@ -142,7 +150,7 @@ export class BusinessQuotesApiClient {
   async getQuoteByCareTrack(careTrackId: string): Promise<BusinessQuoteApiDetail | null> {
     const response = await this.fetchImpl(
       joinUrl(this.baseUrl, `/v1/local-business/quotes/by-care/${encodeURIComponent(careTrackId)}`),
-      { headers: { Accept: 'application/json' } },
+      { headers: await this.headers() },
     );
     if (response.status === 404) return null;
     if (!response.ok) throw new Error(`Palta business quotes API request failed: ${response.status}`);
