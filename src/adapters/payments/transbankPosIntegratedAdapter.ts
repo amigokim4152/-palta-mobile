@@ -112,6 +112,7 @@ function providerResult(result: TransbankTransportResult): ProviderPaymentStatus
     providerStatus: result.status,
   };
   if (result.paymentId !== undefined) mapped.providerPaymentId = result.paymentId;
+  if (result.authorizationCode !== undefined) mapped.authorizationCode = result.authorizationCode;
   if (result.responseCode !== undefined) mapped.providerStatusDetail = result.responseCode;
   return mapped;
 }
