@@ -403,6 +403,16 @@ export default function BusinessDetailScreen() {
 
         <ExternalChannels links={business.channel_links ?? []} />
 
+        <Pressable
+          onPress={() => router.push(`/business/${encodeURIComponent(business.id)}/report`)}
+          style={{ borderWidth: 1, borderRadius: 14, padding: 14, gap: 4 }}
+        >
+          <Text style={{ fontWeight: '800' }}>¿Ves información incorrecta?</Text>
+          <Text style={{ opacity: 0.66, lineHeight: 20 }}>
+            Avísanos para revisarla. Un reporte no modifica automáticamente la ficha.
+          </Text>
+        </Pressable>
+
         <SectionHeading
           title="Contactar y actuar"
           subtitle="Guardar y seguir son gratuitos. Seguir no activa promociones ni notificaciones por sí solo."
