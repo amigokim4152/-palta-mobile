@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { handleBusinessOwnerProfileRequest } from './business-owner-profile-state.mjs';
+import { handleBusinessQuotesRequest } from './business-quotes-state.mjs';
 
 const allowedFields = new Set([
   'name',
@@ -43,9 +44,18 @@ function pendingOwnerItems(businessId) {
 }
 
 export async function handleBusinessCorrectionsRequest({ req, res, url, businesses, json, readJson }) {
-  // The production contracts stay separated (`client.ownerProfile` vs
-  // `client.corrections`). The small mock server delegates both here only to
-  // avoid growing another monolithic route block in server.mjs.
+  // Production domain contracts remain separate. This dev mock file is only a
+  // thin router-composition point so server.mjs does not become more monolithic.
+  const quoteHandled = await handleBusinessQuotesRequest({
+    req,
+    res,
+    url,
+    businesses,
+    json,
+    readJson,
+  });
+  if (quoteHandled) return true;
+
   const ownerProfileHandled = await handleBusinessOwnerProfileRequest({
     req,
     res,
