@@ -39,8 +39,8 @@ assert(
   projection.canonicalUrl === 'https://somospalta.cl/negocios/panaderia-los-alerces',
   'A Business must project to one stable canonical public URL.',
 );
-assert(projection.robots === 'index,follow', 'A valid public Business should be indexable.');
-assert(projection.sitemapEligible, 'A valid public Business should be eligible for the sitemap.');
+assert(projection.robots === 'index,follow', 'A valid explicitly public Business should be indexable.');
+assert(projection.sitemapEligible, 'A valid explicitly public Business should be eligible for the sitemap.');
 assert(
   projection.title.includes('Panadería Los Alerces') && projection.title.includes('Vitacura'),
   'Search title should explain the real business and locality.',
@@ -75,6 +75,17 @@ const duplicate = buildPublicBusinessWebProjection({
 });
 assert(duplicate.robots === 'noindex,follow', 'Duplicate records must not become SEO landing pages.');
 assert(!duplicate.sitemapEligible, 'Duplicate records must stay out of the sitemap.');
+
+const unspecified = buildPublicBusinessWebProjection({
+  businessId: 'biz-unspecified',
+  publicSlug: 'negocio-sin-publicar',
+  origin: 'https://somospalta.cl',
+  name: 'Negocio sin publicar',
+});
+assert(
+  unspecified.robots === 'noindex,follow' && !unspecified.sitemapEligible,
+  'Missing publication state must fail closed; only explicit public status may enter search.',
+);
 
 const seasonal = buildPublicBusinessWebProjection({
   businessId: 'biz-algarrobo',
