@@ -105,12 +105,15 @@ class AtomicDb implements SqlDatabase {
       query: async <TRow extends Row>(sql: string): Promise<SqlQueryResult<TRow>> => {
         this.transactionQueries.push(sql);
         if (sql.includes('insert into payment_credential_envelope')) {
-          return { rows: [{ id: provisioned.envelope.id }] as TRow[], rowCount: 1 };
+          return {
+            rows: ([{ id: provisioned.envelope.id }] as unknown) as TRow[],
+            rowCount: 1,
+          };
         }
         if (sql.includes('update payment_provider_connection')) {
           return {
             rows: this.connectionRowCount === 1
-              ? [{ id: provisioned.connection.id }] as TRow[]
+              ? (([{ id: provisioned.connection.id }] as unknown) as TRow[])
               : [],
             rowCount: this.connectionRowCount,
           };
