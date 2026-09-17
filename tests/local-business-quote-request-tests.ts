@@ -13,6 +13,7 @@ function assert(condition: unknown, message: string): asserts condition {
 
 const request: BusinessQuoteRequest = {
   id: 'quote-1',
+  careTrackId: 'care-1',
   requesterUserId: 'user-1',
   description: 'Necesito reparar una fuga bajo el lavaplatos y revisar la llave.',
   recipientBusinessIds: ['biz-1', 'biz-2'],
@@ -23,6 +24,10 @@ const request: BusinessQuoteRequest = {
 };
 
 assert(validateBusinessQuoteRequest(request).length === 0, 'valid quote request should pass');
+assert(
+  validateBusinessQuoteRequest({ ...request, careTrackId: '' }).includes('quote_care_track_id_required'),
+  'quote request must remain linked to Shared Care lifecycle',
+);
 assert(
   validateBusinessQuoteRequest({ ...request, recipientBusinessIds: [] }).includes('quote_recipient_required'),
   'quote request needs at least one recipient',
@@ -83,6 +88,7 @@ assert(comparison[1]?.businessId === 'biz-1', 'second valid quote should remain 
 const selected = selectQuoteBusiness(request, 'biz-2');
 assert(selected.status === 'selected', 'selection should advance quote request state');
 assert(selected.selectedBusinessId === 'biz-2', 'selection should preserve chosen canonical Business id');
+assert(selected.careTrackId === request.careTrackId, 'selection must preserve Shared Care linkage');
 
 let invalidSelectionRejected = false;
 try {
