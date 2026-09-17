@@ -40,7 +40,19 @@ export type LocalSearchItem = {
 export type BusinessApiPostSummary = {
   id: string;
   title: string;
+  body?: string;
   published_at?: string;
+};
+
+export type BusinessBasicPostsApiResponse = {
+  business_id: string;
+  items: BusinessApiPostSummary[];
+};
+
+export type BusinessBasicPostPublishInput = {
+  title: string;
+  body?: string;
+  idempotencyKey?: string;
 };
 
 export type BusinessBasicCouponApiItem = {
@@ -340,6 +352,44 @@ export class PaltaApiClient {
       throw new Error('PUT /v1/business/{id}/basic-coupon returned invalid coupons');
     }
     return result as BusinessBasicCouponsApiResponse;
+  }
+
+  async publishBusinessBasicPost(
+    businessId: string,
+    input: BusinessBasicPostPublishInput,
+  ): Promise<BusinessBasicPostsApiResponse> {
+    const result = expectObject(
+      await this.request(`/v1/business/${encodeURIComponent(businessId)}/basic-posts`, {
+        method: 'POST',
+        body: {
+          title: input.title,
+          ...(input.body ? { body: input.body } : {}),
+        },
+        ...(input.idempotencyKey ? { headers: { 'Idempotency-Key': input.idempotencyKey } } : {}),
+      }),
+      'POST /v1/business/{id}/basic-posts',
+    );
+    if (typeof result.business_id !== 'string' || !Array.isArray(result.items)) {
+      throw new Error('POST /v1/business/{id}/basic-posts returned invalid posts');
+    }
+    return result as BusinessBasicPostsApiResponse;
+  }
+
+  async archiveBusinessBasicPost(
+    businessId: string,
+    postId: string,
+  ): Promise<BusinessBasicPostsApiResponse> {
+    const result = expectObject(
+      await this.request(
+        `/v1/business/${encodeURIComponent(businessId)}/basic-posts/${encodeURIComponent(postId)}`,
+        { method: 'PUT', body: { status: 'archived' } },
+      ),
+      'PUT /v1/business/{id}/basic-posts/{postId}',
+    );
+    if (typeof result.business_id !== 'string' || !Array.isArray(result.items)) {
+      throw new Error('PUT /v1/business/{id}/basic-posts/{postId} returned invalid posts');
+    }
+    return result as BusinessBasicPostsApiResponse;
   }
 
   async getOwnerBusinessGuidance(businessId: string): Promise<OwnerBusinessGuidanceApiResponse> {
