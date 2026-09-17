@@ -1,4 +1,7 @@
-import type { PaymentProviderConnection } from './paymentProviderConnection.js';
+import type {
+  PaymentProviderConnection,
+  PaymentProviderEnvironment,
+} from './paymentProviderConnection.js';
 import { paymentConnectionCanPerformExternalOperation } from './paymentProviderConnection.js';
 import type {
   PaymentPortResolutionInput,
@@ -28,6 +31,7 @@ export class BusinessScopedPaymentPortResolver implements PaymentPortResolver {
   constructor(
     private readonly connections: PaymentProviderConnectionRepository,
     factories: readonly PaymentPortFactory[],
+    private readonly runtimeEnvironment: PaymentProviderEnvironment = 'sandbox',
   ) {
     for (const factory of factories) {
       if (this.factories.has(factory.providerKey)) {
@@ -46,7 +50,9 @@ export class BusinessScopedPaymentPortResolver implements PaymentPortResolver {
       providerKey: input.providerKey,
     });
     if (!connection) return null;
-    if (!paymentConnectionCanPerformExternalOperation(connection)) return null;
+    if (!paymentConnectionCanPerformExternalOperation(connection, this.runtimeEnvironment)) {
+      return null;
+    }
 
     const factory = this.factories.get(input.providerKey);
     if (!factory) return null;
