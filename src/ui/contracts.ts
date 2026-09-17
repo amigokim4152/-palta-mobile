@@ -1,4 +1,6 @@
+import type { CharacterId } from "./characters.js";
 import type { CoreIconKey } from "./icons.js";
+import type { ReactionKey } from "./reactions.js";
 import type { TypographyRole } from "./tokens.js";
 
 export type UiStateTone = "neutral" | "info" | "success" | "warning" | "critical";
@@ -88,6 +90,7 @@ export interface EmptyStateContract {
   readonly title: string;
   readonly body?: string;
   readonly action?: PaltaButtonContract;
+  readonly characterId?: CharacterId;
   readonly characterAssetId?: string;
 }
 
@@ -105,8 +108,24 @@ export interface ProfileIdentityContract {
   readonly displayName: string;
   readonly profileType: "person" | "business" | "organization" | "public" | "palta_example";
   readonly imageAssetId?: string;
+  readonly characterId?: CharacterId;
   readonly trust: TrustState;
   readonly synthetic: boolean;
+}
+
+export interface ReactionBarContract {
+  readonly available: readonly ReactionKey[];
+  readonly selected?: ReactionKey;
+  readonly counts: Readonly<Partial<Record<ReactionKey, number>>>;
+  readonly disabled: boolean;
+}
+
+export interface CharacterPresentationContract {
+  readonly characterId: CharacterId;
+  readonly assetId?: string;
+  readonly expression?: ReactionKey | "neutral";
+  readonly exampleLabelRequired: true;
+  readonly decorative: boolean;
 }
 
 export interface CommunityPostContract {
@@ -116,7 +135,7 @@ export interface CommunityPostContract {
   readonly createdAt: string;
   readonly moderated: boolean;
   readonly hidden: boolean;
-  readonly reactionKeys: readonly string[];
+  readonly reactionKeys: readonly ReactionKey[];
   readonly commentCount: number;
 }
 
