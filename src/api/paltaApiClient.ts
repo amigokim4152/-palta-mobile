@@ -1,6 +1,7 @@
 import type { BusinessCapability } from '../business/businessActionPolicy.js';
 import type { PublicBusinessChannelLink } from '../business/businessChannelConnection.js';
 import type { BusinessOperationalState } from '../business/businessOperationalState.js';
+import type { OwnerPartnerActionClass } from '../business/ownerPartnerActions.js';
 
 export type FetchLike = (
   input: string,
@@ -71,6 +72,22 @@ export type BusinessApiDetail = {
     website?: string;
     instagram?: string;
   };
+};
+
+export type OwnerBusinessGuidanceApiItem = {
+  id: string;
+  class: OwnerPartnerActionClass;
+  title: string;
+  reason: string;
+  target: string;
+  action_required: boolean;
+  commercial: 'free' | 'may_be_paid' | 'unknown';
+};
+
+export type OwnerBusinessGuidanceApiResponse = {
+  business_id: string;
+  generated_at?: string;
+  items: OwnerBusinessGuidanceApiItem[];
 };
 
 export type BusinessOnboardingApiInput = {
@@ -179,6 +196,17 @@ export class PaltaApiClient {
       throw new Error('GET /v1/business/{id} returned invalid business');
     }
     return result as BusinessApiDetail;
+  }
+
+  async getOwnerBusinessGuidance(businessId: string): Promise<OwnerBusinessGuidanceApiResponse> {
+    const result = expectObject(
+      await this.request(`/v1/business/${encodeURIComponent(businessId)}/owner-guidance`),
+      'GET /v1/business/{id}/owner-guidance',
+    );
+    if (typeof result.business_id !== 'string' || !Array.isArray(result.items)) {
+      throw new Error('GET /v1/business/{id}/owner-guidance returned invalid guidance');
+    }
+    return result as OwnerBusinessGuidanceApiResponse;
   }
 
   async submitBusinessOnboarding(input: BusinessOnboardingApiInput): Promise<BusinessOnboardingApiResult> {
