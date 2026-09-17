@@ -4,6 +4,10 @@ function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
 }
 
+function currentMethod(value: string): string {
+  return String(value);
+}
+
 const response = {
   business_id: 'biz-test',
   rules: {
@@ -29,13 +33,19 @@ let authorization = '';
 const client = createPaltaApiClient({
   baseUrl: 'https://api.test',
   auth: {
+    async getState() {
+      return {
+        status: 'signed_in' as const,
+        session: { userId: 'user-test', accessToken: 'token-test' },
+      };
+    },
     async getAccessToken() {
       return 'token-test';
     },
-    async getCurrentUserId() {
-      return 'user-test';
-    },
     async signOut() {},
+    subscribe() {
+      return () => {};
+    },
   },
   fetch: async (input, init) => {
     requestedPath = input;
@@ -61,7 +71,7 @@ assert(
   requestedPath.endsWith('/v1/business/biz-test/operating-rules'),
   'Owner hours must use the business-scoped operating-rules endpoint.',
 );
-assert(requestedMethod === 'GET', 'Reading operating rules should use GET.');
+assert(currentMethod(requestedMethod) === 'GET', 'Reading operating rules should use GET.');
 assert(authorization === 'Bearer token-test', 'Operating rules should reuse the canonical auth token source.');
 assert(current.projection.operational_state === 'closed_today', 'Operating-rules response should expose the normalized consumer state.');
 
@@ -77,7 +87,7 @@ assert(
   requestedPath.endsWith('/v1/business/biz-test/operating-rules/weekly'),
   'Weekly schedule replacement should use its own idempotent endpoint.',
 );
-assert(requestedMethod === 'PUT', 'Weekly schedule replacement should use PUT.');
+assert(currentMethod(requestedMethod) === 'PUT', 'Weekly schedule replacement should use PUT.');
 assert(requestedBody?.['timezone'] === 'America/Santiago', 'Weekly schedule request must carry an IANA timezone.');
 const weekly = requestedBody?.['weekly'] as Record<string, unknown> | undefined;
 assert(weekly?.['friday'] !== undefined, 'Weekly schedule request should preserve the owner-confirmed days.');
@@ -88,7 +98,7 @@ assert(
   requestedPath.endsWith('/v1/business/biz-test/operating-rules/quick-action'),
   'Today exceptions should use the quick-action endpoint rather than rewriting the weekly schedule.',
 );
-assert(requestedMethod === 'POST', 'Owner quick actions are commands and should use POST.');
+assert(currentMethod(requestedMethod) === 'POST', 'Owner quick actions are commands and should use POST.');
 assert(requestedBody?.['action'] === 'close_today', 'Quick action should send only the requested owner intent.');
 
 await client.operatingRules.quickAction('biz-test', {
