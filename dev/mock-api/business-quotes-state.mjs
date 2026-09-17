@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 
 const quoteRequests = new Map();
 const quoteByCareTrack = new Map();
+const quoteCareTracks = new Map();
 const idempotencyQuoteIds = new Map();
 
 function validInstant(value) {
@@ -41,36 +42,57 @@ function projectQuote(quote, businesses) {
   };
 }
 
-export async function handleBusinessQuotesRequest({
-  req,
-  res,
-  url,
-  businesses,
-  careTracks,
-  json,
-  readJson,
-}) {
+export async function handleBusinessQuotesRequest({ req, res, url, businesses, json, readJson }) {
+  // This is only dev-mock composition. Production keeps one Shared Care Core;
+  // the mock exposes the same /v1/care/{id} contract for quote-created tracks.
+  const quoteCareMatch = req.method === 'GET'
+    ? url.pathname.match(/^\/v1\/care\/([^/]+)$/)
+    : null;
+  if (quoteCareMatch) {
+    const careTrackId = decodeURIComponent(quoteCareMatch[1]);
+    const care = quoteCareTracks.get(careTrackId);
+    if (care) {
+      json(res, 200, care);
+      return true;
+    }
+  }
+
   if (req.method === 'POST' && url.pathname === '/v1/local-business/quotes') {
     const body = await readJson(req);
     const description = typeof body.description === 'string' ? body.description.trim() : '';
-    if (description.length < 10) return json(res, 400, { error: 'quote_description_too_short' });
-    if (description.length > 2000) return json(res, 400, { error: 'quote_description_too_long' });
+    if (description.length < 10) {
+      json(res, 400, { error: 'quote_description_too_short' });
+      return true;
+    }
+    if (description.length > 2000) {
+      json(res, 400, { error: 'quote_description_too_long' });
+      return true;
+    }
 
     const recipients = Array.isArray(body.recipient_business_ids)
       ? [...new Set(body.recipient_business_ids.filter((id) => typeof id === 'string').map((id) => id.trim()).filter(Boolean))]
       : [];
-    if (!recipients.length) return json(res, 400, { error: 'quote_recipient_required' });
-    if (recipients.length > 10) return json(res, 400, { error: 'quote_recipient_limit_exceeded' });
+    if (!recipients.length) {
+      json(res, 400, { error: 'quote_recipient_required' });
+      return true;
+    }
+    if (recipients.length > 10) {
+      json(res, 400, { error: 'quote_recipient_limit_exceeded' });
+      return true;
+    }
     if (recipients.some((id) => !businesses.some((business) => business.id === id))) {
-      return json(res, 404, { error: 'quote_recipient_business_not_found' });
+      json(res, 404, { error: 'quote_recipient_business_not_found' });
+      return true;
     }
 
     if (body.requested_for !== undefined && !validInstant(body.requested_for)) {
-      return json(res, 400, { error: 'quote_requested_for_invalid' });
+      json(res, 400, { error: 'quote_requested_for_invalid' });
+      return true;
     }
     if (body.media_refs !== undefined) {
       if (!Array.isArray(body.media_refs) || body.media_refs.length > 6 || body.media_refs.some((ref) => typeof ref !== 'string' || !ref.trim())) {
-        return json(res, 400, { error: 'quote_media_invalid' });
+        json(res, 400, { error: 'quote_media_invalid' });
+        return true;
       }
     }
 
@@ -78,19 +100,21 @@ export async function handleBusinessQuotesRequest({
     if (typeof idempotencyKey === 'string') {
       const existingId = idempotencyQuoteIds.get(idempotencyKey);
       const existing = existingId ? quoteRequests.get(existingId) : undefined;
-      if (existing) return json(res, 200, projectQuote(existing, businesses));
+      if (existing) {
+        json(res, 200, projectQuote(existing, businesses));
+        return true;
+      }
     }
 
     const now = new Date().toISOString();
     const careTrackId = `care-${randomUUID()}`;
-    const care = {
+    quoteCareTracks.set(careTrackId, {
       id: careTrackId,
       intent_key: 'local_business_quote',
       state: 'wait',
       waiting_for: 'business_response',
       expected_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-    };
-    careTracks.set(careTrackId, care);
+    });
 
     const quote = {
       id: `quote-${randomUUID()}`,
@@ -112,7 +136,8 @@ export async function handleBusinessQuotesRequest({
     quoteRequests.set(quote.id, quote);
     quoteByCareTrack.set(careTrackId, quote.id);
     if (typeof idempotencyKey === 'string') idempotencyQuoteIds.set(idempotencyKey, quote.id);
-    return json(res, 201, projectQuote(quote, businesses));
+    json(res, 201, projectQuote(quote, businesses));
+    return true;
   }
 
   const byCareMatch = req.method === 'GET'
@@ -122,7 +147,9 @@ export async function handleBusinessQuotesRequest({
     const careTrackId = decodeURIComponent(byCareMatch[1]);
     const quoteId = quoteByCareTrack.get(careTrackId);
     const quote = quoteId ? quoteRequests.get(quoteId) : undefined;
-    return quote ? json(res, 200, projectQuote(quote, businesses)) : json(res, 404, { error: 'quote_not_found' });
+    if (quote) json(res, 200, projectQuote(quote, businesses));
+    else json(res, 404, { error: 'quote_not_found' });
+    return true;
   }
 
   const responseMatch = req.method === 'PUT'
@@ -132,23 +159,31 @@ export async function handleBusinessQuotesRequest({
     const quoteId = decodeURIComponent(responseMatch[1]);
     const businessId = decodeURIComponent(responseMatch[2]);
     const quote = quoteRequests.get(quoteId);
-    if (!quote) return json(res, 404, { error: 'quote_not_found' });
+    if (!quote) {
+      json(res, 404, { error: 'quote_not_found' });
+      return true;
+    }
     if (!quote.recipient_business_ids.includes(businessId)) {
-      return json(res, 403, { error: 'business_not_quote_recipient' });
+      json(res, 403, { error: 'business_not_quote_recipient' });
+      return true;
     }
 
     const body = await readJson(req);
     if (body.amount_clp !== undefined && (!Number.isInteger(body.amount_clp) || body.amount_clp < 0)) {
-      return json(res, 400, { error: 'quote_amount_invalid' });
+      json(res, 400, { error: 'quote_amount_invalid' });
+      return true;
     }
     if (body.note !== undefined && (typeof body.note !== 'string' || body.note.length > 2000)) {
-      return json(res, 400, { error: 'quote_note_invalid' });
+      json(res, 400, { error: 'quote_note_invalid' });
+      return true;
     }
     if (body.available_at !== undefined && !validInstant(body.available_at)) {
-      return json(res, 400, { error: 'quote_available_at_invalid' });
+      json(res, 400, { error: 'quote_available_at_invalid' });
+      return true;
     }
     if (body.valid_until !== undefined && !validInstant(body.valid_until)) {
-      return json(res, 400, { error: 'quote_valid_until_invalid' });
+      json(res, 400, { error: 'quote_valid_until_invalid' });
+      return true;
     }
 
     const existing = quote.responses.find((item) => item.business_id === businessId);
@@ -166,13 +201,14 @@ export async function handleBusinessQuotesRequest({
       : [...quote.responses, response];
     quote.status = 'responses_ready';
 
-    const care = careTracks.get(quote.care_track_id);
+    const care = quoteCareTracks.get(quote.care_track_id);
     if (care) {
       care.state = 'result';
       care.waiting_for = 'user_selection';
       delete care.expected_at;
     }
-    return json(res, 200, projectQuote(quote, businesses));
+    json(res, 200, projectQuote(quote, businesses));
+    return true;
   }
 
   const selectMatch = req.method === 'PUT'
@@ -181,25 +217,31 @@ export async function handleBusinessQuotesRequest({
   if (selectMatch) {
     const quoteId = decodeURIComponent(selectMatch[1]);
     const quote = quoteRequests.get(quoteId);
-    if (!quote) return json(res, 404, { error: 'quote_not_found' });
+    if (!quote) {
+      json(res, 404, { error: 'quote_not_found' });
+      return true;
+    }
     const body = await readJson(req);
     const businessId = typeof body.business_id === 'string' ? body.business_id : '';
     if (!quote.recipient_business_ids.includes(businessId)) {
-      return json(res, 400, { error: 'selected_business_not_recipient' });
+      json(res, 400, { error: 'selected_business_not_recipient' });
+      return true;
     }
     if (!quote.responses.some((item) => item.business_id === businessId)) {
-      return json(res, 409, { error: 'selected_business_has_no_response' });
+      json(res, 409, { error: 'selected_business_has_no_response' });
+      return true;
     }
 
     quote.selected_business_id = businessId;
     quote.status = 'selected';
-    const care = careTracks.get(quote.care_track_id);
+    const care = quoteCareTracks.get(quote.care_track_id);
     if (care) {
       care.state = 'follow_up';
       care.waiting_for = 'selected_business_next_step';
       delete care.expected_at;
     }
-    return json(res, 200, projectQuote(quote, businesses));
+    json(res, 200, projectQuote(quote, businesses));
+    return true;
   }
 
   return false;
