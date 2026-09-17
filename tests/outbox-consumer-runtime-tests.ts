@@ -3,6 +3,7 @@ import type {
   OutboxClaimRequest,
   OutboxCompleteRequest,
   OutboxDeadLetterRequest,
+  OutboxDispatchCandidate,
   OutboxDispatchCandidateRequest,
   OutboxEventClaimRequest,
   OutboxRepository,
@@ -66,8 +67,10 @@ class ConsumerRepository implements OutboxRepository {
     throw new Error('not used');
   }
 
-  async listDispatchCandidates(_request: OutboxDispatchCandidateRequest) {
-    throw new Error('not used');
+  async listDispatchCandidates(
+    _request: OutboxDispatchCandidateRequest,
+  ): Promise<OutboxDispatchCandidate[]> {
+    return [];
   }
 }
 
