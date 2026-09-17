@@ -43,8 +43,9 @@ export type ProviderPaymentStatus = {
 export type ReconcilePaymentInput = CreatePaymentInput & {
   /**
    * May be absent when the original create/sale response was lost before Palta
-   * learned the provider reference. Adapters must then use a provider-safe
-   * recovery mechanism (for example same-idempotency replay or terminal last-sale lookup).
+   * learned the provider reference. Adapters that expose reconcilePayment must
+   * then use a provider-safe recovery mechanism, such as same-idempotency replay
+   * or a terminal last-sale lookup.
    */
   providerReference?: string;
 };
@@ -61,6 +62,19 @@ export interface PaymentPort {
   supportsRail(rail: PaymentRail): boolean;
   createPayment(input: CreatePaymentInput): Promise<CreatePaymentResult>;
   getStatus(providerReference: string): Promise<ProviderPaymentStatus>;
-  reconcilePayment(input: ReconcilePaymentInput): Promise<ProviderPaymentStatus>;
+  /**
+   * Optional capability. Not every payment provider has a safe way to recover
+   * a create/sale whose response was lost before Palta learned the provider
+   * reference. Orchestration must check capability presence before invoking it.
+   */
+  reconcilePayment?(input: ReconcilePaymentInput): Promise<ProviderPaymentStatus>;
   refund(input: RefundInput): Promise<ProviderPaymentStatus>;
+}
+
+export function supportsPaymentReconciliation(
+  port: PaymentPort,
+): port is PaymentPort & {
+  reconcilePayment(input: ReconcilePaymentInput): Promise<ProviderPaymentStatus>;
+} {
+  return typeof port.reconcilePayment === 'function';
 }
