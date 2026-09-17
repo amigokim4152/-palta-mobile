@@ -2,6 +2,7 @@ import type {
   ActorRef,
   ConversationScope,
   Message,
+  MessageAttachment,
   OutboxEvent,
   ParticipantState,
 } from './contracts.js';
@@ -29,6 +30,8 @@ export interface MessagePersistenceTransaction {
   findScope(scopeId: string): Promise<ConversationScope | null>;
 
   insertMessage(message: Message): Promise<void>;
+
+  insertAttachments(attachments: MessageAttachment[]): Promise<void>;
 
   updateConversationSequence(input: {
     conversationId: string;
