@@ -1,5 +1,8 @@
 import type { AuthPort } from '../ports/authPort.js';
 import {
+  BusinessCorrectionsApiClient,
+} from './businessCorrectionsApiClient.js';
+import {
   BusinessOperatingRulesApiClient,
 } from './businessOperatingRulesApiClient.js';
 import {
@@ -13,6 +16,7 @@ import {
 export type PaltaApiClientWithDomains = PaltaApiClient & {
   operatingRules: BusinessOperatingRulesApiClient;
   reviews: BusinessReviewsApiClient;
+  corrections: BusinessCorrectionsApiClient;
 };
 
 export function createPaltaApiClient(input: {
@@ -36,6 +40,12 @@ export function createPaltaApiClient(input: {
   });
 
   client.reviews = new BusinessReviewsApiClient({
+    baseUrl: input.baseUrl,
+    fetch: input.fetch,
+    ...(getAccessToken ? { getAccessToken } : {}),
+  });
+
+  client.corrections = new BusinessCorrectionsApiClient({
     baseUrl: input.baseUrl,
     fetch: input.fetch,
     ...(getAccessToken ? { getAccessToken } : {}),
