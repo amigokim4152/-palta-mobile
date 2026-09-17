@@ -111,12 +111,18 @@ export default function BusinessDetailScreen() {
     if (mobileRuntime.status !== 'ready') {
       throw new Error(mobileRuntime.message);
     }
-    const [business, relationship, coupons] = await Promise.all([
+    const [business, relationship, coupons, reviews] = await Promise.all([
       mobileRuntime.client.getBusiness(businessId),
       mobileRuntime.client.getBusinessRelationship(businessId),
       mobileRuntime.client.getBusinessBasicCoupons(businessId),
+      mobileRuntime.client.reviews.getBusinessReviews(businessId),
     ]);
-    return { business, relationship, coupons: coupons.items };
+    return {
+      business,
+      relationship,
+      coupons: coupons.items,
+      reviews,
+    };
   }, [businessId]);
 
   const { state, refresh } = useAsyncResource(loadBusiness);
@@ -260,6 +266,7 @@ export default function BusinessDetailScreen() {
   const business = state.data?.business;
   const relationship = state.data?.relationship;
   const coupons = state.data?.coupons ?? [];
+  const reviews = state.data?.reviews;
   const publicCapabilities = useMemo(
     () =>
       business
@@ -354,6 +361,43 @@ export default function BusinessDetailScreen() {
                 ) : null}
               </View>
             ))}
+          </View>
+        ) : null}
+
+        {reviews?.items.length ? (
+          <View style={{ gap: 8 }}>
+            <SectionHeading
+              title="Opiniones con atención verificada"
+              subtitle={[
+                reviews.summary.average_rating !== undefined
+                  ? `${reviews.summary.average_rating.toFixed(1).replace('.', ',')} / 5`
+                  : undefined,
+                `${reviews.summary.count} ${reviews.summary.count === 1 ? 'opinión' : 'opiniones'}`,
+              ].filter(Boolean).join(' · ')}
+            />
+            {reviews.items.slice(0, 5).map((review) => (
+              <View key={review.id} style={{ borderWidth: 1, borderRadius: 14, padding: 14, gap: 6 }}>
+                <Text style={{ fontWeight: '800' }}>
+                  {review.author_label} · {'★'.repeat(Math.max(1, Math.min(5, Math.round(review.rating))))}
+                </Text>
+                <Text style={{ fontSize: 12, opacity: 0.62 }}>
+                  Atención verificada · {review.evidence_label}
+                </Text>
+                {review.body ? <Text style={{ lineHeight: 20 }}>{review.body}</Text> : null}
+                <Text style={{ fontSize: 12, opacity: 0.5 }}>
+                  {new Date(review.created_at).toLocaleDateString('es-CL')}
+                </Text>
+                {review.business_reply ? (
+                  <View style={{ marginTop: 4, paddingLeft: 10, borderLeftWidth: 2, gap: 3 }}>
+                    <Text style={{ fontWeight: '700' }}>Respuesta del negocio</Text>
+                    <Text style={{ lineHeight: 20 }}>{review.business_reply.body}</Text>
+                  </View>
+                ) : null}
+              </View>
+            ))}
+            <Text style={{ fontSize: 12, opacity: 0.58 }}>
+              Palta muestra aquí sólo opiniones vinculadas a una atención o servicio confirmado.
+            </Text>
           </View>
         ) : null}
 
