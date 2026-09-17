@@ -19,6 +19,8 @@ export type PrinterProtocol =
   | 'epson_epos'
   | 'star_prnt'
   | 'zpl'
+  | 'epl'
+  | 'tspl'
   | 'brother_raster'
   | 'ipp_pdf'
   | 'os_spooler';
@@ -33,12 +35,15 @@ export type PrinterSupportTier =
 export type PrinterHealth =
   | 'ready'
   | 'offline'
+  | 'busy'
   | 'paper_low'
   | 'paper_out'
   | 'cover_open'
   | 'cutter_error'
   | 'permission_required'
   | 'driver_required'
+  | 'bridge_unreachable'
+  | 'network_unreachable'
   | 'unknown';
 
 export type PrinterIdentity = {
@@ -49,6 +54,8 @@ export type PrinterIdentity = {
   manufacturer?: string;
   model?: string;
   serialNumberHash?: string;
+  firmwareVersion?: string;
+  connectionFingerprint?: string;
   transport: PrinterTransport;
   protocol: PrinterProtocol;
   supportTier: PrinterSupportTier;
