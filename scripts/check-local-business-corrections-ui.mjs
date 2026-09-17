@@ -75,13 +75,24 @@ assert(
   'Consumer correction flow must submit a review signal without promising automatic mutation.',
 );
 assert(
-  owner.includes('/corrections') && owner.includes('Información por revisar'),
-  'Mi negocio must expose the owner correction queue.',
+  owner.includes('/corrections') && owner.includes('correctionCount > 0'),
+  'Mi negocio must surface the owner correction queue only when pending work exists.',
 );
 assert(
   ownerCorrections.includes('mobileRuntime.client.corrections.getOwnerBusinessCorrections') &&
   ownerCorrections.includes('no cambia tu perfil automáticamente'),
   'Owner corrections screen must read the queue and keep manual review explicit.',
+);
+assert(
+  ownerCorrections.includes('resolveOwnerBusinessCorrection') &&
+  ownerCorrections.includes("'reviewed_and_addressed'") &&
+  ownerCorrections.includes("'not_an_issue'"),
+  'Owner corrections screen must allow purpose-bound review resolution.',
+);
+assert(
+  ownerCorrections.includes('Esto no modifica ningún dato por sí solo') &&
+  ownerCorrections.includes('actualizarlo en la sección correspondiente'),
+  'Correction resolution must stay separate from canonical business fact editing.',
 );
 assert(
   !ownerCorrections.includes('acceptCorrection') && !ownerCorrections.includes('autoApply'),
