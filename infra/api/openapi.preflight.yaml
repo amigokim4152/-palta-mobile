@@ -123,7 +123,106 @@ paths:
               schema:
                 $ref: "#/components/schemas/CareTrack"
 
+  /v1/messages/conversations/{conversationId}/messages:
+    get:
+      summary: Sync canonical messages after a conversation sequence cursor
+      description: >
+        Authenticated principal must be an active participant or be authorized by
+        the server to act as the requested business/organization actor. Client
+        never supplies principal_user_id.
+      parameters:
+        - $ref: "#/components/parameters/ConversationId"
+        - in: query
+          name: after_sequence
+          schema: { type: integer, minimum: 0, default: 0 }
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 200, default: 50 }
+        - in: query
+          name: acting_actor_type
+          schema:
+            $ref: "#/components/schemas/ActorType"
+        - in: query
+          name: acting_actor_id
+          schema: { type: string }
+      responses:
+        "200":
+          description: Ordered message sync page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageListResponse"
+        "403": { description: Principal cannot act as participant }
+        "404": { description: Conversation not found }
+    post:
+      summary: Persist a message and transactional outbox event
+      description: >
+        client_message_id is the canonical retry/idempotency key. For offline
+        mobile delivery it should be the stable mutation ID. acting_actor asks to
+        speak as a business/organization; the server still verifies the signed-in
+        principal's authority. created_at is server-assigned.
+      parameters:
+        - $ref: "#/components/parameters/ConversationId"
+        - in: header
+          name: Idempotency-Key
+          required: false
+          schema: { type: string }
+          description: May mirror client_message_id. Body client_message_id remains authoritative for Message Core idempotency.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SendMessageRequest"
+      responses:
+        "201":
+          description: Newly persisted message
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message"
+        "200":
+          description: Idempotent replay of an already persisted message
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message"
+        "400": { description: Invalid message or scope }
+        "403": { description: Principal cannot act as requested participant }
+        "404": { description: Conversation or scope not found }
+
+  /v1/messages/conversations/{conversationId}/read:
+    post:
+      summary: Advance the participant read cursor monotonically
+      description: >
+        Cursor is capped at the conversation's canonical last_sequence and can
+        never move backwards. Advancing read also advances delivered state.
+      parameters:
+        - $ref: "#/components/parameters/ConversationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdvanceReadRequest"
+      responses:
+        "200":
+          description: Current participant delivery/read cursor
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageReadState"
+        "400": { description: Invalid cursor }
+        "403": { description: Principal cannot act as participant }
+
 components:
+  parameters:
+    ConversationId:
+      in: path
+      name: conversationId
+      required: true
+      schema: { type: string, format: uuid }
+
   schemas:
     HomeResponse:
       type: object
@@ -228,3 +327,107 @@ components:
         outcome: { type: object, additionalProperties: true }
         next_action:
           $ref: "#/components/schemas/AppAction"
+
+    ActorType:
+      type: string
+      enum: [user, business, organization, community, support]
+
+    ActingActor:
+      type: object
+      required: [actor_type, actor_id]
+      properties:
+        actor_type:
+          $ref: "#/components/schemas/ActorType"
+        actor_id: { type: string }
+      description: >
+        Requested visible actor only. Authenticated principal identity is derived
+        by the server and cannot be supplied through this object.
+
+    MessageActionRef:
+      type: object
+      required: [resource_type, resource_id, action, contract_version]
+      properties:
+        resource_type: { type: string }
+        resource_id: { type: string }
+        action: { type: string }
+        contract_version: { type: string }
+
+    SendMessageRequest:
+      type: object
+      required: [client_message_id, message_type]
+      properties:
+        client_message_id:
+          type: string
+          minLength: 1
+          maxLength: 240
+        scope_id:
+          type: string
+          format: uuid
+        acting_actor:
+          $ref: "#/components/schemas/ActingActor"
+        message_type:
+          type: string
+          enum: [text, voice, image, file, location, resource_card, action_card]
+        body:
+          type: string
+          maxLength: 10000
+        reply_to_message_id:
+          type: string
+          format: uuid
+        action_ref:
+          $ref: "#/components/schemas/MessageActionRef"
+
+    Message:
+      type: object
+      required:
+        - message_id
+        - conversation_id
+        - client_message_id
+        - sender
+        - sequence
+        - message_type
+        - created_at
+      properties:
+        message_id: { type: string, format: uuid }
+        conversation_id: { type: string, format: uuid }
+        scope_id: { type: string, format: uuid }
+        client_message_id: { type: string }
+        sender:
+          $ref: "#/components/schemas/ActingActor"
+        sequence: { type: integer, minimum: 1 }
+        message_type:
+          type: string
+          enum: [text, voice, image, file, location, resource_card, action_card]
+        body: { type: string }
+        reply_to_message_id: { type: string, format: uuid }
+        action_ref:
+          $ref: "#/components/schemas/MessageActionRef"
+        created_at: { type: string, format: date-time }
+        replayed: { type: boolean }
+
+    MessageListResponse:
+      type: object
+      required: [items, next_after_sequence, has_more]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Message"
+        next_after_sequence: { type: integer, minimum: 0 }
+        has_more: { type: boolean }
+
+    AdvanceReadRequest:
+      type: object
+      required: [through_sequence]
+      properties:
+        acting_actor:
+          $ref: "#/components/schemas/ActingActor"
+        through_sequence: { type: integer, minimum: 0 }
+
+    MessageReadState:
+      type: object
+      required: [conversation_id, last_delivered_sequence, last_read_sequence]
+      properties:
+        conversation_id: { type: string, format: uuid }
+        last_delivered_sequence: { type: integer, minimum: 0 }
+        last_read_sequence: { type: integer, minimum: 0 }
