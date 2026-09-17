@@ -133,7 +133,7 @@ export class BusinessQuotesApiClient {
     return validateQuoteDetail(
       await this.request('/v1/local-business/quotes', {
         method: 'POST',
-        idempotencyKey: input.idempotencyKey,
+        ...(input.idempotencyKey ? { idempotencyKey: input.idempotencyKey } : {}),
         body: {
           description: input.description.trim(),
           recipient_business_ids: [...input.recipientBusinessIds],
