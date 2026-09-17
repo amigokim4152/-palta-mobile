@@ -115,6 +115,38 @@ export type MessageReadApiResponse = {
   last_read_sequence: number;
 };
 
+export type ConversationApiItem = {
+  conversation_id: string;
+  conversation_type: 'direct' | 'business' | 'transaction' | 'group' | 'support';
+  last_sequence: number;
+  last_activity_at: string;
+  created_at: string;
+  created?: boolean;
+};
+
+export type ConversationInboxPreviewApi = {
+  message_id: string;
+  sequence: number;
+  message_type: MessageApiItem['message_type'];
+  body?: string;
+  created_at: string;
+};
+
+export type ConversationInboxItemApi = {
+  conversation: ConversationApiItem;
+  counterpart_actors: MessageApiActor[];
+  unread_count: number;
+  last_message?: ConversationInboxPreviewApi;
+};
+
+export type ConversationInboxApiResponse = {
+  items: ConversationInboxItemApi[];
+  next_cursor?: {
+    last_activity_at: string;
+    conversation_id: string;
+  };
+};
+
 export type PaltaApiClientOptions = {
   baseUrl: string;
   fetch: FetchLike;
@@ -278,6 +310,53 @@ export class PaltaApiClient {
       throw new Error('POST /v1/care returned invalid Care track');
     }
     return result as CareApiTrack;
+  }
+
+  async openBusinessConversation(businessId: string): Promise<ConversationApiItem> {
+    const result = expectObject(
+      await this.request(
+        `/v1/messages/businesses/${encodeURIComponent(businessId)}/conversation`,
+        { method: 'POST', body: {} },
+      ),
+      'POST /v1/messages/businesses/{businessId}/conversation',
+    );
+    if (
+      typeof result.conversation_id !== 'string' ||
+      typeof result.conversation_type !== 'string' ||
+      typeof result.last_sequence !== 'number'
+    ) {
+      throw new Error('Open business conversation returned invalid payload');
+    }
+    return result as ConversationApiItem;
+  }
+
+  async listConversationInbox(input: {
+    limit?: number;
+    actingActor?: MessageApiActor;
+    cursor?: {
+      lastActivityAt: string;
+      conversationId: string;
+    };
+  } = {}): Promise<ConversationInboxApiResponse> {
+    const params = new URLSearchParams({
+      limit: String(input.limit ?? 30),
+    });
+    if (input.actingActor) {
+      params.set('acting_actor_type', input.actingActor.actor_type);
+      params.set('acting_actor_id', input.actingActor.actor_id);
+    }
+    if (input.cursor) {
+      params.set('after_activity', input.cursor.lastActivityAt);
+      params.set('after_conversation_id', input.cursor.conversationId);
+    }
+    const result = expectObject(
+      await this.request(`/v1/messages/conversations?${params.toString()}`),
+      'GET /v1/messages/conversations',
+    );
+    if (!Array.isArray(result.items)) {
+      throw new Error('Conversation Inbox returned invalid payload');
+    }
+    return result as ConversationInboxApiResponse;
   }
 
   async listMessages(input: {
