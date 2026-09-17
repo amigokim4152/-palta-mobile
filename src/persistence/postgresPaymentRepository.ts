@@ -10,11 +10,12 @@ import type {
 import {
   PaymentConcurrencyError,
   PaymentIdempotencyConflictError,
+  type CommercePaymentIntentQuery,
+  type CommercePaymentQueryRepository,
   type PaymentAtomicCommit,
   type PaymentAtomicCommitResult,
   type PaymentIdempotencyLookup,
   type PaymentIntentLookup,
-  type PaymentRepository,
 } from './paymentRepository.js';
 import type { SqlDatabase, SqlExecutor } from './sqlDatabase.js';
 
@@ -248,7 +249,7 @@ async function persistSideEffects(
   return { eventInserted, outboxInsertedIds };
 }
 
-export class PostgresPaymentRepository implements PaymentRepository {
+export class PostgresPaymentRepository implements CommercePaymentQueryRepository {
   constructor(private readonly db: SqlDatabase) {}
 
   async findIntent(lookup: PaymentIntentLookup): Promise<PaymentIntent | null> {
@@ -273,6 +274,22 @@ export class PostgresPaymentRepository implements PaymentRepository {
       [lookup.businessId, lookup.idempotencyKey],
     );
     return result.rows[0] ? rowToIntent(result.rows[0]) : null;
+  }
+
+  async listIntentsForTransaction(
+    query: CommercePaymentIntentQuery,
+  ): Promise<PaymentIntent[]> {
+    if (!query.businessId.trim() || !query.commerceTransactionId.trim()) {
+      throw new Error('Payment coverage query requires businessId and commerceTransactionId.');
+    }
+    const result = await this.db.query<PaymentIntentRow>(
+      `select ${PAYMENT_COLUMNS}
+       from payment_intent
+       where business_id = $1 and commerce_transaction_id = $2
+       order by created_at asc, id asc`,
+      [query.businessId, query.commerceTransactionId],
+    );
+    return result.rows.map(rowToIntent);
   }
 
   async commitIntentAndEvent(
