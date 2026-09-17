@@ -135,7 +135,7 @@ const reopened = await service.openUserBusinessConversation({
 });
 assert(!reopened.created, 'Opening the same business relationship again must reuse the conversation.');
 assert(reopened.conversation.conversationId === opened.conversation.conversationId, 'Same user-business pair must return the same conversation ID.');
-assert(directory.conversations.size === 1, 'Repeated business entry points must not create duplicate chats.');
+assert(Number(directory.conversations.size) === 1, 'Repeated business entry points must not create duplicate chats.');
 
 const reverseEnsure = await directory.ensureOneToOne({
   conversationId: 'should-not-be-used',
@@ -162,7 +162,7 @@ await expectCode('BUSINESS_MESSAGING_UNAVAILABLE', () =>
     createdAt: '2026-09-17T20:24:00.000Z',
   }),
 );
-assert(directory.conversations.size === 2, 'Unavailable business messaging must not create a conversation.');
+assert(Number(directory.conversations.size) === 2, 'Unavailable business messaging must not create a conversation.');
 
 const userInboxItems: ConversationInboxItem[] = [
   {
@@ -192,21 +192,22 @@ const userInboxItems: ConversationInboxItem[] = [
   },
 ];
 directory.inboxByActor.set('user:user-1', userInboxItems);
-directory.inboxByActor.set('business:business-1', [
-  {
-    conversation: userInboxItems[0]!.conversation,
-    counterpartActors: [user],
-    unreadCount: 1,
-    lastMessage: userInboxItems[0]!.lastMessage,
-  },
-]);
+const businessInboxSeed: ConversationInboxItem = {
+  conversation: userInboxItems[0]!.conversation,
+  counterpartActors: [user],
+  unreadCount: 1,
+  ...(userInboxItems[0]!.lastMessage !== undefined
+    ? { lastMessage: userInboxItems[0]!.lastMessage }
+    : {}),
+};
+directory.inboxByActor.set('business:business-1', [businessInboxSeed]);
 
 const inbox = await service.listInbox({
   principalUserId: 'user-1',
   actor: user,
   limit: 30,
 });
-assert(inbox.length === 2, 'Authenticated user must be able to list own relationship Inbox.');
+assert(Number(inbox.length) === 2, 'Authenticated user must be able to list own relationship Inbox.');
 assert(inbox[0]?.unreadCount === 2, 'Inbox must preserve incoming-only unread count from persistence boundary.');
 assert(inbox[0]?.counterpartActors[0]?.actorId === 'business-1', 'Inbox exposes counterpart actor reference, not copied business/customer PII.');
 const inboxJson = JSON.stringify(inbox).toLowerCase();
@@ -223,7 +224,7 @@ const paged = await service.listInbox({
   },
   limit: 30,
 });
-assert(paged.length === 1 && paged[0]?.conversation.conversationId === otherBusiness.conversation.conversationId, 'Inbox keyset cursor must continue after activity/id pair without offset pagination.');
+assert(Number(paged.length) === 1 && paged[0]?.conversation.conversationId === otherBusiness.conversation.conversationId, 'Inbox keyset cursor must continue after activity/id pair without offset pagination.');
 
 await expectCode('ACTOR_NOT_AUTHORIZED', () =>
   service.listInbox({
@@ -244,7 +245,7 @@ const businessInbox = await service.listInbox({
     principalUserId: 'staff-allowed',
   },
 });
-assert(businessInbox.length === 1, 'Authorized business staff must be able to list the business Inbox.');
+assert(Number(businessInbox.length) === 1, 'Authorized business staff must be able to list the business Inbox.');
 assert(businessInbox[0]?.counterpartActors[0]?.actorId === 'user-1', 'Business Inbox must identify counterpart by Palta actor reference.');
 
 console.log('Message conversation directory tests passed.');
