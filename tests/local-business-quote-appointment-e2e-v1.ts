@@ -252,6 +252,10 @@ async function publishPair(pair: readonly [PaltaEvent, PaltaEvent]): Promise<voi
   await eventBus.publish(pair[1]);
 }
 
+function currentCareState(): string {
+  return String(careTrack.state);
+}
+
 await publishPair(
   buildQuoteRequestOpenedEvents({
     quoteRequestId: 'quote-request-1',
@@ -259,7 +263,7 @@ await publishPair(
     sourceSequence: 1,
   }),
 );
-assert(careTrack.state === 'waiting', 'Confirmed quote request must transition Care from action_started to waiting.');
+assert(currentCareState() === 'waiting', 'Confirmed quote request must transition Care from action_started to waiting.');
 assert(homeUpserts.at(-1)?.candidate.title === '업체의 견적을 기다리고 있습니다', 'Home must show quiet waiting status.');
 
 await publishPair(
@@ -269,7 +273,7 @@ await publishPair(
     sourceSequence: 2,
   }),
 );
-assert(careTrack.state === 'result_available', 'Quote response must move Care to result_available.');
+assert(currentCareState() === 'result_available', 'Quote response must move Care to result_available.');
 assert(homeUpserts.at(-1)?.candidate.action?.label === '견적 보기', 'Result must expose the domain-owned quote action.');
 
 await publishPair(
@@ -279,7 +283,7 @@ await publishPair(
     sourceSequence: 3,
   }),
 );
-assert(careTrack.state === 'follow_up', 'Selecting quote must move the service journey into follow_up.');
+assert(currentCareState() === 'follow_up', 'Selecting quote must move the service journey into follow_up.');
 assert(homeUpserts.at(-1)?.candidate.action?.label === '예약 진행', 'Follow-up must guide the user toward booking without forcing a push.');
 
 await publishPair(
@@ -289,7 +293,7 @@ await publishPair(
     sourceSequence: 1,
   }),
 );
-assert(careTrack.state === 'action_started', 'Booking request must resume the same service Care journey.');
+assert(currentCareState() === 'action_started', 'Booking request must resume the same service Care journey.');
 
 await publishPair(
   buildServiceAppointmentConfirmedEvents({
@@ -299,7 +303,7 @@ await publishPair(
     sourceSequence: 2,
   }),
 );
-assert(careTrack.state === 'upcoming', 'Confirmed appointment must become upcoming.');
+assert(currentCareState() === 'upcoming', 'Confirmed appointment must become upcoming.');
 assert(careTrack.expectedAt === '2026-09-19T10:30:00-03:00', 'Confirmed appointment time must remain structured Care timing.');
 
 await publishPair(
@@ -309,7 +313,7 @@ await publishPair(
     sourceSequence: 3,
   }),
 );
-assert(careTrack.state === 'in_progress', 'Service start must move Care into in_progress.');
+assert(currentCareState() === 'in_progress', 'Service start must move Care into in_progress.');
 
 await publishPair(
   buildServiceAppointmentCompletedEvents({
@@ -318,7 +322,7 @@ await publishPair(
     sourceSequence: 4,
   }),
 );
-assert(careTrack.state === 'completed', 'Service completion must move Care to completed.');
+assert(currentCareState() === 'completed', 'Service completion must move Care to completed.');
 assert(homeUpserts.at(-1)?.candidate.title === '작업이 완료되었습니다', 'Completed work may remain briefly visible as a result.');
 
 await publishPair(
@@ -329,7 +333,7 @@ await publishPair(
     sourceSequence: 5,
   }),
 );
-assert(careTrack.state === 'outcome_recorded', 'Recorded durable outcome must terminate the active Care journey.');
+assert(currentCareState() === 'outcome_recorded', 'Recorded durable outcome must terminate the active Care journey.');
 assert(Number(homeRemovals.length) === 1, 'Terminal outcome must remove the active Home projection.');
 assert(homeRemovals[0]?.dedupeKey === 'care:care-service-1', 'Terminal cleanup must target the stable Care projection identity.');
 
