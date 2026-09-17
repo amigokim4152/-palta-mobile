@@ -254,9 +254,9 @@ export type PrinterCompatibilityManifest = {
 };
 
 export type PrinterCompatibilityMatchContext = {
-  platform?: PrinterCompatibilityPlatform;
-  firmwareVersion?: string;
-  transports?: readonly PrinterIdentity['transport'][];
+  platform?: PrinterCompatibilityPlatform | undefined;
+  firmwareVersion?: string | undefined;
+  transports?: readonly PrinterIdentity['transport'][] | undefined;
 };
 
 function matchesCompatibilityScope(
