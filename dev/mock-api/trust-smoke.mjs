@@ -57,6 +57,34 @@ assert(
   'submitted correction should appear in owner review queue',
 );
 
+const resolved = await json(
+  `/v1/business/biz-farmacia-1/owner-corrections/${encodeURIComponent(correction.payload.id)}`,
+  {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ resolution: 'reviewed_and_addressed' }),
+  },
+);
+assert(resolved.response.ok, 'owner should be able to close a reviewed correction');
+assert(resolved.payload.status === 'superseded', 'reviewed correction should close as superseded signal');
+
+const ownerQueueAfterResolution = await json('/v1/business/biz-farmacia-1/owner-corrections');
+assert(ownerQueueAfterResolution.response.ok, 'owner correction queue should still respond');
+assert(
+  !ownerQueueAfterResolution.payload.items.some((item) => item.id === correction.payload.id),
+  'resolved correction should leave the pending owner queue',
+);
+
+const afterResolution = await json('/v1/business/biz-farmacia-1');
+assert(
+  afterResolution.payload.hours_summary === before.payload.hours_summary,
+  'closing a correction signal must not mutate canonical hours',
+);
+assert(
+  JSON.stringify(afterResolution.payload.contact) === JSON.stringify(before.payload.contact),
+  'closing a correction signal must not mutate canonical contact data',
+);
+
 const unclaimed = await json('/v1/business/biz-taller-1/corrections', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
