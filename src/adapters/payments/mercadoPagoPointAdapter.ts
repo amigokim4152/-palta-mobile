@@ -120,6 +120,18 @@ function clpAmount(amountMinor: number, currency: string): string {
   return String(amountMinor);
 }
 
+function parseProviderClpAmount(value: string): number {
+  const trimmed = value.trim();
+  if (!/^\d+$/.test(trimmed)) {
+    throw new Error('Mercado Pago Point returned a non-integer CLP processed amount.');
+  }
+  const parsed = Number(trimmed);
+  if (!Number.isSafeInteger(parsed) || parsed <= 0) {
+    throw new Error('Mercado Pago Point returned an invalid CLP processed amount.');
+  }
+  return parsed;
+}
+
 function providerStatusResult(order: MercadoPagoPointOrder): ProviderPaymentStatus {
   const payment = firstPayment(order);
   const detail = order.status_detail ?? payment?.status_detail;
@@ -131,6 +143,12 @@ function providerStatusResult(order: MercadoPagoPointOrder): ProviderPaymentStat
   };
   if (detail !== undefined) result.providerStatusDetail = detail;
   if (payment?.id !== undefined) result.providerPaymentId = payment.id;
+  if (payment?.amount !== undefined) {
+    result.processedAmount = {
+      currency: 'CLP',
+      amountMinor: parseProviderClpAmount(payment.amount),
+    };
+  }
   return result;
 }
 
