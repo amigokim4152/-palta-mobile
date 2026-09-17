@@ -16,6 +16,12 @@ function firstLetter(value: string) {
   return value.trim().charAt(0).toUpperCase() || 'P';
 }
 
+function isPublicMetaLabel(value: string) {
+  // Internal taxonomy keys such as `auto_repair` or `AUTO_MOTO_MOBILITY`
+  // are useful for contracts, never as consumer-facing copy.
+  return !value.includes('_');
+}
+
 export function LocalResultCard({
   name,
   meta,
@@ -26,10 +32,11 @@ export function LocalResultCard({
   selected = false,
   onPress,
 }: Props) {
-  const [status, ...secondaryMeta] = meta
+  const [status, ...rawSecondaryMeta] = meta
     .split(' · ')
     .map((part) => part.trim())
     .filter(Boolean);
+  const secondaryMeta = rawSecondaryMeta.filter(isPublicMetaLabel);
   const labels = serviceLabels.filter(Boolean).slice(0, 2);
   const isOpenNow = status === 'Abierto ahora';
 
