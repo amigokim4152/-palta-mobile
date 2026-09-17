@@ -57,9 +57,9 @@ function isWithinWindow(
 }
 
 function evidenceIsStale(input: {
-  confirmedAt?: string;
+  confirmedAt: string | undefined;
   nowMs: number;
-  maxAgeMs?: number;
+  maxAgeMs: number | undefined;
 }): boolean {
   if (input.maxAgeMs === undefined) return false;
   const confirmedAt = timestamp(input.confirmedAt);
