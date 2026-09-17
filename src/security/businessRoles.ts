@@ -19,6 +19,8 @@ export type BusinessCapability =
   | 'settlement_read'
   | 'staff_manage'
   | 'analytics_read'
+  | 'customer_message_read'
+  | 'customer_message_reply'
   | 'export_data';
 
 const CAPABILITIES: Record<BusinessRole, readonly BusinessCapability[]> = {
@@ -35,6 +37,8 @@ const CAPABILITIES: Record<BusinessRole, readonly BusinessCapability[]> = {
     'settlement_read',
     'staff_manage',
     'analytics_read',
+    'customer_message_read',
+    'customer_message_reply',
     'export_data',
   ],
   manager: [
@@ -48,11 +52,15 @@ const CAPABILITIES: Record<BusinessRole, readonly BusinessCapability[]> = {
     'payment_read',
     'refund_create',
     'analytics_read',
+    'customer_message_read',
+    'customer_message_reply',
   ],
   cashier: [
     'order_read',
     'order_complete',
     'payment_read',
+    'customer_message_read',
+    'customer_message_reply',
   ],
   kitchen: [
     'order_read',
@@ -62,6 +70,8 @@ const CAPABILITIES: Record<BusinessRole, readonly BusinessCapability[]> = {
     'order_read',
     'order_prepare',
     'order_complete',
+    'customer_message_read',
+    'customer_message_reply',
   ],
   viewer: [
     'order_read',
