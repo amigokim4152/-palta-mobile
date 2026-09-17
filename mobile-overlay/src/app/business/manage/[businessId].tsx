@@ -145,7 +145,6 @@ export default function BusinessOwnerHomeScreen() {
               title={item.title}
               body={item.reason}
               badge={item.commercial === 'free' ? 'SIN COSTO' : item.commercial === 'may_be_paid' ? 'OPCIONAL' : undefined}
-              onPress={() => router.push(item.target as never)}
             />
           ))
         ) : (
