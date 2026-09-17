@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { Pressable, Text, TextInput, View } from 'react-native';
 import { ErrorState, LoadingState } from '../../../../components/AsyncStateBlock';
 import { ScreenFrame } from '../../../../components/ScreenFrame';
@@ -83,6 +83,17 @@ export default function BusinessOwnerProfileScreen() {
         <Text style={{ opacity: 0.68, lineHeight: 20 }}>
           Aquí puedes corregir tu descripción y formas de contacto. El nombre, la clasificación, los servicios y la ubicación usan controles propios para no romper la identidad, la búsqueda ni el mapa del negocio.
         </Text>
+
+        <Pressable
+          disabled={!businessId}
+          onPress={() => businessId && router.push(`/business/manage/${encodeURIComponent(businessId)}/services`)}
+          style={{ borderWidth: 1, borderRadius: 14, padding: 13, gap: 4 }}
+        >
+          <Text style={{ fontWeight: '800' }}>Servicios</Text>
+          <Text style={{ opacity: 0.64, lineHeight: 19 }}>
+            Agrega o quita lo que haces sin navegar una lista enorme de categorías.
+          </Text>
+        </Pressable>
 
         <View style={{ gap: 6 }}>
           <Text style={{ fontWeight: '800' }}>Descripción</Text>
