@@ -81,11 +81,12 @@ export default function BusinessDetailScreen() {
     if (mobileRuntime.status !== 'ready') {
       throw new Error(mobileRuntime.message);
     }
-    const [business, relationship] = await Promise.all([
+    const [business, relationship, coupons] = await Promise.all([
       mobileRuntime.client.getBusiness(businessId),
       mobileRuntime.client.getBusinessRelationship(businessId),
+      mobileRuntime.client.getBusinessBasicCoupons(businessId),
     ]);
-    return { business, relationship };
+    return { business, relationship, coupons: coupons.items };
   }, [businessId]);
 
   const { state, refresh } = useAsyncResource(loadBusiness);
@@ -180,12 +181,18 @@ export default function BusinessDetailScreen() {
       case 'follow':
         void updateRelationship(capability);
         return;
+      case 'coupon':
+        setSubmitMessage(
+          state.data?.coupons.length
+            ? 'El beneficio activo está mostrado en este perfil.'
+            : 'No hay un cupón disponible para ti en este momento.',
+        );
+        return;
       case 'whatsapp':
       case 'call':
       case 'reservation':
       case 'queue':
       case 'inquiry':
-      case 'coupon':
       case 'pricing':
         setSubmitMessage(
           `La acción "${capability}" está disponible en el perfil, pero su adapter concreto aún no está conectado en esta compilación.`,
@@ -196,6 +203,7 @@ export default function BusinessDetailScreen() {
 
   const business = state.data?.business;
   const relationship = state.data?.relationship;
+  const coupons = state.data?.coupons ?? [];
   const publicCapabilities = useMemo(
     () =>
       business
@@ -253,6 +261,24 @@ export default function BusinessDetailScreen() {
         <ProfileSection title="Servicios" body={services} />
         <ProfileSection title="Horario" body={business.hours_summary} />
         <ProfileSection title="Zona de atención" body={serviceAreas} />
+
+        {coupons.length ? (
+          <View style={{ gap: 8 }}>
+            <SectionHeading
+              title="Beneficio"
+              subtitle={coupons[0]?.audience === 'followers' ? 'Disponible para seguidores de este negocio' : 'Beneficio publicado por este negocio'}
+            />
+            {coupons.map((coupon) => (
+              <View key={coupon.id} style={{ borderWidth: 1, borderRadius: 14, padding: 14, gap: 5 }}>
+                <Text style={{ fontSize: 17, fontWeight: '800' }}>{coupon.title}</Text>
+                {coupon.description ? <Text style={{ lineHeight: 20 }}>{coupon.description}</Text> : null}
+                {coupon.redemption_instruction ? (
+                  <Text style={{ opacity: 0.68, lineHeight: 20 }}>{coupon.redemption_instruction}</Text>
+                ) : null}
+              </View>
+            ))}
+          </View>
+        ) : null}
 
         <ExternalChannels links={business.channel_links ?? []} />
 
