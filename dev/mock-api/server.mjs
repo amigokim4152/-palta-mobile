@@ -11,7 +11,22 @@ const businesses = [
     category_key: 'auto_repair',
     search_terms: ['taller', 'auto', 'mecánica', 'frenos', 'neumáticos'],
     verification_status: 'unverified',
-    opening_status: 'open',
+    opening_status: 'Abierto hoy',
+    operational_state: 'open_now',
+    operational_confirmed_at: '2026-09-17T08:00:00-03:00',
+    description: 'Mantención y reparación automotriz con atención por WhatsApp.',
+    hours_summary: 'Lun–Vie 09:00–18:00 · Sáb 09:00–14:00',
+    service_labels: ['Mantención', 'Frenos', 'Neumáticos'],
+    service_area_labels: ['Vitacura', 'Las Condes'],
+    photo_urls: [],
+    posts: [
+      { id: 'post-taller-1', title: 'Agenda disponible esta semana', published_at: '2026-09-16T14:00:00-03:00' },
+    ],
+    enabled_capabilities: ['quote'],
+    channel_links: [
+      { provider: 'instagram', label: 'Instagram', url: 'https://www.instagram.com/' },
+      { provider: 'google_business', label: 'Google', url: 'https://www.google.com/maps' },
+    ],
     location: { lat: -33.3908, lng: -70.5707 },
     contact: { whatsapp: '+56000000000' },
   },
@@ -21,7 +36,20 @@ const businesses = [
     category_key: 'pharmacy',
     search_terms: ['farmacia', 'salud', 'medicamentos'],
     verification_status: 'verified',
-    opening_status: 'open',
+    opening_status: 'Abierto ahora',
+    operational_state: 'open_now',
+    operational_confirmed_at: '2026-09-17T08:00:00-03:00',
+    description: 'Farmacia de barrio con atención presencial y consulta telefónica.',
+    hours_summary: 'Lun–Sáb 09:00–20:00',
+    service_labels: ['Farmacia', 'Cuidado personal'],
+    service_area_labels: ['Vitacura'],
+    photo_urls: [],
+    posts: [],
+    enabled_capabilities: [],
+    channel_links: [
+      { provider: 'website', label: 'Sitio web', url: 'https://example.com/' },
+      { provider: 'facebook', label: 'Facebook', url: 'https://www.facebook.com/' },
+    ],
     location: { lat: -33.3942, lng: -70.5752 },
     contact: { phone: '+56000000001' },
   },
@@ -75,7 +103,7 @@ const server = http.createServer(async (req, res) => {
     const url = new URL(req.url, `http://${req.headers.host ?? `${host}:${port}`}`);
 
     if (req.method === 'GET' && url.pathname === '/health') {
-      return json(res, 200, { ok: true, service: 'palta-mock-api', version: '0.2.0' });
+      return json(res, 200, { ok: true, service: 'palta-mock-api', version: '0.3.0' });
     }
 
     if (req.method === 'GET' && url.pathname === '/v1/home') {
@@ -119,6 +147,8 @@ const server = http.createServer(async (req, res) => {
           name: business.name,
           category_key: business.category_key,
           verification_status: business.verification_status,
+          operational_state: business.operational_state,
+          operational_confirmed_at: business.operational_confirmed_at,
           distance_m: index === 0 ? 850 : 1200,
           location: business.location,
         })),
@@ -159,7 +189,15 @@ const server = http.createServer(async (req, res) => {
           category_key: body.confirmed_service_ids[0],
           search_terms: [body.owner_description, ...body.confirmed_service_ids].filter(Boolean),
           verification_status: 'claimed',
-          opening_status: 'unknown',
+          opening_status: 'Horario por confirmar',
+          operational_state: 'unknown_or_stale',
+          description: body.owner_description ?? '',
+          service_labels: body.confirmed_service_ids,
+          service_area_labels: body.service_area_ids ?? [],
+          photo_urls: [],
+          posts: [],
+          enabled_capabilities: [],
+          channel_links: [],
           ...(body.anchor_location ? { location: body.anchor_location } : {}),
           contact: body.contact ?? {},
         };
