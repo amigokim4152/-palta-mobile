@@ -90,3 +90,5 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -f infra/db/tests/fiscal_execution_smoke.sql
       - name: Verify customer delivery/share-link/CRM RLS invariants
         run: psql -v ON_ERROR_STOP=1 -f infra/db/tests/customer_delivery_smoke.sql
+      - name: Verify printer device/routing RLS invariants
+        run: psql -v ON_ERROR_STOP=1 -f infra/db/tests/print_device_routing_smoke.sql
