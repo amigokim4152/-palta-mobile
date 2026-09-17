@@ -110,6 +110,7 @@ export default function BusinessOwnerCorrectionsScreen() {
 
         {items.map((item) => {
           const resolving = resolvingId === item.id;
+          const isContactCorrection = item.field === 'phone' || item.field === 'whatsapp';
           return (
             <View key={item.id} style={{ borderWidth: 1, borderRadius: 14, padding: 14, gap: 8 }}>
               <Text style={{ fontSize: 12, fontWeight: '800', opacity: 0.58 }}>POR REVISAR</Text>
@@ -131,6 +132,18 @@ export default function BusinessOwnerCorrectionsScreen() {
                   style={{ marginTop: 4, borderWidth: 1, borderRadius: 12, padding: 11 }}
                 >
                   <Text style={{ textAlign: 'center', fontWeight: '800' }}>Revisar horario</Text>
+                </Pressable>
+              ) : null}
+
+              {isContactCorrection && businessId ? (
+                <Pressable
+                  disabled={resolving}
+                  onPress={() =>
+                    router.push(`/business/manage/${encodeURIComponent(businessId)}/profile`)
+                  }
+                  style={{ marginTop: 4, borderWidth: 1, borderRadius: 12, padding: 11 }}
+                >
+                  <Text style={{ textAlign: 'center', fontWeight: '800' }}>Revisar contacto</Text>
                 </Pressable>
               ) : null}
 
