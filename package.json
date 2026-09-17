@@ -10,6 +10,7 @@
     "mock:api": "node dev/mock-api/server.mjs",
     "mock:smoke": "node dev/mock-api/smoke.mjs",
     "mock:following-smoke": "node dev/mock-api/following-smoke.mjs",
+    "mock:operating-rules-smoke": "node dev/mock-api/operating-rules-smoke.mjs",
     "check:independence": "node scripts/check-core-independence.mjs",
     "verify": "npm run typecheck && npm test && npm run check:independence",
     "preflight:env": "node scripts/preflight-env.mjs",
