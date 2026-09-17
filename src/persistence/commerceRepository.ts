@@ -13,13 +13,15 @@ export type CommerceIdempotencyLookup = {
 
 export type CommerceAtomicCommit = {
   transaction: CommerceTransaction;
-  expectedRevision: number;
+  /** null creates revision 0; a number updates using compare-and-swap. */
+  expectedRevision: number | null;
   outboxEvents: readonly CommerceOutboxEvent[];
 };
 
 export type CommerceAtomicCommitResult = {
   transaction: CommerceTransaction;
   insertedOutboxEventIds: readonly string[];
+  replayed: boolean;
 };
 
 /**
@@ -30,7 +32,8 @@ export type CommerceAtomicCommitResult = {
  * - (businessId, idempotencyKey) is unique;
  * - commitTransactionAndOutbox is atomic;
  * - expectedRevision is checked with compare-and-swap semantics;
- * - duplicate outbox event IDs/idempotency keys do not create duplicate side effects.
+ * - duplicate outbox event IDs/idempotency keys do not create duplicate side effects;
+ * - exact idempotent replays return the original canonical transaction.
  */
 export interface CommerceRepository {
   findTransaction(lookup: CommerceTransactionLookup): Promise<CommerceTransaction | null>;
