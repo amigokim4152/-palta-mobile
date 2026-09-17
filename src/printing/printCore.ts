@@ -109,10 +109,13 @@ export type PrintJob = {
   status: PrintJobStatus;
   idempotencyKey: string;
   revision: number;
+  /** Durable evidence that the most recent failure definitively produced no output. */
+  retryAuthorized: boolean;
   createdAt: string;
   submittedAt?: string;
   completedAt?: string;
   errorCode?: string;
+  providerJobId?: string;
   /** Set for physical reprints of a previously issued receipt/document. */
   reprintOfJobId?: string;
 };
@@ -153,6 +156,7 @@ export function createPrintJob(input: {
     status: 'queued',
     idempotencyKey: input.idempotencyKey,
     revision: 0,
+    retryAuthorized: false,
     createdAt: input.createdAt,
   };
   if (input.reprintOfJobId !== undefined) job.reprintOfJobId = input.reprintOfJobId;
@@ -172,8 +176,17 @@ export function beginPrintDispatch(job: PrintJob, submittedAt: string): PrintJob
     ...job,
     status: 'dispatching',
     revision: job.revision + 1,
+    retryAuthorized: false,
     submittedAt,
   };
+}
+
+function withOptionalProviderJobId(
+  job: PrintJob,
+  providerJobId: string | undefined,
+): PrintJob {
+  if (providerJobId === undefined) return job;
+  return { ...job, providerJobId };
 }
 
 export function applyPrintDispatchResult(
@@ -184,40 +197,63 @@ export function applyPrintDispatchResult(
   if (job.status !== 'dispatching') throw new Error('Print result requires a dispatching job.');
 
   if (result.outcome === 'printed') {
-    return { ...job, status: 'printed', revision: job.revision + 1, completedAt: now };
+    return withOptionalProviderJobId(
+      {
+        ...job,
+        status: 'printed',
+        revision: job.revision + 1,
+        retryAuthorized: false,
+        completedAt: now,
+      },
+      result.providerJobId,
+    );
   }
   if (result.outcome === 'submitted') {
-    return { ...job, status: 'submitted', revision: job.revision + 1 };
+    return withOptionalProviderJobId(
+      {
+        ...job,
+        status: 'submitted',
+        revision: job.revision + 1,
+        retryAuthorized: false,
+      },
+      result.providerJobId,
+    );
   }
   if (result.outcome === 'unknown') {
-    return { ...job, status: 'outcome_unknown', revision: job.revision + 1, errorCode: result.code };
+    return {
+      ...job,
+      status: 'outcome_unknown',
+      revision: job.revision + 1,
+      retryAuthorized: false,
+      errorCode: result.code,
+    };
   }
-  return { ...job, status: 'failed', revision: job.revision + 1, errorCode: result.code };
+  return {
+    ...job,
+    status: 'failed',
+    revision: job.revision + 1,
+    retryAuthorized: result.retryable,
+    errorCode: result.code,
+  };
 }
 
-export function canAutomaticallyRetryPrint(job: PrintJob, lastResult?: PrintDispatchResult): boolean {
-  if (job.status !== 'failed') return false;
-  return lastResult?.outcome === 'failed' && lastResult.retryable;
+export function canAutomaticallyRetryPrint(job: PrintJob): boolean {
+  return job.status === 'failed' && job.retryAuthorized;
 }
 
 /**
- * A retry is a separate safety path. It is allowed only when the preceding adapter
- * result definitively says that no physical output was produced and retry is safe.
- * If that evidence is unavailable after a restart, automatic retry is intentionally
- * unavailable and the job must be reconciled/manually reviewed instead.
+ * A retry is a separate safety path. It is allowed only when the persisted job
+ * records definitive evidence that the preceding attempt produced no physical output.
  */
-export function beginPrintRetry(
-  job: PrintJob,
-  lastResult: PrintDispatchResult,
-  submittedAt: string,
-): PrintJob {
-  if (!canAutomaticallyRetryPrint(job, lastResult)) {
-    throw new Error('Print retry requires a definitive retryable failure with no ambiguous output.');
+export function beginPrintRetry(job: PrintJob, submittedAt: string): PrintJob {
+  if (!canAutomaticallyRetryPrint(job)) {
+    throw new Error('Print retry requires persisted authorization from a definitive no-output failure.');
   }
   return {
     ...job,
     status: 'dispatching',
     revision: job.revision + 1,
+    retryAuthorized: false,
     submittedAt,
   };
 }
