@@ -77,6 +77,13 @@ const reviewsByBusiness = new Map([
   ]],
 ]);
 
+async function readRequestJson(req) {
+  const chunks = [];
+  for await (const chunk of req) chunks.push(chunk);
+  if (!chunks.length) return {};
+  return JSON.parse(Buffer.concat(chunks).toString('utf8'));
+}
+
 function summarize(items) {
   if (!items.length) return { count: 0 };
   const average = items.reduce((sum, item) => sum + item.rating, 0) / items.length;
@@ -145,14 +152,7 @@ function businessExists(businesses, businessId) {
   return businesses.some((business) => business.id === businessId);
 }
 
-export async function handleBusinessReviewsRequest({
-  req,
-  res,
-  url,
-  businesses,
-  json,
-  readJson,
-}) {
+export function handleBusinessReviewsRequest({ req, res, url, businesses, json }) {
   const eligibilityMatch = url.pathname.match(
     /^\/v1\/business\/([^/]+)\/my-review-eligibility$/,
   );
@@ -209,21 +209,22 @@ export async function handleBusinessReviewsRequest({
       json(res, 404, { error: 'review_not_found' });
       return true;
     }
-    const body = await readJson(req);
-    if (typeof body.body !== 'string' || !body.body.trim()) {
-      json(res, 400, { error: 'review_reply_body_required' });
+    return readRequestJson(req).then((body) => {
+      if (typeof body.body !== 'string' || !body.body.trim()) {
+        json(res, 400, { error: 'review_reply_body_required' });
+        return true;
+      }
+      if (body.body.trim().length > 2000) {
+        json(res, 400, { error: 'review_reply_body_too_long' });
+        return true;
+      }
+      review.business_reply = {
+        body: body.body.trim(),
+        replied_at: new Date().toISOString(),
+      };
+      json(res, 200, publicReview(review));
       return true;
-    }
-    if (body.body.trim().length > 2000) {
-      json(res, 400, { error: 'review_reply_body_too_long' });
-      return true;
-    }
-    review.business_reply = {
-      body: body.body.trim(),
-      replied_at: new Date().toISOString(),
-    };
-    json(res, 200, publicReview(review));
-    return true;
+    });
   }
 
   const reviewsMatch = url.pathname.match(/^\/v1\/business\/([^/]+)\/reviews$/);
@@ -246,56 +247,57 @@ export async function handleBusinessReviewsRequest({
   }
 
   if (req.method === 'POST') {
-    const body = await readJson(req);
-    if (!Number.isInteger(body.rating) || body.rating < 1 || body.rating > 5) {
-      json(res, 400, { error: 'review_rating_invalid' });
-      return true;
-    }
-    if (body.body !== undefined && typeof body.body !== 'string') {
-      json(res, 400, { error: 'review_body_must_be_string' });
-      return true;
-    }
-    if (typeof body.body === 'string' && body.body.trim().length > 2000) {
-      json(res, 400, { error: 'review_body_too_long' });
-      return true;
-    }
+    return readRequestJson(req).then((body) => {
+      if (!Number.isInteger(body.rating) || body.rating < 1 || body.rating > 5) {
+        json(res, 400, { error: 'review_rating_invalid' });
+        return true;
+      }
+      if (body.body !== undefined && typeof body.body !== 'string') {
+        json(res, 400, { error: 'review_body_must_be_string' });
+        return true;
+      }
+      if (typeof body.body === 'string' && body.body.trim().length > 2000) {
+        json(res, 400, { error: 'review_body_too_long' });
+        return true;
+      }
 
-    const eligibility = eligibleInteraction(businessId);
-    if (!eligibility.eligible) {
-      json(res, 409, {
-        error: eligibility.reason === 'already_reviewed'
-          ? 'interaction_already_reviewed'
-          : 'verified_interaction_required',
-      });
-      return true;
-    }
-    const interaction = eligibility.interaction;
-    if (
-      body.evidence_kind !== interaction.kind ||
-      body.evidence_reference_id !== interaction.reference_id
-    ) {
-      json(res, 403, { error: 'verified_interaction_mismatch' });
-      return true;
-    }
+      const eligibility = eligibleInteraction(businessId);
+      if (!eligibility.eligible) {
+        json(res, 409, {
+          error: eligibility.reason === 'already_reviewed'
+            ? 'interaction_already_reviewed'
+            : 'verified_interaction_required',
+        });
+        return true;
+      }
+      const interaction = eligibility.interaction;
+      if (
+        body.evidence_kind !== interaction.kind ||
+        body.evidence_reference_id !== interaction.reference_id
+      ) {
+        json(res, 403, { error: 'verified_interaction_mismatch' });
+        return true;
+      }
 
-    const review = {
-      id: `review-${randomUUID()}`,
-      author_label: reviewerLabel,
-      rating: body.rating,
-      ...(typeof body.body === 'string' && body.body.trim()
-        ? { body: body.body.trim() }
-        : {}),
-      verified_interaction: true,
-      evidence_label: evidenceLabels[interaction.kind],
-      created_at: new Date().toISOString(),
-      _author_user_id: reviewerUserId,
-      _evidence_kind: interaction.kind,
-      _evidence_reference_id: interaction.reference_id,
-    };
-    const current = reviewsByBusiness.get(businessId) ?? [];
-    reviewsByBusiness.set(businessId, [review, ...current]);
-    json(res, 201, publicReview(review));
-    return true;
+      const review = {
+        id: `review-${randomUUID()}`,
+        author_label: reviewerLabel,
+        rating: body.rating,
+        ...(typeof body.body === 'string' && body.body.trim()
+          ? { body: body.body.trim() }
+          : {}),
+        verified_interaction: true,
+        evidence_label: evidenceLabels[interaction.kind],
+        created_at: new Date().toISOString(),
+        _author_user_id: reviewerUserId,
+        _evidence_kind: interaction.kind,
+        _evidence_reference_id: interaction.reference_id,
+      };
+      const current = reviewsByBusiness.get(businessId) ?? [];
+      reviewsByBusiness.set(businessId, [review, ...current]);
+      json(res, 201, publicReview(review));
+      return true;
+    });
   }
 
   return false;
