@@ -29,6 +29,7 @@ type PaymentIntentRow = {
   rail: PaymentRail;
   status: PaymentStatus;
   provider_key: string | null;
+  provider_connection_id: string | null;
   provider_reference: string | null;
   provider_payment_id: string | null;
   terminal_id: string | null;
@@ -56,6 +57,7 @@ const PAYMENT_COLUMNS = `
   rail,
   status,
   provider_key,
+  provider_connection_id,
   provider_reference,
   provider_payment_id,
   terminal_id,
@@ -98,6 +100,7 @@ function rowToIntent(row: PaymentIntentRow): PaymentIntent {
   };
   if (row.order_id !== null) intent.orderId = row.order_id;
   if (row.provider_key !== null) intent.providerKey = row.provider_key;
+  if (row.provider_connection_id !== null) intent.providerConnectionId = row.provider_connection_id;
   if (row.provider_reference !== null) intent.providerReference = row.provider_reference;
   if (row.provider_payment_id !== null) intent.providerPaymentId = row.provider_payment_id;
   if (row.terminal_id !== null) intent.terminalId = row.terminal_id;
@@ -312,6 +315,7 @@ export class PostgresPaymentRepository implements PaymentRepository {
             rail,
             status,
             provider_key,
+            provider_connection_id,
             provider_reference,
             provider_payment_id,
             terminal_id,
@@ -325,7 +329,7 @@ export class PostgresPaymentRepository implements PaymentRepository {
             created_at,
             updated_at
           ) values (
-            $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22
+            $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23
           )
           returning ${PAYMENT_COLUMNS}`,
           [
@@ -339,6 +343,7 @@ export class PostgresPaymentRepository implements PaymentRepository {
             commit.intent.rail,
             commit.intent.status,
             commit.intent.providerKey ?? null,
+            commit.intent.providerConnectionId ?? null,
             commit.intent.providerReference ?? null,
             commit.intent.providerPaymentId ?? null,
             commit.intent.terminalId ?? null,
@@ -369,17 +374,18 @@ export class PostgresPaymentRepository implements PaymentRepository {
           order_id = $4,
           status = $5,
           provider_key = $6,
-          provider_reference = $7,
-          provider_payment_id = $8,
-          terminal_id = $9,
-          authorization_code = $10,
-          card_brand = $11,
-          card_last4 = $12,
-          fee_minor = $13,
-          settlement_status = $14,
-          settlement_reference = $15,
-          revision = $16,
-          updated_at = $17
+          provider_connection_id = $7,
+          provider_reference = $8,
+          provider_payment_id = $9,
+          terminal_id = $10,
+          authorization_code = $11,
+          card_brand = $12,
+          card_last4 = $13,
+          fee_minor = $14,
+          settlement_status = $15,
+          settlement_reference = $16,
+          revision = $17,
+          updated_at = $18
         where business_id = $1 and id = $2 and revision = $3
         returning ${PAYMENT_COLUMNS}`,
         [
@@ -389,6 +395,7 @@ export class PostgresPaymentRepository implements PaymentRepository {
           commit.intent.orderId ?? null,
           commit.intent.status,
           commit.intent.providerKey ?? null,
+          commit.intent.providerConnectionId ?? null,
           commit.intent.providerReference ?? null,
           commit.intent.providerPaymentId ?? null,
           commit.intent.terminalId ?? null,
