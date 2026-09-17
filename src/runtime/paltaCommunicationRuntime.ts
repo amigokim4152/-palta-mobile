@@ -16,6 +16,20 @@ import type {
 } from '../messaging/domainTimelineProjectionConsumer.js';
 import { startDomainTimelineProjectionConsumer } from '../messaging/domainTimelineProjectionConsumer.js';
 import type { TimelineRoutingPort } from '../messaging/timelineRoutingPort.js';
+import {
+  startNotificationCandidateConsumer,
+  type MessageNotificationAudiencePort,
+  type NotificationPreferencePort,
+  type MessageNotificationPresentationPort,
+  type NotificationDeliveryQueuePort,
+} from '../notifications/notificationCandidateConsumer.js';
+
+export interface PaltaNotificationRuntimeDependencies {
+  audience: MessageNotificationAudiencePort;
+  preferences: NotificationPreferencePort;
+  presentation: MessageNotificationPresentationPort;
+  queue: NotificationDeliveryQueuePort;
+}
 
 export interface PaltaCommunicationRuntimeDependencies {
   eventBus: EventBusPort;
@@ -27,12 +41,15 @@ export interface PaltaCommunicationRuntimeDependencies {
   careSnapshots: CareHomeSnapshotPort;
   carePresentation: CareHomePresentationPort;
   homeProjection: HomeCandidateProjectionPort;
+  /** Optional until a hosting runtime configures notification audience/policy/queue adapters. */
+  notification?: PaltaNotificationRuntimeDependencies;
 }
 
 export interface PaltaCommunicationRuntimeOptions {
   now(): string;
   maxTimelineTargets?: number;
   maxCareTargets?: number;
+  maxNotificationRecipients?: number;
 }
 
 export interface PaltaCommunicationRuntime {
@@ -60,6 +77,7 @@ export async function startPaltaCommunicationRuntime(input: {
   let timelineConsumer: Awaited<ReturnType<typeof startDomainTimelineProjectionConsumer>> | undefined;
   let careSignalConsumer: Awaited<ReturnType<typeof startCareSignalConsumer>> | undefined;
   let careHomeConsumer: Awaited<ReturnType<typeof startCareHomeProjectionConsumer>> | undefined;
+  let notificationConsumer: Awaited<ReturnType<typeof startNotificationCandidateConsumer>> | undefined;
 
   try {
     const timelineRuntime: DomainTimelineProjectionRuntime = {
@@ -90,7 +108,21 @@ export async function startPaltaCommunicationRuntime(input: {
       presentation: dependencies.carePresentation,
       sink: dependencies.homeProjection,
     });
+
+    if (dependencies.notification) {
+      notificationConsumer = await startNotificationCandidateConsumer({
+        eventBus: dependencies.eventBus,
+        audience: dependencies.notification.audience,
+        preferences: dependencies.notification.preferences,
+        presentation: dependencies.notification.presentation,
+        queue: dependencies.notification.queue,
+        ...(options.maxNotificationRecipients !== undefined
+          ? { maxRecipients: options.maxNotificationRecipients }
+          : {}),
+      });
+    }
   } catch (error) {
+    if (notificationConsumer) await notificationConsumer.close();
     if (careHomeConsumer) await careHomeConsumer.close();
     if (careSignalConsumer) await careSignalConsumer.close();
     if (timelineConsumer) await timelineConsumer.close();
@@ -102,6 +134,7 @@ export async function startPaltaCommunicationRuntime(input: {
     async close() {
       // Close in reverse startup order so downstream projections stop before
       // their upstream event producers/subscribers.
+      await notificationConsumer?.close();
       await careHomeConsumer?.close();
       await careSignalConsumer?.close();
       await timelineConsumer?.close();
