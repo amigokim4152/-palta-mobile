@@ -31,6 +31,8 @@ export type TransbankTransportResult = {
   paymentId?: string;
   authorizationCode?: string;
   responseCode?: string;
+  /** Provider-confirmed amount actually processed when transport exposes it. */
+  amountPesos?: number;
 };
 
 export interface TransbankPosTransport {
@@ -114,6 +116,12 @@ function providerResult(result: TransbankTransportResult): ProviderPaymentStatus
   if (result.paymentId !== undefined) mapped.providerPaymentId = result.paymentId;
   if (result.authorizationCode !== undefined) mapped.authorizationCode = result.authorizationCode;
   if (result.responseCode !== undefined) mapped.providerStatusDetail = result.responseCode;
+  if (result.amountPesos !== undefined) {
+    mapped.processedAmount = {
+      currency: 'CLP',
+      amountMinor: assertClp(result.amountPesos, 'CLP'),
+    };
+  }
   return mapped;
 }
 
