@@ -10,6 +10,8 @@ export type SurfaceKey =
   | 'market'
   | 'play'
   | 'business_detail'
+  | 'business_register'
+  | 'business_manage'
   | 'place_detail'
   | 'care_detail'
   | 'public_search'
@@ -22,6 +24,8 @@ const requirements: Record<SurfaceKey, AccessRequirement> = {
   market: 'optional_auth',
   play: 'optional_auth',
   business_detail: 'public',
+  business_register: 'authenticated',
+  business_manage: 'authenticated',
   place_detail: 'public',
   care_detail: 'authenticated',
   public_search: 'public',
