@@ -72,6 +72,14 @@ export const CHILE_LOCAL_SERVICE_SEED: readonly ServiceResolverEntry[] = [
     archetypeCandidates: ['DISPATCH_LOGISTICS', 'PROJECT_QUOTE'],
   },
   {
+    serviceId: 'auto.repair.general',
+    discoveryGroupKey: 'AUTO_MOTO_MOBILITY',
+    label: 'Taller mecánico y reparación automotriz',
+    aliases: ['taller mecánico', 'mecánica automotriz', 'reparación de autos', 'mantención de autos', 'frenos'],
+    intentPhrases: ['necesito revisar el auto', 'mi auto tiene una falla'],
+    archetypeCandidates: ['PROJECT_QUOTE', 'APPOINTMENT_SERVICE'],
+  },
+  {
     serviceId: 'auto.tires.vulcanization',
     discoveryGroupKey: 'AUTO_MOTO_MOBILITY',
     label: 'Neumáticos y vulcanización',
@@ -93,6 +101,13 @@ export const CHILE_LOCAL_SERVICE_SEED: readonly ServiceResolverEntry[] = [
     aliases: ['polarizado', 'lámina de seguridad', 'lámina control solar', 'film arquitectónico', 'film de vidrio'],
     negativeTerms: ['auto', 'automotriz', 'vehículo'],
     archetypeCandidates: ['PROJECT_QUOTE', 'FIELD_SERVICE', 'WHOLESALE_B2B'],
+  },
+  {
+    serviceId: 'health.pharmacy.general',
+    discoveryGroupKey: 'HEALTH_PHARMACY',
+    label: 'Farmacia y cuidado personal',
+    aliases: ['farmacia', 'medicamentos', 'remedios', 'cuidado personal', 'productos de farmacia'],
+    archetypeCandidates: ['RETAIL'],
   },
   {
     serviceId: 'tech.computer_repair',
