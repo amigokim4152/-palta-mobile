@@ -1,7 +1,10 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Pressable, Text, View } from 'react-native';
-import type { BusinessCapability } from '../../../../src/business/businessActionPolicy';
+import { Text, View } from 'react-native';
+import {
+  composePublicBusinessCapabilities,
+  type BusinessCapability,
+} from '../../../../src/business/businessActionPolicy';
 import { enqueueMutation } from '../../../../src/mobile/offlineMutationQueue';
 import {
   createClientMutationId,
@@ -17,6 +20,22 @@ import { SectionHeading } from '../../components/common/SectionHeading';
 import { useAsyncResource } from '../../hooks/useAsyncResource';
 import { mobileRuntime } from '../../services/paltaClient';
 import { useMutationQueueStore } from '../../services/useMutationQueueStore';
+
+function ProfileSection({
+  title,
+  body,
+}: {
+  title: string;
+  body?: string;
+}) {
+  if (!body) return null;
+  return (
+    <View style={{ gap: 6 }}>
+      <SectionHeading title={title} />
+      <Text style={{ lineHeight: 22 }}>{body}</Text>
+    </View>
+  );
+}
 
 export default function BusinessDetailScreen() {
   const { businessId } = useLocalSearchParams<{ businessId: string }>();
@@ -93,11 +112,28 @@ export default function BusinessDetailScreen() {
       case 'coupon':
       case 'pricing':
         setSubmitMessage(
-          `La acción "${capability}" ya está definida en el contrato, pero su adapter concreto aún no está conectado.`,
+          `La acción "${capability}" está disponible en el perfil, pero su adapter concreto aún no está conectado en esta compilación.`,
         );
         return;
     }
   }
+
+  const business = state.data;
+  const publicCapabilities = useMemo(
+    () =>
+      business
+        ? composePublicBusinessCapabilities({
+            enabledCapabilities: business.enabled_capabilities ?? [],
+            hasWhatsapp: Boolean(business.contact?.whatsapp),
+            hasPhone: Boolean(business.contact?.phone),
+          })
+        : [],
+    [
+      business?.enabled_capabilities,
+      business?.contact?.whatsapp,
+      business?.contact?.phone,
+    ],
+  );
 
   if (state.status === 'loading' && !state.data) {
     return (
@@ -115,7 +151,6 @@ export default function BusinessDetailScreen() {
     );
   }
 
-  const business = state.data;
   if (!business) {
     return (
       <ScreenFrame title="Negocio">
@@ -124,35 +159,45 @@ export default function BusinessDetailScreen() {
     );
   }
 
+  const services = business.service_labels?.join(' · ');
+  const serviceAreas = business.service_area_labels?.join(' · ');
+  const statusLine = [
+    business.category_key,
+    business.opening_status,
+    business.verification_status === 'verified' ? 'Verificado' : undefined,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+
   return (
-    <ScreenFrame
-      title={business.name}
-      subtitle={[business.category_key, business.opening_status]
-        .filter(Boolean)
-        .join(' · ')}
-    >
-      <View style={{ gap: 14 }}>
-        <Text>
-          Verificación: {business.verification_status}. Los datos públicos
-          pueden verse; cupones y ofertas controladas requieren propietario
-          verificado.
-        </Text>
+    <ScreenFrame title={business.name} subtitle={statusLine}>
+      <View style={{ gap: 18 }}>
+        <ProfileSection title="Sobre este negocio" body={business.description} />
+        <ProfileSection title="Servicios" body={services} />
+        <ProfileSection title="Horario" body={business.hours_summary} />
+        <ProfileSection title="Zona de atención" body={serviceAreas} />
 
         <SectionHeading
-          title="¿Qué quieres hacer?"
-          subtitle="Palta muestra sólo acciones que este negocio puede ofrecer."
+          title="Contactar y actuar"
+          subtitle="Las funciones adicionales aparecen sólo cuando este negocio las tiene habilitadas."
         />
 
         <BusinessActionBar
-          capabilities={[
-            'quote',
-            ...(business.contact?.whatsapp ? (['whatsapp'] as const) : []),
-            ...(business.contact?.phone ? (['call'] as const) : []),
-            'save',
-          ]}
+          capabilities={publicCapabilities}
           verificationStatus={business.verification_status}
           onAction={handleAction}
         />
+
+        {business.posts?.length ? (
+          <View style={{ gap: 8 }}>
+            <SectionHeading title="Novedades" />
+            {business.posts.slice(0, 3).map((post) => (
+              <Text key={post.id} style={{ lineHeight: 21 }}>
+                {post.title}
+              </Text>
+            ))}
+          </View>
+        ) : null}
 
         {submitting ? (
           <Text style={{ opacity: 0.62 }}>Enviando solicitud…</Text>
@@ -165,8 +210,6 @@ export default function BusinessDetailScreen() {
         {state.status === 'error' ? (
           <ErrorState message={state.message} onRetry={() => void refresh()} />
         ) : null}
-
-        <Text style={{ opacity: 0.55 }}>Canonical ID: {business.id}</Text>
       </View>
     </ScreenFrame>
   );
