@@ -73,13 +73,16 @@ export function markProviderNotificationProcessing(
   if (item.status !== 'verified' && item.status !== 'retryable_error') {
     throw new Error(`Provider notification cannot enter processing from ${item.status}.`);
   }
+  const {
+    nextAttemptAt: _nextAttemptAt,
+    lastErrorCode: _lastErrorCode,
+    ...rest
+  } = item;
   return {
-    ...item,
+    ...rest,
     status: 'processing',
     attempts: item.attempts + 1,
     updatedAt: occurredAt,
-    nextAttemptAt: undefined,
-    lastErrorCode: undefined,
   };
 }
 
