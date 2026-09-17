@@ -55,7 +55,7 @@ class CoordinatorDb implements SqlDatabase {
               revision: this.commerceRevision,
               created_at: now,
               updated_at: now,
-            } as TRow],
+            } as unknown as TRow],
             rowCount: 1,
           };
         }
@@ -68,7 +68,7 @@ class CoordinatorDb implements SqlDatabase {
           const key = String(params[1]);
           const match = this.payments.find((entry) => entry.intent.idempotencyKey === key);
           return {
-            rows: match ? [paymentRow(match.intent) as TRow] : [],
+            rows: match ? [paymentRow(match.intent) as unknown as TRow] : [],
             rowCount: match ? 1 : 0,
           };
         }
@@ -78,7 +78,7 @@ class CoordinatorDb implements SqlDatabase {
           sql.includes('commerce_transaction_id = $2')
         ) {
           return {
-            rows: this.payments.map((entry) => paymentRow(entry.intent) as TRow),
+            rows: this.payments.map((entry) => paymentRow(entry.intent) as unknown as TRow),
             rowCount: this.payments.length,
           };
         }
@@ -102,18 +102,18 @@ class CoordinatorDb implements SqlDatabase {
           if (params[11] !== null) intent.providerConnectionId = String(params[11]);
           if (params[14] !== null) intent.terminalId = String(params[14]);
           this.payments.push({ intent });
-          return { rows: [paymentRow(intent) as TRow], rowCount: 1 };
+          return { rows: [paymentRow(intent) as unknown as TRow], rowCount: 1 };
         }
 
         if (sql.includes('insert into payment_event')) {
-          return { rows: [{ id: String(params[0]) } as TRow], rowCount: 1 };
+          return { rows: [{ id: String(params[0]) } as unknown as TRow], rowCount: 1 };
         }
 
         if (sql.includes('insert into commerce_outbox')) {
           const key = String(params[5]);
           if (this.outboxKeys.has(key)) return { rows: [], rowCount: 0 };
           this.outboxKeys.add(key);
-          return { rows: [{ id: String(params[0]) } as TRow], rowCount: 1 };
+          return { rows: [{ id: String(params[0]) } as unknown as TRow], rowCount: 1 };
         }
 
         if (sql.includes('update commerce_transaction')) {
@@ -123,7 +123,7 @@ class CoordinatorDb implements SqlDatabase {
           }
           this.commerceState = String(params[3]);
           this.commerceRevision = Number(params[4]);
-          return { rows: [{ id: transactionId } as TRow], rowCount: 1 };
+          return { rows: [{ id: transactionId } as unknown as TRow], rowCount: 1 };
         }
 
         throw new Error(`Unexpected coordinator SQL: ${sql}`);
@@ -131,6 +131,10 @@ class CoordinatorDb implements SqlDatabase {
     };
     return work(tx);
   }
+}
+
+function paymentCount(db: CoordinatorDb): number {
+  return db.payments.length;
 }
 
 function paymentRow(intent: PaymentIntent): Row {
@@ -183,8 +187,8 @@ function allocation(amount: number, suffix: string) {
     paymentIntentId: intent.id,
     type: 'payment_created',
     occurredAt: now,
-    providerKey: intent.providerKey,
   };
+  if (intent.providerKey !== undefined) event.providerKey = intent.providerKey;
   const providerOutboxEvent: CommerceOutboxEvent = {
     id: `77777777-7777-4777-8777-${suffix.padStart(12, '0')}`,
     businessId,
@@ -232,7 +236,7 @@ try {
     error.code === 'payment_allocation_exceeds_balance';
 }
 assert(
-  overAllocationBlocked && db.payments.length === 1,
+  overAllocationBlocked && paymentCount(db) === 1,
   'Concurrent split allocation above the remaining 4000 CLP balance must fail before PaymentIntent insert.',
 );
 
@@ -240,13 +244,13 @@ const second = await coordinator.allocatePayment(allocation(4000, '3'));
 assert(
   second.coverage.potentialExposureMinor === 10000 &&
     second.coverage.unallocatedAmountMinor === 0 &&
-    db.payments.length === 2,
+    paymentCount(db) === 2,
   'Exact remaining split allocation should reserve the final balance without exceeding transaction total.',
 );
 
 const replay = await coordinator.allocatePayment(allocation(4000, '3'));
 assert(
-  replay.replayed && db.payments.length === 2,
+  replay.replayed && paymentCount(db) === 2,
   'Exact payment allocation replay must return the canonical PaymentIntent without a duplicate insert.',
 );
 
@@ -307,7 +311,7 @@ try {
     error.code === 'commerce_state_not_payable';
 }
 assert(
-  postConfirmationBlocked && db.payments.length === 2,
+  postConfirmationBlocked && paymentCount(db) === 2,
   'A new payment allocation must be blocked after Commerce is payment_confirmed.',
 );
 
