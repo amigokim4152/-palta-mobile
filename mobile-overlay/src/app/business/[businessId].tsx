@@ -17,6 +17,7 @@ import { SectionHeading } from '../../components/common/SectionHeading';
 import { useAsyncResource } from '../../hooks/useAsyncResource';
 import { mobileRuntime } from '../../services/paltaClient';
 import { useNeighborhoodState } from '../../state/NeighborhoodStateProvider';
+import { paltaTheme } from '../../theme/paltaTheme';
 
 function ProfileSection({
   title,
@@ -27,9 +28,9 @@ function ProfileSection({
 }) {
   if (!body) return null;
   return (
-    <View style={{ gap: 6 }}>
+    <View style={{ gap: paltaTheme.spacing.xs }}>
       <SectionHeading title={title} />
-      <Text style={{ lineHeight: 22 }}>{body}</Text>
+      <Text style={{ lineHeight: 22, color: paltaTheme.color.textSecondary }}>{body}</Text>
     </View>
   );
 }
@@ -42,24 +43,29 @@ function ExternalChannels({
   if (!links.length) return null;
 
   return (
-    <View style={{ gap: 8 }}>
+    <View style={{ gap: paltaTheme.spacing.xs }}>
       <SectionHeading
         title="También puedes encontrar este negocio en"
         subtitle="Palta no te obliga a dejar los canales que ya usas."
       />
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: paltaTheme.spacing.xs }}>
         {links.map((link) => (
           <Pressable
             key={`${link.provider}:${link.url}`}
             onPress={() => void Linking.openURL(link.url)}
             style={{
+              minHeight: paltaTheme.touch.minimum,
+              justifyContent: 'center',
               borderWidth: 1,
-              borderRadius: 999,
-              paddingHorizontal: 12,
-              paddingVertical: 8,
+              borderColor: paltaTheme.color.border,
+              borderRadius: paltaTheme.radius.pill,
+              paddingHorizontal: paltaTheme.spacing.sm,
+              backgroundColor: paltaTheme.color.surface,
             }}
           >
-            <Text style={{ fontWeight: '700' }}>{link.label}</Text>
+            <Text style={{ fontWeight: '700', color: paltaTheme.color.textPrimary }}>
+              {link.label}
+            </Text>
           </Pressable>
         ))}
       </View>
@@ -93,6 +99,48 @@ function buildPhoneUrl(business: BusinessApiDetail): string | undefined {
   if (!raw) return undefined;
   const dialable = raw.replace(/[^+\d]/g, '');
   return dialable ? `tel:${dialable}` : undefined;
+}
+
+function ProfileDecisionSummary({
+  business,
+}: {
+  business: BusinessApiDetail;
+}) {
+  const serviceSummary = business.service_labels?.slice(0, 2).join(' · ');
+  const areaSummary = business.service_area_labels?.slice(0, 2).join(' · ');
+
+  return (
+    <View
+      style={{
+        gap: paltaTheme.spacing.xs,
+        padding: paltaTheme.spacing.sm,
+        borderRadius: paltaTheme.radius.surface,
+        backgroundColor: paltaTheme.color.surfaceMuted,
+      }}
+    >
+      {business.opening_status ? (
+        <Text
+          style={{
+            fontSize: 16,
+            fontWeight: '800',
+            color: paltaTheme.color.brandPrimary,
+          }}
+        >
+          {business.opening_status}
+        </Text>
+      ) : null}
+      {serviceSummary ? (
+        <Text style={{ fontWeight: '700', color: paltaTheme.color.textPrimary }}>
+          {serviceSummary}
+        </Text>
+      ) : null}
+      {areaSummary ? (
+        <Text style={{ color: paltaTheme.color.textSecondary }}>
+          Zona de atención · {areaSummary}
+        </Text>
+      ) : null}
+    </View>
+  );
 }
 
 export default function BusinessDetailScreen() {
@@ -276,9 +324,8 @@ export default function BusinessDetailScreen() {
 
   const services = business.service_labels?.join(' · ');
   const serviceAreas = business.service_area_labels?.join(' · ');
-  const statusLine = [
+  const identityLine = [
     business.category_key,
-    business.opening_status,
     business.verification_status === 'verified' ? 'Verificado' : undefined,
   ]
     .filter(Boolean)
@@ -287,51 +334,77 @@ export default function BusinessDetailScreen() {
   return (
     <ScreenFrame
       title={business.name}
-      subtitle={statusLine}
+      subtitle={identityLine}
       action={
-        <Pressable onPress={returnToDiscovery} style={{ paddingVertical: 8 }}>
-          <Text style={{ fontWeight: '800' }}>Volver a negocios</Text>
+        <Pressable
+          onPress={returnToDiscovery}
+          style={{ minHeight: paltaTheme.touch.minimum, justifyContent: 'center' }}
+        >
+          <Text style={{ fontWeight: '800', color: paltaTheme.color.textPrimary }}>
+            Volver a negocios
+          </Text>
         </Pressable>
       }
     >
-      <View style={{ gap: 18 }}>
+      <View style={{ gap: paltaTheme.spacing.lg }}>
         <BusinessPhotoStrip photoUrls={business.photo_urls ?? []} />
-        <ProfileSection title="Sobre este negocio" body={business.description} />
+
+        <ProfileDecisionSummary business={business} />
+
+        <View style={{ gap: paltaTheme.spacing.xs }}>
+          <SectionHeading
+            title="¿Qué quieres hacer?"
+            subtitle="Acciones disponibles ahora para este negocio."
+          />
+          <BusinessActionBar
+            capabilities={publicCapabilities}
+            verificationStatus={business.verification_status}
+            relationship={{
+              saved: relationship.saved,
+              following: relationship.following,
+            }}
+            onAction={handleAction}
+          />
+          {submitting ? (
+            <Text style={{ color: paltaTheme.color.textSecondary }}>Actualizando…</Text>
+          ) : null}
+          {submitMessage ? (
+            <Text style={{ color: paltaTheme.color.textSecondary }}>{submitMessage}</Text>
+          ) : null}
+        </View>
+
         <ProfileSection title="Servicios" body={services} />
-        <ProfileSection title="Horario" body={business.hours_summary} />
-        <ProfileSection title="Zona de atención" body={serviceAreas} />
+        <ProfileSection title="Sobre este negocio" body={business.description} />
 
         {coupons.length ? (
-          <View style={{ gap: 8 }}>
+          <View style={{ gap: paltaTheme.spacing.xs }}>
             <SectionHeading
               title="Beneficio"
-              subtitle={coupons[0]?.audience === 'followers' ? 'Disponible para seguidores de este negocio' : 'Beneficio publicado por este negocio'}
+              subtitle={coupons[0]?.audience === 'followers'
+                ? 'Disponible para seguidores de este negocio'
+                : 'Beneficio publicado por este negocio'}
             />
             {coupons.map((coupon) => (
-              <View key={coupon.id} style={{ borderWidth: 1, borderRadius: 14, padding: 14, gap: 5 }}>
-                <Text style={{ fontSize: 17, fontWeight: '800' }}>{coupon.title}</Text>
-                {coupon.description ? <Text style={{ lineHeight: 20 }}>{coupon.description}</Text> : null}
-                {coupon.redemption_instruction ? (
-                  <Text style={{ opacity: 0.68, lineHeight: 20 }}>{coupon.redemption_instruction}</Text>
+              <View
+                key={coupon.id}
+                style={{
+                  borderRadius: paltaTheme.radius.surface,
+                  padding: paltaTheme.spacing.sm,
+                  gap: paltaTheme.spacing.xxs,
+                  backgroundColor: paltaTheme.color.brandSoft,
+                }}
+              >
+                <Text style={{ fontSize: 17, fontWeight: '800', color: paltaTheme.color.textPrimary }}>
+                  {coupon.title}
+                </Text>
+                {coupon.description ? (
+                  <Text style={{ lineHeight: 20, color: paltaTheme.color.textSecondary }}>
+                    {coupon.description}
+                  </Text>
                 ) : null}
-              </View>
-            ))}
-          </View>
-        ) : null}
-
-        {business.posts?.length ? (
-          <View style={{ gap: 8 }}>
-            <SectionHeading
-              title="Novedades"
-              subtitle="Información publicada por este negocio. Seguirlo no activa notificaciones promocionales por sí solo."
-            />
-            {business.posts.slice(0, 5).map((post) => (
-              <View key={post.id} style={{ borderWidth: 1, borderRadius: 14, padding: 14, gap: 5 }}>
-                <Text style={{ fontSize: 16, fontWeight: '800' }}>{post.title}</Text>
-                {post.body ? <Text style={{ lineHeight: 20 }}>{post.body}</Text> : null}
-                {post.published_at ? (
-                  <Text style={{ opacity: 0.55, fontSize: 12 }}>
-                    {new Date(post.published_at).toLocaleString('es-CL')}
+                {coupon.redemption_instruction ? (
+                  <Text style={{ lineHeight: 20, color: paltaTheme.color.textMuted }}>
+                    {coupon.redemption_instruction}
                   </Text>
                 ) : null}
               </View>
@@ -340,7 +413,7 @@ export default function BusinessDetailScreen() {
         ) : null}
 
         {reviews ? (
-          <View style={{ gap: 8 }}>
+          <View style={{ gap: paltaTheme.spacing.xs }}>
             <SectionHeading
               title="Opiniones con atención verificada"
               subtitle={[
@@ -352,80 +425,139 @@ export default function BusinessDetailScreen() {
             />
             {reviews.items.length ? (
               reviews.items.slice(0, 5).map((review) => (
-                <View key={review.id} style={{ borderWidth: 1, borderRadius: 14, padding: 14, gap: 6 }}>
-                  <Text style={{ fontWeight: '800' }}>
+                <View
+                  key={review.id}
+                  style={{
+                    borderWidth: 1,
+                    borderColor: paltaTheme.color.border,
+                    borderRadius: paltaTheme.radius.surface,
+                    padding: paltaTheme.spacing.sm,
+                    gap: paltaTheme.spacing.xxs,
+                  }}
+                >
+                  <Text style={{ fontWeight: '800', color: paltaTheme.color.textPrimary }}>
                     {review.author_label} · {'★'.repeat(Math.max(1, Math.min(5, Math.round(review.rating))))}
                   </Text>
-                  <Text style={{ fontSize: 12, opacity: 0.62 }}>
+                  <Text style={{ fontSize: 12, color: paltaTheme.color.textMuted }}>
                     Atención verificada · {review.evidence_label}
                   </Text>
-                  {review.body ? <Text style={{ lineHeight: 20 }}>{review.body}</Text> : null}
-                  <Text style={{ fontSize: 12, opacity: 0.5 }}>
+                  {review.body ? (
+                    <Text style={{ lineHeight: 20, color: paltaTheme.color.textSecondary }}>
+                      {review.body}
+                    </Text>
+                  ) : null}
+                  <Text style={{ fontSize: 12, color: paltaTheme.color.textMuted }}>
                     {new Date(review.created_at).toLocaleDateString('es-CL')}
                   </Text>
                   {review.business_reply ? (
-                    <View style={{ marginTop: 4, paddingLeft: 10, borderLeftWidth: 2, gap: 3 }}>
-                      <Text style={{ fontWeight: '700' }}>Respuesta del negocio</Text>
-                      <Text style={{ lineHeight: 20 }}>{review.business_reply.body}</Text>
+                    <View
+                      style={{
+                        marginTop: paltaTheme.spacing.xxs,
+                        paddingLeft: paltaTheme.spacing.xs,
+                        borderLeftWidth: 2,
+                        borderLeftColor: paltaTheme.color.border,
+                        gap: paltaTheme.spacing.xxs,
+                      }}
+                    >
+                      <Text style={{ fontWeight: '700', color: paltaTheme.color.textPrimary }}>
+                        Respuesta del negocio
+                      </Text>
+                      <Text style={{ lineHeight: 20, color: paltaTheme.color.textSecondary }}>
+                        {review.business_reply.body}
+                      </Text>
                     </View>
                   ) : null}
                 </View>
               ))
             ) : (
-              <Text style={{ opacity: 0.62 }}>Todavía no hay opiniones vinculadas a una atención confirmada.</Text>
+              <Text style={{ color: paltaTheme.color.textSecondary }}>
+                Todavía no hay opiniones vinculadas a una atención confirmada.
+              </Text>
             )}
-            <Text style={{ fontSize: 12, opacity: 0.58 }}>
+            <Text style={{ fontSize: 12, color: paltaTheme.color.textMuted }}>
               Palta muestra aquí sólo opiniones vinculadas a una atención o servicio confirmado.
             </Text>
             {reviewEligibility?.eligible ? (
               <Pressable
                 onPress={() => router.push(`/business/${encodeURIComponent(business.id)}/review`)}
-                style={{ borderWidth: 1, borderRadius: 12, padding: 11 }}
+                style={{
+                  minHeight: paltaTheme.touch.minimum,
+                  justifyContent: 'center',
+                  borderWidth: 1,
+                  borderColor: paltaTheme.color.border,
+                  borderRadius: paltaTheme.radius.control,
+                  paddingHorizontal: paltaTheme.spacing.sm,
+                }}
               >
-                <Text style={{ textAlign: 'center', fontWeight: '800' }}>Escribir opinión verificada</Text>
+                <Text style={{ textAlign: 'center', fontWeight: '800' }}>
+                  Escribir opinión verificada
+                </Text>
               </Pressable>
             ) : reviewEligibility?.reason === 'already_reviewed' ? (
-              <Text style={{ fontSize: 12, opacity: 0.58 }}>
+              <Text style={{ fontSize: 12, color: paltaTheme.color.textMuted }}>
                 Ya dejaste una opinión por tu atención verificada más reciente.
               </Text>
             ) : null}
           </View>
         ) : null}
 
+        {business.posts?.length ? (
+          <View style={{ gap: paltaTheme.spacing.xs }}>
+            <SectionHeading
+              title="Novedades"
+              subtitle="Información útil publicada por este negocio."
+            />
+            {business.posts.slice(0, 3).map((post) => (
+              <View
+                key={post.id}
+                style={{
+                  borderWidth: 1,
+                  borderColor: paltaTheme.color.border,
+                  borderRadius: paltaTheme.radius.surface,
+                  padding: paltaTheme.spacing.sm,
+                  gap: paltaTheme.spacing.xxs,
+                }}
+              >
+                <Text style={{ fontSize: 16, fontWeight: '800', color: paltaTheme.color.textPrimary }}>
+                  {post.title}
+                </Text>
+                {post.body ? (
+                  <Text style={{ lineHeight: 20, color: paltaTheme.color.textSecondary }}>
+                    {post.body}
+                  </Text>
+                ) : null}
+                {post.published_at ? (
+                  <Text style={{ color: paltaTheme.color.textMuted, fontSize: 12 }}>
+                    {new Date(post.published_at).toLocaleString('es-CL')}
+                  </Text>
+                ) : null}
+              </View>
+            ))}
+          </View>
+        ) : null}
+
+        <ProfileSection title="Horario" body={business.hours_summary} />
+        <ProfileSection title="Zona de atención" body={serviceAreas} />
+
         <ExternalChannels links={business.channel_links ?? []} />
 
         <Pressable
           onPress={() => router.push(`/business/${encodeURIComponent(business.id)}/report`)}
-          style={{ borderWidth: 1, borderRadius: 14, padding: 14, gap: 4 }}
+          style={{
+            borderWidth: 1,
+            borderColor: paltaTheme.color.border,
+            borderRadius: paltaTheme.radius.surface,
+            padding: paltaTheme.spacing.sm,
+            gap: paltaTheme.spacing.xxs,
+          }}
         >
-          <Text style={{ fontWeight: '800' }}>¿Ves información incorrecta?</Text>
-          <Text style={{ opacity: 0.66, lineHeight: 20 }}>
+          <Text style={{ fontWeight: '800', color: paltaTheme.color.textPrimary }}>
+            ¿Ves información incorrecta?
+          </Text>
+          <Text style={{ color: paltaTheme.color.textSecondary, lineHeight: 20 }}>
             Avísanos para revisarla. Un reporte no modifica automáticamente la ficha.
           </Text>
         </Pressable>
-
-        <SectionHeading
-          title="Contactar y actuar"
-          subtitle="Guardar y seguir son gratuitos. Seguir no activa promociones ni notificaciones por sí solo."
-        />
-
-        <BusinessActionBar
-          capabilities={publicCapabilities}
-          verificationStatus={business.verification_status}
-          relationship={{
-            saved: relationship.saved,
-            following: relationship.following,
-          }}
-          onAction={handleAction}
-        />
-
-        {submitting ? (
-          <Text style={{ opacity: 0.62 }}>Actualizando…</Text>
-        ) : null}
-
-        {submitMessage ? (
-          <Text style={{ opacity: 0.72 }}>{submitMessage}</Text>
-        ) : null}
 
         {state.status === 'error' ? (
           <ErrorState message={state.message} onRetry={() => void refresh()} />
