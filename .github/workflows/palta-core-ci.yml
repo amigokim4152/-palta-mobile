@@ -76,5 +76,5 @@ jobs:
           test "$(psql -Atqc "select to_regclass('public.msg_conversation') is not null")" = "t"
           test "$(psql -Atqc "select to_regclass('public.msg_conversation_scope') is not null")" = "t"
           test "$(psql -Atqc "select to_regclass('public.msg_scope_identity') is not null")" = "t"
-          test "$(psql -Atqc "select to_regclass('public.msg_domain_event_projection') is not null")" = "t"
+          test "$(psql -Atqc "select to_regclass('public.msg_timeline_domain_event') is not null")" = "t"
           test "$(psql -Atqc "select to_regclass('public.msg_outbox') is not null")" = "t"
