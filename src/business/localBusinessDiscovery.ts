@@ -3,16 +3,23 @@ import {
   isOrdinarilyDiscoverableBusinessState,
   type BusinessOperationalState,
 } from './businessOperationalState.js';
+import type { LocalBusinessDiscoveryPreview } from './localBusinessDiscoveryPreview.js';
 
 export type LocalBusinessDiscoveryItem = {
   entityId: string;
   entityType: 'place' | 'business' | 'public_service' | 'event';
   name: string;
+  /** Internal classification only; never render this key directly as consumer copy. */
   categoryKey?: string;
   distanceM?: number;
   verificationStatus?: string;
   operationalState?: BusinessOperationalState;
   operationalConfirmedAt?: string;
+  /**
+   * Bounded presentation projection derived from the same canonical Business.
+   * Search/list/map surfaces consume this instead of N+1 detail requests.
+   */
+  preview?: LocalBusinessDiscoveryPreview;
   /**
    * Exact public point is optional. Service-area, private-home and hidden-location
    * businesses can remain discoverable in the list without exposing a precise pin.
