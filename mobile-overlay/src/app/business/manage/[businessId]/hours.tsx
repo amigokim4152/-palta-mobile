@@ -103,6 +103,10 @@ export default function BusinessOperatingHoursScreen() {
     });
   }, [operating]);
 
+  const seasonalRuleCount =
+    (operating?.rules.seasonalSchedules?.length ?? 0) +
+    (operating?.rules.seasonalClosures?.length ?? 0);
+
   function changeInterval(
     weekday: BusinessWeekday,
     index: number,
@@ -328,6 +332,24 @@ export default function BusinessOperatingHoursScreen() {
             <Text style={{ textAlign: 'center', fontWeight: '800' }}>Cerrar por 7 días</Text>
           </Pressable>
         )}
+
+        <SectionHeading
+          title="Temporadas"
+          subtitle="Para negocios que cambian su horario o cierran según la época del año."
+        />
+        <Pressable
+          onPress={() =>
+            router.push(`/business/manage/${encodeURIComponent(business.id)}/seasons`)
+          }
+          style={{ borderWidth: 1, borderRadius: 14, padding: 14, gap: 5 }}
+        >
+          <Text style={{ fontWeight: '800', fontSize: 16 }}>Horario de temporada</Text>
+          <Text style={{ opacity: 0.68, lineHeight: 20 }}>
+            {seasonalRuleCount > 0
+              ? `${seasonalRuleCount} regla${seasonalRuleCount === 1 ? '' : 's'} guardada${seasonalRuleCount === 1 ? '' : 's'}. Ejemplo: mayo–agosto sólo viernes, sábado y domingo.`
+              : 'Configura una vez reglas como “mayo–agosto sólo viernes, sábado y domingo” o un cierre completo de temporada.'}
+          </Text>
+        </Pressable>
 
         <SectionHeading
           title="Horario normal"
