@@ -50,6 +50,29 @@ export type BusinessApiDetail = {
   };
 };
 
+export type BusinessOnboardingApiInput = {
+  mode: 'claim_existing' | 'create_new';
+  businessId?: string;
+  businessName: string;
+  ownerDescription: string;
+  confirmedServiceIds: readonly string[];
+  presenceModes: readonly string[];
+  serviceAreaIds: readonly string[];
+  anchorLocation?: { lat: number; lng: number };
+  addressLabel?: string;
+  contact?: {
+    phone?: string;
+    whatsapp?: string;
+  };
+  idempotencyKey?: string;
+};
+
+export type BusinessOnboardingApiResult = {
+  business_id: string;
+  verification_status: 'claimed' | 'verified';
+  onboarding_status: 'verification_pending' | 'ready';
+};
+
 export type CareApiTrack = {
   id: string;
   intent_key: string;
@@ -183,6 +206,43 @@ export class PaltaApiClient {
       throw new Error('GET /v1/business/{id} returned invalid business');
     }
     return result as BusinessApiDetail;
+  }
+
+  async submitBusinessOnboarding(
+    input: BusinessOnboardingApiInput,
+  ): Promise<BusinessOnboardingApiResult> {
+    const body: Record<string, unknown> = {
+      mode: input.mode,
+      business_name: input.businessName,
+      owner_description: input.ownerDescription,
+      confirmed_service_ids: [...input.confirmedServiceIds],
+      presence_modes: [...input.presenceModes],
+      service_area_ids: [...input.serviceAreaIds],
+      contact: input.contact ?? {},
+    };
+    if (input.businessId) body.business_id = input.businessId;
+    if (input.anchorLocation) body.anchor_location = input.anchorLocation;
+    if (input.addressLabel) body.address_label = input.addressLabel;
+
+    const result = expectObject(
+      await this.request('/v1/business/onboarding', {
+        method: 'POST',
+        body,
+        ...(input.idempotencyKey
+          ? { headers: { 'Idempotency-Key': input.idempotencyKey } }
+          : {}),
+      }),
+      'POST /v1/business/onboarding',
+    );
+
+    if (
+      typeof result.business_id !== 'string' ||
+      typeof result.verification_status !== 'string' ||
+      typeof result.onboarding_status !== 'string'
+    ) {
+      throw new Error('POST /v1/business/onboarding returned invalid result');
+    }
+    return result as BusinessOnboardingApiResult;
   }
 
   async getCare(careTrackId: string): Promise<CareApiTrack> {
