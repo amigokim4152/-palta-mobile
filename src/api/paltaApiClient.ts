@@ -55,6 +55,22 @@ export type BusinessBasicPostPublishInput = {
   idempotencyKey?: string;
 };
 
+export type BusinessFollowedUpdateApiItem = {
+  id: string;
+  business_id: string;
+  business_name: string;
+  kind: 'post' | 'coupon';
+  title: string;
+  body?: string;
+  occurred_at: string;
+  expires_at?: string;
+};
+
+export type BusinessFollowedUpdatesApiResponse = {
+  generated_at?: string;
+  items: BusinessFollowedUpdateApiItem[];
+};
+
 export type BusinessBasicCouponApiItem = {
   id: string;
   title: string;
@@ -244,6 +260,17 @@ export class PaltaApiClient {
     const payload = expectObject(await this.request(`/v1/local/search?${params.toString()}`), 'GET /v1/local/search');
     if (!Array.isArray(payload.items)) throw new Error('GET /v1/local/search payload missing items[]');
     return payload.items as LocalSearchItem[];
+  }
+
+  async getFollowedBusinessUpdates(): Promise<BusinessFollowedUpdatesApiResponse> {
+    const result = expectObject(
+      await this.request('/v1/local-business/following-updates'),
+      'GET /v1/local-business/following-updates',
+    );
+    if (!Array.isArray(result.items)) {
+      throw new Error('GET /v1/local-business/following-updates returned invalid updates');
+    }
+    return result as BusinessFollowedUpdatesApiResponse;
   }
 
   async getBusiness(businessId: string): Promise<BusinessApiDetail> {
