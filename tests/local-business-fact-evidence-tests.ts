@@ -35,6 +35,34 @@ const staleHours = assessBusinessFact({
 assert(staleHours.status === 'needs_confirmation', 'Old hours should ask for confirmation instead of pretending they remain current.');
 assert(staleHours.stale, 'Caller-provided freshness policy should mark old hours stale.');
 
+const staleOwnerPlusFreshReport = assessBusinessFact({
+  field: 'hours',
+  evidence: [
+    {
+      field: 'hours',
+      source: 'owner',
+      assertedAt: '2026-01-01T12:00:00-03:00',
+      valueFingerprint: 'hours:old-owner',
+    },
+    {
+      field: 'hours',
+      source: 'user_report',
+      assertedAt: '2026-09-17T11:00:00-03:00',
+      valueFingerprint: 'hours:reported-change',
+    },
+  ],
+  now: '2026-09-17T12:00:00-03:00',
+  maxAgeMs: 30 * 24 * 60 * 60 * 1000,
+});
+assert(
+  staleOwnerPlusFreshReport.status === 'recent_unconfirmed',
+  'A fresh user report must not refresh an expired owner confirmation into confirmed truth.',
+);
+assert(
+  staleOwnerPlusFreshReport.ownerConfirmedAt === '2026-01-01T12:00:00-03:00',
+  'The old owner confirmation should remain visible as provenance without becoming fresh.',
+);
+
 const correctionReport: BusinessFactEvidence[] = [
   {
     field: 'address',
