@@ -35,6 +35,12 @@ function ownerManaged(business) {
   return business.verification_status === 'claimed' || business.verification_status === 'verified';
 }
 
+function pendingOwnerItems(businessId) {
+  return itemsFor(businessId).filter(
+    (item) => item.queue_target === 'owner_review' && item.status === 'awaiting_owner_review',
+  );
+}
+
 export function handleBusinessCorrectionsRequest({ req, res, url, businesses, json, readJson }) {
   const submitMatch = url.pathname.match(/^\/v1\/business\/([^/]+)\/corrections$/);
   if (submitMatch && req.method === 'POST') {
@@ -85,6 +91,48 @@ export function handleBusinessCorrectionsRequest({ req, res, url, businesses, js
     });
   }
 
+  const resolutionMatch = url.pathname.match(
+    /^\/v1\/business\/([^/]+)\/owner-corrections\/([^/]+)$/,
+  );
+  if (resolutionMatch && req.method === 'PUT') {
+    const businessId = decodeURIComponent(resolutionMatch[1]);
+    const correctionId = decodeURIComponent(resolutionMatch[2]);
+    const business = businesses.find((item) => item.id === businessId);
+    if (!business) {
+      json(res, 404, { error: 'business_not_found' });
+      return true;
+    }
+    if (!ownerManaged(business)) {
+      json(res, 403, { error: 'owner_management_required' });
+      return true;
+    }
+
+    return readJson(req).then((body) => {
+      if (body.resolution !== 'not_an_issue' && body.resolution !== 'reviewed_and_addressed') {
+        json(res, 400, { error: 'correction_resolution_invalid' });
+        return true;
+      }
+      const items = correctionsByBusiness.get(businessId) ?? [];
+      const correction = items.find((item) => item.id === correctionId);
+      if (!correction || correction.queue_target !== 'owner_review') {
+        json(res, 404, { error: 'correction_not_found' });
+        return true;
+      }
+      if (correction.status !== 'awaiting_owner_review') {
+        json(res, 409, { error: 'correction_already_resolved' });
+        return true;
+      }
+
+      correction.status = body.resolution === 'not_an_issue' ? 'rejected' : 'superseded';
+      correction.resolved_at = new Date().toISOString();
+
+      // Resolution only closes the review signal. Canonical facts must already
+      // have been checked/updated through their own owner-management contract.
+      json(res, 200, correction);
+      return true;
+    });
+  }
+
   const ownerMatch = url.pathname.match(/^\/v1\/business\/([^/]+)\/owner-corrections$/);
   if (ownerMatch && req.method === 'GET') {
     const businessId = decodeURIComponent(ownerMatch[1]);
@@ -99,7 +147,7 @@ export function handleBusinessCorrectionsRequest({ req, res, url, businesses, js
     }
     json(res, 200, {
       business_id: businessId,
-      items: itemsFor(businessId).filter((item) => item.queue_target === 'owner_review'),
+      items: pendingOwnerItems(businessId),
     });
     return true;
   }
