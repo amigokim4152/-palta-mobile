@@ -3,12 +3,16 @@ import {
   BusinessOperatingRulesApiClient,
 } from './businessOperatingRulesApiClient.js';
 import {
+  BusinessReviewsApiClient,
+} from './businessReviewsApiClient.js';
+import {
   PaltaApiClient,
   type FetchLike,
 } from './paltaApiClient.js';
 
 export type PaltaApiClientWithDomains = PaltaApiClient & {
   operatingRules: BusinessOperatingRulesApiClient;
+  reviews: BusinessReviewsApiClient;
 };
 
 export function createPaltaApiClient(input: {
@@ -26,6 +30,12 @@ export function createPaltaApiClient(input: {
   }) as PaltaApiClientWithDomains;
 
   client.operatingRules = new BusinessOperatingRulesApiClient({
+    baseUrl: input.baseUrl,
+    fetch: input.fetch,
+    ...(getAccessToken ? { getAccessToken } : {}),
+  });
+
+  client.reviews = new BusinessReviewsApiClient({
     baseUrl: input.baseUrl,
     fetch: input.fetch,
     ...(getAccessToken ? { getAccessToken } : {}),
