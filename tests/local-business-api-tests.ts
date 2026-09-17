@@ -53,4 +53,39 @@ assert(storefrontBody !== null, 'Storefront onboarding request should be sent.')
 assert('anchor_location' in storefrontBody, 'Storefront should publish its fixed location.');
 assert(storefrontBody['address_label'] === 'Av. Ejemplo 123', 'Storefront address should be submitted.');
 
-console.log('PASS: Local Business onboarding API privacy');
+let requestedPath = '';
+const guidanceClient = new PaltaApiClient({
+  baseUrl: 'https://api.test',
+  fetch: async (input) => {
+    requestedPath = input;
+    return {
+      ok: true,
+      status: 200,
+      async json() {
+        return {
+          business_id: 'biz-test',
+          items: [
+            {
+              id: 'biz-test:confirm-hours',
+              class: 'stale_or_inaccurate_truth',
+              title: 'Confirma tu horario',
+              reason: 'El horario necesita una confirmación reciente.',
+              target: '/business/manage/biz-test/hours',
+              action_required: true,
+              commercial: 'free',
+            },
+          ],
+        };
+      },
+    };
+  },
+});
+const guidance = await guidanceClient.getOwnerBusinessGuidance('biz-test');
+assert(
+  requestedPath.endsWith('/v1/business/biz-test/owner-guidance'),
+  'Owner guidance must use a business-scoped owner endpoint rather than public profile fields.',
+);
+assert(guidance.items[0]?.commercial === 'free', 'Owner guidance should preserve free/paid meaning from the partner policy.');
+assert(guidance.items[0]?.action_required === true, 'Owner guidance should preserve whether an item actually needs attention.');
+
+console.log('PASS: Local Business onboarding privacy + owner guidance API');
