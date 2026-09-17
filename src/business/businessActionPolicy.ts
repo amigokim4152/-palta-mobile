@@ -39,6 +39,29 @@ const actionOrder: BusinessCapability[] = [
   'pricing',
 ];
 
+/**
+ * Build the public action set without turning optional modules into defaults.
+ *
+ * The free Business Profile remains useful through public contact + save.
+ * Quote/reservation/coupon/pricing/etc. appear only when the Business capability
+ * projection says they are enabled. Commercial entitlement is checked elsewhere;
+ * this function does not decide whether a module is free, paid, trial or fee-based.
+ */
+export function composePublicBusinessCapabilities(input: {
+  enabledCapabilities?: readonly BusinessCapability[];
+  hasWhatsapp: boolean;
+  hasPhone: boolean;
+}): BusinessCapability[] {
+  return [
+    ...new Set<BusinessCapability>([
+      ...(input.enabledCapabilities ?? []),
+      ...(input.hasWhatsapp ? (['whatsapp'] as const) : []),
+      ...(input.hasPhone ? (['call'] as const) : []),
+      'save',
+    ]),
+  ];
+}
+
 export function resolveBusinessActions(input: {
   capabilities: readonly BusinessCapability[];
   verificationStatus: BusinessVerificationStatus;
