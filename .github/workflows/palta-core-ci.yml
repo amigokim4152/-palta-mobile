@@ -84,5 +84,7 @@ jobs:
             echo "Applying ${migration}"
             psql -v ON_ERROR_STOP=1 -f "${migration}"
           done
-      - name: Verify migration and RLS invariants
+      - name: Verify commerce/payment migration and RLS invariants
         run: psql -v ON_ERROR_STOP=1 -f infra/db/tests/commerce_migration_smoke.sql
+      - name: Verify fiscal execution/provider migration and RLS invariants
+        run: psql -v ON_ERROR_STOP=1 -f infra/db/tests/fiscal_execution_smoke.sql
