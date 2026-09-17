@@ -109,6 +109,38 @@ export type MessageListApiResponse = {
   has_more: boolean;
 };
 
+export type DomainTimelineEventApiItem = {
+  projection_id: string;
+  conversation_id: string;
+  scope_id: string;
+  sequence: number;
+  source_core: string;
+  domain_event_id: string;
+  event_type: string;
+  resource_type: string;
+  resource_id: string;
+  occurred_at: string;
+  projected_at: string;
+};
+
+export type ConversationTimelineApiItem =
+  | {
+      kind: 'message';
+      sequence: number;
+      message: MessageApiItem;
+    }
+  | {
+      kind: 'domain_event';
+      sequence: number;
+      event: DomainTimelineEventApiItem;
+    };
+
+export type ConversationTimelineApiResponse = {
+  items: ConversationTimelineApiItem[];
+  next_after_sequence: number;
+  has_more: boolean;
+};
+
 export type MessageReadApiResponse = {
   conversation_id: string;
   last_delivered_sequence: number;
@@ -383,6 +415,36 @@ export class PaltaApiClient {
       throw new Error('Message list returned invalid payload');
     }
     return result as MessageListApiResponse;
+  }
+
+  async listConversationTimeline(input: {
+    conversationId: string;
+    afterSequence?: number;
+    limit?: number;
+    actingActor?: MessageApiActor;
+  }): Promise<ConversationTimelineApiResponse> {
+    const params = new URLSearchParams({
+      after_sequence: String(input.afterSequence ?? 0),
+      limit: String(input.limit ?? 50),
+    });
+    if (input.actingActor) {
+      params.set('acting_actor_type', input.actingActor.actor_type);
+      params.set('acting_actor_id', input.actingActor.actor_id);
+    }
+    const result = expectObject(
+      await this.request(
+        `/v1/messages/conversations/${encodeURIComponent(input.conversationId)}/timeline?${params.toString()}`,
+      ),
+      'GET /v1/messages/conversations/{id}/timeline',
+    );
+    if (
+      !Array.isArray(result.items) ||
+      typeof result.next_after_sequence !== 'number' ||
+      typeof result.has_more !== 'boolean'
+    ) {
+      throw new Error('Conversation timeline returned invalid payload');
+    }
+    return result as ConversationTimelineApiResponse;
   }
 
   async sendMessage(input: {
