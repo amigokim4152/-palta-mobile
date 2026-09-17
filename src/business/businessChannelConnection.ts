@@ -66,12 +66,38 @@ export type PublicBusinessChannelLink = {
   url: string;
 };
 
+/**
+ * Local Business does not own plan/pricing logic. Shared Entitlement/Access will
+ * eventually supply these grants. The free product boundary is explicit here:
+ * link_only is free; any level that makes Palta do work across external channels
+ * requires a positive entitlement grant.
+ */
+export type BusinessChannelEntitlementKey =
+  | 'external_channel_assisted_share'
+  | 'external_channel_connected_read'
+  | 'external_channel_connected_publish'
+  | 'external_channel_connected_operate';
+
+export type BusinessChannelEntitlementSnapshot = Readonly<{
+  grants: readonly BusinessChannelEntitlementKey[];
+}>;
+
 const levelRank: Record<BusinessChannelConnectionLevel, number> = {
   link_only: 0,
   assisted_share: 1,
   connected_read: 2,
   connected_publish: 3,
   connected_operate: 4,
+};
+
+const entitlementForLevel: Record<
+  Exclude<BusinessChannelConnectionLevel, 'link_only'>,
+  BusinessChannelEntitlementKey
+> = {
+  assisted_share: 'external_channel_assisted_share',
+  connected_read: 'external_channel_connected_read',
+  connected_publish: 'external_channel_connected_publish',
+  connected_operate: 'external_channel_connected_operate',
 };
 
 const providerLabel: Partial<Record<BusinessChannelProvider, string>> = {
@@ -86,10 +112,7 @@ const providerLabel: Partial<Record<BusinessChannelProvider, string>> = {
   other: 'Otro canal',
 };
 
-/**
- * Connection capability is not commercial entitlement.
- * This only describes what the provider/account/authorization can technically do.
- */
+/** Technical/provider readiness only; this is not commercial entitlement. */
 export function supportsChannelLevel(
   connection: BusinessChannelConnection,
   required: BusinessChannelConnectionLevel,
@@ -97,6 +120,33 @@ export function supportsChannelLevel(
   return (
     connection.status === 'active' &&
     levelRank[connection.level] >= levelRank[required]
+  );
+}
+
+export function entitlementRequiredForChannelLevel(
+  level: BusinessChannelConnectionLevel,
+): BusinessChannelEntitlementKey | null {
+  if (level === 'link_only') return null;
+  return entitlementForLevel[level];
+}
+
+export function hasChannelEntitlement(
+  snapshot: BusinessChannelEntitlementSnapshot,
+  required: BusinessChannelConnectionLevel,
+): boolean {
+  const key = entitlementRequiredForChannelLevel(required);
+  return key === null || snapshot.grants.includes(key);
+}
+
+/** Commercial access and technical/provider readiness must both be true. */
+export function canUseChannelLevel(
+  connection: BusinessChannelConnection,
+  entitlements: BusinessChannelEntitlementSnapshot,
+  required: BusinessChannelConnectionLevel,
+): boolean {
+  return (
+    supportsChannelLevel(connection, required) &&
+    hasChannelEntitlement(entitlements, required)
   );
 }
 
@@ -117,6 +167,7 @@ export function canExposeChannelLink(
 /**
  * Public Business pages expose only safe link projections, never provider tokens,
  * external account ids, authorization timestamps or operational capabilities.
+ * Paid status must never remove a valid public link from the free profile.
  */
 export function projectPublicBusinessChannelLinks(
   connections: readonly BusinessChannelConnection[],
@@ -149,32 +200,34 @@ export function projectPublicBusinessChannelLinks(
 }
 
 /**
- * Provider API publishing must be explicitly available on the connection.
- * Never infer publish capability from the fact that a public social URL exists.
+ * Provider API publishing requires both provider authorization and commercial
+ * entitlement. Never infer publish access from the fact that a public URL exists.
  */
 export function canAutoPublishToChannel(
   connection: BusinessChannelConnection,
+  entitlements: BusinessChannelEntitlementSnapshot,
 ): boolean {
   return Boolean(
-    supportsChannelLevel(connection, 'connected_publish') &&
+    canUseChannelLevel(connection, entitlements, 'connected_publish') &&
       connection.authorizedAt &&
       connection.capabilities.includes('publish_content'),
   );
 }
 
 /**
- * Assisted share remains a valid fallback when automated API publishing is not
- * available or the external account type does not support it.
+ * Losing a paid entitlement stops automation but does not delete the owner's
+ * public social/web link. This is a runtime/effective mode; stored OAuth state can
+ * be retained or revoked by the integration/security policy separately.
  */
 export function resolveContentDistributionMode(
   connection: BusinessChannelConnection,
+  entitlements: BusinessChannelEntitlementSnapshot,
 ): 'automatic' | 'assisted' | 'link_only' | 'unavailable' {
-  if (canAutoPublishToChannel(connection)) return 'automatic';
+  if (canAutoPublishToChannel(connection, entitlements)) return 'automatic';
 
   if (
-    connection.status === 'active' &&
-    connection.capabilities.includes('assisted_share') &&
-    levelRank[connection.level] >= levelRank.assisted_share
+    canUseChannelLevel(connection, entitlements, 'assisted_share') &&
+    connection.capabilities.includes('assisted_share')
   ) {
     return 'assisted';
   }
