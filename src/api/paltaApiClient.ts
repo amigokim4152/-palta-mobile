@@ -57,6 +57,11 @@ export type BusinessBasicCouponsApiResponse = {
   items: BusinessBasicCouponApiItem[];
 };
 
+export type OwnerBusinessBasicCouponApiResponse = {
+  business_id: string;
+  coupon?: BusinessBasicCouponApiItem;
+};
+
 export type BusinessBasicCouponUpsertInput = {
   title: string;
   description?: string;
@@ -65,14 +70,6 @@ export type BusinessBasicCouponUpsertInput = {
   expiresAt: string;
 };
 
-/**
- * Public Business Profile projection.
- *
- * Free profile data and enabled capability projection are deliberately separate.
- * `enabled_capabilities` says what this Business can currently offer; it does not
- * say whether the capability was granted free, through subscription, transaction
- * policy, promotion, trial or another Entitlement/Access rule.
- */
 export type BusinessApiDetail = {
   id: string;
   name: string;
@@ -128,16 +125,8 @@ export type OwnerBusinessGuidanceApiResponse = {
   items: OwnerBusinessGuidanceApiItem[];
 };
 
-export type BusinessPublicChannelProvider = Exclude<
-  BusinessChannelProvider,
-  'palta' | 'pos'
->;
+export type BusinessPublicChannelProvider = Exclude<BusinessChannelProvider, 'palta' | 'pos'>;
 
-/**
- * Free Business Profile input. It intentionally accepts only provider + public
- * URL. OAuth tokens, external account ids and automation capabilities belong to
- * paid/entitled integration endpoints, never this endpoint.
- */
 export type BusinessPublicChannelLinkInput = {
   provider: BusinessPublicChannelProvider;
   url: string;
@@ -305,6 +294,17 @@ export class PaltaApiClient {
     return result as BusinessBasicCouponsApiResponse;
   }
 
+  async getOwnerBusinessBasicCoupon(businessId: string): Promise<OwnerBusinessBasicCouponApiResponse> {
+    const result = expectObject(
+      await this.request(`/v1/business/${encodeURIComponent(businessId)}/owner-basic-coupon`),
+      'GET /v1/business/{id}/owner-basic-coupon',
+    );
+    if (typeof result.business_id !== 'string') {
+      throw new Error('GET /v1/business/{id}/owner-basic-coupon returned invalid coupon');
+    }
+    return result as OwnerBusinessBasicCouponApiResponse;
+  }
+
   async upsertBusinessBasicCoupon(
     businessId: string,
     input: BusinessBasicCouponUpsertInput,
@@ -315,9 +315,7 @@ export class PaltaApiClient {
         body: {
           title: input.title,
           ...(input.description ? { description: input.description } : {}),
-          ...(input.redemptionInstruction
-            ? { redemption_instruction: input.redemptionInstruction }
-            : {}),
+          ...(input.redemptionInstruction ? { redemption_instruction: input.redemptionInstruction } : {}),
           audience: input.audience,
           expires_at: input.expiresAt,
         },
