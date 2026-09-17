@@ -6,6 +6,7 @@ import type {
   Message,
   MessageType,
   OutboxEvent,
+  ParticipantState,
 } from './contracts.js';
 import type { MessagePersistencePort } from './persistencePort.js';
 
@@ -37,6 +38,7 @@ export class MessageServiceError extends Error {
   constructor(
     readonly code:
       | 'INVALID_MESSAGE'
+      | 'INVALID_CURSOR'
       | 'ACTOR_NOT_AUTHORIZED'
       | 'NOT_PARTICIPANT'
       | 'CONVERSATION_NOT_FOUND'
@@ -206,7 +208,7 @@ export class MessageService {
     await this.assertActorAuthority(input.principalUserId, input.actor);
     if (!Number.isInteger(input.afterSequence) || input.afterSequence < 0) {
       throw new MessageServiceError(
-        'INVALID_MESSAGE',
+        'INVALID_CURSOR',
         'afterSequence must be a non-negative integer.',
       );
     }
@@ -229,6 +231,65 @@ export class MessageService {
       conversationId: input.conversationId,
       afterSequence: input.afterSequence,
       limit,
+    });
+  }
+
+  async advanceRead(input: {
+    principalUserId: string;
+    conversationId: string;
+    actor: ActorRef;
+    throughSequence: number;
+    occurredAt: string;
+  }): Promise<ParticipantState> {
+    await this.assertActorAuthority(input.principalUserId, input.actor);
+    if (!Number.isInteger(input.throughSequence) || input.throughSequence < 0) {
+      throw new MessageServiceError(
+        'INVALID_CURSOR',
+        'throughSequence must be a non-negative integer.',
+      );
+    }
+
+    return this.persistence.transaction(async (tx) => {
+      const current = await tx.findParticipant({
+        conversationId: input.conversationId,
+        actor: input.actor,
+      });
+      if (!current || current.leftAt !== undefined) {
+        throw new MessageServiceError(
+          'NOT_PARTICIPANT',
+          'Actor is not an active conversation participant.',
+        );
+      }
+
+      const next = await tx.advanceRead({
+        conversationId: input.conversationId,
+        actor: input.actor,
+        throughSequence: input.throughSequence,
+      });
+      if (!next) {
+        throw new MessageServiceError(
+          'NOT_PARTICIPANT',
+          'Actor is not an active conversation participant.',
+        );
+      }
+
+      if (next.lastReadSequence > current.lastReadSequence) {
+        await tx.insertOutbox({
+          outboxEventId: this.runtime.nextOutboxEventId(),
+          aggregateType: 'conversation',
+          aggregateId: input.conversationId,
+          eventType: 'participant.read_advanced',
+          payload: {
+            conversationId: input.conversationId,
+            actorType: input.actor.actorType,
+            actorId: input.actor.actorId,
+            throughSequence: next.lastReadSequence,
+          },
+          createdAt: input.occurredAt,
+        });
+      }
+
+      return next;
     });
   }
 }
