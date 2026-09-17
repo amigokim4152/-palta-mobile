@@ -9,6 +9,7 @@ const businesses = [
     id: 'biz-taller-1',
     name: 'Taller ejemplo',
     category_key: 'auto_repair',
+    search_terms: ['taller', 'auto', 'mecánica', 'frenos', 'neumáticos'],
     verification_status: 'unverified',
     opening_status: 'open',
     location: { lat: -33.3908, lng: -70.5707 },
@@ -18,6 +19,7 @@ const businesses = [
     id: 'biz-farmacia-1',
     name: 'Farmacia ejemplo',
     category_key: 'pharmacy',
+    search_terms: ['farmacia', 'salud', 'medicamentos'],
     verification_status: 'verified',
     opening_status: 'open',
     location: { lat: -33.3942, lng: -70.5752 },
@@ -26,6 +28,7 @@ const businesses = [
 ];
 
 const idempotencyCareIds = new Map();
+const idempotencyBusinessResults = new Map();
 
 const careTracks = new Map([
   ['care-demo-1', {
@@ -57,6 +60,13 @@ async function readJson(req) {
   return JSON.parse(Buffer.concat(chunks).toString('utf8'));
 }
 
+function normalize(value) {
+  return String(value ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+}
+
 const server = http.createServer(async (req, res) => {
   try {
     if (!req.url || !req.method) return json(res, 400, { error: 'bad_request' });
@@ -65,7 +75,7 @@ const server = http.createServer(async (req, res) => {
     const url = new URL(req.url, `http://${req.headers.host ?? `${host}:${port}`}`);
 
     if (req.method === 'GET' && url.pathname === '/health') {
-      return json(res, 200, { ok: true, service: 'palta-mock-api', version: '0.1.0' });
+      return json(res, 200, { ok: true, service: 'palta-mock-api', version: '0.2.0' });
     }
 
     if (req.method === 'GET' && url.pathname === '/v1/home') {
@@ -81,14 +91,6 @@ const server = http.createServer(async (req, res) => {
             delivery: 'home',
             care_track_id: 'care-demo-1',
           },
-          {
-            id: 'home-content-demo-1',
-            kind: 'content',
-            title: 'Información útil para hoy',
-            body: 'Este contenido aparece porque Home está poco cargado.',
-            source_domain: 'news',
-            delivery: 'home',
-          },
         ],
       });
     }
@@ -99,17 +101,80 @@ const server = http.createServer(async (req, res) => {
       if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
         return json(res, 400, { error: 'lat_lng_required' });
       }
+      const q = normalize(url.searchParams.get('q'));
+      const matching = !q
+        ? businesses
+        : businesses.filter((business) => {
+            const haystack = normalize([
+              business.name,
+              business.category_key,
+              ...(business.search_terms ?? []),
+            ].join(' '));
+            return q.split(/\s+/).filter(Boolean).some((term) => haystack.includes(term));
+          });
       return json(res, 200, {
-        items: businesses.map((business, index) => ({
+        items: matching.map((business, index) => ({
           entity_id: business.id,
           entity_type: 'business',
           name: business.name,
           category_key: business.category_key,
           verification_status: business.verification_status,
-          distance_m: index === 0 ? 1200 : 850,
+          distance_m: index === 0 ? 850 : 1200,
           location: business.location,
         })),
       });
+    }
+
+    if (req.method === 'POST' && url.pathname === '/v1/business/onboarding') {
+      const body = await readJson(req);
+      const idempotencyKey = req.headers['idempotency-key'];
+      if (typeof idempotencyKey === 'string') {
+        const existing = idempotencyBusinessResults.get(idempotencyKey);
+        if (existing) return json(res, 200, existing);
+      }
+
+      if (body.mode !== 'claim_existing' && body.mode !== 'create_new') {
+        return json(res, 400, { error: 'invalid_onboarding_mode' });
+      }
+      if (typeof body.business_name !== 'string' || !body.business_name.trim()) {
+        return json(res, 400, { error: 'business_name_required' });
+      }
+      if (!Array.isArray(body.confirmed_service_ids) || body.confirmed_service_ids.length === 0) {
+        return json(res, 400, { error: 'confirmed_service_required' });
+      }
+
+      let business;
+      if (body.mode === 'claim_existing') {
+        business = businesses.find((item) => item.id === body.business_id);
+        if (!business) return json(res, 404, { error: 'business_not_found' });
+        if (business.verification_status === 'claimed' || business.verification_status === 'verified') {
+          return json(res, 409, { error: 'business_already_claimed' });
+        }
+        business.verification_status = 'claimed';
+      } else {
+        const id = `biz-${randomUUID()}`;
+        business = {
+          id,
+          name: body.business_name.trim(),
+          category_key: body.confirmed_service_ids[0],
+          search_terms: [body.owner_description, ...body.confirmed_service_ids].filter(Boolean),
+          verification_status: 'claimed',
+          opening_status: 'unknown',
+          ...(body.anchor_location ? { location: body.anchor_location } : {}),
+          contact: body.contact ?? {},
+        };
+        businesses.push(business);
+      }
+
+      const result = {
+        business_id: business.id,
+        verification_status: 'claimed',
+        onboarding_status: 'verification_pending',
+      };
+      if (typeof idempotencyKey === 'string') {
+        idempotencyBusinessResults.set(idempotencyKey, result);
+      }
+      return json(res, 201, result);
     }
 
     if (req.method === 'GET' && url.pathname.startsWith('/v1/business/')) {
@@ -130,9 +195,7 @@ const server = http.createServer(async (req, res) => {
       if (typeof idempotencyKey === 'string') {
         const existingId = idempotencyCareIds.get(idempotencyKey);
         const existing = existingId ? careTracks.get(existingId) : undefined;
-        if (existing) {
-          return json(res, 200, existing);
-        }
+        if (existing) return json(res, 200, existing);
       }
 
       const id = `care-${randomUUID()}`;
@@ -144,11 +207,7 @@ const server = http.createServer(async (req, res) => {
         expected_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
       };
       careTracks.set(id, care);
-
-      if (typeof idempotencyKey === 'string') {
-        idempotencyCareIds.set(idempotencyKey, id);
-      }
-
+      if (typeof idempotencyKey === 'string') idempotencyCareIds.set(idempotencyKey, id);
       return json(res, 201, care);
     }
 
