@@ -75,7 +75,9 @@ assert(
 );
 assert(
   write.includes('getMyReviewEligibility') &&
-  write.includes('eligibility.evidence.reference_id') &&
+  write.includes('const evidence = state.data.eligibility.evidence') &&
+  write.includes('evidenceReferenceId: evidence.reference_id') &&
+  write.includes('evidenceKind: evidence.kind') &&
   !write.includes('evidenceReferenceId, setEvidenceReferenceId'),
   'Review writer must use server-selected evidence instead of editable evidence ids.',
 );
