@@ -128,3 +128,31 @@ export function buildServiceAppointmentCompletedEvents(input: {
     }),
   ];
 }
+
+export function buildServiceAppointmentOutcomeRecordedEvents(input: {
+  appointmentId: string;
+  occurredAt: string;
+  outcomeRef: string;
+  sourceSequence?: number;
+}): ServiceAppointmentLifecycleEventPair {
+  return [
+    canonical({
+      appointmentId: input.appointmentId,
+      changeType: 'service_appointment.outcome_recorded',
+      occurredAt: input.occurredAt,
+    }),
+    buildCareSignalEvent({
+      eventId: `${input.appointmentId}:outcome-recorded:care`,
+      sourceCore: SOURCE_CORE,
+      resourceType: RESOURCE_TYPE,
+      resourceId: input.appointmentId,
+      careEvent: 'record_outcome',
+      occurredAt: input.occurredAt,
+      dedupeKey: `service-appointment:${input.appointmentId}:care:outcome`,
+      ...(input.sourceSequence !== undefined
+        ? { sourceSequence: input.sourceSequence }
+        : {}),
+      outcomeRef: input.outcomeRef,
+    }),
+  ];
+}
