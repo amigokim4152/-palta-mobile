@@ -23,6 +23,35 @@ const businessId = local.body.items[0].entity_id;
 const business = await json(`/v1/business/${encodeURIComponent(businessId)}`);
 assert(business.response.ok && business.body.id === businessId, 'business detail failed');
 
+const initialRelationship = await json(`/v1/business/${encodeURIComponent(businessId)}/relationship`);
+assert(initialRelationship.response.ok, 'relationship read failed');
+assert(initialRelationship.body.saved === false, 'relationship should start unsaved');
+assert(initialRelationship.body.following === false, 'relationship should start unfollowed');
+
+const savedRelationship = await json(`/v1/business/${encodeURIComponent(businessId)}/relationship`, {
+  method: 'PUT',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ saved: true }),
+});
+assert(savedRelationship.response.ok && savedRelationship.body.saved === true, 'save relationship failed');
+assert(savedRelationship.body.following === false, 'saving must not silently create follow');
+
+const followedRelationship = await json(`/v1/business/${encodeURIComponent(businessId)}/relationship`, {
+  method: 'PUT',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ following: true }),
+});
+assert(followedRelationship.response.ok && followedRelationship.body.following === true, 'follow relationship failed');
+assert(followedRelationship.body.saved === true, 'following must preserve separate saved state');
+
+const unfollowedRelationship = await json(`/v1/business/${encodeURIComponent(businessId)}/relationship`, {
+  method: 'PUT',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ following: false }),
+});
+assert(unfollowedRelationship.body.saved === true, 'unfollow must not unsave the business');
+assert(unfollowedRelationship.body.following === false, 'unfollow should clear only follower state');
+
 const channelLinks = await json(`/v1/business/${encodeURIComponent(businessId)}/channel-links`, {
   method: 'PUT',
   headers: { 'Content-Type': 'application/json' },
@@ -97,6 +126,10 @@ console.log(JSON.stringify({
   homeItems: home.body.items.length,
   localItems: local.body.items.length,
   businessId,
+  relationship: {
+    saved: unfollowedRelationship.body.saved,
+    following: unfollowedRelationship.body.following,
+  },
   publicChannelLinks: businessAfterLinks.body.channel_links.length,
   careId: care.body.id,
 }, null, 2));
