@@ -47,6 +47,9 @@ export async function startCareSignalConsumer(input: {
             resourceType: signal.resourceType,
             resourceId: signal.resourceId,
             occurredAt: signal.occurredAt,
+            ...(signal.sourceSequence !== undefined
+              ? { sourceSequence: signal.sourceSequence }
+              : {}),
             ...(signal.expectedAt !== undefined ? { expectedAt: signal.expectedAt } : {}),
             ...(signal.waitingForKey !== undefined
               ? { waitingForKey: signal.waitingForKey }
