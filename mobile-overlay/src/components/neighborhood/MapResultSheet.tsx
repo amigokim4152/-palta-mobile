@@ -11,6 +11,7 @@ import {
   nextSheetSnap,
   type ResultSheetSnap,
 } from '../../../../src/neighborhood/resultSheetPolicy';
+import { paltaTheme } from '../../theme/paltaTheme';
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
@@ -49,10 +50,12 @@ export function MapResultSheet({
       style={{
         height: animatedHeight,
         borderTopWidth: 1,
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 20,
-        paddingHorizontal: 12,
-        paddingTop: 6,
+        borderColor: paltaTheme.color.border,
+        borderTopLeftRadius: paltaTheme.radius.sheet,
+        borderTopRightRadius: paltaTheme.radius.sheet,
+        paddingHorizontal: paltaTheme.spacing.sm,
+        paddingTop: paltaTheme.spacing.xxs,
+        backgroundColor: paltaTheme.color.surface,
       }}
     >
       <View
@@ -60,7 +63,7 @@ export function MapResultSheet({
           alignItems: 'center',
           flexDirection: 'row',
           justifyContent: 'center',
-          gap: 14,
+          gap: paltaTheme.spacing.sm,
         }}
       >
         <Pressable
@@ -69,17 +72,22 @@ export function MapResultSheet({
           disabled={snap === 'full'}
           onPress={() => onSnapChange(nextSheetSnap(snap, 'up'))}
           style={{
-            minWidth: 44,
-            minHeight: 44,
+            minWidth: paltaTheme.touch.minimum,
+            minHeight: paltaTheme.touch.minimum,
             justifyContent: 'center',
             opacity: snap === 'full' ? 0.3 : 1,
           }}
         >
-          <Text style={{ textAlign: 'center' }}>↑</Text>
+          <Text style={{ textAlign: 'center', color: paltaTheme.color.textSecondary }}>↑</Text>
         </Pressable>
         <View
           accessibilityElementsHidden
-          style={{ width: 42, height: 4, borderRadius: 999, backgroundColor: '#9ca3af' }}
+          style={{
+            width: 42,
+            height: 4,
+            borderRadius: paltaTheme.radius.pill,
+            backgroundColor: paltaTheme.color.border,
+          }}
         />
         <Pressable
           accessibilityRole="button"
@@ -87,19 +95,19 @@ export function MapResultSheet({
           disabled={snap === 'peek'}
           onPress={() => onSnapChange(nextSheetSnap(snap, 'down'))}
           style={{
-            minWidth: 44,
-            minHeight: 44,
+            minWidth: paltaTheme.touch.minimum,
+            minHeight: paltaTheme.touch.minimum,
             justifyContent: 'center',
             opacity: snap === 'peek' ? 0.3 : 1,
           }}
         >
-          <Text style={{ textAlign: 'center' }}>↓</Text>
+          <Text style={{ textAlign: 'center', color: paltaTheme.color.textSecondary }}>↓</Text>
         </Pressable>
       </View>
 
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={{ paddingBottom: 18 }}
+        contentContainerStyle={{ paddingBottom: paltaTheme.spacing.lg }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
