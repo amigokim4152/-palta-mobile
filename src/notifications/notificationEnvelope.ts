@@ -1,4 +1,5 @@
 export type NotificationCategory =
+  | 'message'
   | 'care_state'
   | 'deadline'
   | 'safety'
