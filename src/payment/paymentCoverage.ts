@@ -73,14 +73,35 @@ function assertIntentBelongsToTransaction(
   if (intent.amount.amountMinor === 0) {
     throw new Error(`PaymentIntent ${intent.id} amount must be greater than zero.`);
   }
+  if (intent.processedAmount !== undefined) {
+    if (intent.processedAmount.currency !== intent.amount.currency) {
+      throw new Error(`PaymentIntent ${intent.id} processed currency does not match requested currency.`);
+    }
+    assertMinorAmount(
+      intent.processedAmount.amountMinor,
+      `PaymentIntent ${intent.id} processed amount`,
+    );
+    if (intent.processedAmount.amountMinor === 0) {
+      throw new Error(`PaymentIntent ${intent.id} processed amount must be greater than zero.`);
+    }
+  }
+}
+
+function authoritativePaidAmount(intent: PaymentIntent): number {
+  return intent.processedAmount?.amountMinor ?? intent.amount.amountMinor;
 }
 
 /**
  * Aggregates all payment attempts for one CommerceTransaction.
  *
- * Unresolved intents reserve their full amount. This is deliberate: a provider
- * timeout or concurrent QR payer may still capture funds, so Palta must not reuse
- * that amount for another payment until reconciliation frees it.
+ * Paid intents use the provider-confirmed processed amount when available. This
+ * protects split checkout from treating a partial approval as if the full
+ * requested amount was collected.
+ *
+ * Unresolved intents still reserve their FULL requested amount. This is
+ * deliberate: a provider timeout or concurrent QR payer may ultimately capture
+ * the whole requested amount, so Palta must not reuse that amount until
+ * reconciliation frees it.
  */
 export function calculatePaymentCoverage(input: {
   transaction: CommerceTransaction;
@@ -105,7 +126,11 @@ export function calculatePaymentCoverage(input: {
     assertIntentBelongsToTransaction(transaction, intent);
 
     if (intent.status === 'paid') {
-      paidAmountMinor = safeAdd(paidAmountMinor, intent.amount.amountMinor, 'paidAmountMinor');
+      paidAmountMinor = safeAdd(
+        paidAmountMinor,
+        authoritativePaidAmount(intent),
+        'paidAmountMinor',
+      );
       paidIntentIds.push(intent.id);
       continue;
     }
