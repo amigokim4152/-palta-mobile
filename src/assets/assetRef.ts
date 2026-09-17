@@ -4,6 +4,7 @@ export type AssetKind =
   | 'document'
   | 'map_release'
   | 'content_media'
+  | 'message_media'
   | 'temporary_upload';
 
 export type AssetRef = {
