@@ -36,6 +36,12 @@ export interface MessagePersistenceTransaction {
     lastActivityAt: string;
   }): Promise<void>;
 
+  advanceRead(input: {
+    conversationId: string;
+    actor: ActorRef;
+    throughSequence: number;
+  }): Promise<ParticipantState | null>;
+
   insertOutbox(event: OutboxEvent): Promise<void>;
 }
 
