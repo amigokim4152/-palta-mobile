@@ -5,6 +5,7 @@ import type {
   CreatePaymentResult,
   PaymentPort,
   ProviderPaymentStatus,
+  ReconcilePaymentInput,
   RefundInput,
 } from '../../ports/paymentPort.js';
 
@@ -229,6 +230,16 @@ export class MercadoPagoPointAdapter implements PaymentPort {
       throwHttpFailure('get order', response as JsonHttpResponse<MercadoPagoApiError>);
     }
     return providerStatusResult(response.body as MercadoPagoPointOrder);
+  }
+
+  async reconcilePayment(input: ReconcilePaymentInput): Promise<ProviderPaymentStatus> {
+    if (input.providerReference) return this.getStatus(input.providerReference);
+
+    // Mercado Pago Orders requires X-Idempotency-Key and documents safe replay of the
+    // same operation. Replaying the exact original request lets Palta recover the
+    // provider order reference after a response-loss scenario without creating a
+    // replacement charge.
+    return this.createPayment(input);
   }
 
   async refund(input: RefundInput): Promise<ProviderPaymentStatus> {
