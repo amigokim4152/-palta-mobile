@@ -22,6 +22,11 @@ import { useAsyncResource } from '../../hooks/useAsyncResource';
 import { mobileRuntime } from '../../services/paltaClient';
 import { useNeighborhoodState } from '../../state/NeighborhoodStateProvider';
 
+const SANTIAGO_EXPLORATION_ORIGIN = {
+  latitude: -33.4489,
+  longitude: -70.6693,
+} as const;
+
 function formatDistance(distanceM?: number): string | undefined {
   if (distanceM === undefined) return undefined;
   if (distanceM < 1000) return `${Math.round(distanceM)} m`;
@@ -135,7 +140,7 @@ export function LocalBusinessDiscoveryScreen() {
         permission = await expoLocationAdapter.requestForegroundPermission();
       }
       if (permission !== 'granted_foreground') {
-        setLocationError('Puedes explorar otra zona sin compartir tu ubicación.');
+        setLocationError('No necesitas compartir tu ubicación para explorar negocios.');
         return;
       }
       const point = await expoLocationAdapter.getCurrentPosition();
@@ -149,6 +154,14 @@ export function LocalBusinessDiscoveryScreen() {
     }
   }
 
+  function exploreSantiago() {
+    setLocationError(null);
+    dispatch({
+      type: 'set_effective_location',
+      location: SANTIAGO_EXPLORATION_ORIGIN,
+    });
+  }
+
   function submitSearch(query = draftQuery) {
     const next = query.trim();
     setDraftQuery(next);
@@ -157,29 +170,61 @@ export function LocalBusinessDiscoveryScreen() {
 
   if (!neighborhood.effectiveLocation) {
     return (
-      <ScreenFrame title="Negocios cerca" subtitle="Servicios y comercios de tu zona">
-        <Text style={{ fontSize: 20, fontWeight: '800' }}>¿Qué necesitas?</Text>
-        <Text style={{ marginTop: 8, opacity: 0.66 }}>
-          Usa tu ubicación sólo para buscar cerca. También podrás explorar otra zona en el mapa.
-        </Text>
-        <Pressable
-          disabled={locationBusy}
-          onPress={() => void useMyLocation()}
-          style={{ paddingVertical: 14, marginTop: 10 }}
-        >
-          <Text style={{ fontWeight: '800', opacity: locationBusy ? 0.5 : 1 }}>
-            {locationBusy ? 'Buscando…' : 'Usar mi ubicación'}
+      <ScreenFrame
+        title="Negocios"
+        subtitle="Encuentra lugares y servicios útiles sin tener que compartir tu ubicación"
+        action={
+          <Pressable
+            onPress={() => router.push('/business/register')}
+            style={{ paddingVertical: 8 }}
+          >
+            <Text style={{ fontWeight: '800' }}>Mi negocio</Text>
+          </Pressable>
+        }
+      >
+        <View style={{ gap: 14 }}>
+          <Text style={{ fontSize: 22, fontWeight: '800' }}>¿Qué necesitas cerca?</Text>
+          <Text style={{ opacity: 0.66, lineHeight: 21 }}>
+            Puedes buscar desde tu ubicación o empezar explorando Santiago. Tu ubicación exacta no es obligatoria para usar esta sección.
           </Text>
-        </Pressable>
-        {locationError ? <Text style={{ opacity: 0.66 }}>{locationError}</Text> : null}
+
+          <Pressable
+            disabled={locationBusy}
+            onPress={() => void useMyLocation()}
+            style={{ borderWidth: 1, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 13 }}
+          >
+            <Text style={{ fontWeight: '800', opacity: locationBusy ? 0.5 : 1 }}>
+              {locationBusy ? 'Buscando…' : 'Buscar cerca de mí'}
+            </Text>
+          </Pressable>
+
+          <Pressable
+            onPress={exploreSantiago}
+            style={{ borderWidth: 1, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 13 }}
+          >
+            <Text style={{ fontWeight: '800' }}>Explorar Santiago</Text>
+            <Text style={{ marginTop: 4, opacity: 0.62 }}>
+              Después puedes mover el mapa y buscar en otra zona.
+            </Text>
+          </Pressable>
+
+          <Pressable
+            onPress={() => router.push('/local-businesses/following')}
+            style={{ paddingVertical: 8 }}
+          >
+            <Text style={{ fontWeight: '800' }}>Ver negocios que sigo</Text>
+          </Pressable>
+
+          {locationError ? <Text style={{ opacity: 0.66 }}>{locationError}</Text> : null}
+        </View>
       </ScreenFrame>
     );
   }
 
   return (
     <ScreenFrame
-      title="Negocios cerca"
-      subtitle="Busca por lo que necesitas, no por nuestra clasificación"
+      title="Negocios"
+      subtitle="Busca por lo que necesitas y mira qué puedes usar ahora"
       scroll={false}
       action={
         <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
