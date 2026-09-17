@@ -73,13 +73,13 @@ await eventBus.publish({
     messageId: 'message-8',
   },
 });
-assert(realtime.envelopes.length === 1, 'message.created must publish one realtime envelope.');
+assert(Number(realtime.envelopes.length) === 1, 'message.created must publish one realtime envelope.');
 assert(realtime.envelopes[0]?.kind === 'message_created', 'Realtime envelope kind must be message_created.');
 assert(realtime.envelopes[0]?.scopeId === 'scope-shipment-1', 'Realtime envelope must preserve message scope.');
 assert(realtime.envelopes[0]?.refId === 'message-8', 'Realtime envelope must reference canonical message.');
 
 const candidates = eventBus.published.filter((event) => event.type === 'notification.candidate');
-assert(candidates.length === 1, 'message.created must create one notification candidate.');
+assert(Number(candidates.length) === 1, 'message.created must create one notification candidate.');
 const candidate = candidates[0];
 assert(candidate?.dedupeKey === 'message-notification:message-8', 'Notification candidate dedupe key must be stable per message.');
 assert(candidate?.payload.sourceEventId === 'outbox-message-1', 'Notification candidate must retain source event identity.');
@@ -103,11 +103,11 @@ await eventBus.publish({
     throughSequence: 8,
   },
 });
-assert(realtime.envelopes.length === 2, 'read advancement must publish one realtime envelope.');
+assert(Number(realtime.envelopes.length) === 2, 'read advancement must publish one realtime envelope.');
 assert(realtime.envelopes[1]?.kind === 'read_advanced', 'Read realtime kind must be read_advanced.');
 assert(realtime.envelopes[1]?.sequence === 8, 'Read realtime cursor must preserve throughSequence.');
 assert(realtime.envelopes[1]?.refId === 'user:user-1', 'Read realtime ref must identify participant actor.');
-assert(eventBus.published.filter((event) => event.type === 'notification.candidate').length === 1, 'Read events must never create push/notification candidates.');
+assert(Number(eventBus.published.filter((event) => event.type === 'notification.candidate').length) === 1, 'Read events must never create push/notification candidates.');
 
 await eventBus.publish({
   id: 'invalid-message-event',
@@ -116,8 +116,8 @@ await eventBus.publish({
   source: 'message-core',
   payload: { conversationId: 'conv-1' },
 });
-assert(realtime.envelopes.length === 2, 'Malformed event must be ignored by realtime consumer.');
-assert(eventBus.published.filter((event) => event.type === 'notification.candidate').length === 1, 'Malformed event must not create notification candidate.');
+assert(Number(realtime.envelopes.length) === 2, 'Malformed event must be ignored by realtime consumer.');
+assert(Number(eventBus.published.filter((event) => event.type === 'notification.candidate').length) === 1, 'Malformed event must not create notification candidate.');
 
 await consumers.close();
 await eventBus.publish({
@@ -127,7 +127,7 @@ await eventBus.publish({
   source: 'message-core',
   payload: { conversationId: 'conv-1', sequence: 9, messageId: 'message-9' },
 });
-assert(realtime.envelopes.length === 2, 'Closed consumers must stop realtime delivery.');
-assert(eventBus.published.filter((event) => event.type === 'notification.candidate').length === 1, 'Closed consumers must stop notification candidate creation.');
+assert(Number(realtime.envelopes.length) === 2, 'Closed consumers must stop realtime delivery.');
+assert(Number(eventBus.published.filter((event) => event.type === 'notification.candidate').length) === 1, 'Closed consumers must stop notification candidate creation.');
 
 console.log('Message event consumer tests passed.');
