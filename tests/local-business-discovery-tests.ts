@@ -37,6 +37,15 @@ const items = [
     location: { lat: -33.4, lng: -70.6 },
   },
   {
+    entityId: 'biz-service-area',
+    entityType: 'business' as const,
+    name: 'Gasfiter a domicilio',
+    verificationStatus: 'unverified',
+    operationalState: 'unknown_or_stale' as const,
+    // Deliberately no exact public point: service-area businesses must remain
+    // discoverable without fabricating a pin or leaking a private home anchor.
+  },
+  {
     entityId: 'biz-seasonal',
     entityType: 'business' as const,
     name: 'Restaurante de temporada',
@@ -57,10 +66,14 @@ const items = [
 ];
 
 const projected = projectLocalBusinesses(items);
-assert(projected.length === 3, 'Only ordinarily discoverable businesses should remain.');
+assert(projected.length === 4, 'Only ordinarily discoverable businesses should remain, including area-only providers.');
 assert(
   projected[0]?.entityId === 'biz-open',
   'A confirmed open business should rank ahead of nearer stale/closed businesses.',
+);
+assert(
+  projected.some((item) => item.entityId === 'biz-service-area' && item.location === undefined),
+  'Service-area businesses must remain discoverable without an exact public map point.',
 );
 assert(
   !projected.some((item) => item.entityId === 'biz-gone'),
