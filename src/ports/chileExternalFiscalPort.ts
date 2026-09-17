@@ -56,12 +56,19 @@ export type ExternalFiscalProviderResult = {
   pdfUrl?: string;
   tedXml?: string;
   issuedAt?: string;
+  providerTotals?: FiscalTotals;
+  canonicalTotalsMatch?: boolean;
 };
 
 export type ExternalFiscalReconcileInput = {
   providerReference?: string;
   queueTicketReference?: string;
-  idempotencyKey: string;
+  /**
+   * Required only when the initial POST outcome was unknown and no provider/ticket
+   * reference was received. The adapter may replay exactly the same provider
+   * idempotency identity; it must never invent a replacement fiscal operation.
+   */
+  originalIssue?: ExternalFiscalIssueInput;
 };
 
 /**
