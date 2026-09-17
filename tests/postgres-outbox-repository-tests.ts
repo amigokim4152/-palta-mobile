@@ -108,6 +108,33 @@ assert(
   'Duplicate Queue delivery must become a no-op while another worker owns a live lease.',
 );
 
+const dispatchDb = new QueueDatabase([
+  {
+    rows: [
+      { id: row.id },
+      { id: '99999999-9999-4999-8999-999999999999' },
+    ],
+    rowCount: 2,
+  },
+]);
+const dispatchCandidates = await new PostgresOutboxRepository(dispatchDb).listDispatchCandidates({
+  destination: 'payment',
+  now: '2026-09-17T15:01:00.000Z',
+  limit: 100,
+});
+assert(
+  dispatchCandidates.length === 2 &&
+    dispatchCandidates.every((candidate) => candidate.destination === 'payment'),
+  'Recovery dispatcher should return only canonical IDs plus destination, never sensitive payload.',
+);
+const dispatchSql = dispatchDb.queries[0]?.sql.toLowerCase() ?? '';
+assert(
+  dispatchSql.includes('event_type like $2') &&
+    dispatchDb.queries[0]?.params[1] === 'payment.%' &&
+    dispatchSql.includes('lease_expires_at <= $1::timestamptz'),
+  'Dispatcher discovery must route by canonical event prefix and include expired leases for recovery.',
+);
+
 const deliveredDb = new QueueDatabase([{ rows: [{ id: row.id }], rowCount: 1 }]);
 const delivered = await new PostgresOutboxRepository(deliveredDb).markDelivered({
   eventId: row.id as string,
