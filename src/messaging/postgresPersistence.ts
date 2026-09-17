@@ -2,6 +2,7 @@ import type {
   ActorRef,
   ConversationScope,
   Message,
+  MessageAttachment,
   ParticipantState,
 } from './contracts.js';
 import type {
@@ -13,6 +14,12 @@ import type { DatabasePort } from '../ports/databasePort.js';
 
 function optionalString(value: unknown): string | undefined {
   return typeof value === 'string' && value.length > 0 ? value : undefined;
+}
+
+function optionalNumber(value: unknown): number | undefined {
+  if (value === null || value === undefined) return undefined;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
 }
 
 function asNumber(value: unknown): number {
@@ -83,6 +90,49 @@ function mapMessage(row: Record<string, unknown>): Message {
   };
 }
 
+function mapAttachment(row: Record<string, unknown>): MessageAttachment {
+  const sizeBytes = optionalNumber(row.size_bytes);
+  const durationMs = optionalNumber(row.duration_ms);
+  return {
+    attachmentId: String(row.id),
+    messageId: String(row.message_id),
+    assetId: String(row.asset_id),
+    kind: String(row.attachment_kind) as MessageAttachment['kind'],
+    mimeType: String(row.mime_type),
+    ...(sizeBytes !== undefined ? { sizeBytes } : {}),
+    ...(durationMs !== undefined ? { durationMs } : {}),
+  };
+}
+
+async function hydrateAttachments(
+  db: DatabasePort,
+  messages: Message[],
+): Promise<Message[]> {
+  if (messages.length === 0) return messages;
+  const messageIds = messages.map((message) => message.messageId);
+  const result = await db.query(
+    `select id, message_id, asset_id, attachment_kind, mime_type,
+            size_bytes, duration_ms
+       from msg_attachment
+      where message_id = any($1::uuid[])
+      order by message_id, created_at, id`,
+    [messageIds],
+  );
+  const grouped = new Map<string, MessageAttachment[]>();
+  for (const row of result.rows) {
+    const attachment = mapAttachment(row);
+    const current = grouped.get(attachment.messageId) ?? [];
+    current.push(attachment);
+    grouped.set(attachment.messageId, current);
+  }
+  return messages.map((message) => {
+    const attachments = grouped.get(message.messageId);
+    return attachments && attachments.length > 0
+      ? { ...message, attachments }
+      : message;
+  });
+}
+
 const PARTICIPANT_RETURNING = `conversation_id, actor_type, actor_id, principal_user_id,
   participant_role, joined_at, left_at,
   last_delivered_sequence, last_read_sequence, muted, archived`;
@@ -114,7 +164,9 @@ class PostgresMessageTransaction implements MessagePersistenceTransaction {
         input.clientMessageId,
       ],
     );
-    return result.rows[0] ? mapMessage(result.rows[0]) : null;
+    if (!result.rows[0]) return null;
+    const hydrated = await hydrateAttachments(this.db, [mapMessage(result.rows[0])]);
+    return hydrated[0] ?? null;
   }
 
   async lockConversation(
@@ -217,6 +269,26 @@ class PostgresMessageTransaction implements MessagePersistenceTransaction {
     );
   }
 
+  async insertAttachments(attachments: MessageAttachment[]): Promise<void> {
+    for (const attachment of attachments) {
+      await this.db.query(
+        `insert into msg_attachment (
+           id, message_id, asset_id, attachment_kind, mime_type,
+           size_bytes, duration_ms
+         ) values ($1, $2, $3, $4, $5, $6, $7)`,
+        [
+          attachment.attachmentId,
+          attachment.messageId,
+          attachment.assetId,
+          attachment.kind,
+          attachment.mimeType,
+          attachment.sizeBytes ?? null,
+          attachment.durationMs ?? null,
+        ],
+      );
+    }
+  }
+
   async updateConversationSequence(input: {
     conversationId: string;
     lastSequence: number;
@@ -312,6 +384,6 @@ export class PostgresMessagePersistence implements MessagePersistencePort {
         limit $3`,
       [input.conversationId, input.afterSequence, input.limit],
     );
-    return result.rows.map(mapMessage);
+    return hydrateAttachments(this.db, result.rows.map(mapMessage));
   }
 }
