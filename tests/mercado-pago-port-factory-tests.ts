@@ -14,12 +14,22 @@ function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
 }
 
+function lookupKey(lookup: PaymentSecretLookup): string {
+  return [
+    lookup.businessId,
+    lookup.providerKey,
+    lookup.providerConnectionId,
+    lookup.credentialRef,
+    lookup.key,
+  ].join('|');
+}
+
 class SecretStore implements PaymentSecretStore {
   lookups: PaymentSecretLookup[] = [];
   values = new Map<string, string>();
   async readSecret(lookup: PaymentSecretLookup): Promise<string | null> {
     this.lookups.push(lookup);
-    return this.values.get(`${lookup.credentialRef}:${lookup.key}`) ?? null;
+    return this.values.get(lookupKey(lookup)) ?? null;
   }
 }
 
@@ -63,10 +73,8 @@ function connection(id: string, businessId: string, credentialRef: string): Paym
   };
 }
 
-const secrets = new SecretStore();
-secrets.values.set('secret://business-a/mp:access_token', 'TOKEN-A');
-secrets.values.set('secret://business-b/mp:access_token', 'TOKEN-B');
 const http = new HttpClient();
+const secrets = new SecretStore();
 const factory = new MercadoPagoPointPortFactory(http, secrets);
 
 const businessA = connection(
@@ -79,6 +87,21 @@ const businessB = connection(
   'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
   'secret://business-b/mp',
 );
+
+secrets.values.set(lookupKey({
+  businessId: businessA.businessId,
+  providerKey: businessA.providerKey,
+  providerConnectionId: businessA.id,
+  credentialRef: businessA.credentialRef as string,
+  key: 'access_token',
+}), 'TOKEN-A');
+secrets.values.set(lookupKey({
+  businessId: businessB.businessId,
+  providerKey: businessB.providerKey,
+  providerConnectionId: businessB.id,
+  credentialRef: businessB.credentialRef as string,
+  key: 'access_token',
+}), 'TOKEN-B');
 
 const portA = await factory.create({ connection: businessA, terminalId: 'TERM-A' });
 await portA.createPayment({
@@ -105,13 +128,11 @@ await portB.createPayment({
 assert(http.calls[0]?.headers.Authorization === 'Bearer TOKEN-A', 'Business A must use only Business A Mercado Pago secret.');
 assert(http.calls[1]?.headers.Authorization === 'Bearer TOKEN-B', 'Business B must use only Business B Mercado Pago secret.');
 assert(
-  secrets.lookups[0]?.credentialRef === businessA.credentialRef &&
-    secrets.lookups[1]?.credentialRef === businessB.credentialRef,
-  'Factory must resolve secrets from each exact business connection reference.',
-);
-assert(
-  JSON.stringify(http.calls).includes('TOKEN-A') && JSON.stringify(http.calls).includes('TOKEN-B'),
-  'Test transport should receive tokens only as runtime authorization headers.',
+  secrets.lookups[0]?.businessId === businessA.businessId &&
+    secrets.lookups[0]?.providerConnectionId === businessA.id &&
+    secrets.lookups[1]?.businessId === businessB.businessId &&
+    secrets.lookups[1]?.providerConnectionId === businessB.id,
+  'Secret lookup must carry business and provider-connection authorization context, not credentialRef alone.',
 );
 
 const missingSecretConnection = connection(
