@@ -42,6 +42,13 @@ create table if not exists msg_scope_resource (
 create index if not exists msg_scope_resource_lookup_idx
   on msg_scope_resource(resource_type, resource_id, scope_id);
 
+-- Reverse lookup used by Event Core -> Message timeline projection. A domain core
+-- publishes its own resource change; Message Core discovers which authorized
+-- Scopes reference that resource without making the domain know Conversation IDs.
+create index if not exists msg_scope_resource_source_lookup_idx
+  on msg_scope_resource(source_core, resource_type, resource_id, scope_id)
+  where source_core is not null;
+
 -- A message can be general to the relationship or attached to one scope.
 -- The composite FK prevents accidentally attaching a message to a scope from a
 -- different conversation. Scopes are audit-oriented and not physically deleted
