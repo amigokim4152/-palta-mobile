@@ -2,6 +2,7 @@ export type BusinessChannelProvider =
   | 'palta'
   | 'instagram'
   | 'facebook'
+  | 'tiktok'
   | 'google_business'
   | 'whatsapp'
   | 'website'
@@ -59,12 +60,30 @@ export type BusinessChannelConnection = {
   capabilities: readonly BusinessChannelCapability[];
 };
 
+export type PublicBusinessChannelLink = {
+  provider: Exclude<BusinessChannelProvider, 'palta' | 'pos'>;
+  label: string;
+  url: string;
+};
+
 const levelRank: Record<BusinessChannelConnectionLevel, number> = {
   link_only: 0,
   assisted_share: 1,
   connected_read: 2,
   connected_publish: 3,
   connected_operate: 4,
+};
+
+const providerLabel: Partial<Record<BusinessChannelProvider, string>> = {
+  instagram: 'Instagram',
+  facebook: 'Facebook',
+  tiktok: 'TikTok',
+  google_business: 'Google',
+  whatsapp: 'WhatsApp',
+  website: 'Sitio web',
+  delivery_marketplace: 'Delivery',
+  marketplace: 'Marketplace',
+  other: 'Otro canal',
 };
 
 /**
@@ -93,6 +112,40 @@ export function canExposeChannelLink(
       connection.status !== 'restricted' &&
       connection.capabilities.includes('public_link'),
   );
+}
+
+/**
+ * Public Business pages expose only safe link projections, never provider tokens,
+ * external account ids, authorization timestamps or operational capabilities.
+ */
+export function projectPublicBusinessChannelLinks(
+  connections: readonly BusinessChannelConnection[],
+): PublicBusinessChannelLink[] {
+  const seen = new Set<string>();
+  const links: PublicBusinessChannelLink[] = [];
+
+  for (const connection of connections) {
+    if (
+      connection.provider === 'palta' ||
+      connection.provider === 'pos' ||
+      !canExposeChannelLink(connection) ||
+      !connection.publicUrl
+    ) {
+      continue;
+    }
+
+    const key = `${connection.provider}:${connection.publicUrl}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+
+    links.push({
+      provider: connection.provider,
+      label: providerLabel[connection.provider] ?? 'Canal externo',
+      url: connection.publicUrl,
+    });
+  }
+
+  return links;
 }
 
 /**
