@@ -105,6 +105,62 @@ const couponRevoked = await json(`/v1/business/${encodeURIComponent(verifiedBusi
 });
 assert(couponRevoked.response.ok && couponRevoked.body.items.length === 0, 'revoked coupon must disappear immediately');
 
+const forbiddenPost = await json(`/v1/business/${encodeURIComponent(businessId)}/basic-posts`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json', 'Idempotency-Key': 'smoke-post-forbidden' },
+  body: JSON.stringify({ title: 'No permitido' }),
+});
+assert(
+  forbiddenPost.response.status === 403 && forbiddenPost.body.error === 'verified_owner_required',
+  'unverified business must not publish owner-controlled news',
+);
+
+const postKey = 'smoke-basic-post-1';
+const publishedPost = await json(`/v1/business/${encodeURIComponent(verifiedBusinessId)}/basic-posts`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json', 'Idempotency-Key': postKey },
+  body: JSON.stringify({
+    title: 'Abrimos también este sábado',
+    body: 'Atenderemos de 10:00 a 14:00.',
+  }),
+});
+assert(publishedPost.response.status === 201, 'verified owner basic post publish failed');
+const publishedPostId = publishedPost.body.items.find((item) => item.title === 'Abrimos también este sábado')?.id;
+assert(publishedPostId, 'published post should appear in owner response');
+const postCountAfterFirstPublish = publishedPost.body.items.length;
+
+const repeatedPost = await json(`/v1/business/${encodeURIComponent(verifiedBusinessId)}/basic-posts`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json', 'Idempotency-Key': postKey },
+  body: JSON.stringify({
+    title: 'Abrimos también este sábado',
+    body: 'Atenderemos de 10:00 a 14:00.',
+  }),
+});
+assert(repeatedPost.response.ok, 'idempotent post retry failed');
+assert(
+  repeatedPost.body.items.length === postCountAfterFirstPublish,
+  'idempotent post retry must not create a duplicate',
+);
+
+const businessAfterPost = await json(`/v1/business/${encodeURIComponent(verifiedBusinessId)}`);
+const publicPost = businessAfterPost.body.posts.find((item) => item.id === publishedPostId);
+assert(publicPost?.body === 'Atenderemos de 10:00 a 14:00.', 'published post should appear on the canonical Business profile');
+
+const archivedPost = await json(
+  `/v1/business/${encodeURIComponent(verifiedBusinessId)}/basic-posts/${encodeURIComponent(publishedPostId)}`,
+  {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status: 'archived' }),
+  },
+);
+assert(archivedPost.response.ok, 'basic post archive failed');
+assert(
+  !archivedPost.body.items.some((item) => item.id === publishedPostId),
+  'archived basic post must disappear from active profile posts',
+);
+
 const channelLinks = await json(`/v1/business/${encodeURIComponent(businessId)}/channel-links`, {
   method: 'PUT',
   headers: { 'Content-Type': 'application/json' },
@@ -185,6 +241,7 @@ console.log(JSON.stringify({
     following: unfollowedRelationship.body.following,
   },
   couponFlow: 'verified/follower/revoke ok',
+  postFlow: 'verified/idempotent/archive ok',
   publicChannelLinks: businessAfterLinks.body.channel_links.length,
   careId: care.body.id,
 }, null, 2));
