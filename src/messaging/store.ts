@@ -1,4 +1,11 @@
-import type { ActionReference, ActorRef, Message, MessageType, OutboxEvent } from './contracts.js';
+import type {
+  ActionReference,
+  ActorRef,
+  Message,
+  MessageAttachmentDraft,
+  MessageType,
+  OutboxEvent,
+} from './contracts.js';
 
 export interface PersistMessageInput {
   conversationId: string;
@@ -7,6 +14,7 @@ export interface PersistMessageInput {
   sender: ActorRef;
   type: MessageType;
   body?: string;
+  attachments?: MessageAttachmentDraft[];
   replyToMessageId?: string;
   actionRef?: ActionReference;
   createdAt: string;
@@ -26,6 +34,7 @@ export interface MessageStore {
 export interface MessageStoreRuntime {
   nextMessageId(): string;
   nextOutboxEventId(): string;
+  nextAttachmentId?(): string;
 }
 
 export class InMemoryMessageStore implements MessageStore {
@@ -41,8 +50,18 @@ export class InMemoryMessageStore implements MessageStore {
 
     const conversationMessages = this.messages.get(input.conversationId) ?? [];
     const sequence = (conversationMessages.at(-1)?.sequence ?? 0) + 1;
+    const messageId = this.runtime.nextMessageId();
+    const drafts = input.attachments ?? [];
+    if (drafts.length > 0 && !this.runtime.nextAttachmentId) {
+      throw new Error('nextAttachmentId runtime is required when persisting attachments.');
+    }
+    const attachments = drafts.map((draft) => ({
+      attachmentId: this.runtime.nextAttachmentId!(),
+      messageId,
+      ...draft,
+    }));
     const message: Message = {
-      messageId: this.runtime.nextMessageId(),
+      messageId,
       conversationId: input.conversationId,
       ...(input.scopeId !== undefined ? { scopeId: input.scopeId } : {}),
       clientMessageId: input.clientMessageId,
@@ -51,6 +70,7 @@ export class InMemoryMessageStore implements MessageStore {
       type: input.type,
       createdAt: input.createdAt,
       ...(input.body !== undefined ? { body: input.body } : {}),
+      ...(attachments.length > 0 ? { attachments } : {}),
       ...(input.replyToMessageId !== undefined ? { replyToMessageId: input.replyToMessageId } : {}),
       ...(input.actionRef !== undefined ? { actionRef: input.actionRef } : {}),
     };
@@ -60,6 +80,12 @@ export class InMemoryMessageStore implements MessageStore {
       aggregateType: 'message',
       aggregateId: message.messageId,
       eventType: 'message.created',
+      payload: {
+        conversationId: message.conversationId,
+        ...(message.scopeId !== undefined ? { scopeId: message.scopeId } : {}),
+        sequence: message.sequence,
+        messageId: message.messageId,
+      },
       createdAt: input.createdAt,
     };
 
