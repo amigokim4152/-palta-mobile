@@ -1,0 +1,33 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "palta-outbox-dispatcher",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-17",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": false,
+  "hyperdrive": [
+    {
+      "binding": "PALTA_DB",
+      "id": "__PALTA_OUTBOX_DISPATCHER_HYPERDRIVE_ID__"
+    }
+  ],
+  "queues": {
+    "producers": [
+      {
+        "binding": "PAYMENT_QUEUE",
+        "queue": "__PALTA_PAYMENT_QUEUE__"
+      },
+      {
+        "binding": "FISCAL_QUEUE",
+        "queue": "__PALTA_FISCAL_QUEUE__"
+      }
+    ]
+  },
+  "triggers": {
+    "crons": ["* * * * *"]
+  },
+  "vars": {
+    "PALTA_RUNTIME": "outbox_dispatcher",
+    "DISPATCH_BATCH_SIZE": "100"
+  }
+}
