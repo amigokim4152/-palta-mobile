@@ -21,3 +21,21 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run verify
+      - name: Mock API HTTP smoke
+        run: |
+          npm run mock:api > /tmp/palta-mock-api.log 2>&1 &
+          MOCK_PID=$!
+          trap 'kill "$MOCK_PID" 2>/dev/null || true' EXIT
+          READY=0
+          for attempt in $(seq 1 20); do
+            if curl --fail --silent http://127.0.0.1:8787/health > /dev/null; then
+              READY=1
+              break
+            fi
+            sleep 0.25
+          done
+          if [ "$READY" -ne 1 ]; then
+            cat /tmp/palta-mock-api.log
+            exit 1
+          fi
+          npm run mock:smoke
