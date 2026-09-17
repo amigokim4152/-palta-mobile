@@ -30,6 +30,10 @@ const fields: readonly Field[] = [
   { provider: 'website', label: 'Sitio web', placeholder: 'tu-negocio.cl', help: 'Puedes escribir el dominio o pegar la dirección completa.' },
 ];
 
+const editableProviders = new Set<BusinessPublicChannelProvider>(
+  fields.map((field) => field.provider),
+);
+
 function emptyValues(): Record<EditableProvider, string> {
   return {
     instagram: '',
@@ -75,11 +79,11 @@ export default function BusinessPublicChannelsScreen() {
   );
 
   async function save() {
-    if (!businessId || mobileRuntime.status !== 'ready') return;
+    if (!businessId || !business || mobileRuntime.status !== 'ready') return;
     setSaving(true);
     setMessage(null);
     try {
-      const links: { provider: EditableProvider; url: string }[] = [];
+      const links: { provider: BusinessPublicChannelProvider; url: string }[] = [];
       for (const field of fields) {
         const raw = values[field.provider].trim();
         if (!raw) continue;
@@ -89,6 +93,12 @@ export default function BusinessPublicChannelsScreen() {
           return;
         }
         links.push({ provider: field.provider, url: normalized });
+      }
+
+      for (const link of business.channel_links ?? []) {
+        if (!editableProviders.has(link.provider)) {
+          links.push({ provider: link.provider, url: link.url });
+        }
       }
 
       const result = await mobileRuntime.client.replaceBusinessPublicChannelLinks(businessId, links);
