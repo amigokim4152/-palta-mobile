@@ -13,6 +13,8 @@ const guidance = buildOwnerBusinessGuidance({
   hoursConfirmedAt: '2025-12-01T12:00:00-03:00',
   now: '2026-09-17T08:30:00-03:00',
   maxHoursConfirmationAgeMs: 180 * 24 * 60 * 60 * 1000,
+  pendingFactCorrectionCount: 2,
+  pendingFactCorrectionFields: ['hours', 'phone'],
   photoCount: 0,
   hasDescription: false,
   serviceCount: 0,
@@ -35,6 +37,7 @@ const guidance = buildOwnerBusinessGuidance({
 });
 
 const ids = new Set(guidance.map((item) => item.id));
+assert(ids.has('biz-algarrobo-1:review-fact-corrections'), 'Pending customer corrections should become an owner truth-maintenance task.');
 assert(ids.has('biz-algarrobo-1:confirm-hours'), 'Stale hours should generate a free reconfirmation action.');
 assert(ids.has('biz-algarrobo-1:add-photo'), 'Missing photos should generate a practical free improvement.');
 assert(ids.has('biz-algarrobo-1:create-qr'), 'A public Business page should make the free QR action available.');
@@ -44,8 +47,13 @@ assert(ids.has('biz-algarrobo-1:search-alias:desayuno'), 'Confirmed search-deman
 assert(!ids.has('biz-algarrobo-1:search-alias:brunch'), 'Search demand alone must never invent a service the owner has not confirmed.');
 assert(!ids.has('biz-algarrobo-1:cross-channel-automation'), 'Paid automation must not be suggested without observed repeated work.');
 
+const correctionAction = guidance.find((item) => item.id === 'biz-algarrobo-1:review-fact-corrections');
+assert(correctionAction?.commercial === 'free', 'Reviewing customer corrections is basic truth maintenance, not a paid feature.');
+assert(correctionAction?.reason.includes('hours') && correctionAction.reason.includes('phone'), 'Correction guidance may identify the affected fact fields without auto-applying the suggested values.');
+
 const ranked = rankOwnerPartnerActions(guidance, guidance.length);
-assert(ranked[0]?.id === 'biz-algarrobo-1:confirm-hours', 'Stale public truth should be fixed before generic profile promotion tips.');
+assert(ranked[0]?.id === 'biz-algarrobo-1:review-fact-corrections', 'A live correction signal should outrank generic improvements and an ordinary stale-hours reminder.');
+assert(ranked[1]?.id === 'biz-algarrobo-1:confirm-hours', 'Stale public truth should still rank before generic profile promotion tips.');
 assert(guidance.every((item) => item.commercial === 'free'), 'Baseline guidance must not manufacture an upsell when free actions solve the observed gaps.');
 
 const linkedChannels: BusinessChannelConnection[] = [
