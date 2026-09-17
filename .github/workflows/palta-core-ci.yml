@@ -102,3 +102,24 @@ jobs:
             exit 1
           fi
           npm run mock:trust-smoke
+      - name: Verified review write HTTP smoke
+        env:
+          PALTA_MOCK_PORT: '8791'
+          PALTA_MOCK_BASE_URL: 'http://127.0.0.1:8791'
+        run: |
+          npm run mock:api > /tmp/palta-review-write-mock-api.log 2>&1 &
+          MOCK_PID=$!
+          trap 'kill "$MOCK_PID" 2>/dev/null || true' EXIT
+          READY=0
+          for attempt in $(seq 1 20); do
+            if curl --fail --silent http://127.0.0.1:8791/health > /dev/null; then
+              READY=1
+              break
+            fi
+            sleep 0.25
+          done
+          if [ "$READY" -ne 1 ]; then
+            cat /tmp/palta-review-write-mock-api.log
+            exit 1
+          fi
+          npm run mock:review-write-smoke
