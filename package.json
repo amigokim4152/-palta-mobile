@@ -11,8 +11,9 @@
     "mock:smoke": "node dev/mock-api/smoke.mjs",
     "mock:following-smoke": "node dev/mock-api/following-smoke.mjs",
     "mock:operating-rules-smoke": "node dev/mock-api/operating-rules-smoke.mjs",
+    "check:mobile-hours-source": "node scripts/check-local-business-mobile-hours.mjs",
     "check:independence": "node scripts/check-core-independence.mjs",
-    "verify": "npm run typecheck && npm test && npm run check:independence",
+    "verify": "npm run typecheck && npm test && npm run check:independence && npm run check:mobile-hours-source",
     "preflight:env": "node scripts/preflight-env.mjs",
     "preflight:local": "bash scripts/preflight-local.sh",
     "check:machine": "bash scripts/machine-readiness-check.sh"
