@@ -16,6 +16,7 @@ import { BusinessPhotoStrip } from '../../components/business/BusinessPhotoStrip
 import { SectionHeading } from '../../components/common/SectionHeading';
 import { useAsyncResource } from '../../hooks/useAsyncResource';
 import { mobileRuntime } from '../../services/paltaClient';
+import { useNeighborhoodState } from '../../state/NeighborhoodStateProvider';
 
 function ProfileSection({
   title,
@@ -96,6 +97,7 @@ function buildPhoneUrl(business: BusinessApiDetail): string | undefined {
 
 export default function BusinessDetailScreen() {
   const { businessId } = useLocalSearchParams<{ businessId: string }>();
+  const { dispatch } = useNeighborhoodState();
   const [submitting, setSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState<string | null>(null);
 
@@ -128,6 +130,11 @@ export default function BusinessDetailScreen() {
   }, [businessId]);
 
   const { state, refresh } = useAsyncResource(loadBusiness);
+
+  function returnToDiscovery() {
+    if (businessId) dispatch({ type: 'select_entity', entityId: businessId });
+    router.back();
+  }
 
   async function updateRelationship(capability: 'save' | 'follow') {
     if (!businessId || mobileRuntime.status !== 'ready' || !state.data) return;
@@ -278,7 +285,15 @@ export default function BusinessDetailScreen() {
     .join(' · ');
 
   return (
-    <ScreenFrame title={business.name} subtitle={statusLine}>
+    <ScreenFrame
+      title={business.name}
+      subtitle={statusLine}
+      action={
+        <Pressable onPress={returnToDiscovery} style={{ paddingVertical: 8 }}>
+          <Text style={{ fontWeight: '800' }}>Volver a negocios</Text>
+        </Pressable>
+      }
+    >
       <View style={{ gap: 18 }}>
         <BusinessPhotoStrip photoUrls={business.photo_urls ?? []} />
         <ProfileSection title="Sobre este negocio" body={business.description} />
