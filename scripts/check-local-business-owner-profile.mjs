@@ -5,6 +5,7 @@ import ts from 'typescript';
 const root = process.cwd();
 const profilePath = 'mobile-overlay/src/app/business/manage/[businessId]/profile.tsx';
 const servicesPath = 'mobile-overlay/src/app/business/manage/[businessId]/services.tsx';
+const locationPath = 'mobile-overlay/src/app/business/manage/[businessId]/location.tsx';
 const ownerHomePath = 'mobile-overlay/src/app/business/manage/[businessId].tsx';
 const correctionsPath = 'mobile-overlay/src/app/business/manage/[businessId]/corrections.tsx';
 
@@ -60,6 +61,7 @@ function readChecked(relativeFile) {
 
 const profile = readChecked(profilePath);
 const services = readChecked(servicesPath);
+const location = readChecked(locationPath);
 const ownerHome = readChecked(ownerHomePath);
 const corrections = readChecked(correctionsPath);
 
@@ -81,6 +83,10 @@ assert(
   'Basic profile must link to its separate service taxonomy control.',
 );
 assert(
+  profile.includes('/location') && profile.includes('Ubicación'),
+  'Basic profile must link to its separate location/privacy control.',
+);
+assert(
   services.includes('mobileRuntime.client.services.getOwnerServices') &&
   services.includes('mobileRuntime.client.services.updateOwnerServices'),
   'Service editor must use the dedicated owner services API contract.',
@@ -95,6 +101,24 @@ assert(
   'Unmatched wording may be retained but must not become canonical search taxonomy from the client.',
 );
 assert(
+  location.includes('mobileRuntime.client.location.getOwnerLocation') &&
+  location.includes('mobileRuntime.client.location.updateOwnerLocation'),
+  'Location editor must use the dedicated owner location contract.',
+);
+assert(
+  location.includes("value: 'exact'") &&
+  location.includes("value: 'area_only'") &&
+  location.includes("value: 'hidden'"),
+  'Location editor must let the owner control public precision explicitly.',
+);
+assert(
+  location.includes('No te pediremos escribir coordenadas manualmente') &&
+  !location.includes("from 'expo-location'") &&
+  !location.includes('placeholder="Latitud') &&
+  !location.includes('placeholder="Longitud'),
+  'Location editor must not invent a vertical-only device/map adapter or ask owners to type coordinates.',
+);
+assert(
   ownerHome.includes('/profile') && ownerHome.includes('title="Perfil público"'),
   'Mi negocio must expose the free profile editor.',
 );
@@ -103,4 +127,4 @@ assert(
   'Contact corrections must link to the canonical profile editor before resolution.',
 );
 
-console.log('PASS: Local Business free owner profile + services source check');
+console.log('PASS: Local Business free owner profile + services + location source check');
