@@ -19,7 +19,8 @@ export type PrinterDiscoveryFingerprint = {
   usbVendorId?: string;
   usbProductId?: string;
   networkServiceName?: string;
-  connectionFingerprint: string;
+  /** SHA-256 hex digest generated locally from stable connection identity. */
+  connectionFingerprintHash: string;
 };
 
 export type DiscoveredPrinterCandidate = {
@@ -71,10 +72,17 @@ function firstSupportedTransport(
   return available[0];
 }
 
+function assertSha256Hex(value: string, field: string): void {
+  if (!/^[a-f0-9]{64}$/i.test(value)) {
+    throw new Error(`${field} must be a SHA-256 hex digest.`);
+  }
+}
+
 export function assessDiscoveredPrinter(input: {
   candidate: DiscoveredPrinterCandidate;
   manifest: PrinterCompatibilityManifest;
 }): PrinterDiscoveryAssessment {
+  assertSha256Hex(input.candidate.fingerprint.connectionFingerprintHash, 'connectionFingerprintHash');
   const manufacturer = input.candidate.fingerprint.manufacturer ?? '';
   const model = input.candidate.fingerprint.model ?? '';
   const matched = manufacturer && model
@@ -199,6 +207,7 @@ export function createPrinterIdentityFromDiscovery(input: {
   if (!input.id.trim() || !input.businessId.trim()) {
     throw new Error('Printer identity and business are required.');
   }
+  assertSha256Hex(input.candidate.fingerprint.connectionFingerprintHash, 'connectionFingerprintHash');
 
   const printer: PrinterIdentity = {
     id: input.id,
@@ -209,7 +218,7 @@ export function createPrinterIdentityFromDiscovery(input: {
     supportTier: input.assessment.supportTier,
     health: input.initialHealth,
     adapterKey: input.assessment.adapterKey,
-    connectionFingerprint: input.candidate.fingerprint.connectionFingerprint,
+    connectionFingerprintHash: input.candidate.fingerprint.connectionFingerprintHash,
   };
 
   if (input.outletId !== undefined) printer.outletId = input.outletId;
@@ -220,6 +229,7 @@ export function createPrinterIdentityFromDiscovery(input: {
     printer.model = input.candidate.fingerprint.model;
   }
   if (input.candidate.fingerprint.serialNumberHash !== undefined) {
+    assertSha256Hex(input.candidate.fingerprint.serialNumberHash, 'serialNumberHash');
     printer.serialNumberHash = input.candidate.fingerprint.serialNumberHash;
   }
   if (input.candidate.fingerprint.firmwareVersion !== undefined) {
