@@ -7,6 +7,7 @@ import {
   type FiscalExecution,
 } from './fiscalExecution.js';
 import { FiscalProviderOperationError } from './fiscalProviderIncident.js';
+import type { ChileDteType } from './fiscalModel.js';
 import type { FiscalExecutionRepository } from '../../persistence/fiscalExecutionRepository.js';
 import type { FiscalRequestRepository } from '../../persistence/fiscalRequestRepository.js';
 import type {
@@ -21,6 +22,7 @@ export type ExternalFiscalPortResolutionInput = {
   providerKey: string;
   providerConnectionId: string;
   environment: 'certification' | 'production';
+  documentType: ChileDteType;
 };
 
 export interface ExternalFiscalPortResolver {
@@ -148,6 +150,7 @@ export class ExternalFiscalOutboxHandler implements OutboxEventHandler {
       providerKey: execution.providerKey,
       providerConnectionId: execution.providerConnectionId,
       environment: execution.environment,
+      documentType: execution.documentType,
     });
     if (!port) return { kind: 'dead_letter', errorCode: 'fiscal_provider_adapter_missing' };
     if (port.providerKey !== execution.providerKey) {
@@ -169,8 +172,6 @@ export class ExternalFiscalOutboxHandler implements OutboxEventHandler {
 
     const occurredAt = this.now();
     try {
-      // Only the first delivery may call issue(). Any redelivery/restart uses
-      // reconcile(), which may replay only the exact same provider idempotency identity.
       const firstProviderAttempt = wasCreatedThisAttempt && event.attempts <= 1;
       const result = firstProviderAttempt
         ? await port.issue(originalIssue)
@@ -190,7 +191,7 @@ export class ExternalFiscalOutboxHandler implements OutboxEventHandler {
       if (saved.status === 'failed') {
         return { kind: 'dead_letter', errorCode: 'fiscal_execution_failed_requires_operator' };
       }
-      if (fiscalExecutionNeedsReconciliation(saved.status) || saved.status === 'observed') {
+      if (fiscalExecutionNeedsReconciliation(saved.status)) {
         return retryable(event, occurredAt, 'fiscal_status_not_final');
       }
       return { kind: 'delivered' };
@@ -225,8 +226,6 @@ export class ExternalFiscalOutboxHandler implements OutboxEventHandler {
       return retryable(event, occurredAt, incident.kind);
     }
 
-    // An auth/config/validation error while a document is already queued or at
-    // the authority is an access/operation incident, not proof the DTE failed.
     if (execution.status !== 'submitting') {
       return { kind: 'dead_letter', errorCode: incident.kind };
     }
