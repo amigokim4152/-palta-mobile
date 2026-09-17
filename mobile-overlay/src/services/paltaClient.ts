@@ -1,36 +1,13 @@
-import {
-  type BusinessApiDetail,
-  type BusinessOnboardingApiInput,
-  type BusinessOnboardingApiResult,
-  type CareApiTrack,
-  type HomeApiResponse,
-  type LocalSearchItem,
-} from '../../../src/api/paltaApiClient';
 import { parseRuntimeEnv } from '../../../src/config/runtimeEnv';
 import { createPaltaApiClient } from '../../../src/api/paltaApiFactory';
 import type { AuthPort } from '../../../src/ports/authPort';
 
-export type MobilePaltaClient = {
-  getHome(): Promise<HomeApiResponse>;
-  searchLocal(input: {
-    latitude: number;
-    longitude: number;
-    radiusM?: number;
-    query?: string;
-  }): Promise<LocalSearchItem[]>;
-  getBusiness(id: string): Promise<BusinessApiDetail>;
-  submitBusinessOnboarding(
-    input: BusinessOnboardingApiInput,
-  ): Promise<BusinessOnboardingApiResult>;
-  getCare(id: string): Promise<CareApiTrack>;
-  createCare(input: {
-    intentKey: string;
-    subjectEntityId?: string;
-    actionType?: string;
-    payload?: Record<string, unknown>;
-    idempotencyKey?: string;
-  }): Promise<CareApiTrack>;
-};
+/**
+ * Mobile uses the canonical API client directly. Do not mirror its methods in a
+ * second hand-maintained interface; new domain contracts must become available
+ * through the same typed client everywhere.
+ */
+export type MobilePaltaClient = ReturnType<typeof createPaltaApiClient>;
 
 export type MobileRuntime =
   | {
