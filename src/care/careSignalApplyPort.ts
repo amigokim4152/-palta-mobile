@@ -4,6 +4,7 @@ export interface CareSignalApplyResult {
   careTrackId: string;
   changed: boolean;
   state?: string;
+  disposition?: 'applied' | 'replayed' | 'ignored_stale';
 }
 
 export interface CareSignalApplyPort {
@@ -21,6 +22,7 @@ export interface CareSignalApplyPort {
     resourceType: string;
     resourceId: string;
     occurredAt: string;
+    sourceSequence?: number;
     expectedAt?: string;
     waitingForKey?: string;
     resultRef?: string;
