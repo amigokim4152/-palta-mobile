@@ -1,6 +1,9 @@
 import http from 'node:http';
 import { randomUUID } from 'node:crypto';
-import { handleOperatingRulesRequest } from './operating-rules-state.mjs';
+import {
+  handleOperatingRulesRequest,
+  refreshBusinessOperationalState,
+} from './operating-rules-state.mjs';
 
 const host = process.env.PALTA_MOCK_HOST ?? '127.0.0.1';
 const port = Number(process.env.PALTA_MOCK_PORT ?? '8787');
@@ -322,6 +325,7 @@ const server = http.createServer(async (req, res) => {
       if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
         return json(res, 400, { error: 'lat_lng_required' });
       }
+      for (const business of businesses) refreshBusinessOperationalState(business);
       const q = normalize(url.searchParams.get('q'));
       const matching = !q
         ? businesses
@@ -620,6 +624,7 @@ const server = http.createServer(async (req, res) => {
     if (ownerGuidanceMatch) {
       const id = decodeURIComponent(ownerGuidanceMatch[1]);
       const business = businesses.find((item) => item.id === id);
+      if (business) refreshBusinessOperationalState(business);
       return business
         ? json(res, 200, {
             business_id: business.id,
@@ -632,7 +637,9 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'GET' && url.pathname.startsWith('/v1/business/')) {
       const id = decodeURIComponent(url.pathname.slice('/v1/business/'.length));
       const business = businesses.find((item) => item.id === id);
-      return business ? json(res, 200, business) : json(res, 404, { error: 'business_not_found' });
+      if (!business) return json(res, 404, { error: 'business_not_found' });
+      refreshBusinessOperationalState(business);
+      return json(res, 200, business);
     }
 
     if (req.method === 'POST' && url.pathname === '/v1/care') {
