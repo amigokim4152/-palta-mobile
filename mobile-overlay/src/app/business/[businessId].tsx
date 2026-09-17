@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Text, View } from 'react-native';
+import { Linking, Pressable, Text, View } from 'react-native';
 import {
   composePublicBusinessCapabilities,
   type BusinessCapability,
@@ -33,6 +33,39 @@ function ProfileSection({
     <View style={{ gap: 6 }}>
       <SectionHeading title={title} />
       <Text style={{ lineHeight: 22 }}>{body}</Text>
+    </View>
+  );
+}
+
+function ExternalChannels({
+  links,
+}: {
+  links: readonly { provider: string; label: string; url: string }[];
+}) {
+  if (!links.length) return null;
+
+  return (
+    <View style={{ gap: 8 }}>
+      <SectionHeading
+        title="También puedes encontrar este negocio en"
+        subtitle="Palta no te obliga a dejar los canales que ya usas."
+      />
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+        {links.map((link) => (
+          <Pressable
+            key={`${link.provider}:${link.url}`}
+            onPress={() => void Linking.openURL(link.url)}
+            style={{
+              borderWidth: 1,
+              borderRadius: 999,
+              paddingHorizontal: 12,
+              paddingVertical: 8,
+            }}
+          >
+            <Text style={{ fontWeight: '700' }}>{link.label}</Text>
+          </Pressable>
+        ))}
+      </View>
     </View>
   );
 }
@@ -176,6 +209,8 @@ export default function BusinessDetailScreen() {
         <ProfileSection title="Servicios" body={services} />
         <ProfileSection title="Horario" body={business.hours_summary} />
         <ProfileSection title="Zona de atención" body={serviceAreas} />
+
+        <ExternalChannels links={business.channel_links ?? []} />
 
         <SectionHeading
           title="Contactar y actuar"
