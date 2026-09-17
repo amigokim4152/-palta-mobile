@@ -1,4 +1,3 @@
-import assert from 'node:assert/strict';
 import {
   assertCustomerInteractionEnabled,
   attachPaymentIntentToShare,
@@ -12,6 +11,18 @@ import {
   type PaymentShare,
   type SharedOrder,
 } from '../src/commerce/customerInteraction.js';
+
+function assert(condition: unknown, message: string): asserts condition {
+  if (!condition) throw new Error(message);
+}
+function assertEqual<T>(actual: T, expected: T, message: string): void {
+  if (actual !== expected) throw new Error(`${message}: expected ${String(expected)}, got ${String(actual)}`);
+}
+function assertThrows(fn: () => unknown, message: string): void {
+  let threw = false;
+  try { fn(); } catch { threw = true; }
+  if (!threw) throw new Error(message);
+}
 
 const order: SharedOrder = {
   id: 'order-1',
@@ -39,8 +50,8 @@ const config: CustomerInteractionConfig = {
   requireStaffAcceptance: true,
 };
 
-assert.doesNotThrow(() => assertCustomerInteractionEnabled(config, 'split_payment'));
-assert.throws(() => assertCustomerInteractionEnabled(config, 'receipt_share'));
+assertCustomerInteractionEnabled(config, 'split_payment');
+assertThrows(() => assertCustomerInteractionEnabled(config, 'receipt_share'), 'Disabled customer interaction capability must be blocked.');
 
 const entry = createCustomerEntryContext({
   id: 'entry-1',
@@ -49,10 +60,10 @@ const entry = createCustomerEntryContext({
   tableId: 'table-8',
   opaqueEntryToken: 'opaque-token-1234567890',
 });
-assert.equal(entry.status, 'active');
-assert.throws(() => createCustomerEntryContext({
+assertEqual(entry.status, 'active', 'QR entry context must begin active.');
+assertThrows(() => createCustomerEntryContext({
   id: 'entry-2', businessId: 'biz-1', outletId: 'outlet-1', opaqueEntryToken: 'short',
-}));
+}), 'Short predictable QR tokens must be rejected.');
 
 const first = reservePaymentShare({
   id: 'share-1',
@@ -62,12 +73,12 @@ const first = reservePaymentShare({
   method: 'by_item',
   itemIds: ['i1'],
 });
-assert.equal(first.amountMinor, 10000);
-assert.equal(unpaidAmountMinor(order, [first]), 5000);
+assertEqual(first.amountMinor, 10000, 'Item split must derive exact item amount.');
+assertEqual(unpaidAmountMinor(order, [first]), 5000, 'Remaining order balance must account for reserved shares.');
 
-assert.throws(() => reservePaymentShare({
+assertThrows(() => reservePaymentShare({
   id: 'share-dup', order, existingShares: [first], participantId: 'p2', method: 'by_item', itemIds: ['i1'],
-}));
+}), 'Two participants must not reserve the same item.');
 
 const second = reservePaymentShare({
   id: 'share-2',
@@ -77,22 +88,23 @@ const second = reservePaymentShare({
   method: 'custom_amount',
   amountMinor: 5000,
 });
-assert.equal(unpaidAmountMinor(order, [first, second]), 0);
-assert.throws(() => reservePaymentShare({
+assertEqual(unpaidAmountMinor(order, [first, second]), 0, 'Payment shares may exactly cover the order.');
+assertThrows(() => reservePaymentShare({
   id: 'share-over', order, existingShares: [first], participantId: 'p2', method: 'custom_amount', amountMinor: 6000,
-}));
+}), 'Payment shares must not exceed the remaining balance.');
 
 const withIntent = attachPaymentIntentToShare(first, 'pi-1');
 const paid = markPaymentSharePaid(withIntent);
-assert.equal(paid.status, 'paid');
-assert.throws(() => releasePaymentShare(paid));
+assertEqual(paid.status, 'paid', 'Payment share must become paid only after a payment intent is attached.');
+assertThrows(() => releasePaymentShare(paid), 'Paid shares must never be released automatically.');
 
 const releasable: PaymentShare = {
   id: 'share-3', sharedOrderId: order.id, participantId: 'p2', method: 'custom_amount', amountMinor: 5000, itemIds: [], status: 'reserved',
 };
-assert.equal(releasePaymentShare(releasable).status, 'released');
+assertEqual(releasePaymentShare(releasable).status, 'released', 'Unpaid reserved share may be released.');
 
-assert.equal(decideFiscalGrouping({ isSingleSharedSale: true, customersAreMakingIndependentPurchases: false }), 'single_sale_document');
-assert.equal(decideFiscalGrouping({ isSingleSharedSale: false, customersAreMakingIndependentPurchases: true }), 'separate_commerce_transactions');
+assertEqual(decideFiscalGrouping({ isSingleSharedSale: true, customersAreMakingIndependentPurchases: false }), 'single_sale_document', 'Shared payment alone must not split the fiscal sale.');
+assertEqual(decideFiscalGrouping({ isSingleSharedSale: false, customersAreMakingIndependentPurchases: true }), 'separate_commerce_transactions', 'Independent purchases must use separate commerce transactions.');
 
+assert(order.participants.length === 2, 'Shared order test fixture must retain both participants.');
 console.log('customer-interaction-tests: ok');
