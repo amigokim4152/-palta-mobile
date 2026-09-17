@@ -17,16 +17,17 @@ Message Core owns:
 - Long-lived Conversation and participant state
 - Conversation Scope for a specific case/order/booking/shipment inside that relationship
 - Durable messages
-- Attachments by Media Core reference
+- Attachment references to provider-neutral Asset Core assets
 - Sequence-based delivered/read state
 - Relationship-wide conversation context references
 - Scope resource references
 - Action references
 - Block/report state
-- Outbox events for async delivery
+- Transactional Outbox events for async delivery
 - Optional, versioned AI artifact references
 
 Message Core does not own:
+- Physical media storage URLs, signed URLs or storage-provider object keys
 - Quote values or quote lifecycle
 - Reservation lifecycle
 - Orders, shipments, payments, POS state or receipts
@@ -37,7 +38,7 @@ Message Core does not own:
 - Push device tokens
 - Realtime provider storage
 
-Those objects are linked by stable `resourceType + resourceId` references.
+Domain objects are linked by stable `resourceType + resourceId` references. Media is linked by stable `assetId` references owned by Asset Core.
 
 ## Conversation vs Conversation Scope
 
@@ -72,26 +73,59 @@ A quote card, reservation confirmation, shipment status or receipt shown in a co
 ## Delivery rule
 
 1. Authorize actor and conversation access.
-2. Persist message and allocate conversation sequence.
-3. Persist Outbox event in the same durable operation.
-4. Return accepted/persisted state to sender.
-5. Async worker publishes through Realtime Adapter.
-6. If recipient is offline, Notification Core may send push.
-7. Reconnect uses sequence cursor sync; WebSocket loss must never lose a canonical message.
+2. For media messages, authorize each Asset Core `assetId` for the authenticated principal/acting actor.
+3. Persist message, attachment references and allocate conversation sequence.
+4. Persist Outbox event in the same database transaction.
+5. Return accepted/persisted state to sender.
+6. Async outbox worker claims unpublished rows with a reclaimable lease.
+7. Worker publishes immutable event IDs to the shared EventBus.
+8. Realtime consumer emits a lightweight `RealtimeEnvelope`; Notification Core receives a separate `notification.candidate`.
+9. Reconnect uses sequence cursor sync; WebSocket loss must never lose a canonical message.
 
 Realtime is a delivery optimization, not the source of truth.
 
+Outbox delivery is at-least-once. If a worker publishes an event and crashes before marking the row published, the event may be delivered again. Consumers therefore dedupe by immutable EventBus/outbox event ID. Palta prefers safe duplicate handling over silent message loss.
+
+Notification candidates contain routing references only. Message body, attachment payload, customer phone/email/address and bearer/share tokens are not copied into the candidate event.
+
 ## Read state
 
-Participant state stores `lastDeliveredSequence` and `lastReadSequence`. Per-message read rows are not required for ordinary unread-count calculation. State only moves forward.
+Participant state stores `lastDeliveredSequence` and `lastReadSequence`. Per-message read rows are not required for ordinary unread-count calculation. State only moves forward and is capped at the canonical conversation `lastSequence`.
 
 `message read` is never equivalent to a domain action. Reading a quote does not approve it; reading a booking update does not confirm attendance; reading a delivery update does not prove receipt of goods.
 
-## Voice and AI
+## Voice, attachments and Asset Core
 
-Voice is a first-class message type from v1, but automatic transcription is not required at launch. Audio is stored through Media Core/R2 by reference.
+Voice is a first-class message type from v1, but automatic transcription is not required at launch.
 
-Device dictation is an input mode that normally produces a normal text message. When available, on-device speech recognition should be preferred before a paid server transcription path.
+A voice-note send flow is:
+
+1. Record locally.
+2. Compress/encode on device according to the eventual native media policy.
+3. Upload through Asset Core/storage adapter.
+4. Receive a Palta provider-neutral `assetId`.
+5. Message API sends `message_type=voice` with exactly one authorized voice attachment reference.
+6. Message row + attachment reference + outbox event commit atomically.
+
+Message Core never stores an R2/S3/Cloudinary/Supabase URL or provider object key. Initial physical storage may use R2, but that is an Asset Core/storage-adapter decision.
+
+`message_media` is the durable Asset kind for canonical message media. `temporary_upload` may be used during upload/preparation, but an upload must be authorized/usable before Message Core attaches it.
+
+Structural v1 rules:
+- `voice` -> exactly one `voice` attachment
+- `image` -> one or more `image` attachments
+- `file` -> one or more `file` attachments
+- other message types -> no direct attachment list
+- maximum 10 attachments per message as an initial abuse/resource guardrail
+- codec and voice-duration limit are intentionally not frozen yet
+
+Device dictation is different from a voice note. Dictation normally follows:
+
+`microphone -> OS/on-device speech recognition -> editable text preview -> normal text message`
+
+The raw dictation audio should not be retained by Palta unless the user explicitly chooses to send a voice note or another product flow explicitly requires it. This is both a privacy and cost advantage.
+
+## AI derivatives
 
 AI-derived data is stored separately as versioned artifacts:
 - transcript
@@ -102,7 +136,9 @@ AI-derived data is stored separately as versioned artifacts:
 - suggested_action
 - moderation
 
-Original message content is never replaced by an AI result. AI-extracted dates, amounts, booking times or action intents are candidates until the user/domain confirms them.
+Original message text/audio is never replaced by an AI result. A voice transcript is a derivative of the canonical voice asset, not a replacement for it. AI-extracted dates, amounts, booking times or action intents are candidates until the user/domain confirms them.
+
+Server transcription is optional, not a prerequisite for voice messaging. On-device speech recognition should be preferred for dictation where the platform supports it; paid/server transcription can be used selectively later.
 
 ## Realtime provider boundary
 
@@ -160,8 +196,8 @@ This is the intended ecosystem strategy: **external routes stay convenient; Palt
 
 1. User has one durable Conversation with the business.
 2. User starts a `service_case` Scope for a canonical vehicle/service request.
-3. Photos use shared Media Assets.
-4. User may dictate text on-device or send a voice message.
+3. Photos upload through Asset Core and the message stores only authorized asset references.
+4. User may dictate text on-device or send a voice note.
 5. Business replies in the same relationship conversation and scope.
 6. Business creates a Quote in Quote/Service domain; scope receives a resource/action-card reference.
 7. User accepts or requests another quote through a scoped domain action request.
@@ -176,14 +212,15 @@ The test passes only if Message Core connects every step without copying the can
 
 ## v1 implementation scope
 
-Implement now:
-- User <-> Business 1:1
+Implemented/preflight now:
+- User <-> Business 1:1 service boundary
 - durable relationship Conversation
 - multiple Conversation Scopes per relationship
 - scoped and unscoped messages
 - text
-- image/media references
-- voice-message contract
+- provider-neutral image/file/voice attachment references
+- server-side attachment authorization boundary
+- voice-message structural contract
 - device dictation resulting in normal text
 - replies
 - delivered/read sequence state
@@ -192,10 +229,18 @@ Implement now:
 - action references with optional scope
 - privacy-safe ecosystem link contract
 - offline retry/idempotency
-- push handoff contract
-- block/report contract
+- PostgreSQL persistence adapter
+- transactional Outbox + reclaimable publisher lease
+- shared EventBus bridge
+- Realtime envelope consumer
+- privacy-minimal Notification candidate handoff
+- block/report schema contract
 
-Prepare but do not require at launch:
+Prepared but not yet a production provider deployment:
+- physical Asset Core upload/signing implementation
+- concrete Realtime provider adapter
+- scheduled/queue runtime wiring for outbox dispatcher
+- final Notification recipient/offline/quiet-hours policy
 - person-to-person public messaging
 - groups at scale
 - reactions
@@ -218,3 +263,6 @@ Prepare but do not require at launch:
 9. External channels remain available; Palta wins by context and action continuity, not lock-in.
 10. A domain-authorized ecosystem link must not copy customer PII, secret share tokens or canonical payload into Message Core.
 11. Transaction/service history never implies marketing consent.
+12. A client-provided asset ID is never trusted without server-side Asset Core authorization.
+13. Message Core stores provider-neutral asset IDs, never physical storage-provider URLs or secret access tokens.
+14. Message/outbox/attachment references commit atomically or roll back together.
