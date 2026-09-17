@@ -21,6 +21,26 @@ function asNumber(value: unknown): number {
   return parsed;
 }
 
+function mapParticipant(row: Record<string, unknown>): ParticipantState {
+  const principalUserId = optionalString(row.principal_user_id);
+  const leftAt = optionalString(row.left_at);
+  return {
+    conversationId: String(row.conversation_id),
+    actor: {
+      actorType: String(row.actor_type) as ActorRef['actorType'],
+      actorId: String(row.actor_id),
+      ...(principalUserId !== undefined ? { principalUserId } : {}),
+    },
+    role: String(row.participant_role) as ParticipantState['role'],
+    joinedAt: String(row.joined_at),
+    ...(leftAt !== undefined ? { leftAt } : {}),
+    lastDeliveredSequence: asNumber(row.last_delivered_sequence),
+    lastReadSequence: asNumber(row.last_read_sequence),
+    muted: Boolean(row.muted),
+    archived: Boolean(row.archived),
+  };
+}
+
 function mapMessage(row: Record<string, unknown>): Message {
   const principalUserId = optionalString(row.sender_principal_user_id);
   const actionResourceType = optionalString(row.action_resource_type);
@@ -62,6 +82,10 @@ function mapMessage(row: Record<string, unknown>): Message {
     ...(deletedAt !== undefined ? { deletedAt } : {}),
   };
 }
+
+const PARTICIPANT_RETURNING = `conversation_id, actor_type, actor_id, principal_user_id,
+  participant_role, joined_at, left_at,
+  last_delivered_sequence, last_read_sequence, muted, archived`;
 
 class PostgresMessageTransaction implements MessagePersistenceTransaction {
   constructor(private readonly db: DatabasePort) {}
@@ -117,9 +141,7 @@ class PostgresMessageTransaction implements MessagePersistenceTransaction {
     actor: ActorRef;
   }): Promise<ParticipantState | null> {
     const result = await this.db.query(
-      `select conversation_id, actor_type, actor_id, principal_user_id,
-              participant_role, joined_at, left_at,
-              last_delivered_sequence, last_read_sequence, muted, archived
+      `select ${PARTICIPANT_RETURNING}
          from msg_participant
         where conversation_id = $1
           and actor_type = $2
@@ -128,24 +150,7 @@ class PostgresMessageTransaction implements MessagePersistenceTransaction {
       [input.conversationId, input.actor.actorType, input.actor.actorId],
     );
     const row = result.rows[0];
-    if (!row) return null;
-    const principalUserId = optionalString(row.principal_user_id);
-    const leftAt = optionalString(row.left_at);
-    return {
-      conversationId: String(row.conversation_id),
-      actor: {
-        actorType: String(row.actor_type) as ActorRef['actorType'],
-        actorId: String(row.actor_id),
-        ...(principalUserId !== undefined ? { principalUserId } : {}),
-      },
-      role: String(row.participant_role) as ParticipantState['role'],
-      joinedAt: String(row.joined_at),
-      ...(leftAt !== undefined ? { leftAt } : {}),
-      lastDeliveredSequence: asNumber(row.last_delivered_sequence),
-      lastReadSequence: asNumber(row.last_read_sequence),
-      muted: Boolean(row.muted),
-      archived: Boolean(row.archived),
-    };
+    return row ? mapParticipant(row) : null;
   }
 
   async findScope(scopeId: string): Promise<ConversationScope | null> {
@@ -224,6 +229,41 @@ class PostgresMessageTransaction implements MessagePersistenceTransaction {
         where id = $1`,
       [input.conversationId, input.lastSequence, input.lastActivityAt],
     );
+  }
+
+  async advanceRead(input: {
+    conversationId: string;
+    actor: ActorRef;
+    throughSequence: number;
+  }): Promise<ParticipantState | null> {
+    const result = await this.db.query(
+      `update msg_participant p
+          set last_read_sequence = greatest(
+                p.last_read_sequence,
+                least($4::bigint, c.last_sequence)
+              ),
+              last_delivered_sequence = greatest(
+                p.last_delivered_sequence,
+                least($4::bigint, c.last_sequence)
+              )
+         from msg_conversation c
+        where p.conversation_id = c.id
+          and p.conversation_id = $1
+          and p.actor_type = $2
+          and p.actor_id = $3
+          and p.left_at is null
+      returning p.conversation_id, p.actor_type, p.actor_id, p.principal_user_id,
+                p.participant_role, p.joined_at, p.left_at,
+                p.last_delivered_sequence, p.last_read_sequence, p.muted, p.archived`,
+      [
+        input.conversationId,
+        input.actor.actorType,
+        input.actor.actorId,
+        input.throughSequence,
+      ],
+    );
+    const row = result.rows[0];
+    return row ? mapParticipant(row) : null;
   }
 
   async insertOutbox(event: import('./contracts.js').OutboxEvent): Promise<void> {
