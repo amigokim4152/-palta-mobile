@@ -1,4 +1,7 @@
-import type { MessageActorAuthorizationPort } from './authorizationPort.js';
+import type {
+  MessageActorAuthorizationPort,
+  MessageActorOperation,
+} from './authorizationPort.js';
 import { selfAuthorizesUserActor } from './authorizationPort.js';
 import type { MessageAttachmentAuthorizationPort } from './attachmentAuthorizationPort.js';
 import type {
@@ -155,6 +158,7 @@ export class MessageService {
   private async assertActorAuthority(
     principalUserId: string,
     actor: ActorRef,
+    operation: MessageActorOperation,
   ): Promise<void> {
     if (selfAuthorizesUserActor(principalUserId, actor)) return;
 
@@ -164,18 +168,19 @@ export class MessageService {
     ) {
       throw new MessageServiceError(
         'ACTOR_NOT_AUTHORIZED',
-        'Authenticated principal cannot act as requested sender.',
+        'Authenticated principal cannot act as requested Message actor.',
       );
     }
 
     const allowed = await this.actorAuthorization.canActAs({
       principalUserId,
       actor,
+      operation,
     });
     if (!allowed) {
       throw new MessageServiceError(
         'ACTOR_NOT_AUTHORIZED',
-        'Authenticated principal cannot act as requested sender.',
+        `Authenticated principal cannot ${operation} as requested Message actor.`,
       );
     }
   }
@@ -224,7 +229,11 @@ export class MessageService {
 
   async send(command: SendMessageCommand): Promise<SendMessageResult> {
     validateContent(command);
-    await this.assertActorAuthority(command.principalUserId, command.sender);
+    await this.assertActorAuthority(
+      command.principalUserId,
+      command.sender,
+      'send',
+    );
     await this.assertAttachmentAuthority(command);
 
     return this.persistence.transaction(async (tx) => {
@@ -325,7 +334,11 @@ export class MessageService {
     afterSequence: number;
     limit?: number;
   }): Promise<Message[]> {
-    await this.assertActorAuthority(input.principalUserId, input.actor);
+    await this.assertActorAuthority(
+      input.principalUserId,
+      input.actor,
+      'read',
+    );
     if (!Number.isInteger(input.afterSequence) || input.afterSequence < 0) {
       throw new MessageServiceError(
         'INVALID_CURSOR',
@@ -361,7 +374,11 @@ export class MessageService {
     throughSequence: number;
     occurredAt: string;
   }): Promise<ParticipantState> {
-    await this.assertActorAuthority(input.principalUserId, input.actor);
+    await this.assertActorAuthority(
+      input.principalUserId,
+      input.actor,
+      'read',
+    );
     if (!Number.isInteger(input.throughSequence) || input.throughSequence < 0) {
       throw new MessageServiceError(
         'INVALID_CURSOR',
