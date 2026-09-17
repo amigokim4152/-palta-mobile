@@ -11,16 +11,7 @@ import type {
   EnsureOneToOneConversationResult,
   InboxMessagePreview,
 } from './conversationDirectoryPort.js';
-
-function actorSortKey(actor: ActorRef): string {
-  return `${actor.actorType}\u0000${actor.actorId}`;
-}
-
-function canonicalPair(first: ActorRef, second: ActorRef): [ActorRef, ActorRef] {
-  return actorSortKey(first) <= actorSortKey(second)
-    ? [first, second]
-    : [second, first];
-}
+import { canonicalConversationPair } from './conversationIdentity.js';
 
 function mapConversation(row: Record<string, unknown>): Conversation {
   return {
@@ -65,7 +56,10 @@ export class PostgresConversationDirectory implements ConversationDirectoryPort 
   async ensureOneToOne(
     input: EnsureOneToOneConversationInput,
   ): Promise<EnsureOneToOneConversationResult> {
-    const [actorA, actorB] = canonicalPair(input.first.actor, input.second.actor);
+    const [actorA, actorB] = canonicalConversationPair(
+      input.first.actor,
+      input.second.actor,
+    );
 
     return this.db.transaction(async (tx) => {
       await tx.query(
