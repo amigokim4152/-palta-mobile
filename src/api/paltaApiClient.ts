@@ -1,15 +1,7 @@
 export type FetchLike = (
   input: string,
-  init?: {
-    method?: string;
-    headers?: Record<string, string>;
-    body?: string;
-  },
-) => Promise<{
-  ok: boolean;
-  status: number;
-  json(): Promise<unknown>;
-}>;
+  init?: { method?: string; headers?: Record<string, string>; body?: string },
+) => Promise<{ ok: boolean; status: number; json(): Promise<unknown> }>;
 
 export type HomeApiItem = {
   id: string;
@@ -22,10 +14,7 @@ export type HomeApiItem = {
   related_entity_id?: string;
 };
 
-export type HomeApiResponse = {
-  generated_at?: string;
-  items: HomeApiItem[];
-};
+export type HomeApiResponse = { generated_at?: string; items: HomeApiItem[] };
 
 export type LocalSearchItem = {
   entity_id: string;
@@ -44,10 +33,7 @@ export type BusinessApiDetail = {
   verification_status: 'unverified' | 'claimed' | 'verified' | 'suspended';
   opening_status?: string;
   location?: { lat: number; lng: number };
-  contact?: {
-    phone?: string;
-    whatsapp?: string;
-  };
+  contact?: { phone?: string; whatsapp?: string };
 };
 
 export type BusinessOnboardingApiInput = {
@@ -60,10 +46,7 @@ export type BusinessOnboardingApiInput = {
   serviceAreaIds: readonly string[];
   anchorLocation?: { lat: number; lng: number };
   addressLabel?: string;
-  contact?: {
-    phone?: string;
-    whatsapp?: string;
-  };
+  contact?: { phone?: string; whatsapp?: string };
   idempotencyKey?: string;
 };
 
@@ -76,15 +59,7 @@ export type BusinessOnboardingApiResult = {
 export type CareApiTrack = {
   id: string;
   intent_key: string;
-  state:
-    | 'discover'
-    | 'prepare'
-    | 'act'
-    | 'wait'
-    | 'result'
-    | 'follow_up'
-    | 'outcome'
-    | 'cancelled';
+  state: 'discover' | 'prepare' | 'act' | 'wait' | 'result' | 'follow_up' | 'outcome' | 'cancelled';
   waiting_for?: string;
   expected_at?: string;
 };
@@ -107,10 +82,7 @@ function expectObject(value: unknown, label: string): Record<string, unknown> {
 }
 
 export class PaltaApiError extends Error {
-  constructor(
-    message: string,
-    readonly status: number,
-  ) {
+  constructor(message: string, readonly status: number) {
     super(message);
     this.name = 'PaltaApiError';
   }
@@ -129,71 +101,35 @@ export class PaltaApiClient {
 
   private async request(
     path: string,
-    init?: {
-      method?: string;
-      body?: unknown;
-      headers?: Record<string, string>;
-    },
+    init?: { method?: string; body?: unknown; headers?: Record<string, string> },
   ): Promise<unknown> {
     const token = this.getAccessToken ? await this.getAccessToken() : null;
-    const headers: Record<string, string> = {
-      Accept: 'application/json',
-      ...(init?.headers ?? {}),
-    };
+    const headers: Record<string, string> = { Accept: 'application/json', ...(init?.headers ?? {}) };
     if (init?.body !== undefined) headers['Content-Type'] = 'application/json';
     if (token) headers.Authorization = `Bearer ${token}`;
-
-    const requestInit: {
-      method?: string;
-      headers: Record<string, string>;
-      body?: string;
-    } = { headers };
-
+    const requestInit: { method?: string; headers: Record<string, string>; body?: string } = { headers };
     if (init?.method) requestInit.method = init.method;
     if (init?.body !== undefined) requestInit.body = JSON.stringify(init.body);
-
     const response = await this.fetchImpl(joinUrl(this.baseUrl, path), requestInit);
-
-    if (!response.ok) {
-      throw new PaltaApiError(
-        `Palta API request failed: ${response.status}`,
-        response.status,
-      );
-    }
+    if (!response.ok) throw new PaltaApiError(`Palta API request failed: ${response.status}`, response.status);
     return response.json();
   }
 
   async getHome(locale = 'es-CL'): Promise<HomeApiResponse> {
-    const payload = expectObject(
-      await this.request(`/v1/home?locale=${encodeURIComponent(locale)}`),
-      'GET /v1/home',
-    );
-    if (!Array.isArray(payload.items)) {
-      throw new Error('GET /v1/home payload missing items[]');
-    }
+    const payload = expectObject(await this.request(`/v1/home?locale=${encodeURIComponent(locale)}`), 'GET /v1/home');
+    if (!Array.isArray(payload.items)) throw new Error('GET /v1/home payload missing items[]');
     return payload as HomeApiResponse;
   }
 
-  async searchLocal(input: {
-    latitude: number;
-    longitude: number;
-    radiusM?: number;
-    query?: string;
-  }): Promise<LocalSearchItem[]> {
+  async searchLocal(input: { latitude: number; longitude: number; radiusM?: number; query?: string }): Promise<LocalSearchItem[]> {
     const params = new URLSearchParams({
       lat: String(input.latitude),
       lng: String(input.longitude),
       radius_m: String(input.radiusM ?? 5000),
     });
     if (input.query) params.set('q', input.query);
-
-    const payload = expectObject(
-      await this.request(`/v1/local/search?${params.toString()}`),
-      'GET /v1/local/search',
-    );
-    if (!Array.isArray(payload.items)) {
-      throw new Error('GET /v1/local/search payload missing items[]');
-    }
+    const payload = expectObject(await this.request(`/v1/local/search?${params.toString()}`), 'GET /v1/local/search');
+    if (!Array.isArray(payload.items)) throw new Error('GET /v1/local/search payload missing items[]');
     return payload.items as LocalSearchItem[];
   }
 
@@ -208,9 +144,7 @@ export class PaltaApiClient {
     return result as BusinessApiDetail;
   }
 
-  async submitBusinessOnboarding(
-    input: BusinessOnboardingApiInput,
-  ): Promise<BusinessOnboardingApiResult> {
+  async submitBusinessOnboarding(input: BusinessOnboardingApiInput): Promise<BusinessOnboardingApiResult> {
     const body: Record<string, unknown> = {
       mode: input.mode,
       business_name: input.businessName,
@@ -221,20 +155,18 @@ export class PaltaApiClient {
       contact: input.contact ?? {},
     };
     if (input.businessId) body.business_id = input.businessId;
-    if (input.anchorLocation) body.anchor_location = input.anchorLocation;
-    if (input.addressLabel) body.address_label = input.addressLabel;
+    const mayExposeFixedLocation = input.presenceModes.includes('storefront') || input.presenceModes.includes('mixed');
+    if (mayExposeFixedLocation && input.anchorLocation) body.anchor_location = input.anchorLocation;
+    if (mayExposeFixedLocation && input.addressLabel) body.address_label = input.addressLabel;
 
     const result = expectObject(
       await this.request('/v1/business/onboarding', {
         method: 'POST',
         body,
-        ...(input.idempotencyKey
-          ? { headers: { 'Idempotency-Key': input.idempotencyKey } }
-          : {}),
+        ...(input.idempotencyKey ? { headers: { 'Idempotency-Key': input.idempotencyKey } } : {}),
       }),
       'POST /v1/business/onboarding',
     );
-
     if (
       typeof result.business_id !== 'string' ||
       typeof result.verification_status !== 'string' ||
@@ -250,11 +182,7 @@ export class PaltaApiClient {
       await this.request(`/v1/care/${encodeURIComponent(careTrackId)}`),
       'GET /v1/care/{id}',
     );
-    if (
-      typeof result.id !== 'string' ||
-      typeof result.intent_key !== 'string' ||
-      typeof result.state !== 'string'
-    ) {
+    if (typeof result.id !== 'string' || typeof result.intent_key !== 'string' || typeof result.state !== 'string') {
       throw new Error('GET /v1/care/{id} returned invalid Care track');
     }
     return result as CareApiTrack;
@@ -267,24 +195,17 @@ export class PaltaApiClient {
     payload?: Record<string, unknown>;
     idempotencyKey?: string;
   }): Promise<CareApiTrack> {
-    const body: Record<string, unknown> = {
-      intent_key: input.intentKey,
-      payload: input.payload ?? {},
-    };
+    const body: Record<string, unknown> = { intent_key: input.intentKey, payload: input.payload ?? {} };
     if (input.subjectEntityId) body.subject_entity_id = input.subjectEntityId;
     if (input.actionType) body.action_type = input.actionType;
-
     const result = expectObject(
       await this.request('/v1/care', {
         method: 'POST',
         body,
-        ...(input.idempotencyKey
-          ? { headers: { 'Idempotency-Key': input.idempotencyKey } }
-          : {}),
+        ...(input.idempotencyKey ? { headers: { 'Idempotency-Key': input.idempotencyKey } } : {}),
       }),
       'POST /v1/care',
     );
-
     if (typeof result.id !== 'string' || typeof result.state !== 'string') {
       throw new Error('POST /v1/care returned invalid Care track');
     }
