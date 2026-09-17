@@ -1,0 +1,227 @@
+import { assertMinorAmount } from './transaction.js';
+
+export type ChileDteType =
+  | 'boleta_39'
+  | 'factura_33'
+  | 'boleta_exenta_41'
+  | 'factura_exenta_34'
+  | 'nota_credito_61'
+  | 'nota_debito_56'
+  | 'guia_despacho_52';
+
+export const CHILE_DTE_CODE: Readonly<Record<ChileDteType, number>> = {
+  boleta_39: 39,
+  factura_33: 33,
+  boleta_exenta_41: 41,
+  factura_exenta_34: 34,
+  nota_credito_61: 61,
+  nota_debito_56: 56,
+  guia_despacho_52: 52,
+};
+
+export type FiscalRequestStatus =
+  | 'pending'
+  | 'validating'
+  | 'ready_to_reserve_folio'
+  | 'ready_to_sign'
+  | 'signing'
+  | 'ready_to_send'
+  | 'sending'
+  | 'accepted'
+  | 'observed'
+  | 'rejected'
+  | 'failed'
+  | 'cancelled';
+
+export type FiscalLine = {
+  id: string;
+  description: string;
+  quantity: number;
+  unitAmountMinor: number;
+  lineAmountMinor: number;
+  exempt: boolean;
+  productOrServiceRef?: string;
+};
+
+export type FiscalTotals = {
+  netAmountMinor: number;
+  exemptAmountMinor: number;
+  vatAmountMinor: number;
+  totalAmountMinor: number;
+};
+
+export type FiscalReceiver = {
+  rut?: string;
+  name?: string;
+  giro?: string;
+  address?: string;
+  commune?: string;
+  email?: string;
+};
+
+export type FiscalReference = {
+  documentType: ChileDteType;
+  folio: number;
+  reasonCode?: string;
+  reason?: string;
+};
+
+export type FiscalRequest = {
+  id: string;
+  businessId: string;
+  transactionId: string;
+  issuerRut: string;
+  documentType: ChileDteType;
+  idempotencyKey: string;
+  lines: FiscalLine[];
+  totals: FiscalTotals;
+  status: FiscalRequestStatus;
+  requestedAt: string;
+  updatedAt: string;
+  receiver?: FiscalReceiver;
+  references?: FiscalReference[];
+  folio?: number;
+  cafRef?: string;
+  signedXmlRef?: string;
+  siiTrackId?: string;
+  siiResponseCode?: string;
+  siiResponseMessage?: string;
+};
+
+export type FolioReservationRequest = {
+  businessId: string;
+  issuerRut: string;
+  documentType: ChileDteType;
+  fiscalRequestId: string;
+  idempotencyKey: string;
+};
+
+export type FolioReservation = {
+  folio: number;
+  cafRef: string;
+  reservedAt: string;
+};
+
+export interface FolioAllocator {
+  reserve(request: FolioReservationRequest): Promise<FolioReservation>;
+}
+
+export type FiscalValidationResult = {
+  valid: boolean;
+  errors: string[];
+  warnings: string[];
+  rulesetVersion: string;
+};
+
+export type SiiSendResult = {
+  status: 'sent' | 'accepted' | 'observed' | 'rejected' | 'unknown';
+  observedAt: string;
+  trackId?: string;
+  responseCode?: string;
+  responseMessage?: string;
+};
+
+export interface ChileFiscalAdapter {
+  readonly country: 'CL';
+  validate(request: FiscalRequest): Promise<FiscalValidationResult>;
+  buildAndSign(request: FiscalRequest): Promise<{ signedXml: string; signedAt: string }>;
+  send(request: FiscalRequest, signedXml: string): Promise<SiiSendResult>;
+  reconcile(request: FiscalRequest): Promise<SiiSendResult>;
+}
+
+const ALLOWED_FISCAL_TRANSITIONS: Readonly<Record<FiscalRequestStatus, readonly FiscalRequestStatus[]>> = {
+  pending: ['validating', 'cancelled'],
+  validating: ['ready_to_reserve_folio', 'failed', 'cancelled'],
+  ready_to_reserve_folio: ['ready_to_sign', 'failed', 'cancelled'],
+  ready_to_sign: ['signing', 'failed', 'cancelled'],
+  signing: ['ready_to_send', 'failed'],
+  ready_to_send: ['sending', 'failed'],
+  sending: ['accepted', 'observed', 'rejected', 'failed'],
+  accepted: [],
+  observed: ['accepted', 'rejected'],
+  rejected: [],
+  failed: ['validating', 'ready_to_sign', 'ready_to_send', 'cancelled'],
+  cancelled: [],
+};
+
+export function assertFiscalTotals(totals: FiscalTotals): void {
+  assertMinorAmount(totals.netAmountMinor, 'netAmountMinor');
+  assertMinorAmount(totals.exemptAmountMinor, 'exemptAmountMinor');
+  assertMinorAmount(totals.vatAmountMinor, 'vatAmountMinor');
+  assertMinorAmount(totals.totalAmountMinor, 'totalAmountMinor');
+  const calculated = totals.netAmountMinor + totals.exemptAmountMinor + totals.vatAmountMinor;
+  if (calculated !== totals.totalAmountMinor) {
+    throw new Error('Fiscal totals do not reconcile.');
+  }
+}
+
+export function createFiscalRequest(input: {
+  id: string;
+  businessId: string;
+  transactionId: string;
+  issuerRut: string;
+  documentType: ChileDteType;
+  idempotencyKey: string;
+  lines: FiscalLine[];
+  totals: FiscalTotals;
+  requestedAt: string;
+  receiver?: FiscalReceiver;
+  references?: FiscalReference[];
+}): FiscalRequest {
+  if (!input.id.trim() || !input.businessId.trim() || !input.transactionId.trim() || !input.issuerRut.trim() || !input.idempotencyKey.trim()) {
+    throw new Error('Fiscal request identity fields are required.');
+  }
+  if (input.lines.length === 0) throw new Error('Fiscal request requires at least one line.');
+  assertFiscalTotals(input.totals);
+
+  const request: FiscalRequest = {
+    id: input.id,
+    businessId: input.businessId,
+    transactionId: input.transactionId,
+    issuerRut: input.issuerRut,
+    documentType: input.documentType,
+    idempotencyKey: input.idempotencyKey,
+    lines: input.lines.map((line) => ({ ...line })),
+    totals: { ...input.totals },
+    status: 'pending',
+    requestedAt: input.requestedAt,
+    updatedAt: input.requestedAt,
+  };
+  if (input.receiver !== undefined) request.receiver = { ...input.receiver };
+  if (input.references !== undefined) request.references = input.references.map((reference) => ({ ...reference }));
+  return request;
+}
+
+export function transitionFiscalRequest(
+  request: FiscalRequest,
+  next: FiscalRequestStatus,
+  occurredAt: string,
+): FiscalRequest {
+  if (!ALLOWED_FISCAL_TRANSITIONS[request.status].includes(next)) {
+    throw new Error(`Invalid fiscal transition: ${request.status} -> ${next}`);
+  }
+  return { ...request, status: next, updatedAt: occurredAt };
+}
+
+export function attachFolio(
+  request: FiscalRequest,
+  reservation: FolioReservation,
+): FiscalRequest {
+  if (request.status !== 'ready_to_reserve_folio') {
+    throw new Error('Folio may only be attached after validation and before signing.');
+  }
+  if (request.folio !== undefined && request.folio !== reservation.folio) {
+    throw new Error('Fiscal request already owns a different folio.');
+  }
+  return {
+    ...request,
+    folio: reservation.folio,
+    cafRef: reservation.cafRef,
+    status: 'ready_to_sign',
+    updatedAt: reservation.reservedAt,
+  };
+}
+
+export function fiscalIsAuthoritativelyAccepted(request: FiscalRequest): boolean {
+  return request.status === 'accepted';
+}
