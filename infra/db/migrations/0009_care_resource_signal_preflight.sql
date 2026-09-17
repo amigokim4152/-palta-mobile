@@ -2,10 +2,35 @@
 -- STATUS: DRAFT / NOT APPLIED
 -- Date: 2026-09-17
 --
+-- care_track.state is the detailed internal Care machine state. Mobile/API/Home
+-- must project it through Care stage projection instead of exposing this internal
+-- vocabulary as a public contract.
+--
 -- Care does not infer lifecycle meaning from arbitrary canonical.changed events.
 -- An owning domain emits an explicit care.signal only after it has mapped the
 -- domain transition into a Care semantic event. These tables contain stable
 -- resource references only; domain payload and customer PII remain in the owning core.
+
+do $$
+begin
+  alter table care_track
+    add constraint care_track_internal_state_chk
+    check (state in (
+      'discovered',
+      'preparing',
+      'action_started',
+      'waiting',
+      'upcoming',
+      'in_progress',
+      'result_available',
+      'completed',
+      'follow_up',
+      'outcome_recorded',
+      'blocked',
+      'cancelled'
+    ));
+exception when duplicate_object then null;
+end $$;
 
 create table if not exists care_resource_link (
   care_track_id uuid not null references care_track(id) on delete cascade,
