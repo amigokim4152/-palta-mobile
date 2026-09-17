@@ -31,15 +31,23 @@ export type CommerceTransaction = {
   currency: string;
   totalAmountMinor: number;
   lines: CommerceLine[];
-  paymentIntentIds: string[];
-  fiscalRequestIds: string[];
-  inventoryReservationIds: string[];
   createdAt: string;
   updatedAt: string;
   outletId?: string;
   tradingSessionId?: string;
   operatorId?: string;
   customerId?: string;
+};
+
+/**
+ * Child relationships (payments, fiscal requests, inventory reservations) are
+ * canonical in their own tables through commerceTransactionId/FKs. Do not keep
+ * duplicated child-ID arrays inside CommerceTransaction or persistence can drift.
+ */
+export type CommerceTransactionRelations = {
+  paymentIntentIds: readonly string[];
+  fiscalRequestIds: readonly string[];
+  inventoryReservationIds: readonly string[];
 };
 
 const ALLOWED_TRANSITIONS: Record<CommerceTransactionState, readonly CommerceTransactionState[]> = {
@@ -114,9 +122,6 @@ export function createCommerceTransaction(input: {
     currency: input.currency ?? 'CLP',
     totalAmountMinor,
     lines: input.lines.map((line) => ({ ...line })),
-    paymentIntentIds: [],
-    fiscalRequestIds: [],
-    inventoryReservationIds: [],
     createdAt: input.createdAt,
     updatedAt: input.createdAt,
   };
@@ -134,6 +139,7 @@ export function transitionCommerceTransaction(
   next: CommerceTransactionState,
   occurredAt: string,
 ): CommerceTransaction {
+  if (transaction.state === next) return transaction;
   if (!ALLOWED_TRANSITIONS[transaction.state].includes(next)) {
     throw new Error(`Invalid commerce transaction transition: ${transaction.state} -> ${next}`);
   }
@@ -141,34 +147,6 @@ export function transitionCommerceTransaction(
     ...transaction,
     revision: nextRevision(transaction),
     state: next,
-    updatedAt: occurredAt,
-  };
-}
-
-export function attachPaymentIntent(
-  transaction: CommerceTransaction,
-  paymentIntentId: string,
-  occurredAt: string,
-): CommerceTransaction {
-  if (transaction.paymentIntentIds.includes(paymentIntentId)) return transaction;
-  return {
-    ...transaction,
-    revision: nextRevision(transaction),
-    paymentIntentIds: [...transaction.paymentIntentIds, paymentIntentId],
-    updatedAt: occurredAt,
-  };
-}
-
-export function attachFiscalRequest(
-  transaction: CommerceTransaction,
-  fiscalRequestId: string,
-  occurredAt: string,
-): CommerceTransaction {
-  if (transaction.fiscalRequestIds.includes(fiscalRequestId)) return transaction;
-  return {
-    ...transaction,
-    revision: nextRevision(transaction),
-    fiscalRequestIds: [...transaction.fiscalRequestIds, fiscalRequestId],
     updatedAt: occurredAt,
   };
 }
