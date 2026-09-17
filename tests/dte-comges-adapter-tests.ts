@@ -53,6 +53,7 @@ const boleta: ExternalFiscalIssueInput = {
       unitNetAmountMinor: 37815,
       unitGrossAmountMinor: 45000,
       lineNetAmountMinor: 37815,
+      lineExemptAmountMinor: 0,
       lineVatAmountMinor: 7185,
       lineTotalAmountMinor: 45000,
       exempt: false,
