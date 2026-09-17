@@ -150,21 +150,37 @@ function relationshipFor(businessId) {
   return relationship;
 }
 
-function activeCouponItems(businessId) {
-  const coupon = businessCoupons.get(businessId);
-  if (!coupon || coupon.status !== 'published') return [];
-  const now = Date.now();
-  if (coupon.starts_at && Date.parse(coupon.starts_at) > now) return [];
-  if (coupon.expires_at && Date.parse(coupon.expires_at) <= now) return [];
-  if (coupon.audience === 'followers' && !relationshipFor(businessId).following) return [];
-  return [{
+function couponProjection(coupon) {
+  if (!coupon) return null;
+  return {
     id: coupon.id,
     title: coupon.title,
     ...(coupon.description ? { description: coupon.description } : {}),
     ...(coupon.redemption_instruction ? { redemption_instruction: coupon.redemption_instruction } : {}),
     audience: coupon.audience,
     ...(coupon.expires_at ? { expires_at: coupon.expires_at } : {}),
-  }];
+  };
+}
+
+function isCanonicalCouponActive(businessId) {
+  const coupon = businessCoupons.get(businessId);
+  if (!coupon || coupon.status !== 'published') return false;
+  const now = Date.now();
+  if (coupon.starts_at && Date.parse(coupon.starts_at) > now) return false;
+  if (coupon.expires_at && Date.parse(coupon.expires_at) <= now) return false;
+  return true;
+}
+
+function activeCouponItems(businessId) {
+  if (!isCanonicalCouponActive(businessId)) return [];
+  const coupon = businessCoupons.get(businessId);
+  if (coupon.audience === 'followers' && !relationshipFor(businessId).following) return [];
+  const projected = couponProjection(coupon);
+  return projected ? [projected] : [];
+}
+
+function ownerCouponProjection(businessId) {
+  return couponProjection(businessCoupons.get(businessId));
 }
 
 function ownerGuidanceFor(business) {
@@ -206,7 +222,7 @@ function ownerGuidanceFor(business) {
     });
   }
 
-  if (business.verification_status === 'verified' && !activeCouponItems(business.id).length) {
+  if (business.verification_status === 'verified' && !isCanonicalCouponActive(business.id)) {
     items.push({
       id: `${business.id}:coupon`,
       class: 'free_practical_improvement',
@@ -229,7 +245,7 @@ const server = http.createServer(async (req, res) => {
     const url = new URL(req.url, `http://${req.headers.host ?? `${host}:${port}`}`);
 
     if (req.method === 'GET' && url.pathname === '/health') {
-      return json(res, 200, { ok: true, service: 'palta-mock-api', version: '0.7.0' });
+      return json(res, 200, { ok: true, service: 'palta-mock-api', version: '0.8.0' });
     }
 
     if (req.method === 'GET' && url.pathname === '/v1/home') {
@@ -335,9 +351,7 @@ const server = http.createServer(async (req, res) => {
         verification_status: 'claimed',
         onboarding_status: 'verification_pending',
       };
-      if (typeof idempotencyKey === 'string') {
-        idempotencyBusinessResults.set(idempotencyKey, result);
-      }
+      if (typeof idempotencyKey === 'string') idempotencyBusinessResults.set(idempotencyKey, result);
       return json(res, 201, result);
     }
 
@@ -371,6 +385,22 @@ const server = http.createServer(async (req, res) => {
       const business = businesses.find((item) => item.id === id);
       if (!business) return json(res, 404, { error: 'business_not_found' });
       return json(res, 200, { business_id: id, items: activeCouponItems(id) });
+    }
+
+    const ownerCouponMatch = req.method === 'GET'
+      ? url.pathname.match(/^\/v1\/business\/([^/]+)\/owner-basic-coupon$/)
+      : null;
+    if (ownerCouponMatch) {
+      const id = decodeURIComponent(ownerCouponMatch[1]);
+      const business = businesses.find((item) => item.id === id);
+      if (!business) return json(res, 404, { error: 'business_not_found' });
+      // Mock has one development identity. Production must authorize owner/staff
+      // before returning this management projection.
+      const coupon = ownerCouponProjection(id);
+      return json(res, 200, {
+        business_id: id,
+        ...(coupon ? { coupon } : {}),
+      });
     }
 
     const couponWriteMatch = req.method === 'PUT'
@@ -434,9 +464,7 @@ const server = http.createServer(async (req, res) => {
       if (!business) return json(res, 404, { error: 'business_not_found' });
 
       const body = await readJson(req);
-      if (!Array.isArray(body.links)) {
-        return json(res, 400, { error: 'links_required' });
-      }
+      if (!Array.isArray(body.links)) return json(res, 400, { error: 'links_required' });
 
       const safeLinks = [];
       const seen = new Set();
@@ -453,8 +481,6 @@ const server = http.createServer(async (req, res) => {
         safeLinks.push({ provider, label: channelLabels[provider], url: safeUrl });
       }
 
-      // Development adapter: production must also authorize the caller as an
-      // allowed owner/staff member for this business before this replacement.
       business.channel_links = safeLinks;
       return json(res, 200, { business_id: business.id, links: safeLinks });
     }
@@ -477,9 +503,7 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'GET' && url.pathname.startsWith('/v1/business/')) {
       const id = decodeURIComponent(url.pathname.slice('/v1/business/'.length));
       const business = businesses.find((item) => item.id === id);
-      return business
-        ? json(res, 200, business)
-        : json(res, 404, { error: 'business_not_found' });
+      return business ? json(res, 200, business) : json(res, 404, { error: 'business_not_found' });
     }
 
     if (req.method === 'POST' && url.pathname === '/v1/care') {
@@ -511,9 +535,7 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'GET' && url.pathname.startsWith('/v1/care/')) {
       const id = decodeURIComponent(url.pathname.slice('/v1/care/'.length));
       const care = careTracks.get(id);
-      return care
-        ? json(res, 200, care)
-        : json(res, 404, { error: 'care_not_found' });
+      return care ? json(res, 200, care) : json(res, 404, { error: 'care_not_found' });
     }
 
     return json(res, 404, { error: 'not_found' });
