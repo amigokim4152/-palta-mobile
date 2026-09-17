@@ -20,7 +20,7 @@ export async function startMessageEventConsumers(input: {
   realtime: RealtimeAdapter;
 }): Promise<MessageEventConsumerSet> {
   const unsubscribeRealtime = await input.eventBus.subscribe(
-    ['message.created', 'message.read_advanced'],
+    ['message.created', 'message.read_advanced', 'message.domain_event_projected'],
     async (event) => {
       const payload = event.payload ?? {};
       const conversationId = stringValue(payload, 'conversationId');
@@ -39,6 +39,21 @@ export async function startMessageEventConsumers(input: {
           sequence,
           kind: 'message_created',
           refId: messageId,
+          occurredAt: event.occurredAt,
+        });
+        return;
+      }
+
+      if (event.type === 'message.domain_event_projected') {
+        const projectionId = stringValue(payload, 'projectionId');
+        const scopeId = stringValue(payload, 'scopeId');
+        if (!projectionId || !scopeId) return;
+        await input.realtime.publish({
+          conversationId,
+          scopeId,
+          sequence,
+          kind: 'domain_event',
+          refId: projectionId,
           occurredAt: event.occurredAt,
         });
         return;
