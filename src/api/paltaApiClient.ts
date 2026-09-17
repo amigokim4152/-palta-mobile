@@ -1,4 +1,5 @@
 import type { BusinessCapability } from '../business/businessActionPolicy.js';
+import type { PublicBusinessChannelLink } from '../business/businessChannelConnection.js';
 import type { BusinessOperationalState } from '../business/businessOperationalState.js';
 
 export type FetchLike = (
@@ -62,6 +63,7 @@ export type BusinessApiDetail = {
   photo_urls?: string[];
   posts?: BusinessApiPostSummary[];
   enabled_capabilities?: BusinessCapability[];
+  channel_links?: PublicBusinessChannelLink[];
   location?: { lat: number; lng: number };
   contact?: {
     phone?: string;
