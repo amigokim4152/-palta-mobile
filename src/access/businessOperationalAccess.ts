@@ -17,6 +17,7 @@ export type BusinessOperationalCapability =
   | 'fiscal.export'
   | 'fiscal.settings.manage'
   | 'payment.settings.manage'
+  | 'printing.reprint'
   | 'reports.read'
   | 'staff.manage';
 
@@ -36,6 +37,7 @@ const ROLE_CAPABILITIES: Record<
     'fiscal.export',
     'fiscal.settings.manage',
     'payment.settings.manage',
+    'printing.reprint',
     'reports.read',
     'staff.manage',
   ]),
@@ -49,6 +51,7 @@ const ROLE_CAPABILITIES: Record<
     'fiscal.request',
     'fiscal.read',
     'fiscal.export',
+    'printing.reprint',
     'reports.read',
   ]),
   cashier: new Set<BusinessOperationalCapability>([
@@ -58,6 +61,7 @@ const ROLE_CAPABILITIES: Record<
     'pos.session.open_close',
     'fiscal.request',
     'fiscal.read',
+    'printing.reprint',
   ]),
   accountant: new Set<BusinessOperationalCapability>([
     'commerce.read',
