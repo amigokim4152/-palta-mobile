@@ -4,9 +4,11 @@ import type {
 } from '../commerce/outbox.js';
 import {
   assertOutboxClaimRequest,
+  assertOutboxEventClaimRequest,
   type OutboxClaimRequest,
   type OutboxCompleteRequest,
   type OutboxDeadLetterRequest,
+  type OutboxEventClaimRequest,
   type OutboxRepository,
   type OutboxRetryRequest,
 } from './outboxRepository.js';
@@ -132,6 +134,39 @@ export class PostgresOutboxRepository implements OutboxRepository {
       [request.now, request.workerId, request.leaseExpiresAt, request.limit],
     );
     return result.rows.map(rowToEvent);
+  }
+
+  async claimEvent(
+    request: OutboxEventClaimRequest,
+  ): Promise<CommerceOutboxEvent | null> {
+    assertOutboxEventClaimRequest(request);
+    const result = await this.db.query<OutboxRow>(
+      `update commerce_outbox set
+        status = 'processing',
+        attempts = attempts + 1,
+        claimed_by = $2,
+        processing_started_at = $3::timestamptz,
+        lease_expires_at = $4::timestamptz,
+        next_attempt_at = null,
+        last_error_code = null,
+        updated_at = $3::timestamptz
+      where id = $1
+        and (
+          (
+            status in ('pending', 'retryable_error')
+            and (next_attempt_at is null or next_attempt_at <= $3::timestamptz)
+          )
+          or (
+            status = 'processing'
+            and lease_expires_at is not null
+            and lease_expires_at <= $3::timestamptz
+          )
+        )
+      returning ${OUTBOX_COLUMNS}`,
+      [request.eventId, request.workerId, request.now, request.leaseExpiresAt],
+    );
+    const row = result.rows[0];
+    return row ? rowToEvent(row) : null;
   }
 
   async markDelivered(request: OutboxCompleteRequest): Promise<boolean> {
