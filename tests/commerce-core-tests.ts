@@ -13,9 +13,11 @@ import {
   decideCommerceRuntimeOperation,
   type CommerceRuntimePolicyInput,
 } from '../src/commerce/runtimePolicy.js';
+import { paymentIncident } from '../src/payment/paymentIncident.js';
 import {
   canCreateReplacementPayment,
   paymentIsAuthoritativelyPaid,
+  paymentRequiresOperatorAction,
   paymentRequiresReconciliation,
 } from '../src/payment/paymentPolicy.js';
 import {
@@ -127,10 +129,34 @@ assert(
 
 assert(paymentRequiresReconciliation('unknown'), 'Unknown provider outcome must require reconciliation.');
 assert(paymentRequiresReconciliation('processing'), 'Processing payment must require reconciliation.');
+assert(paymentRequiresReconciliation('requires_action'), 'Operator-action payment must remain blocked from replacement until resolved.');
+assert(paymentRequiresOperatorAction('requires_action'), 'Requires-action state must explicitly route to operator/terminal handling.');
 assert(!canCreateReplacementPayment('unknown'), 'Unknown payment must not permit replacement charge.');
+assert(!canCreateReplacementPayment('requires_action'), 'Terminal action-required payment must not permit replacement charge.');
 assert(canCreateReplacementPayment('declined'), 'Declined payment may permit a replacement attempt.');
 assert(paymentIsAuthoritativelyPaid('paid'), 'Only paid is authoritative payment success.');
 assert(!paymentIsAuthoritativelyPaid('authorized'), 'Authorization alone is not canonical paid state.');
+
+const unknownIncident = paymentIncident('outcome_unknown');
+assert(
+  unknownIncident.requiresReconciliation &&
+    !unknownIncident.replacementPaymentAllowed &&
+    !unknownIncident.automaticRetryAllowed,
+  'Unknown payment outcomes must never auto-retry or allow replacement before reconciliation.',
+);
+const transientIncident = paymentIncident('transient_provider_error');
+assert(
+  transientIncident.automaticRetryAllowed &&
+    transientIncident.recovery === 'retry_same_operation_same_key' &&
+    !transientIncident.replacementPaymentAllowed,
+  'Transient provider errors may retry only the same operation identity, never create a replacement charge.',
+);
+const busyIncident = paymentIncident('terminal_busy');
+assert(
+  busyIncident.recovery === 'operator_check_terminal' &&
+    busyIncident.userState === 'terminal_busy_finish_previous_payment',
+  'Busy terminals must route to previous-payment resolution rather than generic retry.',
+);
 
 let fiscal = createFiscalRequest({
   id: 'fiscal-1',
