@@ -182,9 +182,20 @@ export function LocalBusinessDiscoveryScreen() {
       subtitle="Busca por lo que necesitas, no por nuestra clasificación"
       scroll={false}
       action={
-        <Pressable onPress={() => router.push('/business/register')} style={{ paddingVertical: 8 }}>
-          <Text style={{ fontWeight: '800' }}>Mi negocio</Text>
-        </Pressable>
+        <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
+          <Pressable
+            onPress={() => router.push('/local-businesses/following')}
+            style={{ paddingVertical: 8 }}
+          >
+            <Text style={{ fontWeight: '800' }}>Siguiendo</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => router.push('/business/register')}
+            style={{ paddingVertical: 8 }}
+          >
+            <Text style={{ fontWeight: '800' }}>Mi negocio</Text>
+          </Pressable>
+        </View>
       }
     >
       <View style={{ flex: 1 }}>
