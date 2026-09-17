@@ -10,6 +10,11 @@ export type PrintJobByIdempotencyLookup = {
   idempotencyKey: string;
 };
 
+export type RecoverablePrintJobQuery = {
+  businessId: string;
+  limit: number;
+};
+
 export type PrintJobWrite = {
   job: PrintJob;
   /** null for insert, otherwise compare-and-swap against the persisted revision. */
@@ -27,4 +32,12 @@ export interface PrintJobRepository {
   findJob(lookup: PrintJobLookup): Promise<PrintJob | null>;
   findByIdempotency(lookup: PrintJobByIdempotencyLookup): Promise<PrintJob | null>;
   saveJob(write: PrintJobWrite): Promise<PrintJob>;
+}
+
+/**
+ * Extended repository used by startup/reconnect recovery. Keeping this separate
+ * means focused services that only need point lookups do not gain scan authority.
+ */
+export interface RecoverablePrintJobRepository extends PrintJobRepository {
+  listRecoverable(query: RecoverablePrintJobQuery): Promise<PrintJob[]>;
 }
