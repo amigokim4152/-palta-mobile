@@ -3,6 +3,13 @@ import {
   transitionCommerceTransaction,
 } from '../src/commerce/transaction.js';
 import {
+  appendCashDrawerEntry,
+  closePOSSession,
+  createCashDrawerEntry,
+  createPOSRegister,
+  openPOSSession,
+} from '../src/commerce/posSession.js';
+import {
   canCreateReplacementPayment,
   paymentIsAuthoritativelyPaid,
   paymentRequiresReconciliation,
@@ -53,6 +60,66 @@ transaction = transitionCommerceTransaction(transaction, 'ready_for_payment', t1
 transaction = transitionCommerceTransaction(transaction, 'payment_pending', t2);
 assert(transaction.state === 'payment_pending', 'Commerce transaction must expose payment pending separately.');
 assert(transaction.revision === 2, 'Every canonical commerce mutation must advance revision.');
+
+const mobileRegister = createPOSRegister({
+  id: 'register-mobile-1',
+  businessId: 'biz-gardener',
+  name: 'Mi teléfono',
+});
+const mobileSession = openPOSSession({
+  id: 'session-mobile-1',
+  register: mobileRegister,
+  operatorId: 'owner-1',
+  openedAt: t0,
+});
+const closedMobileSession = closePOSSession({
+  session: mobileSession,
+  closedAt: t2,
+  closedBy: 'owner-1',
+});
+assert(
+  closedMobileSession.status === 'closed' &&
+    closedMobileSession.cashControl === 'none' &&
+    closedMobileSession.countedCashMinor === undefined,
+  'Mobile micro-service POS must work without forcing a cash-drawer count.',
+);
+
+const shopRegister = createPOSRegister({
+  id: 'register-shop-1',
+  businessId: 'biz-shop',
+  name: 'Caja 1',
+  cashControl: 'tracked',
+});
+let shopSession = openPOSSession({
+  id: 'session-shop-1',
+  register: shopRegister,
+  operatorId: 'cashier-1',
+  openedAt: t0,
+  openingCashMinor: 20000,
+});
+const cashSale = createCashDrawerEntry({
+  id: 'cash-entry-1',
+  session: shopSession,
+  type: 'cash_sale',
+  amountMinor: 45000,
+  occurredAt: t1,
+  idempotencyKey: 'cash-sale-tx-1',
+  referenceId: 'tx-1',
+});
+shopSession = appendCashDrawerEntry(shopSession, cashSale);
+shopSession = appendCashDrawerEntry(shopSession, cashSale);
+const closedShopSession = closePOSSession({
+  session: shopSession,
+  closedAt: t2,
+  closedBy: 'manager-1',
+  countedCashMinor: 64000,
+});
+assert(
+  closedShopSession.expectedCashMinor === 65000 &&
+    closedShopSession.cashDifferenceMinor === -1000 &&
+    closedShopSession.cashEntries.length === 1,
+  'Tracked Caja must compute expected cash and ignore duplicate cash events idempotently.',
+);
 
 assert(paymentRequiresReconciliation('unknown'), 'Unknown provider outcome must require reconciliation.');
 assert(paymentRequiresReconciliation('processing'), 'Processing payment must require reconciliation.');
@@ -150,4 +217,4 @@ event = markOutboxProcessing(event, '2026-09-17T10:01:00.000Z');
 event = markOutboxDelivered(event, '2026-09-17T10:01:01.000Z');
 assert(event.status === 'delivered' && event.attempts === 2, 'Outbox must preserve retry attempts and eventually deliver exactly once.');
 
-console.log('PASS: independent commerce/payment/fiscal core tests');
+console.log('PASS: independent commerce/payment/fiscal/POS core tests');
