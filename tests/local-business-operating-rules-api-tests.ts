@@ -93,6 +93,44 @@ const weekly = requestedBody?.['weekly'] as Record<string, unknown> | undefined;
 assert(weekly?.['friday'] !== undefined, 'Weekly schedule request should preserve the owner-confirmed days.');
 assert(!('confirmed_at' in (requestedBody ?? {})), 'Client must not self-assert server confirmation timestamps.');
 
+await client.operatingRules.upsertSeasonalSchedule('biz-test', 'low-season', {
+  startsOn: '05-01',
+  endsOn: '08-31',
+  weekly: {
+    friday: [{ opensAt: '12:00', closesAt: '20:00' }],
+    saturday: [{ opensAt: '12:00', closesAt: '20:00' }],
+    sunday: [{ opensAt: '12:00', closesAt: '20:00' }],
+  },
+});
+assert(
+  requestedPath.endsWith('/v1/business/biz-test/operating-rules/seasons/low-season'),
+  'Recurring seasonal schedule should use its own resource path.',
+);
+assert(currentMethod(requestedMethod) === 'PUT', 'Seasonal schedule upsert should use PUT.');
+assert(requestedBody?.['starts_on'] === '05-01' && requestedBody?.['ends_on'] === '08-31', 'Seasonal API should use recurring month-day boundaries.');
+assert(!('confirmed_at' in (requestedBody ?? {})), 'Seasonal client must not self-assert confirmation evidence.');
+
+await client.operatingRules.removeSeasonalSchedule('biz-test', 'low-season');
+assert(
+  requestedPath.endsWith('/v1/business/biz-test/operating-rules/seasons/low-season'),
+  'Removing a season should address the same season resource.',
+);
+assert(currentMethod(requestedMethod) === 'DELETE', 'Removing a seasonal schedule should use DELETE.');
+
+await client.operatingRules.upsertSeasonalClosure('biz-test', 'winter-closure', {
+  startsOn: '06-01',
+  endsOn: '07-15',
+});
+assert(
+  requestedPath.endsWith('/v1/business/biz-test/operating-rules/seasonal-closures/winter-closure'),
+  'Recurring full closures should be separate from alternate seasonal schedules.',
+);
+assert(currentMethod(requestedMethod) === 'PUT', 'Seasonal closure upsert should use PUT.');
+assert(requestedBody?.['starts_on'] === '06-01', 'Seasonal closure should carry recurring month-day boundaries.');
+
+await client.operatingRules.removeSeasonalClosure('biz-test', 'winter-closure');
+assert(currentMethod(requestedMethod) === 'DELETE', 'Removing a seasonal closure should use DELETE.');
+
 await client.operatingRules.quickAction('biz-test', { action: 'close_today' });
 assert(
   requestedPath.endsWith('/v1/business/biz-test/operating-rules/quick-action'),
