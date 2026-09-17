@@ -66,6 +66,45 @@ export type CareApiTrack = {
   expected_at?: string;
 };
 
+export type MessageApiActor = {
+  actor_type: 'user' | 'business' | 'organization' | 'community' | 'support';
+  actor_id: string;
+};
+
+export type MessageApiActionRef = {
+  resource_type: string;
+  resource_id: string;
+  action: string;
+  contract_version: string;
+};
+
+export type MessageApiItem = {
+  message_id: string;
+  conversation_id: string;
+  scope_id?: string;
+  client_message_id: string;
+  sender: MessageApiActor;
+  sequence: number;
+  message_type: 'text' | 'voice' | 'image' | 'file' | 'location' | 'resource_card' | 'action_card';
+  body?: string;
+  reply_to_message_id?: string;
+  action_ref?: MessageApiActionRef;
+  created_at: string;
+  replayed?: boolean;
+};
+
+export type MessageListApiResponse = {
+  items: MessageApiItem[];
+  next_after_sequence: number;
+  has_more: boolean;
+};
+
+export type MessageReadApiResponse = {
+  conversation_id: string;
+  last_delivered_sequence: number;
+  last_read_sequence: number;
+};
+
 export type PaltaApiClientOptions = {
   baseUrl: string;
   fetch: FetchLike;
@@ -229,5 +268,94 @@ export class PaltaApiClient {
       throw new Error('POST /v1/care returned invalid Care track');
     }
     return result as CareApiTrack;
+  }
+
+  async listMessages(input: {
+    conversationId: string;
+    afterSequence?: number;
+    limit?: number;
+    actingActor?: MessageApiActor;
+  }): Promise<MessageListApiResponse> {
+    const params = new URLSearchParams({
+      after_sequence: String(input.afterSequence ?? 0),
+      limit: String(input.limit ?? 50),
+    });
+    if (input.actingActor) {
+      params.set('acting_actor_type', input.actingActor.actor_type);
+      params.set('acting_actor_id', input.actingActor.actor_id);
+    }
+    const result = expectObject(
+      await this.request(
+        `/v1/messages/conversations/${encodeURIComponent(input.conversationId)}/messages?${params.toString()}`,
+      ),
+      'GET /v1/messages/conversations/{id}/messages',
+    );
+    if (!Array.isArray(result.items) || typeof result.next_after_sequence !== 'number') {
+      throw new Error('Message list returned invalid payload');
+    }
+    return result as MessageListApiResponse;
+  }
+
+  async sendMessage(input: {
+    conversationId: string;
+    clientMessageId: string;
+    scopeId?: string;
+    actingActor?: MessageApiActor;
+    messageType: MessageApiItem['message_type'];
+    body?: string;
+    replyToMessageId?: string;
+    actionRef?: MessageApiActionRef;
+  }): Promise<MessageApiItem> {
+    const body: Record<string, unknown> = {
+      client_message_id: input.clientMessageId,
+      message_type: input.messageType,
+    };
+    if (input.scopeId) body.scope_id = input.scopeId;
+    if (input.actingActor) body.acting_actor = input.actingActor;
+    if (input.body !== undefined) body.body = input.body;
+    if (input.replyToMessageId) body.reply_to_message_id = input.replyToMessageId;
+    if (input.actionRef) body.action_ref = input.actionRef;
+
+    const result = expectObject(
+      await this.request(
+        `/v1/messages/conversations/${encodeURIComponent(input.conversationId)}/messages`,
+        {
+          method: 'POST',
+          body,
+          headers: { 'Idempotency-Key': input.clientMessageId },
+        },
+      ),
+      'POST /v1/messages/conversations/{id}/messages',
+    );
+    if (typeof result.message_id !== 'string' || typeof result.sequence !== 'number') {
+      throw new Error('Send message returned invalid payload');
+    }
+    return result as MessageApiItem;
+  }
+
+  async advanceMessageRead(input: {
+    conversationId: string;
+    throughSequence: number;
+    actingActor?: MessageApiActor;
+  }): Promise<MessageReadApiResponse> {
+    const body: Record<string, unknown> = {
+      through_sequence: input.throughSequence,
+    };
+    if (input.actingActor) body.acting_actor = input.actingActor;
+
+    const result = expectObject(
+      await this.request(
+        `/v1/messages/conversations/${encodeURIComponent(input.conversationId)}/read`,
+        { method: 'POST', body },
+      ),
+      'POST /v1/messages/conversations/{id}/read',
+    );
+    if (
+      typeof result.conversation_id !== 'string' ||
+      typeof result.last_read_sequence !== 'number'
+    ) {
+      throw new Error('Advance message read returned invalid payload');
+    }
+    return result as MessageReadApiResponse;
   }
 }
