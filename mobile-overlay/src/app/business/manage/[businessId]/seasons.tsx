@@ -166,10 +166,13 @@ export default function BusinessSeasonalHoursScreen() {
   async function removeSeason(id: string) {
     if (!businessId || mobileRuntime.status !== 'ready') return;
     setSaving(true);
+    setMessage(null);
     try {
       await mobileRuntime.client.operatingRules.removeSeasonalSchedule(businessId, id);
       await refresh();
       setMessage('Eliminamos esa temporada. El horario normal vuelve a aplicarse en esas fechas.');
+    } catch (error) {
+      setMessage(error instanceof Error ? `No se pudo eliminar: ${error.message}` : 'No se pudo eliminar la temporada.');
     } finally {
       setSaving(false);
     }
@@ -178,10 +181,13 @@ export default function BusinessSeasonalHoursScreen() {
   async function removeClosure(id: string) {
     if (!businessId || mobileRuntime.status !== 'ready') return;
     setSaving(true);
+    setMessage(null);
     try {
       await mobileRuntime.client.operatingRules.removeSeasonalClosure(businessId, id);
       await refresh();
       setMessage('Eliminamos ese cierre de temporada.');
+    } catch (error) {
+      setMessage(error instanceof Error ? `No se pudo eliminar: ${error.message}` : 'No se pudo eliminar el cierre de temporada.');
     } finally {
       setSaving(false);
     }
