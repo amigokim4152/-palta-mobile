@@ -31,6 +31,14 @@ export interface CredentialKekProvider {
 
 export type PaymentCredentialBundle = Record<string, string>;
 
+export type WritePaymentCredentialBundleInput = {
+  id: string;
+  identity: PaymentCredentialIdentity;
+  bundle: PaymentCredentialBundle;
+  expectedRevision: number | null;
+  occurredAt: string;
+};
+
 function randomIv(cryptoImpl: Crypto): Uint8Array {
   const iv = new Uint8Array(12);
   cryptoImpl.getRandomValues(iv);
@@ -220,8 +228,9 @@ export async function openPaymentCredentials(input: {
 }
 
 /**
- * Read path used by payment-provider factories. Contextual lookup prevents an
- * opaque credentialRef from acting as an authorization token.
+ * Encrypted merchant-credential vault. Contextual lookup prevents an opaque
+ * credentialRef from acting as an authorization token. Write/rotation always
+ * creates a fresh per-credential DEK and fresh IVs under the current KEK.
  */
 export class EnvelopePaymentSecretStore implements PaymentSecretStore {
   constructor(
@@ -229,6 +238,40 @@ export class EnvelopePaymentSecretStore implements PaymentSecretStore {
     private readonly keks: CredentialKekProvider,
     private readonly cryptoImpl: Crypto = globalThis.crypto,
   ) {}
+
+  async writeBundle(
+    input: WritePaymentCredentialBundleInput,
+  ): Promise<PaymentCredentialEnvelope> {
+    const current = input.expectedRevision === null
+      ? null
+      : await this.envelopes.findEnvelope(input.identity);
+
+    if (input.expectedRevision !== null) {
+      if (!current) throw new Error('Payment credential to rotate was not found.');
+      if (current.id !== input.id) {
+        throw new Error('Payment credential rotation cannot change canonical envelope ID.');
+      }
+      if (current.revision !== input.expectedRevision) {
+        throw new Error('Payment credential rotation revision mismatch.');
+      }
+    }
+
+    const kek = await this.keks.current();
+    const envelope = await sealPaymentCredentials({
+      id: input.id,
+      identity: input.identity,
+      bundle: input.bundle,
+      kek,
+      revision: input.expectedRevision === null ? 0 : input.expectedRevision + 1,
+      createdAt: current?.createdAt ?? input.occurredAt,
+      updatedAt: input.occurredAt,
+      cryptoImpl: this.cryptoImpl,
+    });
+    return this.envelopes.saveEnvelope({
+      envelope,
+      expectedRevision: input.expectedRevision,
+    });
+  }
 
   async readSecret(lookup: PaymentSecretLookup): Promise<string | null> {
     const envelope = await this.envelopes.findEnvelope({
