@@ -34,8 +34,9 @@ const passedReceipt: PrinterCertificationRecord = {
   appVersion: '2.5.0',
   bridgeVersion: '1.5.0',
   bridgeProtocolVersion: 2,
+  firmwareVersion: '10.01',
   paperWidthMm: 80,
-  documentKinds: ['receipt', 'kitchen_ticket'],
+  documentKinds: ['receipt'],
   checks: [
     { check: 'connection', passed: true },
     { check: 'spanish_text', passed: true },
@@ -68,6 +69,16 @@ assertEqual(
   manifestEntry.runtimeRequirements?.minBridgeProtocolVersion,
   2,
   'Published manifest must preserve tested bridge protocol floor.',
+);
+assertEqual(
+  manifestEntry.platforms?.[0],
+  'windows',
+  'Published manifest must preserve the host platform actually certified.',
+);
+assertEqual(
+  manifestEntry.firmwareVersions?.[0],
+  '10.01',
+  'Published manifest must preserve exact firmware when certification recorded it.',
 );
 
 const recommended: PrinterCertificationRecord = {
@@ -104,6 +115,16 @@ const incompletePassed: PrinterCertificationRecord = {
 assertThrows(
   () => assertPrinterCertificationRecord(incompletePassed),
   'Receipt certification must not pass without status reconciliation test.',
+);
+
+const blankFirmware: PrinterCertificationRecord = {
+  ...passedReceipt,
+  id: 'cert-invalid-blank-firmware',
+  firmwareVersion: '   ',
+};
+assertThrows(
+  () => assertPrinterCertificationRecord(blankFirmware),
+  'Certification must reject a blank firmware constraint.',
 );
 
 const limitedExisting: PrinterCertificationRecord = {
