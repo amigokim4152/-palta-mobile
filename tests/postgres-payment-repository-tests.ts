@@ -97,6 +97,7 @@ function paymentRow(intent: PaymentIntent = baseIntent): Row {
     order_id: intent.orderId ?? null,
     idempotency_key: intent.idempotencyKey,
     amount_minor: intent.amount.amountMinor,
+    processed_amount_minor: intent.processedAmount?.amountMinor ?? null,
     currency: intent.amount.currency,
     rail: intent.rail,
     status: intent.status,
@@ -186,11 +187,14 @@ assert(
   'Same business/payment idempotency key must never identify a different canonical PaymentIntent.',
 );
 
-const paidIntent = transitionPaymentIntent(
-  baseIntent,
-  'paid',
-  '2026-09-17T14:40:01.000Z',
-);
+const paidIntent: PaymentIntent = {
+  ...transitionPaymentIntent(
+    baseIntent,
+    'paid',
+    '2026-09-17T14:40:01.000Z',
+  ),
+  processedAmount: { currency: 'CLP', amountMinor: 30000 },
+};
 const paidEvent: PaymentEvent = {
   id: '88888888-8888-4888-8888-888888888888',
   paymentIntentId: paidIntent.id,
@@ -221,9 +225,11 @@ const updated = await new PostgresPaymentRepository(updateDb).commitIntentAndEve
 assert(
   updated.intent.status === 'paid' &&
     updated.intent.revision === 1 &&
+    updated.intent.processedAmount?.amountMinor === 30000 &&
+    updated.intent.amount.amountMinor === 45000 &&
     updated.intent.providerConnectionId === providerConnectionId &&
     updated.eventInserted,
-  'Authoritative paid transition, provider connection and PaymentEvent must commit atomically.',
+  'Provider-confirmed processed amount must survive the atomic DB round-trip without rewriting the requested amount.',
 );
 
 const pendingIntent = {
