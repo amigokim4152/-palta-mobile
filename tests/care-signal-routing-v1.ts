@@ -79,23 +79,25 @@ const signal = buildCareSignalEvent({
   resourceId: 'shipment-44',
   careEvent: 'wait',
   occurredAt: '2026-09-17T21:15:00.000Z',
+  sourceSequence: 17,
   expectedAt: '2026-09-18T16:00:00.000Z',
   waitingForKey: 'delivery_arrival',
 });
 await eventBus.publish(signal);
 
-assert(routed.length === 1, 'Valid care.signal must perform one resource reverse lookup.');
+assert(Number(routed.length) === 1, 'Valid care.signal must perform one resource reverse lookup.');
 assert(routed[0]?.maxTargets === 25, 'Care routing must honor the bounded v1 fan-out.');
-assert(applied.length === 2, 'Signal must be offered to every linked Care track.');
+assert(Number(applied.length) === 2, 'Signal must be offered to every linked Care track.');
 assert(
   applied[0]?.sourceSignalEventId === 'shipment-event-17' &&
     applied[0]?.careEvent === 'wait' &&
+    applied[0]?.sourceSequence === 17 &&
     applied[0]?.expectedAt === '2026-09-18T16:00:00.000Z',
-  'Care apply command must preserve semantic signal and idempotency identity.',
+  'Care apply command must preserve semantic signal, ordering and idempotency identity.',
 );
 
 const updates = eventBus.published.filter((event) => event.type === 'care.updated');
-assert(updates.length === 1, 'Only changed Care tracks must emit care.updated.');
+assert(Number(updates.length) === 1, 'Only changed Care tracks must emit care.updated.');
 assert(updates[0]?.subjectRef === 'care:care-1', 'care.updated must address the changed Care track.');
 assert(
   !eventBus.published.some((event) => event.type === 'notification.candidate'),
@@ -110,7 +112,7 @@ for (const forbidden of ['phone', 'email', 'address', 'messagebody', 'paymentpay
 replay = true;
 await eventBus.publish(signal);
 assert(
-  eventBus.published.filter((event) => event.type === 'care.updated').length === 1,
+  Number(eventBus.published.filter((event) => event.type === 'care.updated').length) === 1,
   'Idempotent replay must not emit another care.updated when apply reports no change.',
 );
 
@@ -121,7 +123,7 @@ await eventBus.publish({
   source: 'delivery-core',
   payload: { resourceType: 'shipment' },
 });
-assert(routed.length === 2, 'Malformed care.signal must be ignored before resource routing.');
+assert(Number(routed.length) === 2, 'Malformed care.signal must be ignored before resource routing.');
 
 await eventBus.publish(buildCareSignalEvent({
   eventId: 'unlinked-event',
@@ -131,7 +133,7 @@ await eventBus.publish(buildCareSignalEvent({
   careEvent: 'complete',
   occurredAt: '2026-09-17T21:17:00.000Z',
 }));
-assert(applied.length === 4, 'Unlinked resource must not fabricate a Care track or mutation.');
+assert(Number(applied.length) === 4, 'Unlinked resource must not fabricate a Care track or mutation.');
 
 await consumers.close();
 await eventBus.publish(buildCareSignalEvent({
@@ -142,6 +144,6 @@ await eventBus.publish(buildCareSignalEvent({
   careEvent: 'complete',
   occurredAt: '2026-09-17T21:18:00.000Z',
 }));
-assert(routed.length === 3, 'Closed Care signal consumer must stop routing new signals.');
+assert(Number(routed.length) === 3, 'Closed Care signal consumer must stop routing new signals.');
 
 console.log('Care signal routing tests passed.');
