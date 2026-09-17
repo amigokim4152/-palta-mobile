@@ -6,6 +6,7 @@ const root = process.cwd();
 const discoveryPath = path.join(root, 'mobile-overlay/src/features/business/LocalBusinessDiscoveryScreen.tsx');
 const mapPath = path.join(root, 'mobile-overlay/src/components/map/NeighborhoodMap.tsx');
 const sheetPath = path.join(root, 'mobile-overlay/src/components/neighborhood/MapResultSheet.tsx');
+const resultCardPath = path.join(root, 'mobile-overlay/src/components/LocalResultCard.tsx');
 const detailPath = path.join(root, 'mobile-overlay/src/app/business/[businessId].tsx');
 const providerPath = path.join(root, 'mobile-overlay/src/app/_layout.tsx');
 
@@ -38,6 +39,7 @@ function readTsx(file) {
 const discovery = readTsx(discoveryPath);
 const map = readTsx(mapPath);
 const sheet = readTsx(sheetPath);
+const resultCard = readTsx(resultCardPath);
 const detail = readTsx(detailPath);
 const provider = readTsx(providerPath);
 
@@ -72,8 +74,19 @@ assert(
   'Map clusters must expand smoothly instead of behaving like dead markers.',
 );
 assert(
+  map.includes('SELECTION_PADDING') && map.includes('padding: SELECTION_PADDING'),
+  'Selecting a business pin must leave visual room for the result sheet rather than centering it underneath the sheet.',
+);
+assert(
   map.includes('palta-local-selected-point') && map.includes("['get', 'selected']"),
   'Selected business must have a distinct map layer so list/map selection feels connected.',
+);
+
+assert(
+  map.includes("from '../../theme/paltaTheme'") &&
+  sheet.includes("from '../../theme/paltaTheme'") &&
+  resultCard.includes("from '../theme/paltaTheme'"),
+  'Map, sheet and result cards must consume the shared Palta theme rather than drift into a Local Business-only visual system.',
 );
 
 assert(
