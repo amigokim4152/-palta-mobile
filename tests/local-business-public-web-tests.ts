@@ -14,6 +14,11 @@ const projection = buildPublicBusinessWebProjection({
   description: 'Panadería de barrio con pan fresco, pastelería y retiro en local.',
   phone: '+56912345678',
   instagramUrl: 'https://www.instagram.com/panaderialosalerces/',
+  sameAsUrls: [
+    'https://www.tiktok.com/@panaderialosalerces',
+    'https://www.google.com/maps?cid=123',
+    'https://www.instagram.com/panaderialosalerces/',
+  ],
   imageUrls: ['https://media.somospalta.cl/biz-001/cover.jpg'],
   address: {
     streetAddress: 'Av. Ejemplo 123',
@@ -51,6 +56,14 @@ assert(jsonLd.url === projection.canonicalUrl, 'JSON-LD URL must match canonical
 assert(
   Array.isArray(jsonLd.sameAs) && jsonLd.sameAs.includes('https://www.instagram.com/panaderialosalerces/'),
   'Existing social channels should be linked from the same canonical Business projection.',
+);
+assert(
+  Array.isArray(jsonLd.sameAs) && jsonLd.sameAs.includes('https://www.tiktok.com/@panaderialosalerces'),
+  'Generic public channel URLs should flow into LocalBusiness sameAs metadata.',
+);
+assert(
+  Array.isArray(jsonLd.sameAs) && jsonLd.sameAs.filter((value) => value === 'https://www.instagram.com/panaderialosalerces/').length === 1,
+  'Duplicate social URLs should be de-duplicated before structured-data publication.',
 );
 
 const duplicate = buildPublicBusinessWebProjection({
