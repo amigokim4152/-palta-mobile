@@ -147,6 +147,8 @@ export interface OutboxEvent {
   aggregateType: 'conversation' | 'scope' | 'message';
   aggregateId: string;
   eventType: string;
+  /** Small routing payload only; canonical message/domain payload stays in its owning tables. */
+  payload?: Record<string, unknown>;
   createdAt: string;
   publishedAt?: string;
 }
