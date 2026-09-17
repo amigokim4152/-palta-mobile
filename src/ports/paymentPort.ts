@@ -1,4 +1,5 @@
 import type {
+  CardFundingType,
   Money,
   PaymentRail,
   PaymentStatus,
@@ -22,6 +23,12 @@ export type ProviderPaymentEvidence = {
   authorizationCode?: string;
   cardBrand?: string;
   cardLast4?: string;
+  /** Provider-confirmed debit/credit/prepaid classification when available. */
+  cardFundingType?: CardFundingType;
+  /** Provider-confirmed installment count when available. */
+  installmentCount?: number;
+  /** Provider-confirmed per-installment amount when available. */
+  installmentAmount?: Money;
   /** Provider-confirmed processed/authorized amount when explicitly reported. */
   processedAmount?: Money;
 };
