@@ -28,6 +28,7 @@ export type PublicBusinessWebInput = {
   websiteUrl?: string;
   instagramUrl?: string;
   facebookUrl?: string;
+  sameAsUrls?: readonly string[];
   imageUrls?: readonly string[];
   address?: PublicBusinessAddress;
   location?: { lat: number; lng: number };
@@ -134,9 +135,15 @@ export function buildPublicBusinessWebProjection(
   const description = (input.description?.trim() || fallbackDescription).slice(0, 320);
 
   const noIndex = input.publicationState === 'draft' || input.publicationState === 'duplicate' || input.publicationState === 'invalid';
-  const sameAs = [input.websiteUrl, input.instagramUrl, input.facebookUrl].filter(
-    (value): value is string => Boolean(value),
-  );
+  const sameAs = [
+    input.websiteUrl,
+    input.instagramUrl,
+    input.facebookUrl,
+    ...(input.sameAsUrls ?? []),
+  ]
+    .filter((value): value is string => Boolean(value?.trim()))
+    .map((value) => value.trim());
+  const uniqueSameAs = [...new Set(sameAs)];
 
   const address = input.address
     ? compact<Record<string, unknown>>({
@@ -186,7 +193,7 @@ export function buildPublicBusinessWebProjection(
     geo,
     areaServed,
     openingHoursSpecification,
-    sameAs,
+    sameAs: uniqueSameAs,
   });
 
   return {
