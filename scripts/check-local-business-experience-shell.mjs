@@ -78,6 +78,11 @@ assert(
   discovery.includes('initialData: cachedResults'),
   'Returning from detail must reuse a short-lived discovery cache while refreshing in the background.',
 );
+assert(
+  discovery.includes("position: 'absolute', left: 0, right: 0, bottom: 0") &&
+  discovery.includes('resultsContent'),
+  'Result sheet must overlay a stable map surface rather than resize the map whenever its snap changes.',
+);
 
 assert(
   cache.includes('MAX_ENTRIES = 12') && cache.includes('MAX_AGE_MS = 2 * 60 * 1000'),
