@@ -93,8 +93,8 @@ export function transitionPaymentProviderConnection(
 }
 
 /**
- * Attaches only an opaque credential reference after encrypted credential
- * persistence succeeds. Raw token material must never pass through this model.
+ * Generic credential-reference update for rotation/rebinding where lifecycle
+ * state should not be implicitly changed.
  */
 export function attachPaymentCredentialReference(
   connection: PaymentProviderConnection,
@@ -116,6 +116,39 @@ export function attachPaymentCredentialReference(
   };
   assertPaymentProviderConnection(withCredential);
   return withCredential;
+}
+
+/**
+ * Initial OAuth/API-credential provisioning transition. This intentionally
+ * combines attaching the opaque reference and moving to ready_for_test in one
+ * revision so DB provisioning can commit credential + connection atomically.
+ */
+export function provisionPaymentCredentialReference(
+  connection: PaymentProviderConnection,
+  input: {
+    credentialRef: string;
+    occurredAt: string;
+    merchantRef?: string;
+  },
+): PaymentProviderConnection {
+  if (connection.status !== 'pending_credentials' && connection.status !== 'error') {
+    throw new Error(
+      `Payment credentials can only be initially provisioned from pending_credentials/error, not ${connection.status}.`,
+    );
+  }
+  if (!input.credentialRef.trim() || input.credentialRef.includes('Bearer ')) {
+    throw new Error('Payment credential reference must be a non-empty opaque reference.');
+  }
+  const provisioned: PaymentProviderConnection = {
+    ...connection,
+    credentialRef: input.credentialRef,
+    ...(input.merchantRef === undefined ? {} : { merchantRef: input.merchantRef }),
+    status: 'ready_for_test',
+    revision: connection.revision + 1,
+    updatedAt: input.occurredAt,
+  };
+  assertPaymentProviderConnection(provisioned);
+  return provisioned;
 }
 
 export function markPaymentConnectionVerified(
