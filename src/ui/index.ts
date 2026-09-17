@@ -4,4 +4,6 @@ export * from "./characters.js";
 export * from "./reactions.js";
 export * from "./localeQa.js";
 export * from "./accessibilityQa.js";
+export * from "./qaPersonas.js";
 export * from "./contracts.js";
+export * from "./platformAdapter.js";
