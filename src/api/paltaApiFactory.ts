@@ -6,6 +6,9 @@ import {
   BusinessOperatingRulesApiClient,
 } from './businessOperatingRulesApiClient.js';
 import {
+  BusinessOwnerProfileApiClient,
+} from './businessOwnerProfileApiClient.js';
+import {
   BusinessReviewsApiClient,
 } from './businessReviewsApiClient.js';
 import {
@@ -17,6 +20,7 @@ export type PaltaApiClientWithDomains = PaltaApiClient & {
   operatingRules: BusinessOperatingRulesApiClient;
   reviews: BusinessReviewsApiClient;
   corrections: BusinessCorrectionsApiClient;
+  ownerProfile: BusinessOwnerProfileApiClient;
 };
 
 export function createPaltaApiClient(input: {
@@ -46,6 +50,12 @@ export function createPaltaApiClient(input: {
   });
 
   client.corrections = new BusinessCorrectionsApiClient({
+    baseUrl: input.baseUrl,
+    fetch: input.fetch,
+    ...(getAccessToken ? { getAccessToken } : {}),
+  });
+
+  client.ownerProfile = new BusinessOwnerProfileApiClient({
     baseUrl: input.baseUrl,
     fetch: input.fetch,
     ...(getAccessToken ? { getAccessToken } : {}),
