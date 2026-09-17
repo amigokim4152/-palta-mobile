@@ -1,3 +1,4 @@
+import { createOutboxEvent } from '../src/commerce/outbox.js';
 import {
   transitionPaymentIntent,
   type PaymentEvent,
@@ -59,10 +60,12 @@ class FakeSqlDatabase implements SqlDatabase {
 const createdAt = '2026-09-17T14:40:00.000Z';
 const businessId = '22222222-2222-4222-8222-222222222222';
 const transactionId = '11111111-1111-4111-8111-111111111111';
+const orderId = '44444444-4444-4444-8444-444444444444';
 
 const baseIntent: PaymentIntent = {
   id: '55555555-5555-4555-8555-555555555555',
   commerceTransactionId: transactionId,
+  orderId,
   merchantId: businessId,
   amount: { currency: 'CLP', amountMinor: 45000 },
   rail: 'card',
@@ -89,6 +92,7 @@ function paymentRow(intent: PaymentIntent = baseIntent): Row {
     id: intent.id,
     business_id: intent.merchantId,
     commerce_transaction_id: intent.commerceTransactionId,
+    order_id: intent.orderId ?? null,
     idempotency_key: intent.idempotencyKey,
     amount_minor: intent.amount.amountMinor,
     currency: intent.amount.currency,
@@ -133,8 +137,10 @@ assert(
   createDb.transactionCount === 1 &&
     createDb.rootWriteAttempted === false &&
     created.replayed === false &&
-    created.eventInserted === true,
-  'PaymentIntent and PaymentEvent must commit inside one SQL transaction.',
+    created.eventInserted === true &&
+    created.outboxInsertedIds.length === 0 &&
+    created.intent.orderId === orderId,
+  'PaymentIntent and PaymentEvent must commit in one transaction and preserve optional order context.',
 );
 
 const replayDb = new FakeSqlDatabase((sql, _params, inTransaction) => {
@@ -211,6 +217,61 @@ const updated = await new PostgresPaymentRepository(updateDb).commitIntentAndEve
 assert(
   updated.intent.status === 'paid' && updated.intent.revision === 1 && updated.eventInserted,
   'Authoritative paid transition and its PaymentEvent must commit atomically.',
+);
+
+const pendingIntent = {
+  ...transitionPaymentIntent(
+    baseIntent,
+    'pending',
+    '2026-09-17T14:40:02.000Z',
+  ),
+  providerReference: 'ORD-PENDING',
+};
+const pendingEvent: PaymentEvent = {
+  id: '99999999-9999-4999-8999-999999999999',
+  paymentIntentId: pendingIntent.id,
+  type: 'payment_pending',
+  occurredAt: pendingIntent.updatedAt,
+  providerKey: 'mercadopago_point',
+  providerReference: 'ORD-PENDING',
+};
+const reconcileOutbox = createOutboxEvent({
+  id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+  businessId,
+  aggregateType: 'payment_intent',
+  aggregateId: pendingIntent.id,
+  eventType: 'payment.reconcile',
+  idempotencyKey: 'payment-1:reconcile:1',
+  payload: { paymentIntentId: pendingIntent.id },
+  createdAt: pendingIntent.updatedAt,
+});
+const reconcileDb = new FakeSqlDatabase((sql, _params, inTransaction) => {
+  assert(inTransaction, 'Payment state/event/reconcile Outbox must use one transaction executor.');
+  if (sql.includes('update payment_intent')) {
+    return { rows: [paymentRow(pendingIntent)], rowCount: 1 };
+  }
+  if (sql.includes('insert into payment_event')) {
+    return { rows: [{ id: pendingEvent.id }], rowCount: 1 };
+  }
+  if (sql.includes('insert into commerce_outbox')) {
+    return { rows: [{ id: reconcileOutbox.id }], rowCount: 1 };
+  }
+  throw new Error(`Unexpected SQL in atomic reconcile scheduling test: ${sql}`);
+});
+const pendingCommitted = await new PostgresPaymentRepository(reconcileDb).commitIntentAndEvent({
+  intent: pendingIntent,
+  expectedRevision: 0,
+  event: pendingEvent,
+  outboxEvents: [reconcileOutbox],
+});
+assert(
+  pendingCommitted.intent.status === 'pending' &&
+    pendingCommitted.outboxInsertedIds[0] === reconcileOutbox.id &&
+    reconcileDb.transactionCount === 1 &&
+    reconcileDb.transactionQueries.some((sql) => sql.includes('update payment_intent')) &&
+    reconcileDb.transactionQueries.some((sql) => sql.includes('insert into payment_event')) &&
+    reconcileDb.transactionQueries.some((sql) => sql.includes('insert into commerce_outbox')),
+  'Pending/unknown payment state and mandatory reconcile work must survive the same DB commit.',
 );
 
 const staleDb = new FakeSqlDatabase((sql) => {
