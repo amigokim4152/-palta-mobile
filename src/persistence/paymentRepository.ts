@@ -11,6 +11,11 @@ export type PaymentIdempotencyLookup = {
   idempotencyKey: string;
 };
 
+export type CommercePaymentIntentQuery = {
+  businessId: string;
+  commerceTransactionId: string;
+};
+
 export type PaymentAtomicCommit = {
   intent: PaymentIntent;
   /** null creates revision 0; a number updates using compare-and-swap. */
@@ -38,6 +43,14 @@ export interface PaymentRepository {
   commitIntentAndEvent(
     commit: PaymentAtomicCommit,
   ): Promise<PaymentAtomicCommitResult>;
+}
+
+/**
+ * Read extension used to project split/group payment coverage onto Commerce.
+ * Kept separate so focused payment writers do not gain broad transaction scans.
+ */
+export interface CommercePaymentQueryRepository extends PaymentRepository {
+  listIntentsForTransaction(query: CommercePaymentIntentQuery): Promise<PaymentIntent[]>;
 }
 
 export class PaymentConcurrencyError extends Error {
