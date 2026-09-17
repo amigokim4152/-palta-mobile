@@ -4,10 +4,13 @@ import type {
 } from '../commerce/outbox.js';
 import {
   assertOutboxClaimRequest,
+  assertOutboxDispatchCandidateRequest,
   assertOutboxEventClaimRequest,
   type OutboxClaimRequest,
   type OutboxCompleteRequest,
   type OutboxDeadLetterRequest,
+  type OutboxDispatchCandidate,
+  type OutboxDispatchCandidateRequest,
   type OutboxEventClaimRequest,
   type OutboxRepository,
   type OutboxRetryRequest,
@@ -31,6 +34,7 @@ type OutboxRow = {
 };
 
 type IdRow = { id: string };
+type DispatchRow = { id: string };
 
 const OUTBOX_COLUMNS = `
   id,
@@ -167,6 +171,36 @@ export class PostgresOutboxRepository implements OutboxRepository {
     );
     const row = result.rows[0];
     return row ? rowToEvent(row) : null;
+  }
+
+  async listDispatchCandidates(
+    request: OutboxDispatchCandidateRequest,
+  ): Promise<OutboxDispatchCandidate[]> {
+    assertOutboxDispatchCandidateRequest(request);
+    const prefix = `${request.destination}.%`;
+    const result = await this.db.query<DispatchRow>(
+      `select id
+       from commerce_outbox
+       where event_type like $2
+         and (
+           (
+             status in ('pending', 'retryable_error')
+             and (next_attempt_at is null or next_attempt_at <= $1::timestamptz)
+           )
+           or (
+             status = 'processing'
+             and lease_expires_at is not null
+             and lease_expires_at <= $1::timestamptz
+           )
+         )
+       order by created_at
+       limit $3`,
+      [request.now, prefix, request.limit],
+    );
+    return result.rows.map((row) => ({
+      eventId: row.id,
+      destination: request.destination,
+    }));
   }
 
   async markDelivered(request: OutboxCompleteRequest): Promise<boolean> {
