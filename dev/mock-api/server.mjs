@@ -4,6 +4,7 @@ import {
   handleOperatingRulesRequest,
   refreshBusinessOperationalState,
 } from './operating-rules-state.mjs';
+import { handleBusinessReviewsRequest } from './business-reviews-state.mjs';
 
 const host = process.env.PALTA_MOCK_HOST ?? '127.0.0.1';
 const port = Number(process.env.PALTA_MOCK_PORT ?? '8787');
@@ -426,6 +427,15 @@ const server = http.createServer(async (req, res) => {
       readJson,
     });
     if (operatingRulesHandled) return;
+
+    const reviewsHandled = handleBusinessReviewsRequest({
+      req,
+      res,
+      url,
+      businesses,
+      json,
+    });
+    if (reviewsHandled) return;
 
     const relationshipMatch = url.pathname.match(/^\/v1\/business\/([^/]+)\/relationship$/);
     if (relationshipMatch && (req.method === 'GET' || req.method === 'PUT')) {
