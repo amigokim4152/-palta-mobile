@@ -2,6 +2,7 @@ import type {
   ActionReference,
   ActorRef,
   Message,
+  MessageAttachmentDraft,
   MessageType,
 } from './contracts.js';
 import type { SendMessageCommand } from './messageService.js';
@@ -18,12 +19,22 @@ export interface MessageApiActionRef {
   contract_version: string;
 }
 
+export interface MessageApiAttachment {
+  attachment_id?: string;
+  asset_id: string;
+  kind: MessageAttachmentDraft['kind'];
+  mime_type: string;
+  size_bytes?: number;
+  duration_ms?: number;
+}
+
 export interface SendMessageApiRequest {
   client_message_id: string;
   scope_id?: string;
   acting_actor?: MessageApiActingActor;
   message_type: MessageType;
   body?: string;
+  attachments?: MessageApiAttachment[];
   reply_to_message_id?: string;
   action_ref?: MessageApiActionRef;
 }
@@ -40,6 +51,7 @@ export interface MessageApiResponse {
   sequence: number;
   message_type: MessageType;
   body?: string;
+  attachments?: MessageApiAttachment[];
   reply_to_message_id?: string;
   action_ref?: MessageApiActionRef;
   created_at: string;
@@ -64,6 +76,16 @@ function actionFromApi(input: MessageApiActionRef | undefined): ActionReference 
     resourceId: input.resource_id,
     action: input.action,
     contractVersion: input.contract_version,
+  };
+}
+
+function attachmentFromApi(input: MessageApiAttachment): MessageAttachmentDraft {
+  return {
+    assetId: input.asset_id,
+    kind: input.kind,
+    mimeType: input.mime_type,
+    ...(input.size_bytes !== undefined ? { sizeBytes: input.size_bytes } : {}),
+    ...(input.duration_ms !== undefined ? { durationMs: input.duration_ms } : {}),
   };
 }
 
@@ -95,6 +117,7 @@ export function sendCommandFromApi(input: {
         actorId: input.principalUserId,
       };
   const actionRef = actionFromApi(input.request.action_ref);
+  const attachments = input.request.attachments?.map(attachmentFromApi);
 
   return {
     principalUserId: input.principalUserId,
@@ -104,6 +127,7 @@ export function sendCommandFromApi(input: {
     sender,
     type: input.request.message_type,
     ...(input.request.body !== undefined ? { body: input.request.body } : {}),
+    ...(attachments !== undefined ? { attachments } : {}),
     ...(input.request.reply_to_message_id !== undefined
       ? { replyToMessageId: input.request.reply_to_message_id }
       : {}),
@@ -124,6 +148,14 @@ export function messageToApi(
         contract_version: message.actionRef.contractVersion,
       }
     : undefined;
+  const attachments = message.attachments?.map((attachment) => ({
+    attachment_id: attachment.attachmentId,
+    asset_id: attachment.assetId,
+    kind: attachment.kind,
+    mime_type: attachment.mimeType,
+    ...(attachment.sizeBytes !== undefined ? { size_bytes: attachment.sizeBytes } : {}),
+    ...(attachment.durationMs !== undefined ? { duration_ms: attachment.durationMs } : {}),
+  }));
 
   return {
     message_id: message.messageId,
@@ -137,6 +169,7 @@ export function messageToApi(
     sequence: message.sequence,
     message_type: message.type,
     ...(message.body !== undefined ? { body: message.body } : {}),
+    ...(attachments !== undefined && attachments.length > 0 ? { attachments } : {}),
     ...(message.replyToMessageId !== undefined
       ? { reply_to_message_id: message.replyToMessageId }
       : {}),
