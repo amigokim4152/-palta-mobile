@@ -1,4 +1,5 @@
 import type { BusinessVerificationStatus } from './businessActionPolicy.js';
+import type { BusinessFactField } from './businessFactEvidence.js';
 import type { BusinessOperationalState } from './businessOperationalState.js';
 import {
   canExposeChannelLink,
@@ -13,6 +14,8 @@ export type OwnerBusinessGuidanceInput = {
   hoursConfirmedAt?: string;
   now: string | Date;
   maxHoursConfirmationAgeMs?: number;
+  pendingFactCorrectionCount?: number;
+  pendingFactCorrectionFields?: readonly BusinessFactField[];
   photoCount: number;
   hasDescription: boolean;
   serviceCount: number;
@@ -58,6 +61,29 @@ export function buildOwnerBusinessGuidance(
   input: OwnerBusinessGuidanceInput,
 ): OwnerPartnerAction[] {
   const actions: OwnerPartnerAction[] = [];
+
+  const pendingCorrections = Math.max(0, input.pendingFactCorrectionCount ?? 0);
+  if (pendingCorrections > 0 && input.verificationStatus !== 'unverified') {
+    const fields = [...new Set(input.pendingFactCorrectionFields ?? [])];
+    actions.push({
+      id: `${input.businessId}:review-fact-corrections`,
+      class: 'stale_or_inaccurate_truth',
+      title: pendingCorrections === 1
+        ? 'Revisa una corrección de tu perfil'
+        : `Revisa ${pendingCorrections} correcciones de tu perfil`,
+      reason: fields.length
+        ? `Alguien señaló posible información desactualizada en: ${fields.join(', ')}. La sugerencia no cambia tu perfil hasta que se revise.`
+        : 'Hay sugerencias de corrección pendientes. Ninguna cambia tu perfil automáticamente.',
+      target: `/business/manage/${encodeURIComponent(input.businessId)}/corrections`,
+      evidenceRefs: [
+        `business:${input.businessId}:pending-corrections:${pendingCorrections}`,
+        ...fields.map((field) => `business:${input.businessId}:correction-field:${field}`),
+      ],
+      actionRequired: true,
+      commercial: 'free',
+      urgency: 3,
+    });
+  }
 
   if (needsHoursReconfirmation(input)) {
     actions.push({
