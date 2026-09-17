@@ -4,6 +4,7 @@ import {
 } from '../src/commerce/transaction.js';
 import {
   appendCashDrawerEntry,
+  assertPOSSessionCloseReady,
   closePOSSession,
   createCashDrawerEntry,
   createPOSRegister,
@@ -42,6 +43,10 @@ function assert(condition: unknown, message: string): asserts condition {
 const t0 = '2026-09-17T10:00:00.000Z';
 const t1 = '2026-09-17T10:00:01.000Z';
 const t2 = '2026-09-17T10:00:02.000Z';
+const safeCloseReadiness = {
+  unresolvedMoneyOperationCount: 0,
+  unsyncedLocalMutationCount: 0,
+};
 
 let transaction = createCommerceTransaction({
   id: 'tx-1',
@@ -78,10 +83,24 @@ const mobileSession = openPOSSession({
   operatorId: 'owner-1',
   openedAt: t0,
 });
+let unsafeCloseBlocked = false;
+try {
+  assertPOSSessionCloseReady({
+    unresolvedMoneyOperationCount: 1,
+    unsyncedLocalMutationCount: 0,
+  });
+} catch {
+  unsafeCloseBlocked = true;
+}
+assert(
+  unsafeCloseBlocked,
+  'POS close must be blocked while a payment/refund outcome is unresolved.',
+);
 const closedMobileSession = closePOSSession({
   session: mobileSession,
   closedAt: t2,
   closedBy: 'owner-1',
+  readiness: safeCloseReadiness,
 });
 assert(
   closedMobileSession.status === 'closed' &&
@@ -118,6 +137,7 @@ const closedShopSession = closePOSSession({
   session: shopSession,
   closedAt: t2,
   closedBy: 'manager-1',
+  readiness: safeCloseReadiness,
   countedCashMinor: 64000,
 });
 assert(
