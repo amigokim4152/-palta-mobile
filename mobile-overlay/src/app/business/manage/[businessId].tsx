@@ -6,6 +6,20 @@ import { ScreenFrame } from '../../../components/ScreenFrame';
 import { SectionHeading } from '../../../components/common/SectionHeading';
 import { useAsyncResource } from '../../../hooks/useAsyncResource';
 import { mobileRuntime } from '../../../services/paltaClient';
+import type { BusinessOperationalState } from '../../../../../src/business/businessOperationalState';
+
+function operationalStateLabel(state?: BusinessOperationalState): string {
+  switch (state) {
+    case 'open_now': return 'Abierto ahora';
+    case 'closed_now': return 'Cerrado ahora';
+    case 'closed_today': return 'Cerrado hoy';
+    case 'temporarily_closed': return 'Cerrado temporalmente';
+    case 'seasonal_closed': return 'Cerrado por temporada';
+    case 'paused': return 'Atención pausada';
+    case 'permanently_closed': return 'Cerrado permanentemente';
+    default: return 'Horario por confirmar';
+  }
+}
 
 function OwnerCard({
   title,
@@ -96,6 +110,10 @@ export default function BusinessOwnerHomeScreen() {
   );
   const postCount = business.posts?.length ?? 0;
   const latestPost = business.posts?.[0];
+  const operationalSummary = [
+    operationalStateLabel(business.operational_state),
+    business.hours_summary,
+  ].filter(Boolean).join(' · ');
 
   return (
     <ScreenFrame
@@ -121,13 +139,20 @@ export default function BusinessOwnerHomeScreen() {
           title="Perfil público"
           body={[
             business.category_key,
-            business.opening_status,
             business.contact?.whatsapp ? 'WhatsApp' : undefined,
             business.contact?.phone ? 'Teléfono' : undefined,
             ...(business.channel_links ?? []).slice(0, 2).map((channel) => channel.label),
           ]
             .filter(Boolean)
             .join(' · ') || 'Completa categoría, horario y forma de contacto.'}
+        />
+        <OwnerCard
+          title="Horario y estado de hoy"
+          body={operationalSummary || 'Configura tu horario normal. Palta calculará el estado de hoy automáticamente.'}
+          badge="SIN COSTO"
+          onPress={() =>
+            router.push(`/business/manage/${encodeURIComponent(business.id)}/hours`)
+          }
         />
         <OwnerCard
           title="Enlaces públicos"
@@ -162,7 +187,7 @@ export default function BusinessOwnerHomeScreen() {
           </>
         ) : null}
         <Text style={{ opacity: 0.66, lineHeight: 20 }}>
-          Tu presencia básica, las novedades, la información pública y el descubrimiento orgánico no dependen de contratar un módulo adicional.
+          Tu presencia básica, el horario, las novedades, la información pública y el descubrimiento orgánico no dependen de contratar un módulo adicional.
         </Text>
 
         <SectionHeading
