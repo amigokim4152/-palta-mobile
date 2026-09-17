@@ -146,27 +146,45 @@ Reference: `docs/PALTA_CORE_ICON_SET_V1.md`.
 
 ### Gate C — Core components + ES/KO length validation
 
-Status: CONTRACT IMPLEMENTED / RENDER ADAPTERS + LOCALE QA PENDING
+Status: CONTRACT + QA CASES IMPLEMENTED / NATIVE RENDER ADAPTER PENDING
 
 Implemented:
 - shared TypeScript UI contracts: `src/ui/contracts.ts`
 - shared export layer: `src/ui/index.ts`
 - Button/Input/Card/BottomSheet/Status/Trust/Empty/Error/Profile contracts
 - Community Post and Local Result cross-domain contracts
+- ReactionBar and Character presentation contracts
 - screen-pattern contract
+- ES-CL and KO stress cases: `src/ui/localeQa.ts`
+- framework-neutral platform adapter contract: `src/ui/platformAdapter.ts`
 
 Pending:
+- actual Expo/React Native runtime shell
 - React Native adapter/components
 - Web/PWA adapter where needed
-- ES-CL long-copy stress test
-- KO stress test
-- Dynamic Type/font-scale test
+- rendered ES-CL long-copy stress test
+- rendered KO stress test
+- Dynamic Type/font-scale device test
+
+Reference: `docs/ACCESSIBILITY_LOCALE_QA_V1.md`.
 
 ### Gate D — Motion/Haptic/Gesture/Accessibility
 
-Status: BASELINE APPROVED / NUMERIC IMPLEMENTATION PENDING
+Status: QA CONTRACT IMPLEMENTED / DEVICE VALIDATION PENDING
 
-Meaning categories are stable. Exact duration/easing/spring values require real-device testing.
+Implemented:
+- shared required accessibility checks: `src/ui/accessibilityQa.ts`
+- iOS/Android/Web capability boundary
+- reduced-motion and dynamic-text adapter requirements
+- minimum device validation matrix
+- PASS / FAIL / NOT VERIFIED evidence rule
+
+Pending:
+- exact duration/easing/spring values
+- platform haptic mappings
+- real screen-reader/focus-order evidence
+- keyboard/safe-area evidence
+- real-device frame/performance evidence
 
 ### Gate E — Cross-surface consistency slice
 
@@ -183,9 +201,30 @@ References:
 - `docs/DESIGN_VERTICAL_SLICE_V1.md`
 - `prototype/design-system-v1.html`
 
-### Gate F onward
+### Gate F — Character / Living Example / Reaction binding
 
-Pending representative real-domain integration and cross-domain regression.
+Status: SEMANTIC RUNTIME BINDING IMPLEMENTED / FINAL ARTWORK PENDING
+
+Implemented:
+- six current canonical character IDs from Drive registry
+- upstream PROVISIONAL status preserved
+- sensitive-context suppression contract
+- synthetic/example disclosure requirement
+- six shared Reaction meanings
+- Community `ReactionBarContract` uses registered Reaction keys
+- automated guardrails against Unicode emoji as default product Reaction assets
+- five current synthetic QA personas bound for cross-domain regression
+
+Pending:
+- final Character runtime assets
+- final Reaction visual assets
+- on-device visual/optical review
+
+Reference: `docs/CHARACTER_REACTION_BINDING_V1.md`.
+
+### Gate G onward
+
+Pending representative real-domain integration, native render adapters and cross-domain regression.
 
 ## Automated guardrails
 
@@ -193,20 +232,27 @@ Pending representative real-domain integration and cross-domain regression.
 
 - required contract/registry files
 - accidental brand hex freeze in `src/ui/tokens.ts`
-- Unicode emoji in the core icon registry
+- Unicode emoji in core icon and Reaction registries
 - duplicate core icon semantic keys
 - required shared semantic component contracts
+- canonical Character IDs and provisional upstream status
+- sensitive-context Character suppression
+- ES-CL + KO locale QA coverage
+- required accessibility QA checks
+- five shared synthetic QA personas
+- iOS/Android/Web platform-adapter boundary
 - motion remaining explicitly unfrozen until device validation
 - prohibition of domain-specific icon packs
 
-`npm run verify` now includes this check on the Design System branch.
+`npm run verify` includes this check on the Design System branch.
 
 ## Verification status
 
-- `src/ui` TypeScript contracts: PASS under TypeScript 5.8.3 strict settings in an isolated equivalent compiler check.
-- GitHub branch-wide CI: NOT VERIFIED; no workflow/status run was attached to the latest Design System commits at review time.
+- `src/ui` TypeScript contracts: PASS under TypeScript 5.8.3 strict settings before the latest Character/QA expansion; full branch re-verification required after current additions.
+- GitHub branch-wide CI: NOT VERIFIED; no workflow/status run was attached to the Design System commits at review time.
 - real-device UI measurement: NOT VERIFIED.
 - final brand color/font/icon geometry: NOT FROZEN by upstream source, intentionally.
+- final Character/Reaction artwork: NOT FROZEN by upstream source, intentionally.
 
 ## First implementation sequence
 
@@ -220,10 +266,12 @@ Pending representative real-domain integration and cross-domain regression.
 8. Home pattern structural prototype — READY
 9. Discovery + Map/Sheet structural prototype — READY
 10. Feed + Thread structural prototype — READY
-11. Character/expression binding — NEXT
-12. Accessibility/state/locale QA checklist — NEXT
+11. Character/expression binding — IMPLEMENTED
+12. Accessibility/state/locale QA checklist — IMPLEMENTED
 13. Domain adoption guide — READY
-14. Cross-domain regression — PENDING REAL ADAPTERS
+14. Framework-neutral platform adapter — IMPLEMENTED
+15. Native Expo/React Native shell + adapter — BLOCKED UNTIL RUNTIME SHELL EXISTS
+16. Cross-domain regression — PENDING REAL ADAPTERS
 
 ## Design freeze policy
 
