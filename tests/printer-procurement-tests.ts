@@ -1,4 +1,3 @@
-import assert from 'node:assert/strict';
 import {
   assessProcurementCandidate,
   decideExistingPrinterReuse,
@@ -6,18 +5,43 @@ import {
 } from '../src/printing/printerProcurement.js';
 import type { PrinterCertificationRecord } from '../src/printing/printerCertification.js';
 
+function assert(condition: unknown, message: string): asserts condition {
+  if (!condition) throw new Error(message);
+}
+
+function assertEqual<T>(actual: T, expected: T, message: string): void {
+  if (actual !== expected) {
+    throw new Error(`${message}: expected ${String(expected)}, got ${String(actual)}`);
+  }
+}
+
+function assertArrayEqual<T>(actual: readonly T[], expected: readonly T[], message: string): void {
+  if (
+    actual.length !== expected.length ||
+    actual.some((value, index) => value !== expected[index])
+  ) {
+    throw new Error(
+      `${message}: expected [${expected.map(String).join(', ')}], got [${actual.map(String).join(', ')}]`,
+    );
+  }
+}
+
 const now = '2026-09-17T20:00:00Z';
 
 const fixed = planPrinterPackage('fixed_multi_register');
-assert.equal(fixed.requirements[0]?.role, 'receipt');
-assert.deepEqual(fixed.requirements[0]?.preferredTransports.slice(0, 2), ['network', 'vendor_sdk']);
+assertEqual(fixed.requirements[0]?.role, 'receipt', 'Fixed multi-register package should require a receipt printer.');
+assertArrayEqual(
+  fixed.requirements[0]?.preferredTransports.slice(0, 2) ?? [],
+  ['network', 'vendor_sdk'],
+  'Fixed multi-register package should prefer network/vendor SDK transports.',
+);
 
 const mobile = planPrinterPackage('mobile_solo');
-assert.equal(mobile.requirements[0]?.required, false);
-assert(mobile.guidance.includes('digital_receipt_first'));
+assertEqual(mobile.requirements[0]?.required, false, 'Mobile solo package should not require a printer.');
+assert(mobile.guidance.includes('digital_receipt_first'), 'Mobile solo package should prefer digital receipts.');
 
 const label = planPrinterPackage('warehouse_label');
-assert.equal(label.requirements[0]?.documentKinds[0], 'label');
+assertEqual(label.requirements[0]?.documentKinds[0], 'label', 'Warehouse label package should target label output.');
 
 const baseChecks = [
   { check: 'connection', passed: true },
@@ -57,8 +81,8 @@ const requirement = fixed.requirements[0];
 if (!requirement) throw new Error('fixed package must require receipt printer');
 const networkDecision = assessProcurementCandidate({ record: networkReceipt, requirement, now });
 const usbDecision = assessProcurementCandidate({ record: usbReceipt, requirement, now });
-assert.equal(networkDecision.eligible, true);
-assert.equal(usbDecision.eligible, true);
+assertEqual(networkDecision.eligible, true, 'Preferred Chile network candidate should be eligible.');
+assertEqual(usbDecision.eligible, true, 'Available Chile USB candidate should remain eligible.');
 assert(networkDecision.score > usbDecision.score, 'Preferred Chile network candidate should score higher.');
 
 const unavailable: PrinterCertificationRecord = {
@@ -66,34 +90,38 @@ const unavailable: PrinterCertificationRecord = {
   id: 'cert-3',
   procurementStatus: 'unavailable_chile',
 };
-assert.equal(
+assertEqual(
   assessProcurementCandidate({ record: unavailable, requirement, now }).eligible,
   false,
+  'Unavailable Chile hardware should not be eligible for procurement.',
 );
 
-assert.equal(
+assertEqual(
   decideExistingPrinterReuse({
     supportTier: 'compatible',
     requiredForOperation: true,
     diagnosticsPassed: true,
   }),
   'reuse_after_test',
+  'Compatible hardware that passes diagnostics should be reused after testing.',
 );
-assert.equal(
+assertEqual(
   decideExistingPrinterReuse({
     supportTier: 'unknown',
     requiredForOperation: true,
     diagnosticsPassed: false,
   }),
   'replace_if_printing_is_critical',
+  'Unknown required hardware that fails diagnostics should be replaced when printing is critical.',
 );
-assert.equal(
+assertEqual(
   decideExistingPrinterReuse({
     supportTier: 'unknown',
     requiredForOperation: false,
     diagnosticsPassed: false,
   }),
   'guided_diagnosis',
+  'Unknown optional hardware should stay in guided diagnosis before replacement.',
 );
 
 console.log('printer-procurement-tests: ok');
