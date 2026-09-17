@@ -1,5 +1,3 @@
-import { randomUUID } from 'node:crypto';
-
 const seededRules = new Map([
   ['biz-taller-1', {
     timezone: 'America/Santiago',
@@ -12,6 +10,8 @@ const seededRules = new Map([
       friday: [{ opensAt: '09:00', closesAt: '18:00' }],
       saturday: [{ opensAt: '09:00', closesAt: '14:00' }],
     },
+    seasonalSchedules: [],
+    seasonalClosures: [],
     dateExceptions: [],
     temporaryClosures: [],
   }],
@@ -26,6 +26,8 @@ const seededRules = new Map([
       friday: [{ opensAt: '09:00', closesAt: '20:00' }],
       saturday: [{ opensAt: '09:00', closesAt: '20:00' }],
     },
+    seasonalSchedules: [],
+    seasonalClosures: [],
     dateExceptions: [],
     temporaryClosures: [],
   }],
@@ -75,6 +77,35 @@ function validWeekly(value) {
   );
 }
 
+function validMonthDay(value) {
+  if (typeof value !== 'string' || !/^\d{2}-\d{2}$/.test(value)) return false;
+  const [monthText, dayText] = value.split('-');
+  const month = Number(monthText);
+  const day = Number(dayText);
+  if (month < 1 || month > 12 || day < 1 || day > 31) return false;
+  const probe = new Date(Date.UTC(2024, month - 1, day));
+  return probe.getUTCMonth() === month - 1 && probe.getUTCDate() === day;
+}
+
+function annualRangeContains(localDate, startsOn, endsOn) {
+  if (!validMonthDay(startsOn) || !validMonthDay(endsOn)) return false;
+  const current = localDate.slice(5, 10);
+  if (startsOn <= endsOn) return current >= startsOn && current <= endsOn;
+  return current >= startsOn || current <= endsOn;
+}
+
+function activeSeasonalSchedule(rules, localDate) {
+  return (rules.seasonalSchedules ?? []).find((item) =>
+    annualRangeContains(localDate, item.startsOn, item.endsOn)
+  );
+}
+
+function activeSeasonalClosure(rules, localDate) {
+  return (rules.seasonalClosures ?? []).find((item) =>
+    annualRangeContains(localDate, item.startsOn, item.endsOn)
+  );
+}
+
 function localClock(timezone, now = new Date()) {
   const parts = Object.fromEntries(
     new Intl.DateTimeFormat('en-CA', {
@@ -108,8 +139,10 @@ function scheduleForDate(rules, localDate) {
   if (exception) {
     return exception.kind === 'closed_all_day' ? [] : [...(exception.intervals ?? [])];
   }
+  const seasonal = activeSeasonalSchedule(rules, localDate);
+  const weekly = seasonal?.weekly ?? rules.weekly;
   const date = new Date(`${localDate}T00:00:00Z`);
-  return [...(rules.weekly?.[weekdayKeys[date.getUTCDay()]] ?? [])];
+  return [...(weekly?.[weekdayKeys[date.getUTCDay()]] ?? [])];
 }
 
 function intervalContains(interval, minute) {
@@ -131,19 +164,21 @@ function previousOvernightOpen(rules, localDate, minute) {
 
 function nextOpenLocal(rules, localDate, localTime) {
   const minute = minuteOfDay(localTime) ?? 0;
-  const todayCandidates = scheduleForDate(rules, localDate)
-    .filter((interval) => {
-      const opens = minuteOfDay(interval.opensAt);
-      const closes = minuteOfDay(interval.closesAt);
-      return opens !== null && closes !== null && opens < closes && opens > minute;
-    })
-    .sort((a, b) => (minuteOfDay(a.opensAt) ?? 0) - (minuteOfDay(b.opensAt) ?? 0));
-  if (todayCandidates[0]) {
-    return { localDate, localTime: todayCandidates[0].opensAt };
+  if (!activeSeasonalClosure(rules, localDate)) {
+    const todayCandidates = scheduleForDate(rules, localDate)
+      .filter((interval) => {
+        const opens = minuteOfDay(interval.opensAt);
+        return opens !== null && opens > minute;
+      })
+      .sort((a, b) => (minuteOfDay(a.opensAt) ?? 0) - (minuteOfDay(b.opensAt) ?? 0));
+    if (todayCandidates[0]) {
+      return { localDate, localTime: todayCandidates[0].opensAt };
+    }
   }
 
-  for (let offset = 1; offset <= 14; offset += 1) {
+  for (let offset = 1; offset <= 370; offset += 1) {
     const candidateDate = addLocalDays(localDate, offset);
+    if (activeSeasonalClosure(rules, candidateDate)) continue;
     const candidates = scheduleForDate(rules, candidateDate)
       .slice()
       .sort((a, b) => (minuteOfDay(a.opensAt) ?? 0) - (minuteOfDay(b.opensAt) ?? 0));
@@ -159,6 +194,8 @@ function ensureRules(businessId) {
       timezone: 'America/Santiago',
       confirmedAt: new Date().toISOString(),
       weekly: {},
+      seasonalSchedules: [],
+      seasonalClosures: [],
       dateExceptions: [],
       temporaryClosures: [],
     };
@@ -185,6 +222,16 @@ function operationalProjection(rules, now = new Date()) {
     };
   }
 
+  if (activeSeasonalClosure(rules, clock.localDate)) {
+    return {
+      operational_state: 'seasonal_closed',
+      local_date: clock.localDate,
+      local_time: clock.localTime,
+      schedule_confirmed_at: rules.confirmedAt,
+      next_open_local: nextOpenLocal(rules, clock.localDate, clock.localTime),
+    };
+  }
+
   const exception = (rules.dateExceptions ?? []).find((item) => item.date === clock.localDate);
   if (exception?.kind === 'closed_all_day') {
     return {
@@ -198,11 +245,11 @@ function operationalProjection(rules, now = new Date()) {
 
   const intervals = scheduleForDate(rules, clock.localDate);
   const minute = minuteOfDay(clock.localTime) ?? 0;
-  const openNow = intervals.some((interval) => intervalContains(interval, minute)) ||
-    previousOvernightOpen(rules, clock.localDate, minute);
+  const previousOpen = previousOvernightOpen(rules, clock.localDate, minute);
+  const openNow = intervals.some((interval) => intervalContains(interval, minute)) || previousOpen;
   const state = openNow
     ? 'open_now'
-    : intervals.length === 0 && !previousOvernightOpen(rules, clock.localDate, minute)
+    : intervals.length === 0 && !previousOpen
       ? 'closed_today'
       : 'closed_now';
   return {
@@ -222,6 +269,7 @@ function applyProjectionToBusiness(business, projection) {
     closed_now: 'Cerrado ahora',
     closed_today: 'Cerrado hoy',
     temporarily_closed: 'Cerrado temporalmente',
+    seasonal_closed: 'Cerrado por temporada',
   };
   business.opening_status = labels[projection.operational_state] ?? 'Horario por confirmar';
 }
@@ -244,17 +292,26 @@ function replaceTodayException(rules, localDate, nextException) {
   ];
 }
 
+function findBusiness(id, businesses, res, json) {
+  const business = businesses.find((item) => item.id === id);
+  if (!business) json(res, 404, { error: 'business_not_found' });
+  return business;
+}
+
+function requireOwnerManaged(business, res, json) {
+  if (isOwnerManaged(business)) return true;
+  json(res, 403, { error: 'owner_claim_required' });
+  return false;
+}
+
 export async function handleOperatingRulesRequest({ req, res, url, businesses, json, readJson }) {
   const readMatch = req.method === 'GET'
     ? url.pathname.match(/^\/v1\/business\/([^/]+)\/operating-rules$/)
     : null;
   if (readMatch) {
     const id = decodeURIComponent(readMatch[1]);
-    const business = businesses.find((item) => item.id === id);
-    if (!business) {
-      json(res, 404, { error: 'business_not_found' });
-      return true;
-    }
+    const business = findBusiness(id, businesses, res, json);
+    if (!business) return true;
     json(res, 200, responseFor(business));
     return true;
   }
@@ -264,15 +321,8 @@ export async function handleOperatingRulesRequest({ req, res, url, businesses, j
     : null;
   if (weeklyMatch) {
     const id = decodeURIComponent(weeklyMatch[1]);
-    const business = businesses.find((item) => item.id === id);
-    if (!business) {
-      json(res, 404, { error: 'business_not_found' });
-      return true;
-    }
-    if (!isOwnerManaged(business)) {
-      json(res, 403, { error: 'owner_claim_required' });
-      return true;
-    }
+    const business = findBusiness(id, businesses, res, json);
+    if (!business || !requireOwnerManaged(business, res, json)) return true;
     const body = await readJson(req);
     if (typeof body.timezone !== 'string' || !body.timezone.trim()) {
       json(res, 400, { error: 'timezone_required' });
@@ -296,21 +346,72 @@ export async function handleOperatingRulesRequest({ req, res, url, businesses, j
     return true;
   }
 
+  const seasonMatch = url.pathname.match(
+    /^\/v1\/business\/([^/]+)\/operating-rules\/seasons\/([^/]+)$/,
+  );
+  if (seasonMatch && (req.method === 'PUT' || req.method === 'DELETE')) {
+    const id = decodeURIComponent(seasonMatch[1]);
+    const seasonId = decodeURIComponent(seasonMatch[2]);
+    const business = findBusiness(id, businesses, res, json);
+    if (!business || !requireOwnerManaged(business, res, json)) return true;
+    const rules = ensureRules(id);
+    if (req.method === 'DELETE') {
+      rules.seasonalSchedules = (rules.seasonalSchedules ?? []).filter((item) => item.id !== seasonId);
+    } else {
+      const body = await readJson(req);
+      if (!validMonthDay(body.starts_on) || !validMonthDay(body.ends_on) || !validWeekly(body.weekly)) {
+        json(res, 400, { error: 'invalid_seasonal_schedule' });
+        return true;
+      }
+      rules.seasonalSchedules = [
+        ...(rules.seasonalSchedules ?? []).filter((item) => item.id !== seasonId),
+        { id: seasonId, startsOn: body.starts_on, endsOn: body.ends_on, weekly: body.weekly },
+      ];
+    }
+    rules.confirmedAt = new Date().toISOString();
+    json(res, 200, responseFor(business));
+    return true;
+  }
+
+  const seasonalClosureMatch = url.pathname.match(
+    /^\/v1\/business\/([^/]+)\/operating-rules\/seasonal-closures\/([^/]+)$/,
+  );
+  if (seasonalClosureMatch && (req.method === 'PUT' || req.method === 'DELETE')) {
+    const id = decodeURIComponent(seasonalClosureMatch[1]);
+    const closureId = decodeURIComponent(seasonalClosureMatch[2]);
+    const business = findBusiness(id, businesses, res, json);
+    if (!business || !requireOwnerManaged(business, res, json)) return true;
+    const rules = ensureRules(id);
+    if (req.method === 'DELETE') {
+      rules.seasonalClosures = (rules.seasonalClosures ?? []).filter((item) => item.id !== closureId);
+    } else {
+      const body = await readJson(req);
+      if (!validMonthDay(body.starts_on) || !validMonthDay(body.ends_on)) {
+        json(res, 400, { error: 'invalid_seasonal_closure' });
+        return true;
+      }
+      const confirmedAt = new Date().toISOString();
+      rules.seasonalClosures = [
+        ...(rules.seasonalClosures ?? []).filter((item) => item.id !== closureId),
+        { id: closureId, startsOn: body.starts_on, endsOn: body.ends_on, confirmedAt },
+      ];
+      rules.confirmedAt = confirmedAt;
+      json(res, 200, responseFor(business));
+      return true;
+    }
+    rules.confirmedAt = new Date().toISOString();
+    json(res, 200, responseFor(business));
+    return true;
+  }
+
   const quickMatch = req.method === 'POST'
     ? url.pathname.match(/^\/v1\/business\/([^/]+)\/operating-rules\/quick-action$/)
     : null;
   if (!quickMatch) return false;
 
   const id = decodeURIComponent(quickMatch[1]);
-  const business = businesses.find((item) => item.id === id);
-  if (!business) {
-    json(res, 404, { error: 'business_not_found' });
-    return true;
-  }
-  if (!isOwnerManaged(business)) {
-    json(res, 403, { error: 'owner_claim_required' });
-    return true;
-  }
+  const business = findBusiness(id, businesses, res, json);
+  if (!business || !requireOwnerManaged(business, res, json)) return true;
 
   const rules = ensureRules(id);
   const body = await readJson(req);
