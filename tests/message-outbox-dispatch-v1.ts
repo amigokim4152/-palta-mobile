@@ -127,7 +127,7 @@ const dispatcher = new MessageOutboxDispatcher(outbox, eventBus, runtime);
 
 const first = await dispatcher.runBatch(10);
 assert(first.claimed === 2 && first.published === 2 && first.failed === 0, 'Dispatcher must publish supported claimed events.');
-assert(eventBus.published.length === 2, 'Two EventBus events must be emitted.');
+assert(Number(eventBus.published.length) === 2, 'Two EventBus events must be emitted.');
 assert(eventBus.published[0]?.type === 'message.created', 'Message outbox event must map to message.created.');
 assert(eventBus.published[1]?.type === 'message.read_advanced', 'Read outbox event must map to message.read_advanced.');
 assert(eventBus.published[0]?.id === 'outbox-message-1', 'Outbox ID must be immutable EventBus event ID.');
@@ -152,11 +152,11 @@ const failed = await dispatcher.runBatch(10);
 assert(failed.failed === 1 && failed.published === 0, 'Publish failure must release event for retry.');
 const retryRecord = outbox.records.find((item) => item.outboxEventId === 'outbox-retry-1');
 assert(retryRecord?.published === false && retryRecord.processingToken === undefined, 'Failed event must be unleased and unpublished.');
-assert(retryRecord?.attempts === 1, 'Failed publication must count an attempt.');
+assert(Number(retryRecord?.attempts) === 1, 'Failed publication must count an attempt.');
 eventBus.failIds.delete('outbox-retry-1');
 const retried = await dispatcher.runBatch(10);
 assert(retried.published === 1, 'Released event must publish successfully on later run.');
-assert(retryRecord?.attempts === 2, 'Retry must increment publication attempts.');
+assert(Number(retryRecord?.attempts) === 2, 'Retry must increment publication attempts.');
 
 outbox.records.push({
   outboxEventId: 'outbox-unsupported-1',
