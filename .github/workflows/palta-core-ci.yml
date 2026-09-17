@@ -39,17 +39,17 @@ jobs:
             exit 1
           fi
           npm run mock:smoke
-          kill "$MOCK_PID" 2>/dev/null || true
-          wait "$MOCK_PID" 2>/dev/null || true
-          trap - EXIT
       - name: Followed updates HTTP smoke
+        env:
+          PALTA_MOCK_PORT: '8788'
+          PALTA_MOCK_BASE_URL: 'http://127.0.0.1:8788'
         run: |
           npm run mock:api > /tmp/palta-following-mock-api.log 2>&1 &
           MOCK_PID=$!
           trap 'kill "$MOCK_PID" 2>/dev/null || true' EXIT
           READY=0
           for attempt in $(seq 1 20); do
-            if curl --fail --silent http://127.0.0.1:8787/health > /dev/null; then
+            if curl --fail --silent http://127.0.0.1:8788/health > /dev/null; then
               READY=1
               break
             fi
