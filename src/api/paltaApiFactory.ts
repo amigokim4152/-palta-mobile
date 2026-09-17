@@ -15,6 +15,9 @@ import {
   BusinessReviewsApiClient,
 } from './businessReviewsApiClient.js';
 import {
+  BusinessServicesApiClient,
+} from './businessServicesApiClient.js';
+import {
   PaltaApiClient,
   type FetchLike,
 } from './paltaApiClient.js';
@@ -25,6 +28,7 @@ export type PaltaApiClientWithDomains = PaltaApiClient & {
   corrections: BusinessCorrectionsApiClient;
   ownerProfile: BusinessOwnerProfileApiClient;
   quotes: BusinessQuotesApiClient;
+  services: BusinessServicesApiClient;
 };
 
 export function createPaltaApiClient(input: {
@@ -66,6 +70,12 @@ export function createPaltaApiClient(input: {
   });
 
   client.quotes = new BusinessQuotesApiClient({
+    baseUrl: input.baseUrl,
+    fetch: input.fetch,
+    ...(getAccessToken ? { getAccessToken } : {}),
+  });
+
+  client.services = new BusinessServicesApiClient({
     baseUrl: input.baseUrl,
     fetch: input.fetch,
     ...(getAccessToken ? { getAccessToken } : {}),
