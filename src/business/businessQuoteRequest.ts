@@ -14,6 +14,7 @@ export type BusinessQuoteResponseStatus =
 
 export type BusinessQuoteRequest = Readonly<{
   id: string;
+  careTrackId: string;
   requesterUserId: string;
   description: string;
   recipientBusinessIds: readonly string[];
@@ -57,6 +58,7 @@ export function validateBusinessQuoteRequest(
 ): readonly string[] {
   const issues: string[] = [];
   if (!request.id.trim()) issues.push('quote_request_id_required');
+  if (!request.careTrackId.trim()) issues.push('quote_care_track_id_required');
   if (!request.requesterUserId.trim()) issues.push('requester_user_id_required');
   const description = request.description.trim();
   if (description.length < 10) issues.push('quote_description_too_short');
