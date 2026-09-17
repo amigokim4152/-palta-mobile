@@ -33,8 +33,8 @@ export type Money = {
 
 export type PaymentIntent = {
   id: string; // canonical Palta payment ID
-  orderId: string; // compatibility: canonical order ID where an order exists
-  commerceTransactionId?: string; // canonical commerce transaction for POS/service/other sales
+  commerceTransactionId: string; // canonical commercial action being paid
+  orderId?: string; // optional order context when the transaction came from an order
   merchantId: string; // canonical Palta merchant/business ID
   amount: Money;
   rail: PaymentRail;
