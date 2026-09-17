@@ -51,6 +51,21 @@ function isOlder(current: string, minimum: string): boolean {
   return compareNumericVersions(current, minimum) < 0;
 }
 
+const ACTION_PRIORITY: Readonly<Record<PrinterRuntimeCompatibilityAction, number>> = {
+  none: 0,
+  update_adapter: 1,
+  update_bridge: 2,
+  bridge_required: 3,
+  update_app: 4,
+};
+
+function prioritizeAction(
+  current: PrinterRuntimeCompatibilityAction,
+  candidate: PrinterRuntimeCompatibilityAction,
+): PrinterRuntimeCompatibilityAction {
+  return ACTION_PRIORITY[candidate] > ACTION_PRIORITY[current] ? candidate : current;
+}
+
 /**
  * A manifest entry may describe hardware we know how to support, but the current
  * app/bridge still has to contain a sufficiently new executable adapter. Remote
@@ -71,26 +86,26 @@ export function assessPrinterRuntimeCompatibility(input: {
     isOlder(input.runtime.appVersion, requirements.minAppVersion)
   ) {
     reasons.push(`app>=${requirements.minAppVersion}`);
-    action = 'update_app';
+    action = prioritizeAction(action, 'update_app');
   }
 
   if (requirements.minBridgeVersion !== undefined) {
     if (input.runtime.bridgeVersion === undefined) {
       reasons.push(`bridge>=${requirements.minBridgeVersion}`);
-      if (action === 'none') action = 'bridge_required';
+      action = prioritizeAction(action, 'bridge_required');
     } else if (isOlder(input.runtime.bridgeVersion, requirements.minBridgeVersion)) {
       reasons.push(`bridge>=${requirements.minBridgeVersion}`);
-      if (action === 'none' || action === 'bridge_required') action = 'update_bridge';
+      action = prioritizeAction(action, 'update_bridge');
     }
   }
 
   if (requirements.minBridgeProtocolVersion !== undefined) {
     if (input.runtime.bridgeProtocolVersion === undefined) {
       reasons.push(`bridgeProtocol>=${requirements.minBridgeProtocolVersion}`);
-      if (action === 'none') action = 'bridge_required';
+      action = prioritizeAction(action, 'bridge_required');
     } else if (input.runtime.bridgeProtocolVersion < requirements.minBridgeProtocolVersion) {
       reasons.push(`bridgeProtocol>=${requirements.minBridgeProtocolVersion}`);
-      if (action === 'none' || action === 'bridge_required') action = 'update_bridge';
+      action = prioritizeAction(action, 'update_bridge');
     }
   }
 
@@ -101,7 +116,7 @@ export function assessPrinterRuntimeCompatibility(input: {
       isOlder(currentAdapterVersion, requirements.minAdapterVersion)
     ) {
       reasons.push(`${input.entry.adapterKey}>=${requirements.minAdapterVersion}`);
-      if (action === 'none') action = 'update_adapter';
+      action = prioritizeAction(action, 'update_adapter');
     }
   }
 
