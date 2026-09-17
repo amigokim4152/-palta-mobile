@@ -11,9 +11,10 @@ The objective is not “support every printer by name”. The objective is:
 
 - one provider-neutral Print Core;
 - protocol/capability based adapters;
-- a small number of certified reference devices;
+- a small number of Palta-tested reference devices;
 - reuse of existing devices whenever a safe path exists;
 - self-service onboarding and diagnostics;
+- deterministic multi-printer routing;
 - no printer-specific logic inside Commerce, Payment or Fiscal Core.
 
 ## 2. Non-negotiable rule
@@ -53,6 +54,7 @@ Primary compatibility families:
 - ZPL/ZPL II;
 - EPL;
 - TSPL/TSPL-EZ;
+- Brother raster/SDK for selected devices;
 - vendor raster/SDK where unavoidable.
 
 ### General document
@@ -91,7 +93,7 @@ Do not assume every Android POS terminal exposes the same USB/Bluetooth capabili
 ### Phone
 Printing is secondary. Phone POS may:
 - print to a previously paired network/Bluetooth receipt printer;
-- request a receipt print from a store register;
+- request a receipt print from a configured store register;
 - share/send a digital receipt instead.
 
 A field-service provider must never be forced to own a printer to complete a sale.
@@ -108,9 +110,10 @@ Palta Device Bridge is a replaceable local adapter host, not a second POS.
 
 Responsibilities:
 - discover local USB/serial/network printers;
-- expose sanitized device fingerprints and capabilities;
+- generate sanitized/hash-only connection fingerprints;
+- expose capabilities;
 - execute signed PrintJobs;
-- report status/health/error codes;
+- report normalized health/error codes;
 - never own Sale, Payment or Fiscal state;
 - maintain no business credential beyond local pairing material.
 
@@ -122,13 +125,16 @@ Initial desktop protocol adapters:
 
 Vendor adapters are plugins:
 - Epson ePOS;
-- Zebra Browser/Link-OS style bridge;
+- Zebra/Link-OS style adapter;
 - Star SDK/CloudPRNT where useful;
 - Brother raster/SDK for selected label devices.
 
 ## 6. Support tiers
 
-### Certified
+### `palta_recommended`
+A preferred purchase family for a defined use case. Recommendation can change as local availability, support and testing change.
+
+### `palta_certified`
 Palta has a known-good model/firmware/transport test profile.
 
 Promise:
@@ -137,19 +143,19 @@ Promise:
 - documented paper/label settings;
 - monitored adapter regressions.
 
-### Compatible
-Protocol/capability matches a tested family, but exact model is not continuously tested.
+### `compatible`
+Protocol/capability matches a tested family, but the exact model is not continuously tested.
 
 Promise:
 - guided setup and diagnostics;
 - best-effort compatibility;
 - not a model-specific guarantee.
 
-### Generic
-Device can probably operate through OS spooler or generic ESC/POS/ZPL route, but status feedback/cutter/drawer details may be incomplete.
+### `legacy_bridge`
+Existing hardware can be reused only through a local/system bridge or limited compatibility path.
 
-### Unsupported
-Known unsafe/incompatible device or transport. Do not allow silent printing claims.
+### `unknown`
+Support has not yet been proven. Palta must not silently present it as supported.
 
 ## 7. Chile initial recommendation policy
 
@@ -164,13 +170,13 @@ Preferred purchase characteristics:
 - locally available paper;
 - Chile service/support or easy replacement.
 
-Initial certified candidate family:
+Initial reference candidate family:
 - Epson TM-T20IV/TM-T20IIIL Ethernet-capable variants.
 
-Reason: Epson Chile exposes local support and ePOS SDK/network/mobile support. Older TM-T20III can remain a compatibility target even when discontinued because many businesses may already own one.
+Older TM-T20III can remain a compatibility target because existing Chile businesses may already own one.
 
 ### Low-cost existing receipt printers
-Many Chile-market generic 80 mm printers advertise ESC/POS and USB/Ethernet. Treat them as `compatible` or `generic`, never `certified` solely from marketplace claims.
+Many Chile-market generic 80 mm printers advertise ESC/POS and USB/Ethernet. Treat them as `compatible` or `unknown` until actual capability tests pass; marketplace claims alone do not make a device certified.
 
 Onboarding must probe:
 - 80/58 mm width;
@@ -190,7 +196,7 @@ Two distinct needs:
 
 2. Durable warehouse/shipping/barcode labels:
    - Zebra ZD421 class or equivalent ZPL-capable business label printer.
-   - Prefer ZPL-compatible path for long-term multi-vendor portability.
+   - Prefer ZPL-compatible paths for long-term multi-vendor portability.
 
 Palta must not collapse these two use cases into one “label printer” recommendation.
 
@@ -200,38 +206,72 @@ Business owner flow:
 
 1. `Connect a printer`
 2. Palta discovers candidates or asks connection type: Network / USB / Bluetooth / System Printer.
-3. Palta identifies fingerprint: manufacturer, model if available, VID/PID, network service, language hints.
-4. Capability test runs.
-5. Palta prints one diagnostic page/label.
-6. User confirms physical result.
-7. Palta stores a `PrinterDeviceProfile` and support tier.
+3. Palta identifies manufacturer/model when available and locally derives a SHA-256 connection fingerprint.
+4. Compatibility manifest + protocol hints select the adapter.
+5. Capability test runs.
+6. Palta prints one diagnostic page/label.
+7. User confirms physical result.
+8. Palta stores the PrinterIdentity/support tier and reconnect fingerprint hash.
 
 The owner should not manually choose ESC/POS/ZPL unless advanced troubleshooting is needed.
 
+### 8.1 Multiple printers: fixed assignment first
+
+Many stores have two or more printers. Palta must prevent output confusion.
+
+Default behavior:
+
+- `Caja 1 + receipt -> Printer A`
+- `Caja 2 + receipt -> Printer B`
+- `Kitchen + kitchen ticket -> Printer C`
+- `Label workstation + label -> Printer D`
+
+The route is deterministic and may be scoped by business, outlet and register/POS station.
+
+Resolution priority:
+
+1. exact register + outlet route;
+2. exact register route;
+3. outlet route;
+4. business/default route.
+
+A specifically assigned printer going offline does **not** silently cause output on another physical printer.
+
+`failover_mode = disabled` is the default.
+
+A fallback printer is used only when the owner/manager explicitly configures `failover_mode = explicit` for that route. Even then, an `outcome_unknown` print never fails over automatically because the original printer may already have produced paper.
+
+The user-facing setup should say:
+
+`Caja 1 receipt printer: Epson TM-T20IV`
+
+rather than exposing routing/protocol terminology.
+
 ## 9. Diagnostic contract
 
-Each device exposes a small normalized health vocabulary:
+Normalized health vocabulary includes:
 - `ready`
 - `offline`
+- `busy`
+- `paper_low`
 - `paper_out`
 - `cover_open`
-- `busy`
+- `cutter_error`
 - `permission_required`
+- `driver_required`
 - `bridge_unreachable`
-- `driver_missing`
-- `unsupported_language`
 - `network_unreachable`
 - `unknown`
 
-User-facing guidance must translate the code into an action:
+User-facing guidance translates the code into an action:
 
 `paper_out -> Add paper and try again.`
 
 `bridge_unreachable -> Open/restart Palta Device Bridge.`
 
-`permission_required -> Allow USB/Bluetooth access on this device.`
+`permission_required -> Allow device access.`
 
-Support staff should see model/transport/firmware/error diagnostics, not raw customer business data.
+Support diagnostics may contain device family, firmware, protocol, transport, adapter version and normalized error code. They must not contain customer data, receipt text, business ID, raw IP/MAC, raw serial number or raw device paths.
 
 ## 10. Print job safety
 
@@ -239,33 +279,34 @@ Every PrintJob has:
 - businessId;
 - printerId;
 - document kind;
-- payload/content reference;
-- content hash;
+- content/artifact reference;
 - idempotency key;
-- status and attempts.
+- status/revision.
 
 Rules:
-- `unknown` is not automatically reprinted when duplicate physical output would be harmful;
+- `outcome_unknown` is not automatically reprinted or failed over;
 - fiscal/payment canonical state is never inferred from printer success;
 - a printed fiscal copy is not the canonical DTE itself;
-- kitchen/receipt copies may have a configurable safe reprint policy;
-- every manual reprint is auditable.
+- every manual reprint is auditable;
+- physical routing is resolved before dispatch and the selected printer ID is persisted on the PrintJob.
 
 ## 11. Cross-device behavior
 
 Phone:
 - quick sale / field use;
 - digital receipt first;
-- optional paired printer;
+- optional paired/configured printer;
 - printer errors must not dominate the workflow.
 
 Tablet / Android POS:
 - primary checkout station;
-- printer/cash-drawer/payment-terminal health visible in compact status area;
+- assigned receipt printer shown in compact status area;
+- printer/cash-drawer/payment-terminal health visible;
 - one-tap diagnostic/reconnect.
 
 PC / Windows:
 - professional checkout + management;
+- each POS/register can have a fixed receipt printer;
 - Device Bridge handles USB/serial/raw printers;
 - OS spooler handles PDF/A4;
 - keyboard-first printer selection/reprint/history tools.
@@ -275,11 +316,12 @@ PC / Windows:
 The support burden is controlled by maintaining:
 
 1. Protocol adapters, not per-customer code forks.
-2. A remote compatibility registry keyed by manufacturer/model/fingerprint/firmware/transport.
-3. A small certified-device matrix.
+2. A remote compatibility registry keyed by manufacturer/model/firmware/transport/protocol.
+3. A small certified/recommended device matrix.
 4. Automated adapter conformance tests using protocol fixtures/emulators.
-5. Device diagnostics uploaded as sanitized technical telemetry only with permission.
+5. Sanitized technical diagnostics only with permission.
 6. Adapter/version rollout flags so a broken printer update can be disabled without redeploying the POS.
+7. Hashed reconnect identity so a configured printer can be recognized again without storing raw network/device identifiers.
 
 One newly validated model should improve compatibility for every Palta business using the same model/family.
 
@@ -298,8 +340,13 @@ These are reference packages, not mandatory hardware bundles.
 - optional cash drawer;
 - optional barcode scanner.
 
+### Multi-caja shop
+- each register explicitly assigned its own receipt printer;
+- shared label/A4 printers assigned by role;
+- automatic fallback off by default.
+
 ### Retail with labels
-- small fixed shop package;
+- fixed shop package;
 - plus label printer selected by use case: office/light label vs durable barcode/shipping.
 
 ### Existing POS hardware
@@ -307,11 +354,17 @@ Reuse first. Run Palta compatibility wizard before proposing replacement.
 
 ## 14. Product principle
 
-The owner must experience:
+The owner should experience:
 
-`Connect -> Palta finds it -> print test -> ready.`
+`Connect -> Palta finds it -> print test -> choose where it will be used -> ready.`
 
-If that fails:
+For multiple printers:
+
+`Caja 1 -> Printer A`
+
+and that assignment remains stable until an authorized user changes it.
+
+If printing fails:
 
 `Palta tells the owner exactly what to do next.`
 
