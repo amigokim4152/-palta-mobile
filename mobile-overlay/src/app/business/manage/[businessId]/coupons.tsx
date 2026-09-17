@@ -25,11 +25,11 @@ export default function BusinessBasicCouponScreen() {
   const load = useCallback(async () => {
     if (!businessId) throw new Error('Business ID missing');
     if (mobileRuntime.status !== 'ready') throw new Error(mobileRuntime.message);
-    const [business, coupons] = await Promise.all([
+    const [business, ownerCoupon] = await Promise.all([
       mobileRuntime.client.getBusiness(businessId),
-      mobileRuntime.client.getBusinessBasicCoupons(businessId),
+      mobileRuntime.client.getOwnerBusinessBasicCoupon(businessId),
     ]);
-    return { business, coupon: coupons.items[0] };
+    return { business, coupon: ownerCoupon.coupon };
   }, [businessId]);
 
   const { state, refresh } = useAsyncResource(load);
