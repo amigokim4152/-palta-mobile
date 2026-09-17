@@ -23,10 +23,26 @@ import {
 } from './paymentPolicy.js';
 import { reconcilePaymentOutcome } from './paymentRecovery.js';
 
+export type PaymentPortResolutionInput = {
+  businessId: string;
+  providerKey: string;
+  providerConnectionId?: string;
+  terminalId?: string;
+};
+
 export interface PaymentPortResolver {
-  resolve(providerKey: string): PaymentPort | null;
+  /**
+   * Resolve the provider adapter for this exact business connection. Production
+   * implementations may load connection metadata and secret references from DB
+   * / secret storage, so resolution is intentionally asynchronous.
+   */
+  resolve(input: PaymentPortResolutionInput): Promise<PaymentPort | null>;
 }
 
+/**
+ * Test/local resolver only. Production multi-merchant runtimes should use a
+ * business-scoped resolver instead of sharing one credentialed adapter globally.
+ */
 export class StaticPaymentPortResolver implements PaymentPortResolver {
   private readonly byKey = new Map<string, PaymentPort>();
 
@@ -39,8 +55,8 @@ export class StaticPaymentPortResolver implements PaymentPortResolver {
     }
   }
 
-  resolve(providerKey: string): PaymentPort | null {
-    return this.byKey.get(providerKey) ?? null;
+  async resolve(input: PaymentPortResolutionInput): Promise<PaymentPort | null> {
+    return this.byKey.get(input.providerKey) ?? null;
   }
 }
 
@@ -240,8 +256,18 @@ export class PaymentOutboxHandler implements OutboxEventHandler {
     if (!intent.providerKey) {
       return { kind: 'dead_letter', errorCode: 'payment_provider_not_selected' };
     }
-    const port = this.providers.resolve(intent.providerKey);
+    const port = await this.providers.resolve({
+      businessId: intent.merchantId,
+      providerKey: intent.providerKey,
+      ...(intent.providerConnectionId === undefined
+        ? {}
+        : { providerConnectionId: intent.providerConnectionId }),
+      ...(intent.terminalId === undefined ? {} : { terminalId: intent.terminalId }),
+    });
     if (!port) return { kind: 'dead_letter', errorCode: 'payment_provider_adapter_missing' };
+    if (port.providerKey !== intent.providerKey) {
+      return { kind: 'dead_letter', errorCode: 'payment_provider_resolution_mismatch' };
+    }
 
     if (!paymentRequiresReconciliation(intent.status) && intent.status !== 'created') {
       return { kind: 'delivered' };
