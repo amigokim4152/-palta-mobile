@@ -134,4 +134,42 @@ assert(!('authorized_at' in (firstChannel ?? {})), 'Free link endpoint must not 
 assert(!('capabilities' in (firstChannel ?? {})), 'Free link endpoint must not let clients self-grant integration capabilities.');
 assert(channelResult.links[0]?.provider === 'instagram', 'Channel-link response should return safe public projections.');
 
-console.log('PASS: Local Business onboarding privacy + owner guidance + public channel-link API');
+let relationshipRequestPath = '';
+let relationshipRequestMethod = '';
+let relationshipRequestBody: Record<string, unknown> | null = null;
+const relationshipClient = new PaltaApiClient({
+  baseUrl: 'https://api.test',
+  fetch: async (input, init) => {
+    relationshipRequestPath = input;
+    relationshipRequestMethod = init?.method ?? 'GET';
+    relationshipRequestBody = init?.body
+      ? JSON.parse(init.body) as Record<string, unknown>
+      : null;
+    return {
+      ok: true,
+      status: 200,
+      async json() {
+        return {
+          business_id: 'biz-test',
+          saved: relationshipRequestBody?.['saved'] ?? false,
+          following: relationshipRequestBody?.['following'] ?? false,
+          regular_customer: false,
+        };
+      },
+    };
+  },
+});
+const relationship = await relationshipClient.updateBusinessRelationship('biz-test', {
+  saved: true,
+});
+assert(
+  relationshipRequestPath.endsWith('/v1/business/biz-test/relationship'),
+  'Save/follow state should use a business-scoped consumer relationship endpoint.',
+);
+assert(relationshipRequestMethod === 'PUT', 'Relationship update should be idempotent state replacement.');
+assert(relationshipRequestBody?.['saved'] === true, 'Save update should send only explicit relationship state.');
+assert(!('marketing_consent' in (relationshipRequestBody ?? {})), 'Save/follow endpoint must not self-grant marketing consent.');
+assert(!('notification_allowed' in (relationshipRequestBody ?? {})), 'Save/follow endpoint must not own notification permission.');
+assert(relationship.saved === true && relationship.following === false, 'Save API should preserve independent relationship dimensions.');
+
+console.log('PASS: Local Business onboarding privacy + owner guidance + public links + relationship API');
