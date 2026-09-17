@@ -2,6 +2,7 @@ export type PaymentIncidentKind =
   | 'definitive_decline'
   | 'outcome_unknown'
   | 'provider_unavailable'
+  | 'transient_provider_error'
   | 'rate_limited'
   | 'terminal_busy'
   | 'terminal_action_required'
@@ -62,11 +63,19 @@ const INCIDENTS: Record<PaymentIncidentKind, PaymentIncident> = {
   },
   provider_unavailable: {
     kind: 'provider_unavailable',
-    recovery: 'manual_review',
-    userState: 'payment_service_temporarily_unavailable',
+    recovery: 'reconcile_first',
+    userState: 'payment_status_checking_do_not_retry',
     replacementPaymentAllowed: false,
     automaticRetryAllowed: false,
     requiresReconciliation: true,
+  },
+  transient_provider_error: {
+    kind: 'transient_provider_error',
+    recovery: 'retry_same_operation_same_key',
+    userState: 'payment_wait_then_retry',
+    replacementPaymentAllowed: false,
+    automaticRetryAllowed: true,
+    requiresReconciliation: false,
   },
   rate_limited: {
     kind: 'rate_limited',
