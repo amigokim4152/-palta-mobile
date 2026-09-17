@@ -42,28 +42,49 @@ export function BusinessActionBar({
     verificationStatus,
   });
 
-  const visible = actions.filter(
-    (action) =>
-      action.priority !== 'overflow' ||
-      action.capability === 'save' ||
-      action.capability === 'follow',
+  const relationshipActions = actions.filter(
+    (action) => action.capability === 'save' || action.capability === 'follow',
   );
+  const directActions = actions
+    .filter(
+      (action) =>
+        action.capability !== 'save' &&
+        action.capability !== 'follow' &&
+        action.priority !== 'overflow',
+    )
+    .slice(0, 3);
 
   return (
     <View style={{ gap: 10 }}>
-      {visible.map((action) => (
-        <PaltaButton
-          key={action.capability}
-          label={actionLabel(action.capability, relationship)}
-          variant={
-            action.priority === 'primary'
-              ? 'primary'
-              : 'secondary'
-          }
-          disabled={!action.enabled}
-          onPress={() => onAction(action.capability)}
-        />
-      ))}
+      {directActions.length ? (
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+          {directActions.map((action, index) => (
+            <PaltaButton
+              key={action.capability}
+              label={actionLabel(action.capability, relationship)}
+              variant={index === 0 ? 'primary' : 'secondary'}
+              disabled={!action.enabled}
+              onPress={() => onAction(action.capability)}
+              style={{ flexGrow: 1, flexBasis: directActions.length === 1 ? '100%' : '44%' }}
+            />
+          ))}
+        </View>
+      ) : null}
+
+      {relationshipActions.length ? (
+        <View style={{ flexDirection: 'row', gap: 10 }}>
+          {relationshipActions.map((action) => (
+            <PaltaButton
+              key={action.capability}
+              label={actionLabel(action.capability, relationship)}
+              variant="quiet"
+              disabled={!action.enabled}
+              onPress={() => onAction(action.capability)}
+              style={{ flex: 1 }}
+            />
+          ))}
+        </View>
+      ) : null}
     </View>
   );
 }
