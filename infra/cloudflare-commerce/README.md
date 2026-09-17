@@ -17,7 +17,8 @@ This directory is deliberately separate from `infra/cloudflare/` (map/public edg
    - sole active consumer of the payment queue
    - claims the exact canonical Outbox ID before any provider side effect
    - uses payment-worker DB principal/RLS policies
-   - owns provider credentials through Worker secrets, never source/config vars
+   - resolves provider adapters by **business + provider connection + terminal**, never by provider name alone
+   - reads merchant credentials through `PaymentSecretStore`; provider tokens never live in source/config or canonical Payment rows
    - handles callbacks, reconciliation, refunds and provider status polling
 
 3. `fiscal-worker/` — Chile SII/DTE worker
@@ -51,13 +52,49 @@ Cloudflare Hyperdrive is the intended edge connection layer. Runtime adapters cr
 
 Do not use Supabase Data API CRUD for multi-statement money/fiscal transactions.
 
+## Merchant credential vault
+
+Do **not** create one Cloudflare Worker/Secrets-Store secret per merchant. The merchant count must not become an infrastructure-secret count.
+
+Canonical long-term boundary:
+
+```text
+Cloudflare / external secret manager
+        └─ small rotating KEK set (for example current + previous)
+                         |
+                         v
+Postgres payment_credential_envelope
+        ├─ ciphertext (AES-256-GCM)
+        ├─ per-credential random DEK, wrapped by KEK
+        ├─ independent data/wrap IVs
+        ├─ KEK ID + AAD version
+        └─ business/provider/connection identity authenticated as AAD
+                         |
+                         v
+Payment Worker Web Crypto
+        └─ plaintext exists only while building the provider request
+```
+
+Rules:
+
+- one random data-encryption key (DEK) per credential bundle
+- DEK is wrapped under an externally held key-encryption key (KEK)
+- persisted DB backups contain ciphertext + wrapped DEK, not the KEK
+- business ID, provider key, provider connection ID and credential reference are AES-GCM associated data so row swapping/cross-tenant copying fails authentication
+- `credentialRef` is a locator, never authorization by itself
+- secret reads require the full business/provider/connection context
+- imported KEKs are non-extractable `CryptoKey` objects and should be cached in-process after secure loading
+- key rotation advances credential revision and moves new writes to the current KEK; previous KEK remains only for the controlled migration window
+- Supabase Vault may be implemented as a `PaymentSecretStore` adapter for development/pilot, but Payment Core must not depend on Supabase Vault semantics
+- platform-wide secrets/KEKs may use Cloudflare Secrets Store or another KMS/HSM adapter; merchant tokens must remain behind the provider-neutral vault interface
+
 ## Security boundaries
 
-- Browser/mobile never receives direct grants on raw Commerce/Payment/Fiscal tables.
+- Browser/mobile never receives direct grants on raw Commerce/Payment/Fiscal/credential tables.
 - API requests use business-scoped RLS context.
 - Payment/Fiscal workers use separate least-privilege database roles.
 - No Worker uses a database role with `BYPASSRLS` for ordinary runtime work.
-- Provider/SII credentials are Worker secrets or external secret references.
+- Provider/SII credentials are encrypted merchant credentials or external secret references, never ordinary config values.
 - Never store PAN/CVV/PIN.
 - Raw provider webhook payload is not retained by default; retain minimal identity/hash/audit metadata.
 
@@ -77,6 +114,8 @@ Do not deploy production until all are true:
 
 - development Postgres migrations verified
 - RLS/role tests verified against real Postgres
+- encrypted merchant credential write/read/rotation/tamper tests verified against the real runtime
+- KEK source and rotation runbook verified without committing key material to Git/DB
 - Hyperdrive connectivity verified
 - Queue duplicate/loss/retry simulation verified
 - R2 fiscal archive integrity/hash verification verified
