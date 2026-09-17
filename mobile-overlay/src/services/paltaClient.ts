@@ -1,5 +1,7 @@
 import {
   type BusinessApiDetail,
+  type BusinessOnboardingApiInput,
+  type BusinessOnboardingApiResult,
   type CareApiTrack,
   type HomeApiResponse,
   type LocalSearchItem,
@@ -17,6 +19,9 @@ export type MobilePaltaClient = {
     query?: string;
   }): Promise<LocalSearchItem[]>;
   getBusiness(id: string): Promise<BusinessApiDetail>;
+  submitBusinessOnboarding(
+    input: BusinessOnboardingApiInput,
+  ): Promise<BusinessOnboardingApiResult>;
   getCare(id: string): Promise<CareApiTrack>;
   createCare(input: {
     intentKey: string;
