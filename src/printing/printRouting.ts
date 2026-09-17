@@ -27,6 +27,82 @@ export type PrinterRouteContext = {
   registerId?: string;
 };
 
+function assertRouteIdentity(input: {
+  businessId: string;
+  role: PrinterRole;
+  primaryPrinterId: string;
+  outletId?: string;
+  registerId?: string;
+}): void {
+  if (!input.businessId.trim() || !input.primaryPrinterId.trim()) {
+    throw new Error('Printer route requires business and primary printer IDs.');
+  }
+  if (input.outletId !== undefined && !input.outletId.trim()) {
+    throw new Error('Printer route outletId cannot be blank.');
+  }
+  if (input.registerId !== undefined && !input.registerId.trim()) {
+    throw new Error('Printer route registerId cannot be blank.');
+  }
+}
+
+/**
+ * Normal setup path used by UI: pin one role/context to exactly one printer.
+ * No fallback exists unless an authorized user later enables it explicitly.
+ */
+export function createFixedPrinterRoute(input: {
+  businessId: string;
+  role: PrinterRole;
+  primaryPrinterId: string;
+  outletId?: string;
+  registerId?: string;
+}): PrinterRoute {
+  assertRouteIdentity(input);
+  const route: PrinterRoute = {
+    businessId: input.businessId,
+    role: input.role,
+    primaryPrinterId: input.primaryPrinterId,
+    fallbackPrinterIds: [],
+    failoverMode: 'disabled',
+  };
+  if (input.outletId !== undefined) route.outletId = input.outletId;
+  if (input.registerId !== undefined) route.registerId = input.registerId;
+  return route;
+}
+
+/**
+ * Separate advanced action. Fallback IDs must be explicit, unique and different
+ * from the primary printer. This prevents settings UIs from silently enabling it.
+ */
+export function enableExplicitPrinterFallback(
+  route: PrinterRoute,
+  fallbackPrinterIds: readonly string[],
+): PrinterRoute {
+  const normalized = fallbackPrinterIds.map((id) => id.trim());
+  if (normalized.some((id) => !id)) throw new Error('Fallback printer ID cannot be blank.');
+  if (normalized.includes(route.primaryPrinterId)) {
+    throw new Error('Primary printer cannot also be configured as a fallback.');
+  }
+  if (new Set(normalized).size !== normalized.length) {
+    throw new Error('Fallback printer IDs must be unique.');
+  }
+  if (normalized.length === 0) {
+    throw new Error('Explicit printer fallback requires at least one fallback printer.');
+  }
+  return {
+    ...route,
+    fallbackPrinterIds: normalized,
+    failoverMode: 'explicit',
+  };
+}
+
+export function disablePrinterFallback(route: PrinterRoute): PrinterRoute {
+  return {
+    ...route,
+    fallbackPrinterIds: [],
+    failoverMode: 'disabled',
+  };
+}
+
 export function roleForDocument(kind: PrintDocumentKind): PrinterRole {
   if (kind === 'receipt') return 'receipt';
   if (kind === 'label') return 'label';
