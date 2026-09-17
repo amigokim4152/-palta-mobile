@@ -1,3 +1,4 @@
+import { handleBusinessLocationRequest } from './business-location-state.mjs';
 import { handleBusinessServicesRequest } from './business-services-state.mjs';
 
 function ownerManaged(business) {
@@ -32,8 +33,18 @@ export async function handleBusinessOwnerProfileRequest({
   json,
   readJson,
 }) {
-  // Dev mock composition only: service management remains a separate API
-  // client/domain contract even though this small server delegates it here.
+  // Dev mock composition only: location and service management remain separate
+  // API/domain contracts even though this small fixture delegates them here.
+  const locationHandled = await handleBusinessLocationRequest({
+    req,
+    res,
+    url,
+    businesses,
+    json,
+    readJson,
+  });
+  if (locationHandled) return true;
+
   const servicesHandled = await handleBusinessServicesRequest({
     req,
     res,
