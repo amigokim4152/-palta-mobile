@@ -1,10 +1,10 @@
 import type { PaltaEvent } from './eventBusPort.js';
 
-export interface CanonicalResourceChangePayload {
+export type CanonicalResourceChangePayload = Record<string, unknown> & {
   resourceType: string;
   resourceId: string;
   changeType: string;
-}
+};
 
 export function buildCanonicalResourceChangeEvent(input: {
   eventId: string;
