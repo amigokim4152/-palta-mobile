@@ -22,8 +22,8 @@ class FakeCareDatabase implements DatabasePort {
     last_signal_occurred_at: '2026-09-17T20:00:00.000Z',
   }];
   receipts = new Set<string>();
-  trackUpdates: readonly unknown[][] = [];
-  linkUpdates: readonly unknown[][] = [];
+  trackUpdates: Array<readonly unknown[]> = [];
+  linkUpdates: Array<readonly unknown[]> = [];
   receiptInserts: Array<{ params: readonly unknown[]; disposition: string }> = [];
 
   async query<Row = Record<string, unknown>>(
