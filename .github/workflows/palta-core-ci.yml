@@ -88,3 +88,5 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -f infra/db/tests/commerce_migration_smoke.sql
       - name: Verify fiscal execution/provider migration and RLS invariants
         run: psql -v ON_ERROR_STOP=1 -f infra/db/tests/fiscal_execution_smoke.sql
+      - name: Verify customer delivery/share-link/CRM RLS invariants
+        run: psql -v ON_ERROR_STOP=1 -f infra/db/tests/customer_delivery_smoke.sql
