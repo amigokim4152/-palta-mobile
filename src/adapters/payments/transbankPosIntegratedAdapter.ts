@@ -1,9 +1,11 @@
+import { PaymentProviderOperationError } from '../../payment/paymentIncident.js';
 import type { PaymentStatus } from '../../payment/paymentModel.js';
 import type {
   CreatePaymentInput,
   CreatePaymentResult,
   PaymentPort,
   ProviderPaymentStatus,
+  ReconcilePaymentInput,
   RefundInput,
 } from '../../ports/paymentPort.js';
 
@@ -41,6 +43,20 @@ export interface TransbankPosTransport {
     idempotencyKey: string;
   }): Promise<TransbankTransportResult>;
   status(reference: string): Promise<TransbankTransportResult>;
+  /**
+   * Required for robust response-loss recovery on transports such as serial POS
+   * Integrado, where the POS may have charged successfully before the caja lost
+   * the response. Implementations should use the provider-supported recovery
+   * primitive (for example Última Venta + ticket comparison) instead of blindly
+   * issuing a second sale.
+   */
+  reconcileSale?(input: {
+    reference?: string;
+    terminalId?: string;
+    amountPesos: number;
+    ticketNumber: string;
+    idempotencyKey: string;
+  }): Promise<TransbankTransportResult>;
   refund?(input: {
     reference: string;
     paymentId?: string;
@@ -82,6 +98,12 @@ function assertClp(amountMinor: number, currency: string): number {
   return amountMinor;
 }
 
+function ticketNumber(canonicalPaymentId: string): string {
+  const value = canonicalPaymentId.replace(/[^A-Za-z0-9_-]/g, '_').slice(0, 20);
+  if (!value) throw new Error('Canonical payment ID cannot produce a Transbank ticket number.');
+  return value;
+}
+
 function providerResult(result: TransbankTransportResult): ProviderPaymentStatus {
   const mapped: ProviderPaymentStatus = {
     providerKey: 'transbank_pos_integrated',
@@ -107,31 +129,81 @@ export class TransbankPosIntegratedAdapter implements PaymentPort {
     if (!this.supportsRail(input.rail)) {
       throw new Error(`Transbank POS does not support canonical rail: ${input.rail}`);
     }
-    const result = await this.transport.sale({
-      ...(input.terminalId === undefined ? {} : { terminalId: input.terminalId }),
-      amountPesos: assertClp(input.amount.amountMinor, input.amount.currency),
-      ticketNumber: input.canonicalPaymentId.slice(0, 20),
-      idempotencyKey: input.idempotencyKey,
-    });
+    let result: TransbankTransportResult;
+    try {
+      result = await this.transport.sale({
+        ...(input.terminalId === undefined ? {} : { terminalId: input.terminalId }),
+        amountPesos: assertClp(input.amount.amountMinor, input.amount.currency),
+        ticketNumber: ticketNumber(input.canonicalPaymentId),
+        idempotencyKey: input.idempotencyKey,
+      });
+    } catch (error) {
+      if (error instanceof PaymentProviderOperationError) throw error;
+      throw new PaymentProviderOperationError({
+        providerKey: this.providerKey,
+        incidentKind: 'outcome_unknown',
+        message: 'Transbank sale response was lost or transport failed; reconcile the terminal sale before another charge.',
+      });
+    }
     return providerResult(result);
   }
 
   async getStatus(providerReference: string): Promise<ProviderPaymentStatus> {
-    return providerResult(await this.transport.status(providerReference));
+    try {
+      return providerResult(await this.transport.status(providerReference));
+    } catch (error) {
+      if (error instanceof PaymentProviderOperationError) throw error;
+      throw new PaymentProviderOperationError({
+        providerKey: this.providerKey,
+        incidentKind: 'transient_provider_error',
+        message: 'Transbank status lookup failed; retry the same lookup with backoff.',
+      });
+    }
+  }
+
+  async reconcilePayment(input: ReconcilePaymentInput): Promise<ProviderPaymentStatus> {
+    if (this.transport.reconcileSale) {
+      return providerResult(
+        await this.transport.reconcileSale({
+          ...(input.providerReference === undefined ? {} : { reference: input.providerReference }),
+          ...(input.terminalId === undefined ? {} : { terminalId: input.terminalId }),
+          amountPesos: assertClp(input.amount.amountMinor, input.amount.currency),
+          ticketNumber: ticketNumber(input.canonicalPaymentId),
+          idempotencyKey: input.idempotencyKey,
+        }),
+      );
+    }
+    if (input.providerReference) return this.getStatus(input.providerReference);
+
+    throw new PaymentProviderOperationError({
+      providerKey: this.providerKey,
+      incidentKind: 'outcome_unknown',
+      message: `Transbank transport ${this.transport.kind} cannot safely reconcile a response-loss sale without provider reference.`,
+    });
   }
 
   async refund(input: RefundInput): Promise<ProviderPaymentStatus> {
     if (!this.transport.supportsRefund || !this.transport.refund) {
       throw new Error(`Transbank transport ${this.transport.kind} does not support refund through this adapter.`);
     }
-    const result = await this.transport.refund({
-      reference: input.providerReference,
-      ...(input.providerPaymentId === undefined ? {} : { paymentId: input.providerPaymentId }),
-      ...(input.amount === undefined
-        ? {}
-        : { amountPesos: assertClp(input.amount.amountMinor, input.amount.currency) }),
-      idempotencyKey: input.idempotencyKey,
-    });
+    let result: TransbankTransportResult;
+    try {
+      result = await this.transport.refund({
+        reference: input.providerReference,
+        ...(input.providerPaymentId === undefined ? {} : { paymentId: input.providerPaymentId }),
+        ...(input.amount === undefined
+          ? {}
+          : { amountPesos: assertClp(input.amount.amountMinor, input.amount.currency) }),
+        idempotencyKey: input.idempotencyKey,
+      });
+    } catch (error) {
+      if (error instanceof PaymentProviderOperationError) throw error;
+      throw new PaymentProviderOperationError({
+        providerKey: this.providerKey,
+        incidentKind: 'refund_unknown',
+        message: 'Transbank refund/anulación outcome is unknown; reconcile before retrying.',
+      });
+    }
     return providerResult(result);
   }
 }
