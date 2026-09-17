@@ -50,12 +50,12 @@ export default function BusinessOwnerHomeScreen() {
   const loadOwnerHome = useCallback(async () => {
     if (!businessId) throw new Error('Business ID missing');
     if (mobileRuntime.status !== 'ready') throw new Error(mobileRuntime.message);
-    const [business, guidance, coupons] = await Promise.all([
+    const [business, guidance, ownerCoupon] = await Promise.all([
       mobileRuntime.client.getBusiness(businessId),
       mobileRuntime.client.getOwnerBusinessGuidance(businessId),
-      mobileRuntime.client.getBusinessBasicCoupons(businessId),
+      mobileRuntime.client.getOwnerBusinessBasicCoupon(businessId),
     ]);
-    return { business, guidance, coupon: coupons.items[0] };
+    return { business, guidance, coupon: ownerCoupon.coupon };
   }, [businessId]);
 
   const { state, refresh } = useAsyncResource(loadOwnerHome);
@@ -78,7 +78,7 @@ export default function BusinessOwnerHomeScreen() {
 
   const business = state.data?.business;
   const guidance = state.data?.guidance;
-  const activeCoupon = state.data?.coupon;
+  const ownerCoupon = state.data?.coupon;
   if (!business || !guidance) return null;
 
   const verificationText =
@@ -91,6 +91,9 @@ export default function BusinessOwnerHomeScreen() {
   const channelSummary = (business.channel_links ?? [])
     .map((channel) => channel.label)
     .join(' · ');
+  const couponExpired = Boolean(
+    ownerCoupon?.expires_at && Date.parse(ownerCoupon.expires_at) <= Date.now(),
+  );
 
   return (
     <ScreenFrame
@@ -135,8 +138,8 @@ export default function BusinessOwnerHomeScreen() {
         {business.verification_status === 'verified' ? (
           <OwnerCard
             title="Cupón básico"
-            body={activeCoupon
-              ? `${activeCoupon.title}${activeCoupon.audience === 'followers' ? ' · Sólo seguidores' : ' · Visible para todos'}`
+            body={ownerCoupon
+              ? `${couponExpired ? 'Vencido · ' : ''}${ownerCoupon.title}${ownerCoupon.audience === 'followers' ? ' · Sólo seguidores' : ' · Visible para todos'}`
               : 'Publica un beneficio simple sin pagar por una campaña, segmentación o automatización.'}
             badge="SIN COSTO"
             onPress={() =>
