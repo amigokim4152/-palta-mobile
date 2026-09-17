@@ -1,4 +1,5 @@
 import {
+  evaluateBusinessReviewEligibility,
   projectPublicBusinessReviews,
   summarizeBusinessReviews,
   validateBusinessReview,
@@ -37,6 +38,62 @@ assert(
 assert(
   validateBusinessReview({ ...validReview, rating: 6 }).includes('rating_must_be_integer_1_to_5'),
   'rating outside 1-5 should fail',
+);
+
+assert(
+  validateBusinessReview({
+    ...validReview,
+    businessReply: {
+      body: 'x'.repeat(2001),
+      repliedAt: '2026-09-17T13:00:00-03:00',
+    },
+  }).includes('business_reply_body_too_long'),
+  'business reply must remain bounded',
+);
+
+const eligible = evaluateBusinessReviewEligibility({
+  businessId: 'business-1',
+  userId: 'user-2',
+  interactions: [
+    {
+      businessId: 'business-1',
+      userId: 'user-2',
+      evidence: { kind: 'palta_booking_completed', referenceId: 'booking-2' },
+      completedAt: '2026-09-18T09:00:00-03:00',
+    },
+  ],
+  reviews: [validReview],
+});
+assert(eligible.eligible, 'completed verified interaction should enable review writing');
+assert(
+  eligible.eligible && eligible.evidence.referenceId === 'booking-2',
+  'eligibility must return the verified interaction evidence to use',
+);
+
+const duplicate = evaluateBusinessReviewEligibility({
+  businessId: 'business-1',
+  userId: 'user-1',
+  interactions: [
+    {
+      businessId: 'business-1',
+      userId: 'user-1',
+      evidence: { kind: 'palta_service_completed', referenceId: 'service-1' },
+      completedAt: '2026-09-17T11:00:00-03:00',
+    },
+  ],
+  reviews: [validReview],
+});
+assert(!duplicate.eligible && duplicate.reason === 'already_reviewed', 'same interaction must not create duplicate review');
+
+const noInteraction = evaluateBusinessReviewEligibility({
+  businessId: 'business-1',
+  userId: 'user-3',
+  interactions: [],
+  reviews: [validReview],
+});
+assert(
+  !noInteraction.eligible && noInteraction.reason === 'no_verified_interaction',
+  'review writing must not open without verified interaction evidence',
 );
 
 const publicReviews = projectPublicBusinessReviews([
