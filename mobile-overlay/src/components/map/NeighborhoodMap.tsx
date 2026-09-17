@@ -9,6 +9,7 @@ import {
 } from '@maplibre/maplibre-react-native';
 import type { MapFeature } from '../../../../src/adapters/mapCore';
 import { toPointFeatureCollection } from '../../../../src/map/mapFeatureCollection';
+import { paltaTheme } from '../../theme/paltaTheme';
 
 type Props = {
   mapStyle: string;
@@ -105,9 +106,9 @@ export function NeighborhoodMap({
           ]}
           paint={{
             'circle-radius': 8,
-            'circle-color': '#374151',
+            'circle-color': paltaTheme.color.brandPrimary,
             'circle-stroke-width': 2,
-            'circle-stroke-color': '#ffffff',
+            'circle-stroke-color': paltaTheme.color.surface,
           }}
         />
         <Layer
@@ -120,9 +121,9 @@ export function NeighborhoodMap({
           ]}
           paint={{
             'circle-radius': 12,
-            'circle-color': '#111827',
+            'circle-color': paltaTheme.color.brandFresh,
             'circle-stroke-width': 4,
-            'circle-stroke-color': '#ffffff',
+            'circle-stroke-color': paltaTheme.color.surface,
           }}
         />
         <Layer
@@ -139,9 +140,9 @@ export function NeighborhoodMap({
               50,
               25,
             ],
-            'circle-color': '#374151',
+            'circle-color': paltaTheme.color.brandPrimary,
             'circle-stroke-width': 2,
-            'circle-stroke-color': '#ffffff',
+            'circle-stroke-color': paltaTheme.color.surface,
           }}
         />
         <Layer
@@ -152,7 +153,7 @@ export function NeighborhoodMap({
             'text-field': ['get', 'point_count_abbreviated'],
             'text-size': 12,
           }}
-          paint={{ 'text-color': '#ffffff' }}
+          paint={{ 'text-color': paltaTheme.color.surface }}
         />
       </GeoJSONSource>
     </Map>
