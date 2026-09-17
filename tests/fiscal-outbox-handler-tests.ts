@@ -35,6 +35,10 @@ function cloneExecution(value: FiscalExecution): FiscalExecution {
 class MemoryExecutionRepository implements FiscalExecutionRepository {
   constructor(public execution: FiscalExecution) {}
 
+  snapshot(): FiscalExecution {
+    return cloneExecution(this.execution);
+  }
+
   async findExecution(lookup: FiscalExecutionLookup): Promise<FiscalExecution | null> {
     return lookup.businessId === this.execution.businessId && lookup.executionId === this.execution.id
       ? cloneExecution(this.execution)
@@ -174,7 +178,6 @@ const clockValues = [
 ];
 const now = () => clockValues[Math.min(clockIndex++, clockValues.length - 1)] ?? '2026-09-17T18:40:06.000Z';
 
-// 201/202-safe path: first issue queues, second delivery reconciles ticket to accepted.
 const queueRepo = new MemoryExecutionRepository(newExecution());
 const queuePort = new ScriptedFiscalPort(
   async () => ({
@@ -204,16 +207,19 @@ const queueHandler = new ExternalFiscalOutboxHandler(
 );
 const first = await queueHandler.handle(event(1));
 assert(first.kind === 'retryable', 'Queued provider response must schedule reconciliation rather than mark delivered.');
-assert(queueRepo.execution.status === 'queued' && queueRepo.execution.providerTicketReference === 'ticket-1', 'Queue ticket must be durable before retry.');
+const queueAfterFirst = queueRepo.snapshot();
+assert(queueAfterFirst.status === 'queued' && queueAfterFirst.providerTicketReference === 'ticket-1', 'Queue ticket must be durable before retry.');
 assert(queuePort.issueCalls === 1 && queuePort.reconcileCalls === 0, 'First delivery may call provider issue exactly once.');
 
 const second = await queueHandler.handle(event(2));
 assert(second.kind === 'delivered', 'Accepted reconciliation must complete the outbox event.');
-assert(queueRepo.execution.status === 'accepted' && queueRepo.execution.folio === 1001, 'Accepted fiscal result must be durable.');
-assert(queuePort.issueCalls === 1 && queuePort.reconcileCalls === 1, 'Redelivery must reconcile, never issue a replacement DTE.');
+const queueAfterSecond = queueRepo.snapshot();
+assert(queueAfterSecond.status === 'accepted' && queueAfterSecond.folio === 1001, 'Accepted fiscal result must be durable.');
+const queueIssueCallsAfterSecond: number = queuePort.issueCalls;
+const queueReconcileCallsAfterSecond: number = queuePort.reconcileCalls;
+assert(queueIssueCallsAfterSecond === 1 && queueReconcileCallsAfterSecond === 1, 'Redelivery must reconcile, never issue a replacement DTE.');
 assert(queuePort.lastReconcile?.queueTicketReference === 'ticket-1', 'Queued retry must reconcile by durable ticket identity.');
 
-// Response-loss path: first provider call outcome unknown, second delivery must exact-replay/reconcile same FiscalRequest identity.
 const unknownRepo = new MemoryExecutionRepository(newExecution());
 const unknownPort = new ScriptedFiscalPort(
   async () => {
@@ -241,16 +247,19 @@ const unknownHandler = new ExternalFiscalOutboxHandler(
   now,
 );
 const unknownFirst = await unknownHandler.handle(event(1));
-assert(unknownFirst.kind === 'retryable' && unknownRepo.execution.status === 'unknown', 'Lost provider response must persist unknown and require reconciliation.');
+const unknownAfterFirst = unknownRepo.snapshot();
+assert(unknownFirst.kind === 'retryable' && unknownAfterFirst.status === 'unknown', 'Lost provider response must persist unknown and require reconciliation.');
 const unknownSecond = await unknownHandler.handle(event(2));
-assert(unknownSecond.kind === 'delivered' && unknownRepo.execution.status === 'accepted', 'Unknown execution must recover to accepted through reconciliation.');
-assert(unknownPort.issueCalls === 1 && unknownPort.reconcileCalls === 1, 'Unknown recovery must never perform a second independent issue call.');
+const unknownAfterSecond = unknownRepo.snapshot();
+assert(unknownSecond.kind === 'delivered' && unknownAfterSecond.status === 'accepted', 'Unknown execution must recover to accepted through reconciliation.');
+const unknownIssueCalls: number = unknownPort.issueCalls;
+const unknownReconcileCalls: number = unknownPort.reconcileCalls;
+assert(unknownIssueCalls === 1 && unknownReconcileCalls === 1, 'Unknown recovery must never perform a second independent issue call.');
 assert(
   unknownPort.lastReconcile?.originalIssue?.canonicalFiscalRequestId === request.id,
   'Unknown recovery without provider reference must carry the original canonical FiscalRequest identity for idempotent replay.',
 );
 
-// If provider totals disagree, preserve the issued document evidence but stop automatic completion/reissue.
 const mismatchRepo = new MemoryExecutionRepository(newExecution());
 const mismatchPort = new ScriptedFiscalPort(
   async () => ({
@@ -279,10 +288,11 @@ const mismatchHandler = new ExternalFiscalOutboxHandler(
 );
 const mismatch = await mismatchHandler.handle(event(1));
 assert(mismatch.kind === 'dead_letter' && mismatch.errorCode === 'fiscal_provider_totals_mismatch', 'Provider/canonical totals mismatch must stop automatic completion.');
+const mismatchAfter = mismatchRepo.snapshot();
 assert(
-  mismatchRepo.execution.status === 'accepted' &&
-    mismatchRepo.execution.providerReference === 'doc-mismatch' &&
-    mismatchRepo.execution.canonicalTotalsMatch === false,
+  mismatchAfter.status === 'accepted' &&
+    mismatchAfter.providerReference === 'doc-mismatch' &&
+    mismatchAfter.canonicalTotalsMatch === false,
   'Totals mismatch must retain already-issued provider evidence and must never fabricate failure/reissue.',
 );
 
