@@ -66,6 +66,8 @@ export type PublicBusinessChannelLink = {
   url: string;
 };
 
+export type PublicBusinessChannelProvider = PublicBusinessChannelLink['provider'];
+
 /**
  * Local Business does not own plan/pricing logic. Shared Entitlement/Access will
  * eventually supply these grants. The free product boundary is explicit here:
@@ -168,6 +170,62 @@ export function normalizeSafePublicChannelUrl(value: string): string | null {
   } catch {
     return null;
   }
+}
+
+function normalizeBareWebAddress(value: string): string | null {
+  if (/\s/.test(value) || !value.includes('.')) return null;
+  return normalizeSafePublicChannelUrl(`https://${value}`);
+}
+
+/**
+ * Owner-facing convenience normalization for Chilean microbusinesses. This is a
+ * deterministic input helper, not an external API lookup. It lets an owner enter
+ * the simple identifier they already know instead of forcing them to copy a full
+ * URL from another app.
+ */
+export function normalizeOwnerPublicChannelInput(
+  provider: PublicBusinessChannelProvider,
+  value: string,
+): string | null {
+  const candidate = value.trim();
+  if (!candidate) return null;
+
+  const alreadyUrl = normalizeSafePublicChannelUrl(candidate);
+  if (alreadyUrl) return alreadyUrl;
+
+  const bareWeb = normalizeBareWebAddress(candidate);
+  if (bareWeb) return bareWeb;
+
+  if (provider === 'instagram') {
+    const handle = candidate.replace(/^@/, '');
+    if (/^[A-Za-z0-9._]{1,30}$/.test(handle)) {
+      return `https://www.instagram.com/${handle}/`;
+    }
+  }
+
+  if (provider === 'tiktok') {
+    const handle = candidate.replace(/^@/, '');
+    if (/^[A-Za-z0-9._]{2,24}$/.test(handle)) {
+      return `https://www.tiktok.com/@${handle}`;
+    }
+  }
+
+  if (provider === 'facebook') {
+    const slug = candidate.replace(/^@/, '');
+    if (/^[A-Za-z0-9.]{3,80}$/.test(slug)) {
+      return `https://www.facebook.com/${slug}`;
+    }
+  }
+
+  if (provider === 'whatsapp') {
+    let digits = candidate.replace(/\D/g, '');
+    if (/^9\d{8}$/.test(digits)) digits = `56${digits}`;
+    if (/^\d{8,15}$/.test(digits)) {
+      return `https://wa.me/${digits}`;
+    }
+  }
+
+  return null;
 }
 
 /**
