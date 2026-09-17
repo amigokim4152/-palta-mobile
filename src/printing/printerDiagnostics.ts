@@ -62,6 +62,12 @@ function assertNormalizedCode(value: string, field: string): void {
   }
 }
 
+function assertSha256Hex(value: string, field: string): void {
+  if (!/^[a-f0-9]{64}$/i.test(value)) {
+    throw new Error(`${field} must be a SHA-256 hex digest.`);
+  }
+}
+
 export function createSanitizedPrinterDiagnostic(input: {
   diagnosticId: string;
   occurredAt: string;
@@ -97,8 +103,9 @@ export function createSanitizedPrinterDiagnostic(input: {
   if (input.printer.manufacturer !== undefined) result.manufacturer = input.printer.manufacturer;
   if (input.printer.model !== undefined) result.model = input.printer.model;
   if (input.printer.firmwareVersion !== undefined) result.firmwareVersion = input.printer.firmwareVersion;
-  if (input.printer.connectionFingerprint !== undefined) {
-    result.connectionFingerprintHash = input.printer.connectionFingerprint;
+  if (input.printer.connectionFingerprintHash !== undefined) {
+    assertSha256Hex(input.printer.connectionFingerprintHash, 'connectionFingerprintHash');
+    result.connectionFingerprintHash = input.printer.connectionFingerprintHash;
   }
   if (input.platform !== undefined) result.platform = input.platform;
   if (input.appVersion !== undefined) result.appVersion = input.appVersion;
@@ -123,6 +130,9 @@ export function assertSanitizedPrinterDiagnosticPayload(payload: Record<string, 
   if (typeof payload.adapterKey !== 'string' || !payload.adapterKey.trim()) {
     throw new Error('Printer adapter key is required.');
   }
+  if (typeof payload.connectionFingerprintHash === 'string') {
+    assertSha256Hex(payload.connectionFingerprintHash, 'connectionFingerprintHash');
+  }
   if (typeof payload.normalizedErrorCode === 'string') {
     assertNormalizedCode(payload.normalizedErrorCode, 'normalizedErrorCode');
   }
@@ -142,7 +152,7 @@ export type CompatibilityObservation = {
 
 /**
  * Aggregation input for the central compatibility registry. It contains no business ID,
- * customer data, receipt content, IP/MAC address or raw serial number.
+ * customer data, receipt content, IP/MAC address, raw serial number or connection fingerprint.
  */
 export function toCompatibilityObservation(
   diagnostic: SanitizedPrinterDiagnostic,
