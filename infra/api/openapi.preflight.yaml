@@ -123,6 +123,76 @@ paths:
               schema:
                 $ref: "#/components/schemas/CareTrack"
 
+  /v1/messages/businesses/{businessId}/conversation:
+    post:
+      summary: Open or reuse the authenticated user's durable conversation with a business
+      description: >
+        User identity comes only from the authenticated session. The client does
+        not supply customer user_id, phone, email or delivery identity. Repeated
+        entry from a business page, quote, order or delivery context reuses the
+        same user-business Conversation; individual jobs/orders belong in Scopes.
+        Business Core decides whether Palta internal messaging is currently
+        available for the business.
+      parameters:
+        - in: path
+          name: businessId
+          required: true
+          schema: { type: string }
+      responses:
+        "201":
+          description: Durable relationship conversation created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConversationSummary"
+        "200":
+          description: Existing durable relationship conversation reused
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConversationSummary"
+        "401": { description: Authentication required }
+        "409": { description: Palta internal messaging is not available for this business }
+
+  /v1/messages/conversations:
+    get:
+      summary: List the authenticated user's or authorized actor's relationship Inbox
+      description: >
+        Default actor is the authenticated user. acting_actor may request a
+        business/organization/community Inbox, but the server must verify the
+        authenticated principal's authority. Pagination is keyset-based on
+        last_activity_at + conversation_id. unread_count includes only incoming
+        messages after the participant read cursor; the actor's own messages are
+        not counted as unread.
+      parameters:
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 100, default: 30 }
+        - in: query
+          name: acting_actor_type
+          schema:
+            $ref: "#/components/schemas/ActorType"
+        - in: query
+          name: acting_actor_id
+          schema: { type: string }
+        - in: query
+          name: after_activity
+          schema: { type: string, format: date-time }
+          description: Must be supplied together with after_conversation_id.
+        - in: query
+          name: after_conversation_id
+          schema: { type: string, format: uuid }
+          description: Must be supplied together with after_activity.
+      responses:
+        "200":
+          description: Relationship Inbox ordered by latest activity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConversationInboxResponse"
+        "400": { description: Invalid or partial keyset cursor }
+        "403": { description: Principal cannot act as requested Inbox actor }
+
   /v1/messages/conversations/{conversationId}/messages:
     get:
       summary: Sync canonical messages after a conversation sequence cursor
@@ -344,6 +414,73 @@ components:
       description: >
         Requested visible actor only. Authenticated principal identity is derived
         by the server and cannot be supplied through this object.
+
+    ConversationSummary:
+      type: object
+      required:
+        - conversation_id
+        - conversation_type
+        - last_sequence
+        - last_activity_at
+        - created_at
+      properties:
+        conversation_id: { type: string, format: uuid }
+        conversation_type:
+          type: string
+          enum: [direct, business, transaction, group, support]
+        last_sequence: { type: integer, minimum: 0 }
+        last_activity_at: { type: string, format: date-time }
+        created_at: { type: string, format: date-time }
+        created:
+          type: boolean
+          description: Present on open/reuse response; true only when a new Conversation was created.
+
+    ConversationInboxPreview:
+      type: object
+      required: [message_id, sequence, message_type, created_at]
+      properties:
+        message_id: { type: string, format: uuid }
+        sequence: { type: integer, minimum: 1 }
+        message_type:
+          type: string
+          enum: [text, voice, image, file, location, resource_card, action_card]
+        body:
+          type: string
+          maxLength: 240
+          description: Optional authenticated Inbox preview; voice/media messages may have no body.
+        created_at: { type: string, format: date-time }
+
+    ConversationInboxItem:
+      type: object
+      required: [conversation, counterpart_actors, unread_count]
+      properties:
+        conversation:
+          $ref: "#/components/schemas/ConversationSummary"
+        counterpart_actors:
+          type: array
+          items:
+            $ref: "#/components/schemas/ActingActor"
+        unread_count:
+          type: integer
+          minimum: 0
+          description: Incoming unread messages only; the actor's own sends are excluded.
+        last_message:
+          $ref: "#/components/schemas/ConversationInboxPreview"
+
+    ConversationInboxResponse:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ConversationInboxItem"
+        next_cursor:
+          type: object
+          required: [last_activity_at, conversation_id]
+          properties:
+            last_activity_at: { type: string, format: date-time }
+            conversation_id: { type: string, format: uuid }
 
     MessageActionRef:
       type: object
