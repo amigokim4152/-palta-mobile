@@ -183,7 +183,6 @@ const bridgeResult = await bridgePort.lookup({
   printJobId: submitted.id,
   printerId: submitted.printerId,
   idempotencyKey: submitted.idempotencyKey,
-  providerJobId: submitted.providerJobId,
 });
 assertEqual(bridgeResult.outcome, 'printed', 'Bridge v2 printed status must map to canonical reconciliation.');
 assertEqual(capturedRequest?.protocolVersion, 2, 'Bridge status lookup must use protocol v2.');
