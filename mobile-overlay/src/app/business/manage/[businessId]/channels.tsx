@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Pressable, Text, TextInput, View } from 'react-native';
 import type { BusinessPublicChannelProvider } from '../../../../../../src/api/paltaApiClient';
+import { normalizeOwnerPublicChannelInput } from '../../../../../../src/business/businessChannelConnection';
 import { ErrorState, LoadingState } from '../../../../components/AsyncStateBlock';
 import { ScreenFrame } from '../../../../components/ScreenFrame';
 import { SectionHeading } from '../../../../components/common/SectionHeading';
@@ -17,15 +18,16 @@ type Field = {
   provider: EditableProvider;
   label: string;
   placeholder: string;
+  help: string;
 };
 
 const fields: readonly Field[] = [
-  { provider: 'instagram', label: 'Instagram', placeholder: 'https://instagram.com/tu-negocio' },
-  { provider: 'facebook', label: 'Facebook', placeholder: 'https://facebook.com/tu-negocio' },
-  { provider: 'tiktok', label: 'TikTok', placeholder: 'https://tiktok.com/@tu-negocio' },
-  { provider: 'google_business', label: 'Google / Maps', placeholder: 'https://maps.google.com/...' },
-  { provider: 'whatsapp', label: 'WhatsApp', placeholder: 'https://wa.me/56...' },
-  { provider: 'website', label: 'Sitio web', placeholder: 'https://tu-negocio.cl' },
+  { provider: 'instagram', label: 'Instagram', placeholder: '@tu.negocio', help: 'Puedes escribir @usuario o pegar el enlace.' },
+  { provider: 'facebook', label: 'Facebook', placeholder: 'tu.negocio', help: 'Escribe el nombre corto de la página o pega el enlace.' },
+  { provider: 'tiktok', label: 'TikTok', placeholder: '@tu.negocio', help: 'Puedes escribir @usuario o pegar el enlace.' },
+  { provider: 'google_business', label: 'Google / Maps', placeholder: 'https://maps.google.com/...', help: 'Pega el enlace público de Google o Maps.' },
+  { provider: 'whatsapp', label: 'WhatsApp', placeholder: '+56 9 1234 5678', help: 'Puedes escribir tu número chileno o pegar un enlace wa.me.' },
+  { provider: 'website', label: 'Sitio web', placeholder: 'tu-negocio.cl', help: 'Puedes escribir el dominio o pegar la dirección completa.' },
 ];
 
 function emptyValues(): Record<EditableProvider, string> {
@@ -77,14 +79,26 @@ export default function BusinessPublicChannelsScreen() {
     setSaving(true);
     setMessage(null);
     try {
-      const links = fields
-        .map((field) => ({
-          provider: field.provider,
-          url: values[field.provider].trim(),
-        }))
-        .filter((link) => link.url.length > 0);
+      const links: { provider: EditableProvider; url: string }[] = [];
+      for (const field of fields) {
+        const raw = values[field.provider].trim();
+        if (!raw) continue;
+        const normalized = normalizeOwnerPublicChannelInput(field.provider, raw);
+        if (!normalized) {
+          setMessage(`${field.label}: revisa el dato. No pudimos convertirlo en un enlace público seguro.`);
+          return;
+        }
+        links.push({ provider: field.provider, url: normalized });
+      }
 
-      await mobileRuntime.client.replaceBusinessPublicChannelLinks(businessId, links);
+      const result = await mobileRuntime.client.replaceBusinessPublicChannelLinks(businessId, links);
+      const next = emptyValues();
+      for (const link of result.links) {
+        if (link.provider in next) {
+          next[link.provider as EditableProvider] = link.url;
+        }
+      }
+      setValues(next);
       setMessage('Tus enlaces públicos quedaron guardados.');
       await refresh();
     } catch (error) {
@@ -128,7 +142,7 @@ export default function BusinessPublicChannelsScreen() {
         <View style={{ gap: 6 }}>
           <Text style={{ fontSize: 18, fontWeight: '800' }}>Gratis, simple y sin conectar cuentas</Text>
           <Text style={{ opacity: 0.68, lineHeight: 21 }}>
-            Agrega sólo los enlaces públicos que ya usas. Palta no inicia sesión, no publica y no administra estas cuentas desde esta función.
+            Agrega sólo los datos públicos que ya usas. Palta los convierte en enlaces seguros; no inicia sesión, no publica y no administra estas cuentas desde esta función.
           </Text>
         </View>
 
@@ -148,7 +162,7 @@ export default function BusinessPublicChannelsScreen() {
               placeholder={field.placeholder}
               autoCapitalize="none"
               autoCorrect={false}
-              keyboardType="url"
+              keyboardType={field.provider === 'whatsapp' ? 'phone-pad' : 'url'}
               style={{
                 borderWidth: 1,
                 borderRadius: 12,
@@ -156,6 +170,7 @@ export default function BusinessPublicChannelsScreen() {
                 paddingVertical: 11,
               }}
             />
+            <Text style={{ fontSize: 12, opacity: 0.55 }}>{field.help}</Text>
           </View>
         ))}
 
