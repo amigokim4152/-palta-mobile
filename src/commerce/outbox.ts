@@ -8,7 +8,12 @@ export type OutboxEventStatus =
 export type CommerceOutboxEvent<TPayload extends Record<string, unknown> = Record<string, unknown>> = {
   id: string;
   businessId: string;
-  aggregateType: 'commerce_transaction' | 'payment_intent' | 'fiscal_request' | 'inventory';
+  aggregateType:
+    | 'commerce_transaction'
+    | 'payment_intent'
+    | 'fiscal_request'
+    | 'fiscal_execution'
+    | 'inventory';
   aggregateId: string;
   eventType: string;
   idempotencyKey: string;
