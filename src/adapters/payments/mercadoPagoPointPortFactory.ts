@@ -44,6 +44,9 @@ export class MercadoPagoPointPortFactory implements PaymentPortFactory {
         let token: string | null;
         try {
           token = await this.secrets.readSecret({
+            businessId: input.connection.businessId,
+            providerKey: input.connection.providerKey,
+            providerConnectionId: input.connection.id,
             credentialRef,
             key: 'access_token',
           });
