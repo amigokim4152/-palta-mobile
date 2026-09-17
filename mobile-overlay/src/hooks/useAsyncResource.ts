@@ -11,12 +11,26 @@ export function useAsyncResource<T>(
   options?: {
     isEmpty?: (value: T) => boolean;
     enabled?: boolean;
+    /**
+     * Optional immediately usable data. The hook still refreshes in the
+     * background, preserving the supplied data while loading.
+     */
+    initialData?: T;
   },
 ) {
   const enabled = options?.enabled ?? true;
-  const [state, setState] = useState<AsyncResource<T>>({
-    status: enabled ? 'loading' : 'empty',
-  } as AsyncResource<T>);
+  const initialData = options?.initialData;
+  const [state, setState] = useState<AsyncResource<T>>(() => {
+    if (initialData !== undefined) {
+      return {
+        status: options?.isEmpty?.(initialData) ? 'empty' : 'ready',
+        data: initialData,
+      };
+    }
+    return {
+      status: enabled ? 'loading' : 'empty',
+    } as AsyncResource<T>;
+  });
   const generation = useRef(0);
 
   const refresh = useCallback(async () => {
