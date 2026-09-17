@@ -114,7 +114,20 @@ export class ConversationScopeService {
     accessMode: ScopeAccessMode;
     snapshotVersion?: string;
   }): Promise<ConversationScopeResourceRef> {
+    required(input.conversationId, 'conversationId');
     required(input.scopeId, 'scopeId');
+
+    const scope = await this.directory.find(input.scopeId);
+    if (!scope) {
+      throw new ConversationScopeServiceError('SCOPE_NOT_FOUND', 'Scope does not exist.');
+    }
+    if (scope.conversationId !== input.conversationId) {
+      throw new ConversationScopeServiceError(
+        'SCOPE_CONVERSATION_MISMATCH',
+        'Scope does not belong to the requested Conversation.',
+      );
+    }
+
     await this.assertResourceAuthorized({
       conversationId: input.conversationId,
       requestedBy: input.requestedBy,
