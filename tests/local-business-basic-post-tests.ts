@@ -40,11 +40,11 @@ assert(
 );
 
 const draft: BasicBusinessPost = {
-  ...published,
   id: 'post-draft',
+  businessId: published.businessId,
+  title: published.title,
+  ...(published.body ? { body: published.body } : {}),
   status: 'draft',
-  publishedAt: undefined,
-  publishedByVerifiedOwnerAt: undefined,
 };
 assert(projectPublicBasicBusinessPost(draft) === null, 'Draft must never leak to the public profile.');
 
