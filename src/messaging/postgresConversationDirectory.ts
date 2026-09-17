@@ -170,7 +170,7 @@ export class PostgresConversationDirectory implements ConversationDirectoryPort 
          c.last_sequence,
          c.last_activity_at,
          c.created_at,
-         greatest(c.last_sequence - p.last_read_sequence, 0) as unread_count,
+         coalesce(unread.unread_count, 0) as unread_count,
          coalesce(
            jsonb_agg(
              distinct jsonb_build_object(
@@ -192,6 +192,17 @@ export class PostgresConversationDirectory implements ConversationDirectoryPort 
         and not (cp.actor_type = p.actor_type and cp.actor_id = p.actor_id)
         and cp.left_at is null
        left join lateral (
+         select count(*)::bigint as unread_count
+           from msg_message um
+          where um.conversation_id = c.id
+            and um.sequence > p.last_read_sequence
+            and um.deleted_at is null
+            and not (
+              um.sender_actor_type = p.actor_type
+              and um.sender_actor_id = p.actor_id
+            )
+       ) unread on true
+       left join lateral (
          select id, sequence, message_type, left(body, 240) as body, created_at
            from msg_message
           where conversation_id = c.id
@@ -207,7 +218,7 @@ export class PostgresConversationDirectory implements ConversationDirectoryPort 
           or c.last_activity_at < $3::timestamptz
           or (c.last_activity_at = $3::timestamptz and c.id < $4::uuid)
         )
-      group by c.id, p.last_read_sequence,
+      group by c.id, unread.unread_count,
                lm.id, lm.sequence, lm.message_type, lm.body, lm.created_at
       order by c.last_activity_at desc, c.id desc
       limit $5`,
