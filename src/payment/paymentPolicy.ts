@@ -28,10 +28,15 @@ export function paymentIsAuthoritativelyPaid(status: PaymentStatus): boolean {
   return status === 'paid';
 }
 
+export function paymentRequiresOperatorAction(status: PaymentStatus): boolean {
+  return status === 'requires_action';
+}
+
 export function paymentRequiresReconciliation(status: PaymentStatus): boolean {
   return (
     status === 'pending' ||
     status === 'processing' ||
+    status === 'requires_action' ||
     status === 'authorized' ||
     status === 'unknown'
   );
@@ -42,6 +47,11 @@ export function canCreateReplacementPayment(status: PaymentStatus): boolean {
 }
 
 export function assertSafeReplacementPayment(status: PaymentStatus): void {
+  if (paymentRequiresOperatorAction(status)) {
+    throw new Error(
+      'Payment requires terminal/operator confirmation before creating a replacement payment.',
+    );
+  }
   if (paymentRequiresReconciliation(status)) {
     throw new Error(
       `Payment status ${status} must be reconciled before creating a replacement payment.`,
