@@ -133,6 +133,37 @@ export type PrinterAdapter = {
   print(printer: PrinterIdentity, job: PrintJob): Promise<PrintDispatchResult>;
 };
 
+export function assertPrintJob(job: PrintJob): void {
+  if (!job.id.trim() || !job.businessId.trim() || !job.printerId.trim()) {
+    throw new Error('Print job id, businessId and printerId are required.');
+  }
+  if (!job.idempotencyKey.trim()) throw new Error('Print idempotencyKey is required.');
+  if (!Number.isSafeInteger(job.revision) || job.revision < 0) {
+    throw new Error('Print job revision must be a non-negative safe integer.');
+  }
+  if (job.documentKind !== job.content.kind) {
+    throw new Error('Print documentKind must match content.kind.');
+  }
+  if (job.retryAuthorized && job.status !== 'failed') {
+    throw new Error('Print retry authorization is valid only for a failed job.');
+  }
+  if (
+    ['dispatching', 'submitted', 'printed', 'outcome_unknown', 'failed'].includes(job.status) &&
+    job.submittedAt === undefined
+  ) {
+    throw new Error(`Print job status ${job.status} requires submittedAt.`);
+  }
+  if (job.status === 'printed' && job.completedAt === undefined) {
+    throw new Error('Printed job requires completedAt.');
+  }
+  if (job.providerJobId !== undefined && !job.providerJobId.trim()) {
+    throw new Error('providerJobId cannot be blank.');
+  }
+  if (job.errorCode !== undefined && !job.errorCode.trim()) {
+    throw new Error('errorCode cannot be blank.');
+  }
+}
+
 export function createPrintJob(input: {
   id: string;
   businessId: string;
@@ -142,11 +173,6 @@ export function createPrintJob(input: {
   createdAt: string;
   reprintOfJobId?: string;
 }): PrintJob {
-  if (!input.id.trim() || !input.businessId.trim() || !input.printerId.trim()) {
-    throw new Error('Print job id, businessId and printerId are required.');
-  }
-  if (!input.idempotencyKey.trim()) throw new Error('Print idempotencyKey is required.');
-
   const job: PrintJob = {
     id: input.id,
     businessId: input.businessId,
@@ -160,6 +186,7 @@ export function createPrintJob(input: {
     createdAt: input.createdAt,
   };
   if (input.reprintOfJobId !== undefined) job.reprintOfJobId = input.reprintOfJobId;
+  assertPrintJob(job);
   return job;
 }
 
@@ -169,16 +196,19 @@ export function createPrintJob(input: {
  * the printer may already have produced physical output.
  */
 export function beginPrintDispatch(job: PrintJob, submittedAt: string): PrintJob {
+  assertPrintJob(job);
   if (job.status !== 'queued') {
     throw new Error('Only queued print jobs can begin initial dispatch.');
   }
-  return {
+  const next: PrintJob = {
     ...job,
     status: 'dispatching',
     revision: job.revision + 1,
     retryAuthorized: false,
     submittedAt,
   };
+  assertPrintJob(next);
+  return next;
 }
 
 function withOptionalProviderJobId(
@@ -194,10 +224,12 @@ export function applyPrintDispatchResult(
   result: PrintDispatchResult,
   now: string,
 ): PrintJob {
+  assertPrintJob(job);
   if (job.status !== 'dispatching') throw new Error('Print result requires a dispatching job.');
 
+  let next: PrintJob;
   if (result.outcome === 'printed') {
-    return withOptionalProviderJobId(
+    next = withOptionalProviderJobId(
       {
         ...job,
         status: 'printed',
@@ -207,9 +239,8 @@ export function applyPrintDispatchResult(
       },
       result.providerJobId,
     );
-  }
-  if (result.outcome === 'submitted') {
-    return withOptionalProviderJobId(
+  } else if (result.outcome === 'submitted') {
+    next = withOptionalProviderJobId(
       {
         ...job,
         status: 'submitted',
@@ -218,26 +249,29 @@ export function applyPrintDispatchResult(
       },
       result.providerJobId,
     );
-  }
-  if (result.outcome === 'unknown') {
-    return {
+  } else if (result.outcome === 'unknown') {
+    next = {
       ...job,
       status: 'outcome_unknown',
       revision: job.revision + 1,
       retryAuthorized: false,
       errorCode: result.code,
     };
+  } else {
+    next = {
+      ...job,
+      status: 'failed',
+      revision: job.revision + 1,
+      retryAuthorized: result.retryable,
+      errorCode: result.code,
+    };
   }
-  return {
-    ...job,
-    status: 'failed',
-    revision: job.revision + 1,
-    retryAuthorized: result.retryable,
-    errorCode: result.code,
-  };
+  assertPrintJob(next);
+  return next;
 }
 
 export function canAutomaticallyRetryPrint(job: PrintJob): boolean {
+  assertPrintJob(job);
   return job.status === 'failed' && job.retryAuthorized;
 }
 
@@ -246,16 +280,20 @@ export function canAutomaticallyRetryPrint(job: PrintJob): boolean {
  * records definitive evidence that the preceding attempt produced no physical output.
  */
 export function beginPrintRetry(job: PrintJob, submittedAt: string): PrintJob {
+  assertPrintJob(job);
   if (!canAutomaticallyRetryPrint(job)) {
     throw new Error('Print retry requires persisted authorization from a definitive no-output failure.');
   }
-  return {
-    ...job,
+  const { errorCode: _errorCode, providerJobId: _providerJobId, ...base } = job;
+  const next: PrintJob = {
+    ...base,
     status: 'dispatching',
     revision: job.revision + 1,
     retryAuthorized: false,
     submittedAt,
   };
+  assertPrintJob(next);
+  return next;
 }
 
 /**
