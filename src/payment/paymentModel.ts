@@ -39,6 +39,8 @@ export type PaymentIntent = {
   amount: Money;
   rail: PaymentRail;
   status: PaymentStatus;
+  /** Optimistic concurrency revision for provider callbacks/reconciliation races. */
+  revision: number;
   providerKey?: string;
   providerReference?: string;
   providerPaymentId?: string;
@@ -58,6 +60,7 @@ export type PaymentEventType =
   | 'payment_created'
   | 'payment_pending'
   | 'payment_processing'
+  | 'payment_requires_action'
   | 'payment_authorized'
   | 'payment_paid'
   | 'payment_declined'
@@ -65,6 +68,7 @@ export type PaymentEventType =
   | 'payment_failed'
   | 'payment_cancelled'
   | 'refund_requested'
+  | 'refund_partially_completed'
   | 'refund_completed'
   | 'settlement_updated';
 
@@ -77,3 +81,98 @@ export type PaymentEvent = {
   providerReference?: string;
   metadata?: Record<string, string | number | boolean | null>;
 };
+
+const ALLOWED_PAYMENT_TRANSITIONS: Record<PaymentStatus, readonly PaymentStatus[]> = {
+  created: [
+    'pending',
+    'processing',
+    'requires_action',
+    'authorized',
+    'paid',
+    'declined',
+    'unknown',
+    'failed',
+    'cancelled',
+  ],
+  pending: [
+    'processing',
+    'requires_action',
+    'authorized',
+    'paid',
+    'declined',
+    'unknown',
+    'failed',
+    'cancelled',
+  ],
+  processing: [
+    'requires_action',
+    'authorized',
+    'paid',
+    'declined',
+    'unknown',
+    'failed',
+    'cancelled',
+  ],
+  requires_action: [
+    'processing',
+    'authorized',
+    'paid',
+    'declined',
+    'unknown',
+    'failed',
+    'cancelled',
+  ],
+  authorized: ['paid', 'unknown', 'failed', 'cancelled'],
+  paid: ['refund_pending', 'partially_refunded', 'refunded'],
+  declined: [],
+  unknown: [
+    'pending',
+    'processing',
+    'requires_action',
+    'authorized',
+    'paid',
+    'declined',
+    'failed',
+    'cancelled',
+  ],
+  failed: [],
+  cancelled: [],
+  refund_pending: ['paid', 'partially_refunded', 'refunded', 'unknown', 'failed'],
+  partially_refunded: ['refund_pending', 'refunded'],
+  refunded: [],
+};
+
+function assertRevision(revision: number): void {
+  if (!Number.isSafeInteger(revision) || revision < 0) {
+    throw new Error('Payment revision must be a non-negative safe integer.');
+  }
+}
+
+/**
+ * Applies an authoritative provider/reconciliation status without allowing a
+ * stale callback to regress canonical payment state (for example paid -> processing).
+ */
+export function transitionPaymentIntent(
+  intent: PaymentIntent,
+  next: PaymentStatus,
+  occurredAt: string,
+): PaymentIntent {
+  assertRevision(intent.revision);
+  if (intent.status === next) return intent;
+  if (!ALLOWED_PAYMENT_TRANSITIONS[intent.status].includes(next)) {
+    throw new Error(`Invalid payment transition: ${intent.status} -> ${next}`);
+  }
+  return {
+    ...intent,
+    status: next,
+    revision: intent.revision + 1,
+    updatedAt: occurredAt,
+  };
+}
+
+export function paymentTransitionAllowed(
+  current: PaymentStatus,
+  next: PaymentStatus,
+): boolean {
+  return current === next || ALLOWED_PAYMENT_TRANSITIONS[current].includes(next);
+}
