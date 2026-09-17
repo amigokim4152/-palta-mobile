@@ -57,7 +57,7 @@ const businesses = [
     service_area_labels: ['Vitacura'],
     photo_urls: [],
     posts: [],
-    enabled_capabilities: [],
+    enabled_capabilities: ['coupon'],
     channel_links: [
       { provider: 'website', label: 'Sitio web', url: 'https://example.com/' },
       { provider: 'facebook', label: 'Facebook', url: 'https://www.facebook.com/' },
@@ -70,6 +70,20 @@ const businesses = [
 const idempotencyCareIds = new Map();
 const idempotencyBusinessResults = new Map();
 const businessRelationships = new Map();
+const businessCoupons = new Map([
+  ['biz-farmacia-1', {
+    id: 'coupon-farmacia-demo',
+    business_id: 'biz-farmacia-1',
+    title: '10% en cuidado personal',
+    description: 'Beneficio básico del negocio.',
+    redemption_instruction: 'Muéstralo antes de pagar.',
+    audience: 'public',
+    status: 'published',
+    starts_at: '2026-09-17T00:00:00-03:00',
+    expires_at: '2026-10-17T23:59:59-03:00',
+    issued_by_verified_owner_at: '2026-09-17T09:00:00-03:00',
+  }],
+]);
 
 const careTracks = new Map([
   ['care-demo-1', {
@@ -136,6 +150,23 @@ function relationshipFor(businessId) {
   return relationship;
 }
 
+function activeCouponItems(businessId) {
+  const coupon = businessCoupons.get(businessId);
+  if (!coupon || coupon.status !== 'published') return [];
+  const now = Date.now();
+  if (coupon.starts_at && Date.parse(coupon.starts_at) > now) return [];
+  if (coupon.expires_at && Date.parse(coupon.expires_at) <= now) return [];
+  if (coupon.audience === 'followers' && !relationshipFor(businessId).following) return [];
+  return [{
+    id: coupon.id,
+    title: coupon.title,
+    ...(coupon.description ? { description: coupon.description } : {}),
+    ...(coupon.redemption_instruction ? { redemption_instruction: coupon.redemption_instruction } : {}),
+    audience: coupon.audience,
+    ...(coupon.expires_at ? { expires_at: coupon.expires_at } : {}),
+  }];
+}
+
 function ownerGuidanceFor(business) {
   const items = [];
 
@@ -175,7 +206,7 @@ function ownerGuidanceFor(business) {
     });
   }
 
-  if (business.verification_status === 'verified') {
+  if (business.verification_status === 'verified' && !activeCouponItems(business.id).length) {
     items.push({
       id: `${business.id}:coupon`,
       class: 'free_practical_improvement',
@@ -198,7 +229,7 @@ const server = http.createServer(async (req, res) => {
     const url = new URL(req.url, `http://${req.headers.host ?? `${host}:${port}`}`);
 
     if (req.method === 'GET' && url.pathname === '/health') {
-      return json(res, 200, { ok: true, service: 'palta-mock-api', version: '0.6.0' });
+      return json(res, 200, { ok: true, service: 'palta-mock-api', version: '0.7.0' });
     }
 
     if (req.method === 'GET' && url.pathname === '/v1/home') {
@@ -330,6 +361,68 @@ const server = http.createServer(async (req, res) => {
         relationship.updated_at = new Date().toISOString();
       }
       return json(res, 200, relationship);
+    }
+
+    const couponsMatch = req.method === 'GET'
+      ? url.pathname.match(/^\/v1\/business\/([^/]+)\/basic-coupons$/)
+      : null;
+    if (couponsMatch) {
+      const id = decodeURIComponent(couponsMatch[1]);
+      const business = businesses.find((item) => item.id === id);
+      if (!business) return json(res, 404, { error: 'business_not_found' });
+      return json(res, 200, { business_id: id, items: activeCouponItems(id) });
+    }
+
+    const couponWriteMatch = req.method === 'PUT'
+      ? url.pathname.match(/^\/v1\/business\/([^/]+)\/basic-coupon$/)
+      : null;
+    if (couponWriteMatch) {
+      const id = decodeURIComponent(couponWriteMatch[1]);
+      const business = businesses.find((item) => item.id === id);
+      if (!business) return json(res, 404, { error: 'business_not_found' });
+      if (business.verification_status !== 'verified') {
+        return json(res, 403, { error: 'verified_owner_required' });
+      }
+
+      const body = await readJson(req);
+      if (body.status === 'revoked') {
+        businessCoupons.delete(id);
+        business.enabled_capabilities = (business.enabled_capabilities ?? [])
+          .filter((capability) => capability !== 'coupon');
+        return json(res, 200, { business_id: id, items: [] });
+      }
+
+      if (typeof body.title !== 'string' || !body.title.trim()) {
+        return json(res, 400, { error: 'coupon_title_required' });
+      }
+      if (body.audience !== 'public' && body.audience !== 'followers') {
+        return json(res, 400, { error: 'coupon_audience_invalid' });
+      }
+      const expiresAt = typeof body.expires_at === 'string' ? Date.parse(body.expires_at) : NaN;
+      if (!Number.isFinite(expiresAt) || expiresAt <= Date.now()) {
+        return json(res, 400, { error: 'coupon_future_expiry_required' });
+      }
+
+      const existing = businessCoupons.get(id);
+      const coupon = {
+        id: existing?.id ?? `coupon-${randomUUID()}`,
+        business_id: id,
+        title: body.title.trim(),
+        ...(typeof body.description === 'string' && body.description.trim()
+          ? { description: body.description.trim() }
+          : {}),
+        ...(typeof body.redemption_instruction === 'string' && body.redemption_instruction.trim()
+          ? { redemption_instruction: body.redemption_instruction.trim() }
+          : {}),
+        audience: body.audience,
+        status: 'published',
+        starts_at: new Date().toISOString(),
+        expires_at: new Date(expiresAt).toISOString(),
+        issued_by_verified_owner_at: new Date().toISOString(),
+      };
+      businessCoupons.set(id, coupon);
+      business.enabled_capabilities = [...new Set([...(business.enabled_capabilities ?? []), 'coupon'])];
+      return json(res, 200, { business_id: id, items: activeCouponItems(id) });
     }
 
     const channelLinksMatch = req.method === 'PUT'
