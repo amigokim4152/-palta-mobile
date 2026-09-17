@@ -4,6 +4,8 @@ import ts from 'typescript';
 
 const root = process.cwd();
 const discoveryPath = path.join(root, 'mobile-overlay/src/features/business/LocalBusinessDiscoveryScreen.tsx');
+const cachePath = path.join(root, 'mobile-overlay/src/features/business/localBusinessDiscoveryCache.ts');
+const asyncResourcePath = path.join(root, 'mobile-overlay/src/hooks/useAsyncResource.ts');
 const mapPath = path.join(root, 'mobile-overlay/src/components/map/NeighborhoodMap.tsx');
 const sheetPath = path.join(root, 'mobile-overlay/src/components/neighborhood/MapResultSheet.tsx');
 const resultCardPath = path.join(root, 'mobile-overlay/src/components/LocalResultCard.tsx');
@@ -37,6 +39,8 @@ function readTsx(file) {
 }
 
 const discovery = readTsx(discoveryPath);
+const cache = readTsx(cachePath);
+const asyncResource = readTsx(asyncResourcePath);
 const map = readTsx(mapPath);
 const sheet = readTsx(sheetPath);
 const resultCard = readTsx(resultCardPath);
@@ -67,6 +71,29 @@ assert(
   discovery.includes(".filter((item) => item.location !== undefined)") &&
   discovery.includes("'Zona de atención'"),
   'Area-only businesses must remain list-discoverable without fabricating a precise map pin.',
+);
+assert(
+  discovery.includes('readLocalBusinessDiscoveryCache') &&
+  discovery.includes('writeLocalBusinessDiscoveryCache') &&
+  discovery.includes('initialData: cachedResults'),
+  'Returning from detail must reuse a short-lived discovery cache while refreshing in the background.',
+);
+
+assert(
+  cache.includes('MAX_ENTRIES = 12') && cache.includes('MAX_AGE_MS = 2 * 60 * 1000'),
+  'Discovery cache must remain small and short-lived.',
+);
+assert(
+  cache.includes('const entries = new Map') &&
+  !cache.includes('localStorage') &&
+  !cache.includes('AsyncStorage') &&
+  !cache.includes('sessionStorage'),
+  'Discovery cache must remain memory-only so precise search context is not silently persisted.',
+);
+assert(
+  asyncResource.includes('isEmptyRef.current = options?.isEmpty') &&
+  asyncResource.includes('}, [enabled, loader]);'),
+  'Async resource refresh must not restart merely because an inline empty predicate changed identity.',
 );
 
 assert(
