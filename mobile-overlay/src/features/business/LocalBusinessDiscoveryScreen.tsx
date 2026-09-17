@@ -306,6 +306,105 @@ export function LocalBusinessDiscoveryScreen() {
     );
   }
 
+  const resultsContent = (
+    <>
+      {selectedBusiness ? (
+        <View style={{ marginBottom: paltaTheme.spacing.sm, gap: paltaTheme.spacing.xs }}>
+          <Text
+            style={{
+              fontSize: 12,
+              fontWeight: '800',
+              color: paltaTheme.color.textMuted,
+            }}
+          >
+            SELECCIONADO EN EL MAPA
+          </Text>
+          <LocalResultCard
+            selected
+            name={selectedBusiness.name}
+            meta={[
+              formatOperationalState(selectedBusiness.operational_state, selectedBusiness.next_open_at),
+              selectedBusiness.category_key,
+              selectedBusiness.verification_status === 'verified' ? 'Verificado' : undefined,
+            ].filter(Boolean).join(' · ')}
+            distance={selectedBusiness.location
+              ? formatDistance(selectedBusiness.distance_m)
+              : 'Zona de atención'}
+            onPress={() => openBusiness(selectedBusiness.entity_id)}
+          />
+          <Pressable
+            onPress={() => dispatch({ type: 'select_entity', entityId: null })}
+            style={{ alignSelf: 'flex-start', minHeight: 44, justifyContent: 'center' }}
+          >
+            <Text style={{ fontWeight: '700', color: paltaTheme.color.textSecondary }}>
+              Cerrar selección
+            </Text>
+          </Pressable>
+        </View>
+      ) : null}
+
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: paltaTheme.spacing.xs,
+          paddingBottom: 10,
+          flexWrap: 'wrap',
+        }}
+      >
+        <Text style={{ fontSize: 13, fontWeight: '800', color: paltaTheme.color.textMuted }}>
+          {neighborhood.query ? 'RESULTADOS' : 'NEGOCIOS CERCA'}
+        </Text>
+        <View style={{ flexDirection: 'row', gap: paltaTheme.spacing.xs, flexWrap: 'wrap' }}>
+          <FilterChip
+            label="Abiertos ahora"
+            selected={openNowOnly}
+            onPress={() => setFilter(FILTER_OPEN_NOW, !openNowOnly)}
+          />
+          <FilterChip
+            label="Verificados"
+            selected={verifiedOnly}
+            onPress={() => setFilter(FILTER_VERIFIED, !verifiedOnly)}
+          />
+        </View>
+      </View>
+
+      {state.status === 'loading' && !state.data ? <LoadingState label="Buscando negocios…" /> : null}
+      {state.status === 'error' && !state.data ? (
+        <ErrorState message={state.message} onRetry={() => void refresh()} />
+      ) : null}
+      {businesses.length === 0 && state.status !== 'loading' ? (
+        <EmptyState
+          title="No encontramos negocios para esta búsqueda"
+          body={openNowOnly
+            ? 'No encontramos negocios confirmados como abiertos ahora en esta búsqueda. Quita el filtro para ver más opciones.'
+            : 'Prueba con otra palabra o mueve el mapa. Las búsquedas sin resultado también nos ayudan a mejorar la clasificación local.'}
+        />
+      ) : null}
+
+      {businesses
+        .filter((item) => item.entity_id !== selectedBusiness?.entity_id)
+        .map((item) => (
+          <LocalResultCard
+            key={item.entity_id}
+            name={item.name}
+            meta={[
+              formatOperationalState(item.operational_state, item.next_open_at),
+              item.category_key,
+              item.verification_status === 'verified' ? 'Verificado' : undefined,
+            ].filter(Boolean).join(' · ')}
+            distance={item.location ? formatDistance(item.distance_m) : 'Zona de atención'}
+            onPress={() => openBusiness(item.entity_id)}
+          />
+        ))}
+
+      {state.status === 'error' && state.data ? (
+        <ErrorState message={state.message} onRetry={() => void refresh()} />
+      ) : null}
+    </>
+  );
+
   return (
     <ScreenFrame
       title="Negocios"
@@ -374,35 +473,46 @@ export function LocalBusinessDiscoveryScreen() {
           ))}
         </View>
 
-        <View style={{ minHeight: 230, flex: 1 }}>
-          {mobileRuntime.status === 'ready' && mobileRuntime.mapStyleUrl ? (
-            <NeighborhoodMap
-              mapStyle={mobileRuntime.mapStyleUrl}
-              features={mapFeatures}
-              initialCenter={neighborhood.camera?.center ?? neighborhood.effectiveLocation}
-              initialZoom={neighborhood.camera?.zoom ?? 14}
-              onSelectEntity={selectBusinessFromMap}
-              onViewportChanged={(center, zoom, userInteraction) =>
-                dispatch({ type: 'set_viewport_center', center, zoom, userInteraction })
-              }
-            />
-          ) : (
-            <View
-              style={{
-                flex: 1,
-                alignItems: 'center',
-                justifyContent: 'center',
-                borderWidth: 1,
-                borderColor: paltaTheme.color.border,
-                backgroundColor: paltaTheme.color.surfaceMuted,
-              }}
-            >
-              <Text style={{ color: paltaTheme.color.textPrimary }}>Map Core preparado</Text>
-              <Text style={{ marginTop: 6, color: paltaTheme.color.textSecondary }}>
-                Falta conectar el estilo de mapa del runtime.
-              </Text>
-            </View>
-          )}
+        <View
+          style={{
+            minHeight: 360,
+            flex: 1,
+            position: 'relative',
+            overflow: 'hidden',
+            borderRadius: paltaTheme.radius.prominent,
+            backgroundColor: paltaTheme.color.surfaceMuted,
+          }}
+        >
+          <View style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}>
+            {mobileRuntime.status === 'ready' && mobileRuntime.mapStyleUrl ? (
+              <NeighborhoodMap
+                mapStyle={mobileRuntime.mapStyleUrl}
+                features={mapFeatures}
+                initialCenter={neighborhood.camera?.center ?? neighborhood.effectiveLocation}
+                initialZoom={neighborhood.camera?.zoom ?? 14}
+                onSelectEntity={selectBusinessFromMap}
+                onViewportChanged={(center, zoom, userInteraction) =>
+                  dispatch({ type: 'set_viewport_center', center, zoom, userInteraction })
+                }
+              />
+            ) : (
+              <View
+                style={{
+                  flex: 1,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderWidth: 1,
+                  borderColor: paltaTheme.color.border,
+                  backgroundColor: paltaTheme.color.surfaceMuted,
+                }}
+              >
+                <Text style={{ color: paltaTheme.color.textPrimary }}>Map Core preparado</Text>
+                <Text style={{ marginTop: 6, color: paltaTheme.color.textSecondary }}>
+                  Falta conectar el estilo de mapa del runtime.
+                </Text>
+              </View>
+            )}
+          </View>
 
           {neighborhood.mapMovedSinceSearch ? (
             <Pressable
@@ -430,107 +540,16 @@ export function LocalBusinessDiscoveryScreen() {
               </Text>
             </Pressable>
           ) : null}
-        </View>
 
-        <MapResultSheet
-          snap={neighborhood.sheetSnap}
-          onSnapChange={(snap) => dispatch({ type: 'set_sheet_snap', snap })}
-        >
-          {selectedBusiness ? (
-            <View style={{ marginBottom: paltaTheme.spacing.sm, gap: paltaTheme.spacing.xs }}>
-              <Text
-                style={{
-                  fontSize: 12,
-                  fontWeight: '800',
-                  color: paltaTheme.color.textMuted,
-                }}
-              >
-                SELECCIONADO EN EL MAPA
-              </Text>
-              <LocalResultCard
-                selected
-                name={selectedBusiness.name}
-                meta={[
-                  formatOperationalState(selectedBusiness.operational_state, selectedBusiness.next_open_at),
-                  selectedBusiness.category_key,
-                  selectedBusiness.verification_status === 'verified' ? 'Verificado' : undefined,
-                ].filter(Boolean).join(' · ')}
-                distance={selectedBusiness.location
-                  ? formatDistance(selectedBusiness.distance_m)
-                  : 'Zona de atención'}
-                onPress={() => openBusiness(selectedBusiness.entity_id)}
-              />
-              <Pressable
-                onPress={() => dispatch({ type: 'select_entity', entityId: null })}
-                style={{ alignSelf: 'flex-start', minHeight: 44, justifyContent: 'center' }}
-              >
-                <Text style={{ fontWeight: '700', color: paltaTheme.color.textSecondary }}>
-                  Cerrar selección
-                </Text>
-              </Pressable>
-            </View>
-          ) : null}
-
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: paltaTheme.spacing.xs,
-              paddingBottom: 10,
-              flexWrap: 'wrap',
-            }}
-          >
-            <Text style={{ fontSize: 13, fontWeight: '800', color: paltaTheme.color.textMuted }}>
-              {neighborhood.query ? 'RESULTADOS' : 'NEGOCIOS CERCA'}
-            </Text>
-            <View style={{ flexDirection: 'row', gap: paltaTheme.spacing.xs, flexWrap: 'wrap' }}>
-              <FilterChip
-                label="Abiertos ahora"
-                selected={openNowOnly}
-                onPress={() => setFilter(FILTER_OPEN_NOW, !openNowOnly)}
-              />
-              <FilterChip
-                label="Verificados"
-                selected={verifiedOnly}
-                onPress={() => setFilter(FILTER_VERIFIED, !verifiedOnly)}
-              />
-            </View>
+          <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0 }}>
+            <MapResultSheet
+              snap={neighborhood.sheetSnap}
+              onSnapChange={(snap) => dispatch({ type: 'set_sheet_snap', snap })}
+            >
+              {resultsContent}
+            </MapResultSheet>
           </View>
-
-          {state.status === 'loading' && !state.data ? <LoadingState label="Buscando negocios…" /> : null}
-          {state.status === 'error' && !state.data ? (
-            <ErrorState message={state.message} onRetry={() => void refresh()} />
-          ) : null}
-          {businesses.length === 0 && state.status !== 'loading' ? (
-            <EmptyState
-              title="No encontramos negocios para esta búsqueda"
-              body={openNowOnly
-                ? 'No encontramos negocios confirmados como abiertos ahora en esta búsqueda. Quita el filtro para ver más opciones.'
-                : 'Prueba con otra palabra o mueve el mapa. Las búsquedas sin resultado también nos ayudan a mejorar la clasificación local.'}
-            />
-          ) : null}
-
-          {businesses
-            .filter((item) => item.entity_id !== selectedBusiness?.entity_id)
-            .map((item) => (
-              <LocalResultCard
-                key={item.entity_id}
-                name={item.name}
-                meta={[
-                  formatOperationalState(item.operational_state, item.next_open_at),
-                  item.category_key,
-                  item.verification_status === 'verified' ? 'Verificado' : undefined,
-                ].filter(Boolean).join(' · ')}
-                distance={item.location ? formatDistance(item.distance_m) : 'Zona de atención'}
-                onPress={() => openBusiness(item.entity_id)}
-              />
-            ))}
-
-          {state.status === 'error' && state.data ? (
-            <ErrorState message={state.message} onRetry={() => void refresh()} />
-          ) : null}
-        </MapResultSheet>
+        </View>
       </View>
     </ScreenFrame>
   );
