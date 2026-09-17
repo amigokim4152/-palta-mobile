@@ -58,6 +58,16 @@ const ALLOWED_EXECUTION_TRANSITIONS: Readonly<Record<FiscalExecutionStatus, read
   cancelled: [],
 };
 
+function assertExecutionTransitionAllowed(
+  current: FiscalExecutionStatus,
+  next: FiscalExecutionStatus,
+): void {
+  if (current === next) return;
+  if (!ALLOWED_EXECUTION_TRANSITIONS[current].includes(next)) {
+    throw new Error(`Invalid fiscal execution transition: ${current} -> ${next}`);
+  }
+}
+
 export function assertFiscalExecution(execution: FiscalExecution): void {
   if (
     !execution.id.trim() ||
@@ -133,10 +143,8 @@ export function transitionFiscalExecution(
 ): FiscalExecution {
   assertFiscalExecution(execution);
   if (execution.status === next) return execution;
-  if (!ALLOWED_EXECUTION_TRANSITIONS[execution.status].includes(next)) {
-    throw new Error(`Invalid fiscal execution transition: ${execution.status} -> ${next}`);
-  }
-  const updated = {
+  assertExecutionTransitionAllowed(execution.status, next);
+  const updated: FiscalExecution = {
     ...execution,
     status: next,
     revision: execution.revision + 1,
@@ -147,7 +155,14 @@ export function transitionFiscalExecution(
 }
 
 export function fiscalExecutionNeedsReconciliation(status: FiscalExecutionStatus): boolean {
-  return status === 'submitting' || status === 'queued' || status === 'issued' || status === 'pending_authority' || status === 'unknown';
+  return (
+    status === 'submitting' ||
+    status === 'queued' ||
+    status === 'issued' ||
+    status === 'pending_authority' ||
+    status === 'observed' ||
+    status === 'unknown'
+  );
 }
 
 export function fiscalExecutionIsAuthoritativelyAccepted(execution: FiscalExecution): boolean {
@@ -191,6 +206,9 @@ export function applyExternalFiscalProviderResult(
     throw new Error('Fiscal provider queue ticket changed for one canonical execution.');
   }
 
+  const statusChanged = execution.status !== result.status;
+  if (statusChanged) assertExecutionTransitionAllowed(execution.status, result.status);
+
   const evidenceChanged =
     (result.providerReference !== undefined && execution.providerReference !== result.providerReference) ||
     (result.queueTicketReference !== undefined && execution.providerTicketReference !== result.queueTicketReference) ||
@@ -203,17 +221,16 @@ export function applyExternalFiscalProviderResult(
     (result.canonicalTotalsMatch !== undefined && execution.canonicalTotalsMatch !== result.canonicalTotalsMatch) ||
     (result.providerTotals !== undefined && !sameTotals(execution.providerTotals, result.providerTotals));
 
-  let updated = execution;
-  if (execution.status !== result.status) {
-    updated = transitionFiscalExecution(execution, result.status, occurredAt);
-  } else if (evidenceChanged) {
-    updated = { ...execution, revision: execution.revision + 1, updatedAt: occurredAt };
-  } else {
-    return execution;
-  }
+  if (!statusChanged && !evidenceChanged) return execution;
 
+  // Provider state and the evidence required to justify it are one canonical
+  // mutation. Never create an intermediate queued/accepted object without its
+  // ticket/document/folio evidence.
   const withEvidence: FiscalExecution = {
-    ...updated,
+    ...execution,
+    status: result.status,
+    revision: execution.revision + 1,
+    updatedAt: occurredAt,
     ...(result.providerReference === undefined ? {} : { providerReference: result.providerReference }),
     ...(result.queueTicketReference === undefined ? {} : { providerTicketReference: result.queueTicketReference }),
     ...(result.folio === undefined ? {} : { folio: result.folio }),
