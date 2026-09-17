@@ -7,6 +7,8 @@ const requiredFiles = [
   "src/ui/reactions.ts",
   "src/ui/localeQa.ts",
   "src/ui/accessibilityQa.ts",
+  "src/ui/qaPersonas.ts",
+  "src/ui/platformAdapter.ts",
   "src/ui/contracts.ts",
   "src/ui/index.ts",
   "docs/PALTA_DESIGN_SYSTEM_CONTRACT.md",
@@ -29,6 +31,8 @@ const characterSource = readFileSync("src/ui/characters.ts", "utf8");
 const reactionSource = readFileSync("src/ui/reactions.ts", "utf8");
 const localeQaSource = readFileSync("src/ui/localeQa.ts", "utf8");
 const accessibilityQaSource = readFileSync("src/ui/accessibilityQa.ts", "utf8");
+const qaPersonaSource = readFileSync("src/ui/qaPersonas.ts", "utf8");
+const adapterSource = readFileSync("src/ui/platformAdapter.ts", "utf8");
 const contractSource = readFileSync("src/ui/contracts.ts", "utf8");
 
 const hexMatches = tokenSource.match(/#[0-9a-fA-F]{3,8}\b/g) ?? [];
@@ -114,6 +118,17 @@ for (const check of requiredAccessibilityChecks) {
   if (!accessibilityQaSource.includes(`id: "${check}"`)) failures.push(`missing accessibility QA check: ${check}`);
 }
 
+for (const persona of ["QA-01", "QA-02", "QA-03", "QA-04", "QA-05"]) {
+  if (!qaPersonaSource.includes(`id: "${persona}"`)) failures.push(`missing design QA persona: ${persona}`);
+}
+
+for (const platform of ["ios", "android", "web"]) {
+  if (!adapterSource.includes(`"${platform}"`)) failures.push(`platform adapter contract missing platform: ${platform}`);
+}
+if (!adapterSource.includes("supportsReducedMotionPreference") || !adapterSource.includes("supportsDynamicText")) {
+  failures.push("platform adapter must expose accessibility capabilities");
+}
+
 if (!tokenSource.includes('durationFrozen: false')) {
   failures.push("motion duration must remain explicitly unfrozen until device validation");
 }
@@ -135,6 +150,8 @@ console.log(`shared semantic contracts checked: ${requiredSemanticContracts.leng
 console.log(`canonical characters checked: ${requiredCharacters.length}`);
 console.log(`shared reactions checked: ${requiredReactions.length}`);
 console.log(`accessibility checks: ${requiredAccessibilityChecks.length}`);
+console.log("design QA personas: 5");
+console.log("platform adapter contract: ios + android + web");
 console.log("locale QA: es-CL + ko");
 console.log("brand hex freeze: none");
 console.log("Unicode emoji as core/reaction assets: none");
