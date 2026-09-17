@@ -126,8 +126,7 @@ export function calculatePaymentCoverage(input: {
       refundLifecycleIntentIds.push(intent.id);
       continue;
     }
-    const exhaustive: never = intent.status;
-    throw new Error(`Unsupported PaymentIntent status: ${String(exhaustive)}`);
+    throw new Error(`Unsupported PaymentIntent status: ${String(intent.status)}`);
   }
 
   const potentialExposureMinor = safeAdd(
