@@ -1,19 +1,35 @@
 import type { AuthPort } from '../ports/authPort.js';
 import {
+  BusinessOperatingRulesApiClient,
+} from './businessOperatingRulesApiClient.js';
+import {
   PaltaApiClient,
   type FetchLike,
 } from './paltaApiClient.js';
+
+export type PaltaApiClientWithDomains = PaltaApiClient & {
+  operatingRules: BusinessOperatingRulesApiClient;
+};
 
 export function createPaltaApiClient(input: {
   baseUrl: string;
   fetch: FetchLike;
   auth?: AuthPort;
-}): PaltaApiClient {
-  return new PaltaApiClient({
+}): PaltaApiClientWithDomains {
+  const getAccessToken = input.auth
+    ? () => input.auth!.getAccessToken()
+    : undefined;
+  const client = new PaltaApiClient({
     baseUrl: input.baseUrl,
     fetch: input.fetch,
-    ...(input.auth
-      ? { getAccessToken: () => input.auth!.getAccessToken() }
-      : {}),
+    ...(getAccessToken ? { getAccessToken } : {}),
+  }) as PaltaApiClientWithDomains;
+
+  client.operatingRules = new BusinessOperatingRulesApiClient({
+    baseUrl: input.baseUrl,
+    fetch: input.fetch,
+    ...(getAccessToken ? { getAccessToken } : {}),
   });
+
+  return client;
 }
