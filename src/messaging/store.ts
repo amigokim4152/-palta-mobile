@@ -2,6 +2,7 @@ import type { ActionReference, ActorRef, Message, MessageType, OutboxEvent } fro
 
 export interface PersistMessageInput {
   conversationId: string;
+  scopeId?: string;
   clientMessageId: string;
   sender: ActorRef;
   type: MessageType;
@@ -43,6 +44,7 @@ export class InMemoryMessageStore implements MessageStore {
     const message: Message = {
       messageId: this.runtime.nextMessageId(),
       conversationId: input.conversationId,
+      ...(input.scopeId !== undefined ? { scopeId: input.scopeId } : {}),
       clientMessageId: input.clientMessageId,
       sender: input.sender,
       sequence,
