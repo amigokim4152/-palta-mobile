@@ -1,3 +1,9 @@
+import {
+  businessOperationalSortRank,
+  isOrdinarilyDiscoverableBusinessState,
+  type BusinessOperationalState,
+} from './businessOperationalState.js';
+
 export type LocalBusinessDiscoveryItem = {
   entityId: string;
   entityType: 'place' | 'business' | 'public_service' | 'event';
@@ -5,6 +11,8 @@ export type LocalBusinessDiscoveryItem = {
   categoryKey?: string;
   distanceM?: number;
   verificationStatus?: string;
+  operationalState?: BusinessOperationalState;
+  operationalConfirmedAt?: string;
   location: { lat: number; lng: number };
 };
 
@@ -25,15 +33,24 @@ export const LOCAL_BUSINESS_SHORTCUTS: readonly LocalBusinessShortcut[] = [
 
 export function projectLocalBusinesses<T extends LocalBusinessDiscoveryItem>(
   items: readonly T[],
-  input?: { verifiedOnly?: boolean },
+  input?: { verifiedOnly?: boolean; openNowOnly?: boolean },
 ): T[] {
   return items
     .filter((item) => item.entityType === 'business')
+    .filter((item) => isOrdinarilyDiscoverableBusinessState(item.operationalState))
     .filter(
       (item) => !input?.verifiedOnly || item.verificationStatus === 'verified',
     )
+    .filter(
+      (item) => !input?.openNowOnly || item.operationalState === 'open_now',
+    )
     .slice()
     .sort((a, b) => {
+      const operationalDelta =
+        businessOperationalSortRank(a.operationalState) -
+        businessOperationalSortRank(b.operationalState);
+      if (operationalDelta !== 0) return operationalDelta;
+
       const aDistance = a.distanceM ?? Number.POSITIVE_INFINITY;
       const bDistance = b.distanceM ?? Number.POSITIVE_INFINITY;
       if (aDistance !== bDistance) return aDistance - bDistance;
