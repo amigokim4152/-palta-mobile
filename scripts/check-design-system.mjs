@@ -5,6 +5,7 @@ const requiredFiles = [
   "src/ui/icons.ts",
   "src/ui/characters.ts",
   "src/ui/reactions.ts",
+  "src/ui/livingExamples.ts",
   "src/ui/localeQa.ts",
   "src/ui/accessibilityQa.ts",
   "src/ui/qaPersonas.ts",
@@ -17,6 +18,8 @@ const requiredFiles = [
   "docs/PALTA_ICON_CHARACTER_LANGUAGE.md",
   "docs/PALTA_CORE_ICON_SET_V1.md",
   "docs/DESIGN_VERTICAL_SLICE_V1.md",
+  "docs/CHARACTER_REACTION_BINDING_V1.md",
+  "docs/ACCESSIBILITY_LOCALE_QA_V1.md",
 ];
 
 const failures = [];
@@ -29,6 +32,7 @@ const tokenSource = readFileSync("src/ui/tokens.ts", "utf8");
 const iconSource = readFileSync("src/ui/icons.ts", "utf8");
 const characterSource = readFileSync("src/ui/characters.ts", "utf8");
 const reactionSource = readFileSync("src/ui/reactions.ts", "utf8");
+const livingExampleSource = readFileSync("src/ui/livingExamples.ts", "utf8");
 const localeQaSource = readFileSync("src/ui/localeQa.ts", "utf8");
 const accessibilityQaSource = readFileSync("src/ui/accessibilityQa.ts", "utf8");
 const qaPersonaSource = readFileSync("src/ui/qaPersonas.ts", "utf8");
@@ -95,6 +99,13 @@ for (const reaction of requiredReactions) {
   if (!reactionSource.includes(`key: "${reaction}"`)) failures.push(`missing shared reaction semantic: ${reaction}`);
 }
 
+for (const scenario of ["LE-01", "LE-02", "LE-03", "LE-04", "LE-05", "LE-06", "LE-07", "LE-08"]) {
+  if (!livingExampleSource.includes(`id: "${scenario}"`)) failures.push(`missing Living Example scenario: ${scenario}`);
+}
+if (!livingExampleSource.includes("syntheticAnalyticsExcluded: true") || !livingExampleSource.includes("exampleDisclosureRequired: true")) {
+  failures.push("Living Example registry must preserve analytics exclusion and example disclosure");
+}
+
 if (!localeQaSource.includes('locale: "es-CL"') || !localeQaSource.includes('locale: "ko"')) {
   failures.push("locale QA must cover both es-CL and ko");
 }
@@ -149,6 +160,7 @@ console.log(`core icon semantic keys: ${iconKeys.length}`);
 console.log(`shared semantic contracts checked: ${requiredSemanticContracts.length}`);
 console.log(`canonical characters checked: ${requiredCharacters.length}`);
 console.log(`shared reactions checked: ${requiredReactions.length}`);
+console.log("Living Example scenarios: 8");
 console.log(`accessibility checks: ${requiredAccessibilityChecks.length}`);
 console.log("design QA personas: 5");
 console.log("platform adapter contract: ios + android + web");
