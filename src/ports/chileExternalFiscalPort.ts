@@ -15,6 +15,7 @@ export type ExternalFiscalLine = {
   /** Customer-facing gross unit price, retained for reconciliation. */
   unitGrossAmountMinor: number;
   lineNetAmountMinor: number;
+  lineExemptAmountMinor: number;
   lineVatAmountMinor: number;
   lineTotalAmountMinor: number;
   exempt: boolean;
