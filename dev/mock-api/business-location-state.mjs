@@ -1,3 +1,5 @@
+const ownerLocationState = new Map();
+
 function ownerManaged(business) {
   return business.verification_status === 'claimed' || business.verification_status === 'verified';
 }
@@ -17,63 +19,60 @@ function validPoint(point) {
 }
 
 function ensureOwnerLocationState(business) {
-  if (!business.public_location_precision) business.public_location_precision = 'exact';
-  if (!business.owner_anchor_location && business.location) {
-    business.owner_anchor_location = {
-      latitude: business.location.lat,
-      longitude: business.location.lng,
+  let state = ownerLocationState.get(business.id);
+  if (!state) {
+    state = {
+      ...(business.location
+        ? {
+            anchor_point: {
+              latitude: business.location.lat,
+              longitude: business.location.lng,
+            },
+          }
+        : {}),
+      updated_at: new Date(0).toISOString(),
     };
+    ownerLocationState.set(business.id, state);
   }
+  if (!business.public_location_precision) business.public_location_precision = 'exact';
   if (!business.address_label && business.service_area_labels?.length) {
     business.address_label = business.service_area_labels[0];
   }
-  if (!business.owner_location_updated_at) business.owner_location_updated_at = new Date(0).toISOString();
+  return state;
 }
 
 function ownerProjection(business) {
-  ensureOwnerLocationState(business);
+  const state = ensureOwnerLocationState(business);
   return {
     business_id: business.id,
     ...(business.address_label ? { address_label: business.address_label } : {}),
-    ...(business.owner_anchor_location ? { anchor_point: { ...business.owner_anchor_location } } : {}),
+    ...(state.anchor_point ? { anchor_point: { ...state.anchor_point } } : {}),
     public_precision: business.public_location_precision,
     service_area_labels: [...(business.service_area_labels ?? [])],
-    updated_at: business.owner_location_updated_at,
+    updated_at: state.updated_at,
   };
 }
 
 function applyPublicLocationProjection(business) {
-  ensureOwnerLocationState(business);
-  if (business.public_location_precision === 'exact' && business.owner_anchor_location) {
+  const state = ensureOwnerLocationState(business);
+  if (business.public_location_precision === 'exact' && state.anchor_point) {
     business.location = {
-      lat: business.owner_anchor_location.latitude,
-      lng: business.owner_anchor_location.longitude,
+      lat: state.anchor_point.latitude,
+      lng: state.anchor_point.longitude,
     };
     business.public_address_label = business.address_label;
     return;
   }
 
   // area_only and hidden must not leave a precise point in the public Business
-  // projection or distance-search fixture. Shared Geo/service-area discovery can
-  // later project a safe regional centroid or polygon without exposing this anchor.
+  // projection or the distance-search fixture. Shared Geo/service-area discovery
+  // can later provide a safe regional centroid/polygon without exposing this anchor.
   delete business.location;
   if (business.public_location_precision === 'area_only') {
     business.public_address_label = business.address_label;
   } else {
     delete business.public_address_label;
   }
-}
-
-export function publicLocationForBusiness(business) {
-  ensureOwnerLocationState(business);
-  return {
-    ...(business.public_address_label ? { address_label: business.public_address_label } : {}),
-    ...(business.public_location_precision === 'exact' && business.location
-      ? { location: business.location }
-      : {}),
-    service_area_labels: [...(business.service_area_labels ?? [])],
-    public_precision: business.public_location_precision,
-  };
 }
 
 export async function handleBusinessLocationRequest({ req, res, url, businesses, json, readJson }) {
@@ -91,7 +90,7 @@ export async function handleBusinessLocationRequest({ req, res, url, businesses,
     return true;
   }
 
-  ensureOwnerLocationState(business);
+  const state = ensureOwnerLocationState(business);
   if (req.method === 'GET') {
     json(res, 200, ownerProjection(business));
     return true;
@@ -116,7 +115,7 @@ export async function handleBusinessLocationRequest({ req, res, url, businesses,
       json(res, 400, { error: 'anchor_point_invalid' });
       return true;
     }
-    business.owner_anchor_location = {
+    state.anchor_point = {
       latitude: body.anchor_point.latitude,
       longitude: body.anchor_point.longitude,
       ...(body.anchor_point.accuracy_m !== undefined ? { accuracy_m: body.anchor_point.accuracy_m } : {}),
@@ -128,7 +127,7 @@ export async function handleBusinessLocationRequest({ req, res, url, businesses,
       json(res, 400, { error: 'public_precision_invalid' });
       return true;
     }
-    if (body.public_precision === 'exact' && !business.owner_anchor_location) {
+    if (body.public_precision === 'exact' && !state.anchor_point) {
       json(res, 400, { error: 'exact_location_requires_anchor' });
       return true;
     }
@@ -160,7 +159,7 @@ export async function handleBusinessLocationRequest({ req, res, url, businesses,
     business.service_area_labels = [...new Set(labels)];
   }
 
-  business.owner_location_updated_at = new Date().toISOString();
+  state.updated_at = new Date().toISOString();
   applyPublicLocationProjection(business);
   json(res, 200, ownerProjection(business));
   return true;
