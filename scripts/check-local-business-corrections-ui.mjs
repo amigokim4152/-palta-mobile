@@ -91,7 +91,7 @@ assert(
 );
 assert(
   ownerCorrections.includes('Esto no modifica ningún dato por sí solo') &&
-  ownerCorrections.includes('actualizarlo en la sección correspondiente'),
+  ownerCorrections.includes('corregirlo en la sección correspondiente'),
   'Correction resolution must stay separate from canonical business fact editing.',
 );
 assert(
