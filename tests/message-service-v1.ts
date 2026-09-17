@@ -1,8 +1,10 @@
 import type { MessageActorAuthorizationPort } from '../src/messaging/authorizationPort.js';
+import type { MessageAttachmentAuthorizationPort } from '../src/messaging/attachmentAuthorizationPort.js';
 import type {
   ActorRef,
   ConversationScope,
   Message,
+  MessageAttachment,
   OutboxEvent,
   ParticipantState,
 } from '../src/messaging/contracts.js';
@@ -43,6 +45,7 @@ class FakePersistence implements MessagePersistencePort {
   participants: ParticipantState[] = [];
   scopes: ConversationScope[] = [];
   messages: Message[] = [];
+  attachments: MessageAttachment[] = [];
   outbox: OutboxEvent[] = [];
   failOutbox = false;
 
@@ -56,6 +59,7 @@ class FakePersistence implements MessagePersistencePort {
         actor: { ...item.actor },
       })),
       messages: this.messages.slice(),
+      attachments: this.attachments.slice(),
       outbox: this.outbox.slice(),
     };
     const tx: MessagePersistenceTransaction = {
@@ -82,6 +86,9 @@ class FakePersistence implements MessagePersistencePort {
         this.scopes.find((scope) => scope.scopeId === scopeId) ?? null,
       insertMessage: async (message) => {
         this.messages.push(message);
+      },
+      insertAttachments: async (attachments) => {
+        this.attachments.push(...attachments);
       },
       updateConversationSequence: async (input) => {
         this.conversation = {
@@ -124,6 +131,7 @@ class FakePersistence implements MessagePersistencePort {
       this.conversation = snapshot.conversation;
       this.participants = snapshot.participants;
       this.messages = snapshot.messages;
+      this.attachments = snapshot.attachments;
       this.outbox = snapshot.outbox;
       throw error;
     }
@@ -175,11 +183,22 @@ const authorization: MessageActorAuthorizationPort = {
   canActAs: async ({ principalUserId, actor }) =>
     actor.actorType === 'business' && allowedBusinessPrincipals.has(principalUserId),
 };
+const attachmentAuthorization: MessageAttachmentAuthorizationPort = {
+  canAttach: async ({ principalUserId, attachment }) =>
+    principalUserId === 'user-1' && attachment.assetId.startsWith('asset-owned-'),
+};
 let ids = 0;
-const service = new MessageService(persistence, authorization, {
-  nextMessageId: () => `00000000-0000-4000-8000-${String(++ids).padStart(12, '0')}`,
-  nextOutboxEventId: () => `10000000-0000-4000-8000-${String(ids).padStart(12, '0')}`,
-});
+let attachmentIds = 0;
+const service = new MessageService(
+  persistence,
+  authorization,
+  {
+    nextMessageId: () => `00000000-0000-4000-8000-${String(++ids).padStart(12, '0')}`,
+    nextOutboxEventId: () => `10000000-0000-4000-8000-${String(ids).padStart(12, '0')}`,
+    nextAttachmentId: () => `20000000-0000-4000-8000-${String(++attachmentIds).padStart(12, '0')}`,
+  },
+  attachmentAuthorization,
+);
 
 const first = await service.send({
   principalUserId: 'user-1',
@@ -270,8 +289,65 @@ await expectCode('SCOPE_CONVERSATION_MISMATCH', () =>
   }),
 );
 
+await expectCode('INVALID_MESSAGE', () =>
+  service.send({
+    principalUserId: 'user-1',
+    conversationId: 'conv-1',
+    clientMessageId: 'voice-without-asset',
+    sender: userActor,
+    type: 'voice',
+    createdAt: '2026-09-17T19:03:10.000Z',
+  }),
+);
+
+await expectCode('ATTACHMENT_NOT_AUTHORIZED', () =>
+  service.send({
+    principalUserId: 'user-1',
+    conversationId: 'conv-1',
+    scopeId: 'scope-1',
+    clientMessageId: 'voice-foreign-asset',
+    sender: userActor,
+    type: 'voice',
+    attachments: [
+      {
+        assetId: 'asset-foreign-voice-1',
+        kind: 'voice',
+        mimeType: 'audio/ogg',
+        durationMs: 4200,
+        sizeBytes: 32000,
+      },
+    ],
+    createdAt: '2026-09-17T19:03:20.000Z',
+  }),
+);
+assert(persistence.attachments.length === 0, 'Unauthorized asset must not create attachment rows.');
+
+const voice = await service.send({
+  principalUserId: 'user-1',
+  conversationId: 'conv-1',
+  scopeId: 'scope-1',
+  clientMessageId: 'voice-owned-asset',
+  sender: userActor,
+  type: 'voice',
+  attachments: [
+    {
+      assetId: 'asset-owned-voice-1',
+      kind: 'voice',
+      mimeType: 'audio/ogg',
+      durationMs: 4200,
+      sizeBytes: 32000,
+    },
+  ],
+  createdAt: '2026-09-17T19:03:30.000Z',
+});
+assert(voice.message.attachments?.length === 1, 'Authorized voice message must expose one canonical attachment.');
+assert(voice.message.attachments?.[0]?.assetId === 'asset-owned-voice-1', 'Voice message must reference provider-neutral asset ID.');
+assert(persistence.attachments.length === 1, 'Voice attachment must persist in same Message transaction.');
+assert(!JSON.stringify(voice.outboxEvent).includes('asset-owned-voice-1'), 'Outbox routing event must not copy attachment identifiers or payload.');
+
 const beforeFailure = {
   messageCount: persistence.messages.length,
+  attachmentCount: persistence.attachments.length,
   outboxCount: persistence.outbox.length,
   lastSequence: persistence.conversation.lastSequence,
 };
@@ -281,10 +357,17 @@ try {
     principalUserId: 'user-1',
     conversationId: 'conv-1',
     scopeId: 'scope-1',
-    clientMessageId: 'rollback-1',
+    clientMessageId: 'rollback-voice-1',
     sender: userActor,
-    type: 'text',
-    body: 'This must roll back.',
+    type: 'voice',
+    attachments: [
+      {
+        assetId: 'asset-owned-voice-rollback',
+        kind: 'voice',
+        mimeType: 'audio/ogg',
+        durationMs: 1000,
+      },
+    ],
     createdAt: '2026-09-17T19:04:00.000Z',
   });
   throw new Error('Expected outbox persistence failure.');
@@ -293,6 +376,7 @@ try {
 }
 persistence.failOutbox = false;
 assert(persistence.messages.length === beforeFailure.messageCount, 'Outbox failure must roll back message insert.');
+assert(persistence.attachments.length === beforeFailure.attachmentCount, 'Outbox failure must roll back attachment insert.');
 assert(persistence.outbox.length === beforeFailure.outboxCount, 'Outbox failure must leave outbox unchanged.');
 assert(persistence.conversation.lastSequence === beforeFailure.lastSequence, 'Outbox failure must roll back sequence advancement.');
 
@@ -303,8 +387,9 @@ const afterSequenceOne = await service.listAfter({
   afterSequence: 1,
   limit: 50,
 });
-assert(afterSequenceOne.length === 1, 'Cursor sync must return only messages after the requested sequence.');
+assert(afterSequenceOne.length === 2, 'Cursor sync must return messages after the requested sequence.');
 assert(afterSequenceOne[0]?.messageId === businessReply.message.messageId, 'Cursor sync must preserve conversation order.');
+assert(afterSequenceOne[1]?.messageId === voice.message.messageId, 'Cursor sync must include voice message in canonical order.');
 
 const outboxBeforeRead = persistence.outbox.length;
 const read = await service.advanceRead({
