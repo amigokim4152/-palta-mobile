@@ -3,6 +3,7 @@ import {
   canExposeChannelLink,
   canUseChannelLevel,
   entitlementRequiredForChannelLevel,
+  normalizeSafePublicChannelUrl,
   projectPublicBusinessChannelLinks,
   resolveContentDistributionMode,
   validateBusinessChannelConnection,
@@ -40,6 +41,19 @@ assert(
   entitlementRequiredForChannelLevel('connected_publish') ===
     'external_channel_connected_publish',
   'External publishing must require an explicit entitlement grant.',
+);
+assert(
+  normalizeSafePublicChannelUrl(' https://instagram.com/example ') ===
+    'https://instagram.com/example',
+  'Free public links should be normalized before projection.',
+);
+assert(
+  normalizeSafePublicChannelUrl('javascript:alert(1)') === null,
+  'Executable URL schemes must never project from an owner-controlled public link.',
+);
+assert(
+  normalizeSafePublicChannelUrl('data:text/html,hello') === null,
+  'Data URLs must never project from an owner-controlled public link.',
 );
 
 const personalInstagram: BusinessChannelConnection = {
@@ -83,14 +97,28 @@ const restrictedFacebook: BusinessChannelConnection = {
   publicUrl: 'https://facebook.com/example',
   capabilities: ['public_link'],
 };
+const unsafeWebsite: BusinessChannelConnection = {
+  businessId: 'biz-1',
+  provider: 'website',
+  level: 'link_only',
+  status: 'active',
+  publicUrl: 'javascript:alert(1)',
+  capabilities: ['public_link'],
+};
 const publicLinks = projectPublicBusinessChannelLinks([
   personalInstagram,
   publicTikTok,
   restrictedFacebook,
+  unsafeWebsite,
 ]);
 assert(publicLinks.length === 2, 'Only safe public external links should project to the free Business page.');
 assert(publicLinks.some((link) => link.label === 'TikTok'), 'TikTok should work as a first-class link-only channel.');
 assert(!publicLinks.some((link) => link.provider === 'facebook'), 'Restricted channels must not leak into the public profile.');
+assert(!publicLinks.some((link) => link.provider === 'website'), 'Unsafe owner-controlled URLs must not leak into the public profile.');
+assert(
+  validateBusinessChannelConnection(unsafeWebsite).includes('public_url_must_be_safe_http_url'),
+  'Unsafe public URLs should fail connection validation.',
+);
 
 const connectedGoogle: BusinessChannelConnection = {
   businessId: 'biz-1',
