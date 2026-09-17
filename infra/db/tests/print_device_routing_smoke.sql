@@ -1,7 +1,7 @@
 \set ON_ERROR_STOP on
 
--- Verifies printer configuration persistence, tenant isolation and the invariant
--- that a route cannot reference a printer owned by another business.
+-- Verifies printer configuration persistence, tenant isolation, fixed per-register
+-- routing, and the invariant that a route cannot reference another business's printer.
 do $$
 begin
   if to_regclass('public.printer_device') is null then
@@ -29,32 +29,64 @@ insert into public.printer_device (
   (
     'f1010101-1010-4010-8010-101010101010',
     '11111111-1111-4111-8111-111111111111',
-    'main', 'Receipt A', 'Epson', 'TM-T20IV-SP', repeat('a',64),
+    'main', 'Caja 1 receipt', 'Epson', 'TM-T20IV-SP', repeat('a',64),
     'network', 'epson_epos', 'compatible', 'epson-epos', 80, 'ready'
+  ),
+  (
+    'f1111111-1010-4010-8010-101010101010',
+    '11111111-1111-4111-8111-111111111111',
+    'main', 'Caja 2 receipt', 'Generic', 'ESC POS', repeat('d',64),
+    'usb', 'esc_pos', 'compatible', 'generic-esc-pos', 80, 'ready'
   ),
   (
     'f2020202-2020-4020-8020-202020202020',
     '22222222-2222-4222-8222-222222222222',
-    'main', 'Receipt B', 'Generic', 'ESC POS', repeat('b',64),
+    'main', 'Other business receipt', 'Generic', 'ESC POS', repeat('b',64),
     'usb', 'esc_pos', 'compatible', 'generic-esc-pos', 80, 'ready'
   );
 
 insert into public.printer_route (
-  id, business_id, outlet_key, role
-) values (
-  'f3030303-3030-4030-8030-303030303030',
-  '11111111-1111-4111-8111-111111111111',
-  'main', 'receipt'
-);
+  id, business_id, outlet_key, register_key, role, failover_mode
+) values
+  (
+    'f3030303-3030-4030-8030-303030303030',
+    '11111111-1111-4111-8111-111111111111',
+    'main', 'caja-1', 'receipt', 'disabled'
+  ),
+  (
+    'f3131313-3131-4131-8131-313131313131',
+    '11111111-1111-4111-8111-111111111111',
+    'main', 'caja-2', 'receipt', 'disabled'
+  );
 
 insert into public.printer_route_candidate (
   route_id, business_id, printer_id, priority, is_primary
-) values (
-  'f3030303-3030-4030-8030-303030303030',
-  '11111111-1111-4111-8111-111111111111',
-  'f1010101-1010-4010-8010-101010101010',
-  0, true
-);
+) values
+  (
+    'f3030303-3030-4030-8030-303030303030',
+    '11111111-1111-4111-8111-111111111111',
+    'f1010101-1010-4010-8010-101010101010',
+    0, true
+  ),
+  (
+    'f3131313-3131-4131-8131-313131313131',
+    '11111111-1111-4111-8111-111111111111',
+    'f1111111-1010-4010-8010-101010101010',
+    0, true
+  );
+
+-- Register routes default to fixed assignment; no silent fallback should be enabled.
+do $$
+declare enabled_fallbacks integer;
+begin
+  select count(*) into enabled_fallbacks
+    from public.printer_route
+   where business_id = '11111111-1111-4111-8111-111111111111'
+     and failover_mode <> 'disabled';
+  if enabled_fallbacks <> 0 then
+    raise exception 'register printer route unexpectedly enabled fallback';
+  end if;
+end $$;
 
 -- A route from business A must never be able to point at business B's printer.
 do $$
@@ -88,9 +120,9 @@ begin
   select count(*) into device_count from public.printer_device;
   select count(*) into route_count from public.printer_route;
   select count(*) into candidate_count from public.printer_route_candidate;
-  if device_count <> 1 then raise exception 'commerce API exposed % printer devices', device_count; end if;
-  if route_count <> 1 then raise exception 'commerce API exposed % printer routes', route_count; end if;
-  if candidate_count <> 1 then raise exception 'commerce API exposed % printer route candidates', candidate_count; end if;
+  if device_count <> 2 then raise exception 'commerce API exposed % printer devices', device_count; end if;
+  if route_count <> 2 then raise exception 'commerce API exposed % printer routes', route_count; end if;
+  if candidate_count <> 2 then raise exception 'commerce API exposed % printer route candidates', candidate_count; end if;
 
   begin
     insert into public.printer_device (
@@ -110,4 +142,4 @@ begin
 end $$;
 reset role;
 
-select 'PASS: real Postgres printer device/routing RLS smoke test' as result;
+select 'PASS: real Postgres fixed per-register printer routing RLS smoke test' as result;
