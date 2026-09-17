@@ -6,6 +6,7 @@ import {
   LOCAL_BUSINESS_SHORTCUTS,
   projectLocalBusinesses,
 } from '../../../../src/business/localBusinessDiscovery';
+import type { BusinessOperationalState } from '../../../../src/business/businessOperationalState';
 import {
   EmptyState,
   ErrorState,
@@ -27,10 +28,43 @@ function formatDistance(distanceM?: number): string | undefined {
   return `${(distanceM / 1000).toFixed(1).replace('.', ',')} km`;
 }
 
+function formatOperationalState(
+  state?: BusinessOperationalState,
+  nextOpenAt?: string,
+): string | undefined {
+  switch (state) {
+    case 'open_now':
+      return 'Abierto ahora';
+    case 'closed_now':
+      return nextOpenAt
+        ? `Cerrado · abre ${new Date(nextOpenAt).toLocaleString('es-CL', {
+            weekday: 'short',
+            hour: '2-digit',
+            minute: '2-digit',
+          })}`
+        : 'Cerrado ahora';
+    case 'closed_today':
+      return 'Cerrado hoy';
+    case 'temporarily_closed':
+      return 'Cerrado temporalmente';
+    case 'seasonal_closed':
+      return 'Cerrado por temporada';
+    case 'paused':
+      return 'Atención pausada';
+    case 'permanently_closed':
+      return 'Cerrado';
+    case 'unknown_or_stale':
+      return 'Horario por confirmar';
+    default:
+      return undefined;
+  }
+}
+
 export function LocalBusinessDiscoveryScreen() {
   const { state: neighborhood, dispatch } = useNeighborhoodState();
   const [draftQuery, setDraftQuery] = useState(neighborhood.query);
   const [verifiedOnly, setVerifiedOnly] = useState(false);
+  const [openNowOnly, setOpenNowOnly] = useState(false);
   const [locationBusy, setLocationBusy] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
 
@@ -62,13 +96,19 @@ export function LocalBusinessDiscoveryScreen() {
         ...(item.verification_status
           ? { verificationStatus: item.verification_status }
           : {}),
+        ...(item.operational_state
+          ? { operationalState: item.operational_state }
+          : {}),
+        ...(item.operational_confirmed_at
+          ? { operationalConfirmedAt: item.operational_confirmed_at }
+          : {}),
         location: item.location,
         source: item,
       })),
-      { verifiedOnly },
+      { verifiedOnly, openNowOnly },
     );
     return projected.map((item) => item.source);
-  }, [state.data, verifiedOnly]);
+  }, [state.data, verifiedOnly, openNowOnly]);
 
   const mapFeatures = useMemo<MapFeature[]>(
     () =>
@@ -222,15 +262,22 @@ export function LocalBusinessDiscoveryScreen() {
           snap={neighborhood.sheetSnap}
           onSnapChange={(snap) => dispatch({ type: 'set_sheet_snap', snap })}
         >
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, paddingBottom: 10 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, paddingBottom: 10, flexWrap: 'wrap' }}>
             <Text style={{ fontSize: 13, fontWeight: '800', opacity: 0.6 }}>
               {neighborhood.query ? 'RESULTADOS' : 'NEGOCIOS CERCA'}
             </Text>
-            <FilterChip
-              label="Verificados"
-              selected={verifiedOnly}
-              onPress={() => setVerifiedOnly((value) => !value)}
-            />
+            <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+              <FilterChip
+                label="Abiertos ahora"
+                selected={openNowOnly}
+                onPress={() => setOpenNowOnly((value) => !value)}
+              />
+              <FilterChip
+                label="Verificados"
+                selected={verifiedOnly}
+                onPress={() => setVerifiedOnly((value) => !value)}
+              />
+            </View>
           </View>
 
           {state.status === 'loading' && !state.data ? <LoadingState label="Buscando negocios…" /> : null}
@@ -240,7 +287,9 @@ export function LocalBusinessDiscoveryScreen() {
           {businesses.length === 0 && state.status !== 'loading' ? (
             <EmptyState
               title="No encontramos negocios para esta búsqueda"
-              body="Prueba con otra palabra o mueve el mapa. Las búsquedas sin resultado también nos ayudan a mejorar la clasificación local."
+              body={openNowOnly
+                ? 'No encontramos negocios confirmados como abiertos ahora en esta búsqueda. Quita el filtro para ver más opciones.'
+                : 'Prueba con otra palabra o mueve el mapa. Las búsquedas sin resultado también nos ayudan a mejorar la clasificación local.'}
             />
           ) : null}
 
@@ -249,6 +298,7 @@ export function LocalBusinessDiscoveryScreen() {
               key={item.entity_id}
               name={item.name}
               meta={[
+                formatOperationalState(item.operational_state, item.next_open_at),
                 item.category_key,
                 item.verification_status === 'verified' ? 'Verificado' : undefined,
               ].filter(Boolean).join(' · ')}
