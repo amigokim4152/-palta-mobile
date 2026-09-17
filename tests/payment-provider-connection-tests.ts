@@ -6,6 +6,7 @@ import type { PaymentProviderConnection } from '../src/payment/paymentProviderCo
 import type {
   PaymentProviderConnectionLookup,
   PaymentProviderConnectionRepository,
+  PaymentProviderConnectionWrite,
 } from '../src/persistence/paymentProviderConnectionRepository.js';
 import type {
   CreatePaymentInput,
@@ -46,6 +47,10 @@ class ConnectionRepository implements PaymentProviderConnectionRepository {
       lookup.providerKey !== this.value.providerKey
     ) return null;
     return this.value;
+  }
+  async saveConnection(write: PaymentProviderConnectionWrite) {
+    this.value = write.connection;
+    return write.connection;
   }
 }
 
