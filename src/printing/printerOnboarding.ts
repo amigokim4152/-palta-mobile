@@ -17,6 +17,7 @@ import {
 import {
   matchCompatibilityEntry,
   type PrinterCompatibilityManifest,
+  type PrinterCompatibilityPlatform,
 } from './printRouting.js';
 
 export type PrinterDiscoveryFingerprint = {
@@ -93,6 +94,8 @@ function assertSha256Hex(value: string, field: string): void {
 export function assessDiscoveredPrinter(input: {
   candidate: DiscoveredPrinterCandidate;
   manifest: PrinterCompatibilityManifest;
+  /** Host runtime carrying the printer adapter; required by platform-scoped certification entries. */
+  platform?: PrinterCompatibilityPlatform;
   runtime?: PrinterRuntimeContext;
   now?: string;
   maxManifestAgeDays?: number;
@@ -101,7 +104,11 @@ export function assessDiscoveredPrinter(input: {
   const manufacturer = input.candidate.fingerprint.manufacturer ?? '';
   const model = input.candidate.fingerprint.model ?? '';
   const matched = manufacturer && model
-    ? matchCompatibilityEntry(input.manifest, manufacturer, model)
+    ? matchCompatibilityEntry(input.manifest, manufacturer, model, {
+        platform: input.platform,
+        firmwareVersion: input.candidate.fingerprint.firmwareVersion,
+        transports: input.candidate.transports,
+      })
     : undefined;
 
   if (matched) {
