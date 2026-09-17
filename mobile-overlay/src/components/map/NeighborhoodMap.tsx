@@ -27,6 +27,13 @@ type Props = {
   ) => void;
 };
 
+const SELECTION_PADDING = {
+  top: 28,
+  right: 24,
+  bottom: 176,
+  left: 24,
+} as const;
+
 export function NeighborhoodMap({
   mapStyle,
   features,
@@ -85,13 +92,25 @@ export function NeighborhoodMap({
                   center: [Number(coordinates[0]), Number(coordinates[1])],
                   zoom,
                   duration: 220,
+                  easing: 'ease',
                 });
               });
             return;
           }
 
           const entityId = feature.properties?.entityId;
-          if (typeof entityId === 'string') {
+          if (
+            typeof entityId === 'string' &&
+            feature.geometry?.type === 'Point' &&
+            Array.isArray(feature.geometry.coordinates)
+          ) {
+            const coordinates = feature.geometry.coordinates;
+            cameraRef.current?.easeTo({
+              center: [Number(coordinates[0]), Number(coordinates[1])],
+              padding: SELECTION_PADDING,
+              duration: 180,
+              easing: 'ease',
+            });
             onSelectEntity?.(entityId);
           }
         }}
