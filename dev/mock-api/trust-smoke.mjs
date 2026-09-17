@@ -85,6 +85,43 @@ assert(
   'closing a correction signal must not mutate canonical contact data',
 );
 
+const ownerProfileBefore = await json('/v1/business/biz-farmacia-1/owner-profile');
+assert(ownerProfileBefore.response.ok, 'verified owner should read basic profile management projection');
+
+const ownerProfileUpdated = await json('/v1/business/biz-farmacia-1/owner-profile', {
+  method: 'PUT',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    description: 'Farmacia de barrio con información revisada por su propietario.',
+    phone: '+56220000001',
+    whatsapp: '+56911111111',
+  }),
+});
+assert(ownerProfileUpdated.response.ok, 'verified owner should update free basic profile data');
+assert(
+  ownerProfileUpdated.payload.contact?.whatsapp === '+56911111111',
+  'owner profile update should persist WhatsApp',
+);
+
+const publicAfterOwnerEdit = await json('/v1/business/biz-farmacia-1');
+assert(
+  publicAfterOwnerEdit.payload.description === 'Farmacia de barrio con información revisada por su propietario.',
+  'owner edit should update the same canonical Business description',
+);
+assert(
+  publicAfterOwnerEdit.payload.contact?.phone === '+56220000001' &&
+  publicAfterOwnerEdit.payload.contact?.whatsapp === '+56911111111',
+  'owner edit should update the same canonical Business contact projection',
+);
+assert(
+  publicAfterOwnerEdit.payload.name === before.payload.name &&
+  publicAfterOwnerEdit.payload.category_key === before.payload.category_key,
+  'basic profile edit must not mutate business identity or taxonomy',
+);
+
+const unclaimedProfile = await json('/v1/business/biz-taller-1/owner-profile');
+assert(unclaimedProfile.response.status === 403, 'unclaimed business must not expose owner profile mutation access');
+
 const unclaimed = await json('/v1/business/biz-taller-1/corrections', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
@@ -97,4 +134,4 @@ assert(unclaimed.payload.status === 'awaiting_trusted_review', 'unclaimed busine
 const forbiddenOwnerQueue = await json('/v1/business/biz-taller-1/owner-corrections');
 assert(forbiddenOwnerQueue.response.status === 403, 'unclaimed business must not expose an owner correction queue');
 
-console.log('PASS: Local Business reviews + fact correction HTTP smoke');
+console.log('PASS: Local Business reviews + corrections + owner profile HTTP smoke');
