@@ -64,12 +64,26 @@ export default function BusinessOwnerHomeScreen() {
   const loadOwnerHome = useCallback(async () => {
     if (!businessId) throw new Error('Business ID missing');
     if (mobileRuntime.status !== 'ready') throw new Error(mobileRuntime.message);
-    const [business, guidance, ownerCoupon] = await Promise.all([
-      mobileRuntime.client.getBusiness(businessId),
+
+    const business = await mobileRuntime.client.getBusiness(businessId);
+    const ownerManaged =
+      business.verification_status === 'claimed' ||
+      business.verification_status === 'verified';
+
+    const [guidance, ownerCoupon, corrections] = await Promise.all([
       mobileRuntime.client.getOwnerBusinessGuidance(businessId),
       mobileRuntime.client.getOwnerBusinessBasicCoupon(businessId),
+      ownerManaged
+        ? mobileRuntime.client.corrections.getOwnerBusinessCorrections(businessId)
+        : Promise.resolve({ business_id: businessId, items: [] }),
     ]);
-    return { business, guidance, coupon: ownerCoupon.coupon };
+
+    return {
+      business,
+      guidance,
+      coupon: ownerCoupon.coupon,
+      correctionCount: corrections.items.length,
+    };
   }, [businessId]);
 
   const { state, refresh } = useAsyncResource(loadOwnerHome);
@@ -93,6 +107,7 @@ export default function BusinessOwnerHomeScreen() {
   const business = state.data?.business;
   const guidance = state.data?.guidance;
   const ownerCoupon = state.data?.coupon;
+  const correctionCount = state.data?.correctionCount ?? 0;
   if (!business || !guidance) return null;
 
   const verificationText =
@@ -154,11 +169,11 @@ export default function BusinessOwnerHomeScreen() {
             router.push(`/business/manage/${encodeURIComponent(business.id)}/hours`)
           }
         />
-        {business.verification_status === 'claimed' || business.verification_status === 'verified' ? (
+        {correctionCount > 0 ? (
           <OwnerCard
             title="Información por revisar"
-            body="Mira avisos de personas que encontraron un horario, dirección, contacto u otro dato que podría estar incorrecto. Ningún aviso cambia tu perfil automáticamente."
-            badge="SIN COSTO"
+            body={`${correctionCount} ${correctionCount === 1 ? 'aviso pendiente' : 'avisos pendientes'} sobre datos que podrían estar incorrectos. Ningún aviso cambia tu perfil automáticamente.`}
+            badge="REVISAR"
             onPress={() =>
               router.push(`/business/manage/${encodeURIComponent(business.id)}/corrections`)
             }
