@@ -27,6 +27,9 @@ const SANTIAGO_EXPLORATION_ORIGIN = {
   longitude: -70.6693,
 } as const;
 
+const FILTER_OPEN_NOW = 'local_business:open_now';
+const FILTER_VERIFIED = 'local_business:verified';
+
 function formatDistance(distanceM?: number): string | undefined {
   if (distanceM === undefined) return undefined;
   if (distanceM < 1000) return `${Math.round(distanceM)} m`;
@@ -68,11 +71,11 @@ function formatOperationalState(
 export function LocalBusinessDiscoveryScreen() {
   const { state: neighborhood, dispatch } = useNeighborhoodState();
   const [draftQuery, setDraftQuery] = useState(neighborhood.query);
-  const [verifiedOnly, setVerifiedOnly] = useState(false);
-  const [openNowOnly, setOpenNowOnly] = useState(false);
   const [locationBusy, setLocationBusy] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
 
+  const verifiedOnly = neighborhood.activeFilters.includes(FILTER_VERIFIED);
+  const openNowOnly = neighborhood.activeFilters.includes(FILTER_OPEN_NOW);
   const searchPoint = neighborhood.searchOrigin ?? neighborhood.effectiveLocation;
 
   const loadResults = useCallback(async () => {
@@ -107,7 +110,7 @@ export function LocalBusinessDiscoveryScreen() {
         ...(item.operational_confirmed_at
           ? { operationalConfirmedAt: item.operational_confirmed_at }
           : {}),
-        location: item.location,
+        ...(item.location ? { location: item.location } : {}),
         source: item,
       })),
       { verifiedOnly, openNowOnly },
@@ -115,21 +118,45 @@ export function LocalBusinessDiscoveryScreen() {
     return projected.map((item) => item.source);
   }, [state.data, verifiedOnly, openNowOnly]);
 
-  const mapFeatures = useMemo<MapFeature[]>(
-    () =>
-      businesses.map((item) => ({
-        id: item.entity_id,
-        entityType: 'business',
-        coordinate: {
-          latitude: item.location.lat,
-          longitude: item.location.lng,
-        },
-        title: item.name,
-        ...(item.category_key ? { categoryKey: item.category_key } : {}),
-        selected: item.entity_id === neighborhood.selectedEntityId,
-      })),
+  const selectedBusiness = useMemo(
+    () => businesses.find((item) => item.entity_id === neighborhood.selectedEntityId),
     [businesses, neighborhood.selectedEntityId],
   );
+
+  const mapFeatures = useMemo<MapFeature[]>(
+    () =>
+      businesses
+        .filter((item) => item.location !== undefined)
+        .map((item) => ({
+          id: item.entity_id,
+          entityType: 'business',
+          coordinate: {
+            latitude: item.location!.lat,
+            longitude: item.location!.lng,
+          },
+          title: item.name,
+          ...(item.category_key ? { categoryKey: item.category_key } : {}),
+          selected: item.entity_id === neighborhood.selectedEntityId,
+        })),
+    [businesses, neighborhood.selectedEntityId],
+  );
+
+  function setFilter(filter: string, enabled: boolean) {
+    const next = new Set(neighborhood.activeFilters);
+    if (enabled) next.add(filter);
+    else next.delete(filter);
+    dispatch({ type: 'set_filters', filters: [...next] });
+  }
+
+  function selectBusinessFromMap(entityId: string) {
+    dispatch({ type: 'select_entity', entityId });
+    dispatch({ type: 'set_sheet_snap', snap: 'peek' });
+  }
+
+  function openBusiness(entityId: string) {
+    dispatch({ type: 'select_entity', entityId });
+    router.push(`/business/${encodeURIComponent(entityId)}`);
+  }
 
   async function useMyLocation() {
     setLocationBusy(true);
@@ -277,8 +304,9 @@ export function LocalBusinessDiscoveryScreen() {
             <NeighborhoodMap
               mapStyle={mobileRuntime.mapStyleUrl}
               features={mapFeatures}
-              initialCenter={neighborhood.effectiveLocation}
-              onSelectEntity={(entityId) => dispatch({ type: 'select_entity', entityId })}
+              initialCenter={neighborhood.camera?.center ?? neighborhood.effectiveLocation}
+              initialZoom={neighborhood.camera?.zoom ?? 14}
+              onSelectEntity={selectBusinessFromMap}
               onViewportChanged={(center, zoom, userInteraction) =>
                 dispatch({ type: 'set_viewport_center', center, zoom, userInteraction })
               }
@@ -318,6 +346,32 @@ export function LocalBusinessDiscoveryScreen() {
           snap={neighborhood.sheetSnap}
           onSnapChange={(snap) => dispatch({ type: 'set_sheet_snap', snap })}
         >
+          {selectedBusiness ? (
+            <View style={{ marginBottom: 12, borderWidth: 1, borderRadius: 14, padding: 12, gap: 8 }}>
+              <Text style={{ fontSize: 12, fontWeight: '800', opacity: 0.58 }}>
+                SELECCIONADO EN EL MAPA
+              </Text>
+              <LocalResultCard
+                name={selectedBusiness.name}
+                meta={[
+                  formatOperationalState(selectedBusiness.operational_state, selectedBusiness.next_open_at),
+                  selectedBusiness.category_key,
+                  selectedBusiness.verification_status === 'verified' ? 'Verificado' : undefined,
+                ].filter(Boolean).join(' · ')}
+                distance={selectedBusiness.location
+                  ? formatDistance(selectedBusiness.distance_m)
+                  : 'Zona de atención'}
+                onPress={() => openBusiness(selectedBusiness.entity_id)}
+              />
+              <Pressable
+                onPress={() => dispatch({ type: 'select_entity', entityId: null })}
+                style={{ alignSelf: 'flex-start', paddingVertical: 6 }}
+              >
+                <Text style={{ fontWeight: '700', opacity: 0.64 }}>Cerrar selección</Text>
+              </Pressable>
+            </View>
+          ) : null}
+
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, paddingBottom: 10, flexWrap: 'wrap' }}>
             <Text style={{ fontSize: 13, fontWeight: '800', opacity: 0.6 }}>
               {neighborhood.query ? 'RESULTADOS' : 'NEGOCIOS CERCA'}
@@ -326,12 +380,12 @@ export function LocalBusinessDiscoveryScreen() {
               <FilterChip
                 label="Abiertos ahora"
                 selected={openNowOnly}
-                onPress={() => setOpenNowOnly((value) => !value)}
+                onPress={() => setFilter(FILTER_OPEN_NOW, !openNowOnly)}
               />
               <FilterChip
                 label="Verificados"
                 selected={verifiedOnly}
-                onPress={() => setVerifiedOnly((value) => !value)}
+                onPress={() => setFilter(FILTER_VERIFIED, !verifiedOnly)}
               />
             </View>
           </View>
@@ -349,22 +403,21 @@ export function LocalBusinessDiscoveryScreen() {
             />
           ) : null}
 
-          {businesses.map((item) => (
-            <LocalResultCard
-              key={item.entity_id}
-              name={item.name}
-              meta={[
-                formatOperationalState(item.operational_state, item.next_open_at),
-                item.category_key,
-                item.verification_status === 'verified' ? 'Verificado' : undefined,
-              ].filter(Boolean).join(' · ')}
-              distance={formatDistance(item.distance_m)}
-              onPress={() => {
-                dispatch({ type: 'select_entity', entityId: item.entity_id });
-                router.push(`/business/${encodeURIComponent(item.entity_id)}`);
-              }}
-            />
-          ))}
+          {businesses
+            .filter((item) => item.entity_id !== selectedBusiness?.entity_id)
+            .map((item) => (
+              <LocalResultCard
+                key={item.entity_id}
+                name={item.name}
+                meta={[
+                  formatOperationalState(item.operational_state, item.next_open_at),
+                  item.category_key,
+                  item.verification_status === 'verified' ? 'Verificado' : undefined,
+                ].filter(Boolean).join(' · ')}
+                distance={item.location ? formatDistance(item.distance_m) : 'Zona de atención'}
+                onPress={() => openBusiness(item.entity_id)}
+              />
+            ))}
 
           {state.status === 'error' && state.data ? (
             <ErrorState message={state.message} onRetry={() => void refresh()} />
