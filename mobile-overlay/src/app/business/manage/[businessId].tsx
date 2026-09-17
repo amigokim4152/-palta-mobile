@@ -58,7 +58,10 @@ export default function BusinessOwnerHomeScreen() {
       title={business.name}
       subtitle="Mi negocio"
       action={
-        <Pressable onPress={() => router.push(`/business/${encodeURIComponent(business.id)}`)} style={{ paddingVertical: 8 }}>
+        <Pressable
+          onPress={() => router.push(`/business/${encodeURIComponent(business.id)}`)}
+          style={{ paddingVertical: 8 }}
+        >
           <Text style={{ fontWeight: '800' }}>Ver perfil</Text>
         </Pressable>
       }
@@ -67,24 +70,32 @@ export default function BusinessOwnerHomeScreen() {
         <OwnerCard title="Estado" body={verificationText} />
 
         <SectionHeading
-          title="Tu perfil público"
-          subtitle="Mantén primero correcta la información que el vecino necesita para decidir."
+          title="Tu base gratuita"
+          subtitle="Primero mantén útil y correcta la información que el vecino necesita."
         />
         <OwnerCard
-          title="Información básica"
-          body={[business.category_key, business.opening_status, business.contact?.whatsapp ? 'WhatsApp' : undefined, business.contact?.phone ? 'Teléfono' : undefined]
+          title="Perfil público"
+          body={[
+            business.category_key,
+            business.opening_status,
+            business.contact?.whatsapp ? 'WhatsApp' : undefined,
+            business.contact?.phone ? 'Teléfono' : undefined,
+          ]
             .filter(Boolean)
             .join(' · ') || 'Completa categoría, horario y forma de contacto.'}
         />
+        <Text style={{ opacity: 0.66, lineHeight: 20 }}>
+          Tu presencia básica, la información pública y el descubrimiento orgánico no dependen de contratar un módulo adicional.
+        </Text>
 
         <SectionHeading
           title="Lo que requiere atención"
-          subtitle="Palta mostrará aquí sólo tareas reales, no un panel lleno por llenar."
+          subtitle="Palta muestra tareas reales, no un panel lleno por llenar."
         />
         {business.verification_status !== 'verified' ? (
           <OwnerCard
             title="Completa la verificación"
-            body="Los precios, promociones y otras acciones controladas permanecen restringidas hasta confirmar la relación con el negocio."
+            body="Confirma tu relación con el negocio para poder controlar información sensible y activar funciones que requieren autorización del propietario."
           />
         ) : (
           <OwnerCard
@@ -94,9 +105,16 @@ export default function BusinessOwnerHomeScreen() {
         )}
 
         <SectionHeading
-          title="Después"
-          subtitle="Servicios, consultas, reservas, cotizaciones, promociones y visibilidad aparecerán sólo cuando estén habilitados para este negocio."
+          title="Haz más fácil tu trabajo"
+          subtitle="Las herramientas adicionales aparecen cuando sirven para una necesidad real de tu negocio."
         />
+        <OwnerCard
+          title="Capacidades opcionales"
+          body="Cotizaciones, reservas, pedidos, promociones, POS, inventario, CRM, equipo y automatización se conectan al mismo negocio. No necesitas volver a registrarte ni mantener otro perfil."
+        />
+        <Text style={{ opacity: 0.6, lineHeight: 20 }}>
+          Que una función exista no define por sí solo su precio. Planes, límites y cobros deben venir de la política comercial vigente de Palta.
+        </Text>
       </View>
     </ScreenFrame>
   );
