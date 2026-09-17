@@ -7,10 +7,27 @@ import type {
   ScopeResourceRelation,
 } from './contracts.js';
 import type { ScopeResourceAuthorizationPort } from './scopeAuthorizationPort.js';
-import type { ConversationScopeDirectoryPort } from './scopeDirectoryPort.js';
+import type {
+  ConversationScopeDirectoryPort,
+  EnsureConversationScopeResult,
+} from './scopeDirectoryPort.js';
 
 export interface ConversationScopeRuntime {
   nextScopeId(): string;
+}
+
+export interface RelatedScopeResourceInput {
+  relation: ScopeResourceRelation;
+  sourceCore: string;
+  resource: ResourceRef;
+  authorizationEvidenceRef: string;
+  accessMode: ScopeAccessMode;
+  snapshotVersion?: string;
+}
+
+export interface EnsureScopeWithResourcesResult
+  extends EnsureConversationScopeResult {
+  linkedResources: ConversationScopeResourceRef[];
 }
 
 export class ConversationScopeServiceError extends Error {
@@ -79,7 +96,7 @@ export class ConversationScopeService {
     authorizationEvidenceRef: string;
     accessMode: ScopeAccessMode;
     createdAt: string;
-  }) {
+  }): Promise<EnsureConversationScopeResult> {
     required(input.scopeType, 'scopeType');
     await this.assertResourceAuthorized({
       conversationId: input.conversationId,
@@ -101,6 +118,84 @@ export class ConversationScopeService {
       accessMode: input.accessMode,
       createdAt: input.createdAt,
     });
+  }
+
+  /**
+   * Internal domain-integration convenience flow for POS/Commerce/Delivery etc.
+   * Each resource link remains independently authorized and idempotent. This is
+   * intentionally not one cross-core database transaction: if a later link fails,
+   * retrying the same command reuses the Scope and already attached resources.
+   */
+  async ensureWithAuthorizedResources(input: {
+    conversationId: string;
+    scopeType: string;
+    label?: string;
+    requestedBy: ActorRef;
+    sourceCore: string;
+    primaryResource: ResourceRef;
+    authorizationEvidenceRef: string;
+    accessMode: ScopeAccessMode;
+    createdAt: string;
+    relatedResources?: RelatedScopeResourceInput[];
+  }): Promise<EnsureScopeWithResourcesResult> {
+    const relatedResources = input.relatedResources ?? [];
+    if (relatedResources.length > 20) {
+      throw new ConversationScopeServiceError(
+        'INVALID_SCOPE_REQUEST',
+        'A Scope integration command may attach at most 20 related resources.',
+      );
+    }
+
+    for (const related of relatedResources) {
+      if (related.relation === 'primary') {
+        throw new ConversationScopeServiceError(
+          'INVALID_SCOPE_REQUEST',
+          'Related resources cannot use the primary relation.',
+        );
+      }
+    }
+
+    const ensured = await this.ensureForPrimaryResource({
+      conversationId: input.conversationId,
+      scopeType: input.scopeType,
+      ...(input.label !== undefined ? { label: input.label } : {}),
+      requestedBy: input.requestedBy,
+      sourceCore: input.sourceCore,
+      primaryResource: input.primaryResource,
+      authorizationEvidenceRef: input.authorizationEvidenceRef,
+      accessMode: input.accessMode,
+      createdAt: input.createdAt,
+    });
+
+    const linkedResources: ConversationScopeResourceRef[] = [];
+    const seen = new Set<string>();
+    for (const related of relatedResources) {
+      const dedupeKey = [
+        related.relation,
+        related.resource.resourceType,
+        related.resource.resourceId,
+      ].join('\u0000');
+      if (seen.has(dedupeKey)) continue;
+      seen.add(dedupeKey);
+
+      linkedResources.push(
+        await this.attachAuthorizedResource({
+          conversationId: input.conversationId,
+          scopeId: ensured.scope.scopeId,
+          requestedBy: input.requestedBy,
+          sourceCore: related.sourceCore,
+          relation: related.relation,
+          resource: related.resource,
+          authorizationEvidenceRef: related.authorizationEvidenceRef,
+          accessMode: related.accessMode,
+          ...(related.snapshotVersion !== undefined
+            ? { snapshotVersion: related.snapshotVersion }
+            : {}),
+        }),
+      );
+    }
+
+    return { ...ensured, linkedResources };
   }
 
   async attachAuthorizedResource(input: {
