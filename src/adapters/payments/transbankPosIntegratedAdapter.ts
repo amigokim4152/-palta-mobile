@@ -1,5 +1,5 @@
 import { PaymentProviderOperationError } from '../../payment/paymentIncident.js';
-import type { PaymentStatus } from '../../payment/paymentModel.js';
+import type { CardFundingType, PaymentStatus } from '../../payment/paymentModel.js';
 import type {
   CreatePaymentInput,
   CreatePaymentResult,
@@ -33,6 +33,14 @@ export type TransbankTransportResult = {
   responseCode?: string;
   /** Provider-confirmed amount actually processed when transport exposes it. */
   amountPesos?: number;
+  /** Raw POS Integrado card type. Official classic values include CR and DB. */
+  cardType?: string;
+  /** A newer transport may already expose a canonical classification, including prepaid. */
+  cardFundingType?: CardFundingType;
+  cardBrand?: string;
+  last4Digits?: string;
+  sharesNumber?: number;
+  sharesAmountPesos?: number;
 };
 
 export interface TransbankPosTransport {
@@ -92,12 +100,31 @@ export function mapTransbankTransportStatus(
   }
 }
 
+export function mapTransbankCardFundingType(cardType: string | undefined): CardFundingType | undefined {
+  if (cardType === undefined) return undefined;
+  switch (cardType.trim().toUpperCase()) {
+    case 'CR':
+      return 'credit';
+    case 'DB':
+      return 'debit';
+    default:
+      return 'unknown';
+  }
+}
+
 function assertClp(amountMinor: number, currency: string): number {
   if (currency !== 'CLP') throw new Error('Transbank POS adapter currently accepts CLP only.');
   if (!Number.isSafeInteger(amountMinor) || amountMinor <= 0) {
     throw new Error('Transbank POS amount must be a positive integer CLP amount.');
   }
   return amountMinor;
+}
+
+function positiveInteger(value: number, field: string): number {
+  if (!Number.isSafeInteger(value) || value <= 0) {
+    throw new Error(`${field} must be a positive safe integer.`);
+  }
+  return value;
 }
 
 function ticketNumber(canonicalPaymentId: string): string {
@@ -117,6 +144,22 @@ function providerResult(result: TransbankTransportResult): ProviderPaymentStatus
   if (result.paymentId !== undefined) mapped.providerPaymentId = result.paymentId;
   if (result.authorizationCode !== undefined) mapped.authorizationCode = result.authorizationCode;
   if (result.responseCode !== undefined) mapped.providerStatusDetail = result.responseCode;
+  if (result.cardBrand !== undefined) mapped.cardBrand = result.cardBrand;
+  if (result.last4Digits !== undefined) mapped.cardLast4 = result.last4Digits;
+  const fundingType = result.cardFundingType ?? mapTransbankCardFundingType(result.cardType);
+  if (fundingType !== undefined) mapped.cardFundingType = fundingType;
+  if (result.sharesNumber !== undefined) {
+    mapped.installmentCount = positiveInteger(result.sharesNumber, 'Transbank sharesNumber');
+  }
+  if (result.sharesAmountPesos !== undefined) {
+    if (mapped.installmentCount === undefined) {
+      throw new Error('Transbank sharesAmountPesos requires sharesNumber evidence.');
+    }
+    mapped.installmentAmount = {
+      currency: 'CLP',
+      amountMinor: assertClp(result.sharesAmountPesos, 'CLP'),
+    };
+  }
   if (status === 'paid' && result.amountPesos !== undefined) {
     mapped.processedAmount = {
       currency: 'CLP',
