@@ -1,12 +1,18 @@
 import {
   createFiscalRequest,
   type FiscalLine,
+  type FiscalReceiver,
 } from '../src/fiscal/chile/fiscalModel.js';
 import { prepareExternalFiscalIssue } from '../src/fiscal/chile/externalFiscalPreparation.js';
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
 }
+
+const receiver: FiscalReceiver = {
+  rut: '66666666-6',
+  name: 'Consumidor final',
+};
 
 const explicitLine: FiscalLine = {
   id: 'line-1',
@@ -38,10 +44,7 @@ const request = createFiscalRequest({
     vatAmountMinor: 7185,
     totalAmountMinor: 45000,
   },
-  receiver: {
-    rut: '66666666-6',
-    name: 'Consumidor final',
-  },
+  receiver,
   requestedAt: '2026-09-17T18:20:00.000Z',
 });
 
@@ -70,7 +73,7 @@ const legacyRequest = createFiscalRequest({
     },
   ],
   totals: request.totals,
-  receiver: request.receiver,
+  receiver,
   requestedAt: request.requestedAt,
 });
 let legacyBlocked = false;
@@ -101,13 +104,9 @@ try {
 assert(inconsistentBlocked, 'Line tax decomposition must exactly match canonical FiscalRequest totals before provider HTTP.');
 
 const { unitCode: _unitCode, ...withoutUnitCode } = explicitLine;
-const noUnitRequest = {
-  ...request,
-  lines: [withoutUnitCode],
-};
 let noUnitBlocked = false;
 try {
-  prepareExternalFiscalIssue(noUnitRequest);
+  prepareExternalFiscalIssue({ ...request, lines: [withoutUnitCode] });
 } catch {
   noUnitBlocked = true;
 }
@@ -143,7 +142,7 @@ const exemptRequest = createFiscalRequest({
     vatAmountMinor: 0,
     totalAmountMinor: 10000,
   },
-  receiver: request.receiver,
+  receiver,
   requestedAt: request.requestedAt,
 });
 const preparedExempt = prepareExternalFiscalIssue(exemptRequest);
