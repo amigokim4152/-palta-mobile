@@ -40,15 +40,15 @@ const bundle = buildPublicBusinessStaticBundle([
   },
 ]);
 
-assert(bundle.pageCount === 2, 'Static bundle may render direct noindex pages as well as indexable public pages.');
+assert(bundle.pageCount === 1, 'Static publication should emit only truly public/indexable Business pages.');
 assert(bundle.sitemapCount === 1, 'Only indexable canonical Business pages should enter the sitemap.');
 assert(
   Boolean(bundle.files['negocios/cafe-barrio/index.html']),
-  'Static bundle should map canonical Business paths to crawlable index.html files.',
+  'Static bundle should map canonical public Business paths to crawlable index.html files.',
 );
 assert(
-  Boolean(bundle.files['negocios/taller-en-preparacion/index.html']),
-  'A direct draft page may exist with noindex without leaking into the sitemap.',
+  bundle.files['negocios/taller-en-preparacion/index.html'] === undefined,
+  'Draft/noindex Business profiles must not be emitted as publicly reachable static files.',
 );
 assert(
   bundle.files['sitemap-businesses.xml']?.includes('/negocios/cafe-barrio'),
