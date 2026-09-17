@@ -1,4 +1,8 @@
 import type { CommerceOutboxEvent } from '../src/commerce/outbox.js';
+import type {
+  PaymentPortResolutionInput,
+  PaymentPortResolver,
+} from '../src/payment/paymentOutboxHandler.js';
 import type { PaymentIntent } from '../src/payment/paymentModel.js';
 import type {
   PaymentAtomicCommit,
@@ -39,6 +43,8 @@ const intent: PaymentIntent = {
   status: 'created',
   revision: 0,
   providerKey: 'provider-runtime-test',
+  providerConnectionId: 'connection-business-a',
+  terminalId: 'terminal-business-a',
   settlementStatus: 'not_applicable',
   idempotencyKey: 'runtime-payment-1',
   createdAt: '2026-09-17T17:20:00.000Z',
@@ -79,7 +85,7 @@ class RuntimeOutboxRepository implements OutboxRepository {
 }
 
 class RuntimePaymentRepository implements PaymentRepository {
-  current: PaymentIntent = intent;
+  current: PaymentIntent = { ...intent };
   commits: PaymentAtomicCommit[] = [];
   async findIntent(lookup: PaymentIntentLookup) {
     return lookup.paymentIntentId === this.current.id && lookup.businessId === this.current.merchantId
@@ -114,15 +120,25 @@ class RuntimePaymentPort implements PaymentPort {
   }
 }
 
+class TrackingResolver implements PaymentPortResolver {
+  lastInput?: PaymentPortResolutionInput;
+  constructor(private readonly port: PaymentPort) {}
+  async resolve(input: PaymentPortResolutionInput): Promise<PaymentPort | null> {
+    this.lastInput = input;
+    return this.port;
+  }
+}
+
 const outbox = new RuntimeOutboxRepository();
 const payments = new RuntimePaymentRepository();
 const port = new RuntimePaymentPort();
+const resolver = new TrackingResolver(port);
 let id = 0;
 const result = await processPaymentQueueMessage({
   rawMessage: { outboxEventId: event.id },
   outboxRepository: outbox,
   paymentRepository: payments,
-  paymentPorts: [port],
+  paymentPortResolver: resolver,
   ids: { paymentEventId: () => `99999999-9999-4999-8999-${String(++id).padStart(12, '0')}` },
   workerId: 'payment-worker-test-1',
   now: () => '2026-09-17T17:21:00.000Z',
@@ -134,6 +150,12 @@ assert(port.createCalls === 1, 'Payment Worker should invoke provider create exa
 assert(payments.current.status === 'paid', 'Payment Worker must persist canonical paid state before delivery.');
 assert(outbox.claimRequest?.leaseExpiresAt === '2026-09-17T17:21:30.000Z', 'Payment Worker must calculate bounded DB lease expiry.');
 assert(outbox.deliveredRequest?.workerId === 'payment-worker-test-1', 'Completion must be persisted by the same lease owner.');
+assert(
+  resolver.lastInput?.businessId === intent.merchantId &&
+    resolver.lastInput?.providerConnectionId === 'connection-business-a' &&
+    resolver.lastInput?.terminalId === 'terminal-business-a',
+  'Payment Worker must resolve provider credentials in the exact business/connection/terminal context.',
+);
 
 const duplicateOutbox = new RuntimeOutboxRepository();
 duplicateOutbox.claimValue = null;
@@ -142,7 +164,7 @@ const duplicateResult = await processPaymentQueueMessage({
   rawMessage: { outboxEventId: event.id },
   outboxRepository: duplicateOutbox,
   paymentRepository: new RuntimePaymentRepository(),
-  paymentPorts: [duplicatePort],
+  paymentPortResolver: new TrackingResolver(duplicatePort),
   ids: { paymentEventId: () => 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' },
   workerId: 'payment-worker-test-2',
   now: () => '2026-09-17T17:21:05.000Z',
@@ -152,11 +174,12 @@ assert(duplicatePort.createCalls === 0, 'Duplicate Queue delivery must never rea
 
 let invalidLeaseRejected = false;
 try {
+  const invalidPort = new RuntimePaymentPort();
   await processPaymentQueueMessage({
     rawMessage: { outboxEventId: event.id },
     outboxRepository: new RuntimeOutboxRepository(),
     paymentRepository: new RuntimePaymentRepository(),
-    paymentPorts: [new RuntimePaymentPort()],
+    paymentPortResolver: new TrackingResolver(invalidPort),
     ids: { paymentEventId: () => 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb' },
     workerId: 'payment-worker-test-3',
     now: () => '2026-09-17T17:21:10.000Z',
