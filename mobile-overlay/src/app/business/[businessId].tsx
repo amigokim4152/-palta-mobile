@@ -5,6 +5,7 @@ import {
   composePublicBusinessCapabilities,
   type BusinessCapability,
 } from '../../../../src/business/businessActionPolicy';
+import type { BusinessApiDetail } from '../../../../src/api/paltaApiClient';
 import { enqueueMutation } from '../../../../src/mobile/offlineMutationQueue';
 import {
   createClientMutationId,
@@ -68,6 +69,34 @@ function ExternalChannels({
       </View>
     </View>
   );
+}
+
+function buildWhatsappUrl(business: BusinessApiDetail): string | undefined {
+  const publicLink = business.channel_links?.find(
+    (link) => link.provider === 'whatsapp',
+  )?.url;
+  if (publicLink) return publicLink;
+
+  const raw = business.contact?.whatsapp?.trim();
+  if (!raw) return undefined;
+  if (/^https?:\/\//i.test(raw)) return raw;
+
+  const digits = raw.replace(/\D/g, '');
+  if (!digits) return undefined;
+
+  const normalized = digits.startsWith('56')
+    ? digits
+    : digits.length === 9 && digits.startsWith('9')
+      ? `56${digits}`
+      : digits;
+  return `https://wa.me/${normalized}`;
+}
+
+function buildPhoneUrl(business: BusinessApiDetail): string | undefined {
+  const raw = business.contact?.phone?.trim();
+  if (!raw) return undefined;
+  const dialable = raw.replace(/[^+\d]/g, '');
+  return dialable ? `tel:${dialable}` : undefined;
 }
 
 export default function BusinessDetailScreen() {
@@ -173,6 +202,8 @@ export default function BusinessDetailScreen() {
   }
 
   function handleAction(capability: BusinessCapability) {
+    const business = state.data?.business;
+
     switch (capability) {
       case 'quote':
         void requestQuote();
@@ -188,14 +219,38 @@ export default function BusinessDetailScreen() {
             : 'No hay un cupón disponible para ti en este momento.',
         );
         return;
-      case 'whatsapp':
-      case 'call':
+      case 'whatsapp': {
+        const url = business ? buildWhatsappUrl(business) : undefined;
+        if (!url) {
+          setSubmitMessage('Este negocio todavía no publicó un WhatsApp válido.');
+          return;
+        }
+        void Linking.openURL(url).catch(() => {
+          setSubmitMessage('No pudimos abrir WhatsApp en este dispositivo.');
+        });
+        return;
+      }
+      case 'call': {
+        const url = business ? buildPhoneUrl(business) : undefined;
+        if (!url) {
+          setSubmitMessage('Este negocio todavía no publicó un teléfono válido.');
+          return;
+        }
+        void Linking.openURL(url).catch(() => {
+          setSubmitMessage('No pudimos abrir el teléfono en este dispositivo.');
+        });
+        return;
+      }
+      case 'inquiry':
+        setSubmitMessage(
+          'La consulta por Palta usará el Messaging Core compartido. El acceso se habilitará sólo cuando ese transporte canónico esté conectado; no crearemos un chat paralelo.',
+        );
+        return;
       case 'reservation':
       case 'queue':
-      case 'inquiry':
       case 'pricing':
         setSubmitMessage(
-          `La acción "${capability}" está disponible en el perfil, pero su adapter concreto aún no está conectado en esta compilación.`,
+          `La acción "${capability}" requiere su módulo operativo compartido antes de habilitarse.`,
         );
         return;
     }
