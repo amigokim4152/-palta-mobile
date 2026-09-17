@@ -12,11 +12,12 @@ import type {
 } from '../src/printing/printReconciliation.js';
 import {
   PrintJobConcurrencyError,
-  type PrintJobRepository,
   type PrintJobWrite,
+  type RecoverablePrintJobRepository,
 } from '../src/persistence/printJobRepository.js';
 import {
   processPrintJob,
+  processRecoverablePrintJobs,
   type PrintPortResolver,
 } from '../src/runtime/printWorker.js';
 
@@ -40,7 +41,17 @@ async function assertRejects(fn: () => Promise<unknown>, message: string): Promi
   if (!threw) throw new Error(message);
 }
 
-class MemoryPrintJobRepository implements PrintJobRepository {
+function isRecoverable(job: PrintJob): boolean {
+  return (
+    job.status === 'queued' ||
+    job.status === 'dispatching' ||
+    job.status === 'submitted' ||
+    job.status === 'outcome_unknown' ||
+    (job.status === 'failed' && job.retryAuthorized)
+  );
+}
+
+class MemoryPrintJobRepository implements RecoverablePrintJobRepository {
   current: PrintJob | null;
   conflictNextSave = false;
 
@@ -60,6 +71,13 @@ class MemoryPrintJobRepository implements PrintJobRepository {
     return this.current.businessId === input.businessId && this.current.idempotencyKey === input.idempotencyKey
       ? this.current
       : null;
+  }
+
+  async listRecoverable(input: { businessId: string; limit: number }): Promise<PrintJob[]> {
+    if (!this.current || this.current.businessId !== input.businessId || !isRecoverable(this.current)) {
+      return [];
+    }
+    return input.limit > 0 ? [this.current] : [];
   }
 
   async saveJob(write: PrintJobWrite): Promise<PrintJob> {
@@ -299,6 +317,39 @@ const now = () => '2026-09-17T21:00:01Z';
     'Worker must reject silent physical printer substitution.',
   );
   assertEqual(printCalls, 0, 'Rejected printer substitution must not produce physical output.');
+}
+
+// Startup/reconnect batch scans only recoverable durable work and reuses processPrintJob safety.
+{
+  const repository = new MemoryPrintJobRepository(makeJob('job-6'));
+  let printCalls = 0;
+  const adapter = makeAdapter({
+    onCall: () => {
+      printCalls += 1;
+    },
+    onPrint: async () => ({ outcome: 'printed' }),
+  });
+
+  const batch = await processRecoverablePrintJobs({
+    repository,
+    portResolver: makeResolver({ adapter }),
+    businessId: 'biz-1',
+    now,
+    limit: 10,
+  });
+  assertEqual(batch.scanned, 1, 'Recovery batch must scan queued durable work.');
+  assertEqual(batch.results[0]?.result.kind, 'dispatched', 'Recovery batch must reuse safe dispatch path.');
+  assertEqual(printCalls, 1, 'Recovery batch must produce one physical attempt for one queued job.');
+
+  const second = await processRecoverablePrintJobs({
+    repository,
+    portResolver: makeResolver({ adapter }),
+    businessId: 'biz-1',
+    now,
+    limit: 10,
+  });
+  assertEqual(second.scanned, 0, 'Printed terminal work must disappear from recovery scan.');
+  assertEqual(printCalls, 1, 'Terminal output must not be repeated during later recovery scans.');
 }
 
 console.log('print-worker-runtime-tests: ok');
