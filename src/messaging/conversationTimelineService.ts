@@ -100,7 +100,7 @@ export class ConversationTimelineService {
     private readonly runtime: ConversationTimelineRuntime,
   ) {}
 
-  private async assertActorAuthority(
+  private async assertActorReadAuthority(
     principalUserId: string,
     actor: ActorRef,
   ): Promise<void> {
@@ -108,14 +108,18 @@ export class ConversationTimelineService {
     if (actor.actorType === 'user' || actor.principalUserId !== principalUserId) {
       throw new ConversationTimelineServiceError(
         'ACTOR_NOT_AUTHORIZED',
-        'Authenticated principal cannot act as requested participant.',
+        'Authenticated principal cannot read as requested participant.',
       );
     }
-    const allowed = await this.actorAuthorization.canActAs({ principalUserId, actor });
+    const allowed = await this.actorAuthorization.canActAs({
+      principalUserId,
+      actor,
+      operation: 'read',
+    });
     if (!allowed) {
       throw new ConversationTimelineServiceError(
         'ACTOR_NOT_AUTHORIZED',
-        'Authenticated principal cannot act as requested participant.',
+        'Authenticated principal cannot read as requested participant.',
       );
     }
   }
@@ -243,7 +247,7 @@ export class ConversationTimelineService {
     afterSequence: number;
     limit?: number;
   }): Promise<ConversationTimelinePage> {
-    await this.assertActorAuthority(input.principalUserId, input.actor);
+    await this.assertActorReadAuthority(input.principalUserId, input.actor);
     if (!Number.isInteger(input.afterSequence) || input.afterSequence < 0) {
       throw new ConversationTimelineServiceError(
         'INVALID_CURSOR',
