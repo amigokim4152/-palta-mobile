@@ -1,0 +1,199 @@
+{
+  "version": "1.0",
+  "status": "implementation_status_registry",
+  "updated": "2026-09-17",
+  "principle": "semantic interfaces may be implemented before visual values are frozen; domains must not invent missing values",
+  "sources": [
+    "PALTA BRAND MASTER — Logo & Asset Registry v1",
+    "PALTA_SYMBOL_MASTER_V1 — Especificación Canónica",
+    "PALTA Experience Foundation v1",
+    "PALTA Character & Living Example System v1 — Implementation Spec",
+    "docs/PALTA_DESIGN_SYSTEM_CONTRACT.md"
+  ],
+  "status_definitions": {
+    "approved_baseline": "Meaning/rule is approved and must be shared across domains.",
+    "implementation_candidate": "May be prototyped centrally but must be validated before freeze.",
+    "interface_ready_value_unfrozen": "Semantic API/name may be used; concrete visual value is not final.",
+    "not_frozen": "Do not encode as a permanent product/brand decision.",
+    "upstream_controlled": "Only official upstream asset/master may change this item."
+  },
+  "categories": {
+    "color": {
+      "status": "interface_ready_value_unfrozen",
+      "domain_hardcoding_allowed": false,
+      "semantic_tokens": [
+        "color.background.base",
+        "color.background.elevated",
+        "color.surface.default",
+        "color.surface.subtle",
+        "color.surface.selected",
+        "color.text.primary",
+        "color.text.secondary",
+        "color.text.tertiary",
+        "color.text.inverse",
+        "color.border.default",
+        "color.border.strong",
+        "color.action.primary",
+        "color.action.secondary",
+        "color.state.info",
+        "color.state.success",
+        "color.state.warning",
+        "color.state.critical",
+        "color.state.realtime",
+        "color.state.stale",
+        "color.state.disabled",
+        "color.focus.ring"
+      ],
+      "note": "Final brand/semantic hex values require upstream color approval. Do not sample logo PNGs to create tokens."
+    },
+    "typography": {
+      "status": "interface_ready_value_unfrozen",
+      "domain_hardcoding_allowed": false,
+      "roles": [
+        "type.display",
+        "type.title.large",
+        "type.title.medium",
+        "type.title.small",
+        "type.body.large",
+        "type.body.medium",
+        "type.body.small",
+        "type.label.large",
+        "type.label.medium",
+        "type.label.small",
+        "type.caption",
+        "type.numeric.prominent"
+      ],
+      "requirements": [
+        "es-CL long-copy validation",
+        "ko validation",
+        "dynamic text/accessibility scaling",
+        "numeric alignment for business/POS contexts"
+      ],
+      "note": "Roles are stable; font family, exact size/line-height/weight values require central validation."
+    },
+    "spacing": {
+      "status": "implementation_candidate",
+      "domain_hardcoding_allowed": false,
+      "semantic_tokens": [
+        "space.inline.xs",
+        "space.inline.sm",
+        "space.inline.md",
+        "space.inline.lg",
+        "space.stack.xs",
+        "space.stack.sm",
+        "space.stack.md",
+        "space.stack.lg",
+        "space.section",
+        "space.screen.edge"
+      ],
+      "note": "A single scale must be centrally prototyped and measured; domains cannot create their own scales."
+    },
+    "radius": {
+      "status": "implementation_candidate",
+      "domain_hardcoding_allowed": false,
+      "semantic_tokens": [
+        "radius.control",
+        "radius.card",
+        "radius.sheet",
+        "radius.modal",
+        "radius.pill",
+        "radius.avatar"
+      ]
+    },
+    "elevation": {
+      "status": "implementation_candidate",
+      "domain_hardcoding_allowed": false,
+      "semantic_tokens": [
+        "elevation.none",
+        "elevation.surface",
+        "elevation.floating",
+        "elevation.overlay"
+      ],
+      "note": "Prefer hierarchy through spacing/surface before strong shadow."
+    },
+    "motion": {
+      "status": "approved_baseline",
+      "numeric_values": "not_frozen",
+      "domain_hardcoding_allowed": false,
+      "roles": [
+        "motion.micro_response",
+        "motion.standard_transition",
+        "motion.spatial_transition",
+        "motion.loading_progress"
+      ],
+      "requirements": [
+        "motion communicates state/spatial continuity",
+        "reduce-motion support",
+        "no decorative animation on every card press",
+        "numeric duration/easing/spring values require device testing"
+      ]
+    },
+    "haptics": {
+      "status": "approved_baseline",
+      "domain_hardcoding_allowed": false,
+      "semantic_roles": [
+        "haptic.selection",
+        "haptic.success",
+        "haptic.warning",
+        "haptic.error"
+      ],
+      "note": "No haptic for ordinary scroll/page/card taps without semantic state change."
+    },
+    "iconography": {
+      "meaning_registry_status": "approved_baseline",
+      "visual_geometry_status": "not_frozen",
+      "domain_may_choose_independent_icon_pack": false,
+      "emoji_as_core_ui_icon": false,
+      "requirements": [
+        "one canonical icon per meaning where possible",
+        "consistent optical weight/bounds/alignment",
+        "platform-native symbol only when explicit mapping is approved",
+        "missing icon is a Design System request, not a license to use emoji"
+      ]
+    },
+    "reactions": {
+      "meaning_registry_status": "approved_baseline",
+      "asset_status": "implementation_candidate",
+      "roles": [
+        "appreciation",
+        "helpful",
+        "celebrate",
+        "curious",
+        "concerned",
+        "welcome"
+      ],
+      "note": "Final assets should visually relate to the Palta character/expression universe."
+    },
+    "brand_assets": {
+      "status": "upstream_controlled",
+      "runtime_derivatives_available": true,
+      "master_vector_geometry_frozen": false,
+      "rules": [
+        "official assets only",
+        "no CSS/text recreation of wordmark",
+        "no code redraw of symbol",
+        "no distortion/recoloring outside approved variants",
+        "runtime copies remain derivatives of Drive master"
+      ]
+    },
+    "characters": {
+      "status": "approved_baseline",
+      "source": "Somos Palta / 00_Foundation / 01_Brand_Design_System / 02_Character_Living_Example_System",
+      "principle": "ONE CHARACTER UNIVERSE -> APP + QA + LOCAL STORIES + SOCIAL + CAMPAIGN",
+      "domain_may_create_independent_character_family": false,
+      "sensitive_context_restriction": true
+    },
+    "touch_and_accessibility": {
+      "status": "approved_baseline",
+      "requirements": [
+        "touch comfort is first-class",
+        "keyboard/safe-area stability",
+        "screen-reader semantics",
+        "focus visibility",
+        "contrast verification after colors are frozen",
+        "text scaling",
+        "non-color-only state communication"
+      ]
+    }
+  }
+}
