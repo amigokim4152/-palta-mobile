@@ -73,13 +73,15 @@ function evidenceIsStale(input: {
  *
  * Schedule calculation itself belongs to the time/schedule adapter. This
  * function only decides precedence and prevents stale evidence from becoming
- * a confident `open_now` claim.
+ * a confident current-state claim.
  */
 export function resolveBusinessOperationalState(input: {
   lifecycleStatus?: BusinessLifecycleStatus;
   override?: BusinessOperationalOverride;
   scheduledOpenNow?: boolean;
+  scheduledClosedToday?: boolean;
   scheduleConfirmedAt?: string;
+  scheduleNextOpenAt?: string;
   now: string | Date;
   maxScheduleAgeMs?: number;
   maxOpenOverrideAgeMs?: number;
@@ -151,10 +153,17 @@ export function resolveBusinessOperationalState(input: {
   }
 
   return {
-    state: input.scheduledOpenNow ? 'open_now' : 'closed_now',
+    state: input.scheduledOpenNow
+      ? 'open_now'
+      : input.scheduledClosedToday
+        ? 'closed_today'
+        : 'closed_now',
     source: 'schedule',
     ...(input.scheduleConfirmedAt
       ? { confirmedAt: input.scheduleConfirmedAt }
+      : {}),
+    ...(!input.scheduledOpenNow && input.scheduleNextOpenAt
+      ? { nextOpenAt: input.scheduleNextOpenAt }
       : {}),
     stale: false,
   };
