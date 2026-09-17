@@ -81,7 +81,11 @@ export default function BusinessDetailScreen() {
     if (mobileRuntime.status !== 'ready') {
       throw new Error(mobileRuntime.message);
     }
-    return mobileRuntime.client.getBusiness(businessId);
+    const [business, relationship] = await Promise.all([
+      mobileRuntime.client.getBusiness(businessId),
+      mobileRuntime.client.getBusinessRelationship(businessId),
+    ]);
+    return { business, relationship };
   }, [businessId]);
 
   const { state, refresh } = useAsyncResource(loadBusiness);
@@ -131,14 +135,53 @@ export default function BusinessDetailScreen() {
     }
   }
 
+  async function updateRelationship(capability: 'save' | 'follow') {
+    if (!businessId || mobileRuntime.status !== 'ready' || !state.data) return;
+    setSubmitting(true);
+    setSubmitMessage(null);
+
+    const current = state.data.relationship;
+    const update = capability === 'save'
+      ? { saved: !current.saved }
+      : { following: !current.following };
+
+    try {
+      const next = await mobileRuntime.client.updateBusinessRelationship(
+        businessId,
+        update,
+      );
+      if (capability === 'save') {
+        setSubmitMessage(next.saved ? 'Negocio guardado.' : 'Quitado de tus guardados.');
+      } else {
+        setSubmitMessage(
+          next.following
+            ? 'Ahora sigues este negocio. Esto no activa promociones ni notificaciones por sí solo.'
+            : 'Dejaste de seguir este negocio.',
+        );
+      }
+      await refresh();
+    } catch (error) {
+      setSubmitMessage(
+        error instanceof Error
+          ? `No se pudo actualizar: ${error.message}`
+          : 'No se pudo actualizar tu relación con este negocio.',
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   function handleAction(capability: BusinessCapability) {
     switch (capability) {
       case 'quote':
         void requestQuote();
         return;
+      case 'save':
+      case 'follow':
+        void updateRelationship(capability);
+        return;
       case 'whatsapp':
       case 'call':
-      case 'save':
       case 'reservation':
       case 'queue':
       case 'inquiry':
@@ -151,7 +194,8 @@ export default function BusinessDetailScreen() {
     }
   }
 
-  const business = state.data;
+  const business = state.data?.business;
+  const relationship = state.data?.relationship;
   const publicCapabilities = useMemo(
     () =>
       business
@@ -184,7 +228,7 @@ export default function BusinessDetailScreen() {
     );
   }
 
-  if (!business) {
+  if (!business || !relationship) {
     return (
       <ScreenFrame title="Negocio">
         <Text>No hay datos disponibles.</Text>
@@ -214,12 +258,16 @@ export default function BusinessDetailScreen() {
 
         <SectionHeading
           title="Contactar y actuar"
-          subtitle="Las funciones adicionales aparecen sólo cuando este negocio las tiene habilitadas."
+          subtitle="Guardar y seguir son gratuitos. Seguir no activa promociones ni notificaciones por sí solo."
         />
 
         <BusinessActionBar
           capabilities={publicCapabilities}
           verificationStatus={business.verification_status}
+          relationship={{
+            saved: relationship.saved,
+            following: relationship.following,
+          }}
           onAction={handleAction}
         />
 
@@ -235,7 +283,7 @@ export default function BusinessDetailScreen() {
         ) : null}
 
         {submitting ? (
-          <Text style={{ opacity: 0.62 }}>Enviando solicitud…</Text>
+          <Text style={{ opacity: 0.62 }}>Actualizando…</Text>
         ) : null}
 
         {submitMessage ? (
