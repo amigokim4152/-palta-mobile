@@ -11,6 +11,7 @@ import {
   type PrintJobLookup,
   type PrintJobRepository,
   type PrintJobWrite,
+  type RecoverablePrintJobQuery,
 } from './printJobRepository.js';
 import type { SqlDatabase } from './sqlDatabase.js';
 
@@ -116,6 +117,27 @@ export class PostgresPrintJobRepository implements PrintJobRepository {
     );
     const row = result.rows[0];
     return row ? rowToPrintJob(row) : null;
+  }
+
+  async listRecoverable(query: RecoverablePrintJobQuery): Promise<PrintJob[]> {
+    if (!query.businessId.trim()) throw new Error('Recoverable print query requires businessId.');
+    if (!Number.isSafeInteger(query.limit) || query.limit < 1 || query.limit > 100) {
+      throw new Error('Recoverable print query limit must be an integer between 1 and 100.');
+    }
+
+    const result = await this.db.query<PrintJobRow>(
+      `select ${PRINT_JOB_COLUMNS}
+       from print_job
+       where business_id = $1
+         and (
+           status in ('queued', 'dispatching', 'submitted', 'outcome_unknown')
+           or (status = 'failed' and retry_authorized = true)
+         )
+       order by created_at asc, id asc
+       limit $2`,
+      [query.businessId, query.limit],
+    );
+    return result.rows.map(rowToPrintJob);
   }
 
   async saveJob(write: PrintJobWrite): Promise<PrintJob> {
