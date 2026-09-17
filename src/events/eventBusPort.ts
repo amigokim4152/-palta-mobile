@@ -8,7 +8,8 @@ export type PaltaEventType =
   | 'live.disaster'
   | 'content.published'
   | 'message.created'
-  | 'message.read_advanced';
+  | 'message.read_advanced'
+  | 'message.domain_event_projected';
 
 export type PaltaEvent<TPayload = Record<string, unknown>> = {
   id: string;
