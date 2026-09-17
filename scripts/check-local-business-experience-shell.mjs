@@ -5,6 +5,7 @@ import ts from 'typescript';
 const root = process.cwd();
 const discoveryPath = path.join(root, 'mobile-overlay/src/features/business/LocalBusinessDiscoveryScreen.tsx');
 const mapPath = path.join(root, 'mobile-overlay/src/components/map/NeighborhoodMap.tsx');
+const sheetPath = path.join(root, 'mobile-overlay/src/components/neighborhood/MapResultSheet.tsx');
 const detailPath = path.join(root, 'mobile-overlay/src/app/business/[businessId].tsx');
 const providerPath = path.join(root, 'mobile-overlay/src/app/_layout.tsx');
 
@@ -36,6 +37,7 @@ function readTsx(file) {
 
 const discovery = readTsx(discoveryPath);
 const map = readTsx(mapPath);
+const sheet = readTsx(sheetPath);
 const detail = readTsx(detailPath);
 const provider = readTsx(providerPath);
 
@@ -75,9 +77,18 @@ assert(
 );
 
 assert(
+  sheet.includes('<Animated.View') && sheet.includes('Animated.timing'),
+  'Result sheet snap changes must animate instead of jumping between fixed heights.',
+);
+assert(
+  sheet.includes('<ScrollView') && sheet.includes('useWindowDimensions'),
+  'Result sheet must scroll long result sets and adapt its snap heights to the device.',
+);
+
+assert(
   detail.includes('useNeighborhoodState') &&
   detail.includes('Volver a negocios') &&
-  detail.includes("router.back()"),
+  detail.includes('router.back()'),
   'Business detail must return to the preserved discovery session, not start a new search context.',
 );
 
