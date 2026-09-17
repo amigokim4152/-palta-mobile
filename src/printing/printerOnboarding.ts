@@ -7,6 +7,14 @@ import type {
   PrinterTransport,
 } from './printCore.js';
 import {
+  assessCompatibilityManifestFreshness,
+  assessPrinterRuntimeCompatibility,
+  mayClaimFreshCertification,
+  type ManifestFreshness,
+  type PrinterRuntimeCompatibilityAction,
+  type PrinterRuntimeContext,
+} from './compatibilityPolicy.js';
+import {
   matchCompatibilityEntry,
   type PrinterCompatibilityManifest,
 } from './printRouting.js';
@@ -37,8 +45,12 @@ export type PrinterDiscoveryAssessment = {
   protocol?: PrinterProtocol;
   transport?: PrinterTransport;
   adapterKey?: string;
+  runtimeAction?: PrinterRuntimeCompatibilityAction;
+  manifestFreshness?: ManifestFreshness;
   reason:
     | 'manifest_match'
+    | 'manifest_stale'
+    | 'manifest_runtime_incompatible'
     | 'generic_protocol_family'
     | 'system_spooler_only'
     | 'unknown_device';
@@ -78,9 +90,63 @@ function assertSha256Hex(value: string, field: string): void {
   }
 }
 
+function assessmentFromManifest(input: {
+  supportTier: PrinterSupportTier;
+  protocol: PrinterProtocol;
+  transport: PrinterTransport;
+  adapterKey: string;
+  manifest: PrinterCompatibilityManifest;
+  runtime?: PrinterRuntimeContext;
+  now?: string;
+  maxManifestAgeDays?: number;
+}): PrinterDiscoveryAssessment {
+  let freshness: ManifestFreshness | undefined;
+  if (input.now !== undefined) {
+    const freshnessInput: {
+      manifest: PrinterCompatibilityManifest;
+      now: string;
+      maxAgeDays?: number;
+    } = {
+      manifest: input.manifest,
+      now: input.now,
+    };
+    if (input.maxManifestAgeDays !== undefined) {
+      freshnessInput.maxAgeDays = input.maxManifestAgeDays;
+    }
+    freshness = assessCompatibilityManifestFreshness(freshnessInput);
+  }
+
+  if (input.runtime !== undefined) {
+    const matched = matchCompatibilityEntry(
+      input.manifest,
+      input.manifest.entries.find((entry) => entry.adapterKey === input.adapterKey)?.manufacturer ?? '',
+      '',
+    );
+    void matched;
+  }
+
+  const assessment: PrinterDiscoveryAssessment = {
+    supportTier: input.supportTier,
+    protocol: input.protocol,
+    transport: input.transport,
+    adapterKey: input.adapterKey,
+    reason: 'manifest_match',
+  };
+  if (freshness !== undefined) assessment.manifestFreshness = freshness;
+
+  if (freshness !== undefined && !mayClaimFreshCertification(freshness)) {
+    assessment.supportTier = 'unknown';
+    assessment.reason = 'manifest_stale';
+  }
+  return assessment;
+}
+
 export function assessDiscoveredPrinter(input: {
   candidate: DiscoveredPrinterCandidate;
   manifest: PrinterCompatibilityManifest;
+  runtime?: PrinterRuntimeContext;
+  now?: string;
+  maxManifestAgeDays?: number;
 }): PrinterDiscoveryAssessment {
   assertSha256Hex(input.candidate.fingerprint.connectionFingerprintHash, 'connectionFingerprintHash');
   const manufacturer = input.candidate.fingerprint.manufacturer ?? '';
@@ -92,13 +158,49 @@ export function assessDiscoveredPrinter(input: {
   if (matched) {
     const transport = firstSupportedTransport(matched.transports, input.candidate.transports);
     if (transport) {
-      return {
+      if (input.runtime !== undefined) {
+        const runtimeDecision = assessPrinterRuntimeCompatibility({
+          entry: matched,
+          runtime: input.runtime,
+        });
+        if (!runtimeDecision.compatible) {
+          return {
+            supportTier: 'unknown',
+            protocol: matched.protocol,
+            transport,
+            adapterKey: matched.adapterKey,
+            runtimeAction: runtimeDecision.action,
+            reason: 'manifest_runtime_incompatible',
+          };
+        }
+      }
+
+      let freshness: ManifestFreshness | undefined;
+      if (input.now !== undefined) {
+        const freshnessInput: {
+          manifest: PrinterCompatibilityManifest;
+          now: string;
+          maxAgeDays?: number;
+        } = { manifest: input.manifest, now: input.now };
+        if (input.maxManifestAgeDays !== undefined) {
+          freshnessInput.maxAgeDays = input.maxManifestAgeDays;
+        }
+        freshness = assessCompatibilityManifestFreshness(freshnessInput);
+      }
+
+      const assessment: PrinterDiscoveryAssessment = {
         supportTier: matched.supportTier,
         protocol: matched.protocol,
         transport,
         adapterKey: matched.adapterKey,
         reason: 'manifest_match',
       };
+      if (freshness !== undefined) assessment.manifestFreshness = freshness;
+      if (freshness !== undefined && !mayClaimFreshCertification(freshness)) {
+        assessment.supportTier = 'unknown';
+        assessment.reason = 'manifest_stale';
+      }
+      return assessment;
     }
   }
 
