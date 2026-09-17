@@ -99,13 +99,11 @@ export function renderPublicBusinessHtml(input: {
     .join('');
 
   const contactLinks: PublicBusinessPageLink[] = [];
-  if (content.phone?.trim()) {
-    const phone = content.phone.trim().replace(/[^+\d]/g, '');
-    if (phone) contactLinks.push({ label: 'Llamar', url: `https://tel.me/${encodeURIComponent(phone)}` });
-  }
   if (content.whatsappUrl) contactLinks.push({ label: 'WhatsApp', url: content.whatsappUrl });
   contactLinks.push(...(content.externalLinks ?? []));
   const renderedLinks = contactLinks.map(renderLink).filter(Boolean).join(' · ');
+  const phoneText = content.phone?.trim() ? `Teléfono: ${escapeHtml(content.phone.trim())}` : '';
+  const contactParts = [phoneText, renderedLinks].filter(Boolean).join(' · ');
 
   const updates = (content.updates ?? [])
     .slice(0, 5)
@@ -146,7 +144,7 @@ ${images ? `<section aria-label="Fotos">${images}</section>` : ''}
 ${content.hoursSummary?.trim() ? `<section><h2>Horario</h2><p>${escapeHtml(content.hoursSummary.trim())}</p></section>` : ''}
 ${renderStringList('Servicios', content.serviceLabels)}
 ${renderStringList('Zona de atención', content.serviceAreaLabels)}
-${renderedLinks ? `<section><h2>Contacto y enlaces</h2><p>${renderedLinks}</p></section>` : ''}
+${contactParts ? `<section><h2>Contacto y enlaces</h2><p>${contactParts}</p></section>` : ''}
 ${coupon}
 ${updates ? `<section><h2>Novedades</h2>${updates}</section>` : ''}
 </main>
