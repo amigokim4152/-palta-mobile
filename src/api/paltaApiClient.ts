@@ -1,4 +1,5 @@
 import type { BusinessCapability } from '../business/businessActionPolicy.js';
+import type { BusinessOperationalState } from '../business/businessOperationalState.js';
 
 export type FetchLike = (
   input: string,
@@ -25,6 +26,9 @@ export type LocalSearchItem = {
   category_key?: string;
   distance_m?: number;
   verification_status?: string;
+  operational_state?: BusinessOperationalState;
+  operational_confirmed_at?: string;
+  next_open_at?: string;
   location: { lat: number; lng: number };
 };
 
@@ -48,6 +52,9 @@ export type BusinessApiDetail = {
   category_key?: string;
   verification_status: 'unverified' | 'claimed' | 'verified' | 'suspended';
   opening_status?: string;
+  operational_state?: BusinessOperationalState;
+  operational_confirmed_at?: string;
+  next_open_at?: string;
   description?: string;
   hours_summary?: string;
   service_labels?: string[];
