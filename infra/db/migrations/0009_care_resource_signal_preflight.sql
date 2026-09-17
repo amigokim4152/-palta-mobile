@@ -20,14 +20,21 @@ create table if not exists care_resource_link (
 create index if not exists care_resource_link_lookup_idx
   on care_resource_link(source_core, resource_type, resource_id, care_track_id);
 
--- Receipt must be written in the same transaction as the future Care state
--- mutation. A redelivered signal can then be acknowledged without applying the
--- transition twice. signal_event_id is the immutable Event Core event ID.
+-- Receipt is written in the same transaction as the Care state mutation.
+-- A redelivered signal can then be acknowledged without applying the transition
+-- twice. Only opaque refs / lifecycle hints are retained; domain payload remains
+-- canonical in its owning core.
 create table if not exists care_signal_receipt (
   care_track_id uuid not null references care_track(id) on delete cascade,
   source_core text not null check (length(trim(source_core)) between 1 and 120),
   signal_event_id text not null check (length(trim(signal_event_id)) between 1 and 240),
   care_event text not null check (length(trim(care_event)) between 1 and 80),
+  resource_type text not null check (length(trim(resource_type)) between 1 and 120),
+  resource_id text not null check (length(trim(resource_id)) between 1 and 240),
+  waiting_for_key text check (waiting_for_key is null or length(trim(waiting_for_key)) between 1 and 120),
+  expected_at timestamptz,
+  result_ref text check (result_ref is null or length(trim(result_ref)) between 1 and 240),
+  outcome_ref text check (outcome_ref is null or length(trim(outcome_ref)) between 1 and 240),
   applied_at timestamptz not null default now(),
   primary key (care_track_id, source_core, signal_event_id)
 );
