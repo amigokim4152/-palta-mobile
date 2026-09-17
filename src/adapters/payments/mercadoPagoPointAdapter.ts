@@ -1,3 +1,4 @@
+import { PaymentProviderOperationError, type PaymentIncidentKind } from '../../payment/paymentIncident.js';
 import type { PaymentStatus } from '../../payment/paymentModel.js';
 import type {
   CreatePaymentInput,
@@ -40,6 +41,13 @@ export type MercadoPagoPointOrder = {
       amount?: string;
     }>;
   };
+};
+
+export type MercadoPagoApiError = {
+  code?: string;
+  error?: string;
+  message?: string;
+  status?: number;
 };
 
 function firstPayment(order: MercadoPagoPointOrder) {
@@ -102,6 +110,39 @@ function providerStatusResult(order: MercadoPagoPointOrder): ProviderPaymentStat
   return result;
 }
 
+function providerErrorCode(body: MercadoPagoApiError): string | undefined {
+  return body.code ?? body.error;
+}
+
+export function classifyMercadoPagoHttpFailure(
+  status: number,
+  body: MercadoPagoApiError,
+): PaymentIncidentKind {
+  const code = providerErrorCode(body);
+  if (status === 400) return 'validation_error';
+  if (status === 401 || status === 403) return 'configuration_error';
+  if (status === 409 && code === 'already_queued_order_for_terminal') return 'terminal_busy';
+  if (status === 409 && code === 'idempotency_key_already_used') return 'idempotency_conflict';
+  if (status === 409) return 'provider_error';
+  if (status === 429) return 'rate_limited';
+  if (status >= 500) return 'transient_provider_error';
+  return 'provider_error';
+}
+
+function throwHttpFailure(
+  operation: string,
+  response: JsonHttpResponse<MercadoPagoApiError>,
+): never {
+  const code = providerErrorCode(response.body);
+  throw new PaymentProviderOperationError({
+    providerKey: 'mercadopago_point',
+    incidentKind: classifyMercadoPagoHttpFailure(response.status, response.body),
+    message: `Mercado Pago Point ${operation} failed with HTTP ${response.status}${code ? ` (${code})` : ''}.`,
+    ...(code === undefined ? {} : { providerCode: code }),
+    httpStatus: response.status,
+  });
+}
+
 export class MercadoPagoPointAdapter implements PaymentPort {
   readonly providerKey = 'mercadopago_point';
 
@@ -124,52 +165,70 @@ export class MercadoPagoPointAdapter implements PaymentPort {
     }
 
     const token = await this.accessTokenProvider();
-    const response = await this.http.request<MercadoPagoPointOrder>({
-      method: 'POST',
-      url: `${this.baseUrl}/v1/orders`,
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-        'X-Idempotency-Key': input.idempotencyKey,
-      },
-      body: {
-        type: 'point',
-        external_reference: externalReference(input.canonicalPaymentId),
-        transactions: {
-          payments: [{ amount: clpAmount(input.amount.amountMinor, input.amount.currency) }],
+    let response: JsonHttpResponse<MercadoPagoPointOrder | MercadoPagoApiError>;
+    try {
+      response = await this.http.request<MercadoPagoPointOrder | MercadoPagoApiError>({
+        method: 'POST',
+        url: `${this.baseUrl}/v1/orders`,
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'X-Idempotency-Key': input.idempotencyKey,
         },
-        config: {
-          point: {
-            terminal_id: input.terminalId,
-            print_on_terminal: 'no_ticket',
+        body: {
+          type: 'point',
+          external_reference: externalReference(input.canonicalPaymentId),
+          transactions: {
+            payments: [{ amount: clpAmount(input.amount.amountMinor, input.amount.currency) }],
           },
+          config: {
+            point: {
+              terminal_id: input.terminalId,
+              print_on_terminal: 'no_ticket',
+            },
+          },
+          ...(input.description ? { description: input.description } : {}),
         },
-        ...(input.description ? { description: input.description } : {}),
-      },
-    });
+      });
+    } catch (error) {
+      if (error instanceof PaymentProviderOperationError) throw error;
+      throw new PaymentProviderOperationError({
+        providerKey: this.providerKey,
+        incidentKind: 'outcome_unknown',
+        message: 'Mercado Pago Point create order transport outcome is unknown; reconcile before another charge.',
+      });
+    }
 
     if (response.status < 200 || response.status >= 300) {
-      throw new Error(`Mercado Pago Point create order failed with HTTP ${response.status}.`);
+      throwHttpFailure('create order', response as JsonHttpResponse<MercadoPagoApiError>);
     }
-    const mapped = providerStatusResult(response.body);
-    const result: CreatePaymentResult = { ...mapped };
-    return result;
+    return { ...providerStatusResult(response.body as MercadoPagoPointOrder) };
   }
 
   async getStatus(providerReference: string): Promise<ProviderPaymentStatus> {
     const token = await this.accessTokenProvider();
-    const response = await this.http.request<MercadoPagoPointOrder>({
-      method: 'GET',
-      url: `${this.baseUrl}/v1/orders/${encodeURIComponent(providerReference)}`,
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-    });
-    if (response.status < 200 || response.status >= 300) {
-      throw new Error(`Mercado Pago Point get order failed with HTTP ${response.status}.`);
+    let response: JsonHttpResponse<MercadoPagoPointOrder | MercadoPagoApiError>;
+    try {
+      response = await this.http.request<MercadoPagoPointOrder | MercadoPagoApiError>({
+        method: 'GET',
+        url: `${this.baseUrl}/v1/orders/${encodeURIComponent(providerReference)}`,
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+    } catch (error) {
+      if (error instanceof PaymentProviderOperationError) throw error;
+      throw new PaymentProviderOperationError({
+        providerKey: this.providerKey,
+        incidentKind: 'transient_provider_error',
+        message: 'Mercado Pago Point status lookup failed; retry the same status lookup with backoff.',
+      });
     }
-    return providerStatusResult(response.body);
+    if (response.status < 200 || response.status >= 300) {
+      throwHttpFailure('get order', response as JsonHttpResponse<MercadoPagoApiError>);
+    }
+    return providerStatusResult(response.body as MercadoPagoPointOrder);
   }
 
   async refund(input: RefundInput): Promise<ProviderPaymentStatus> {
@@ -189,19 +248,29 @@ export class MercadoPagoPointAdapter implements PaymentPort {
       };
     }
 
-    const response = await this.http.request<MercadoPagoPointOrder>({
-      method: 'POST',
-      url: `${this.baseUrl}/v1/orders/${encodeURIComponent(input.providerReference)}/refund`,
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-        'X-Idempotency-Key': input.idempotencyKey,
-      },
-      ...(body === undefined ? {} : { body }),
-    });
-    if (response.status < 200 || response.status >= 300) {
-      throw new Error(`Mercado Pago Point refund failed with HTTP ${response.status}.`);
+    let response: JsonHttpResponse<MercadoPagoPointOrder | MercadoPagoApiError>;
+    try {
+      response = await this.http.request<MercadoPagoPointOrder | MercadoPagoApiError>({
+        method: 'POST',
+        url: `${this.baseUrl}/v1/orders/${encodeURIComponent(input.providerReference)}/refund`,
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'X-Idempotency-Key': input.idempotencyKey,
+        },
+        ...(body === undefined ? {} : { body }),
+      });
+    } catch (error) {
+      if (error instanceof PaymentProviderOperationError) throw error;
+      throw new PaymentProviderOperationError({
+        providerKey: this.providerKey,
+        incidentKind: 'refund_unknown',
+        message: 'Mercado Pago Point refund transport outcome is unknown; reconcile refund status before retrying.',
+      });
     }
-    return providerStatusResult(response.body);
+    if (response.status < 200 || response.status >= 300) {
+      throwHttpFailure('refund', response as JsonHttpResponse<MercadoPagoApiError>);
+    }
+    return providerStatusResult(response.body as MercadoPagoPointOrder);
   }
 }
