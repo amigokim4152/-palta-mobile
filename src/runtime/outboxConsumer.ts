@@ -27,8 +27,19 @@ export type OutboxConsumerResult =
       eventId: string;
     }
   | {
-      status: 'delivered' | 'retryable' | 'dead_letter';
+      status: 'delivered';
       eventId: string;
+    }
+  | {
+      status: 'retryable';
+      eventId: string;
+      nextAttemptAt: string;
+      errorCode: string;
+    }
+  | {
+      status: 'dead_letter';
+      eventId: string;
+      errorCode: string;
     };
 
 export class OutboxLeaseLostError extends Error {
@@ -106,7 +117,12 @@ export async function consumeOutboxQueueMessage(input: {
       errorCode: result.errorCode,
     });
     if (!persisted) throw new OutboxLeaseLostError();
-    return { status: 'retryable', eventId: event.id };
+    return {
+      status: 'retryable',
+      eventId: event.id,
+      nextAttemptAt: result.nextAttemptAt,
+      errorCode: result.errorCode,
+    };
   }
 
   const persisted = await input.repository.markDeadLetter({
@@ -116,5 +132,9 @@ export async function consumeOutboxQueueMessage(input: {
     errorCode: result.errorCode,
   });
   if (!persisted) throw new OutboxLeaseLostError();
-  return { status: 'dead_letter', eventId: event.id };
+  return {
+    status: 'dead_letter',
+    eventId: event.id,
+    errorCode: result.errorCode,
+  };
 }
