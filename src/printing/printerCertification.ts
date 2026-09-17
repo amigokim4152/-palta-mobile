@@ -4,9 +4,12 @@ import type {
   PrinterSupportTier,
   PrinterTransport,
 } from './printCore.js';
-import type { CompatibilityManifestEntry } from './printRouting.js';
+import type {
+  CompatibilityManifestEntry,
+  PrinterCompatibilityPlatform,
+} from './printRouting.js';
 
-export type PrinterCertificationPlatform = 'windows' | 'android' | 'ios' | 'macos' | 'linux_bridge';
+export type PrinterCertificationPlatform = PrinterCompatibilityPlatform;
 export type PrinterCertificationStatus = 'candidate' | 'passed' | 'limited' | 'failed' | 'retired';
 export type PrinterProcurementStatus =
   | 'not_evaluated'
@@ -106,6 +109,9 @@ export function assertPrinterCertificationRecord(record: PrinterCertificationRec
   assertVersion(record.adapterVersion, 'adapterVersion');
   assertVersion(record.appVersion, 'appVersion');
   if (record.bridgeVersion !== undefined) assertVersion(record.bridgeVersion, 'bridgeVersion');
+  if (record.firmwareVersion !== undefined && !record.firmwareVersion.trim()) {
+    throw new Error('firmwareVersion cannot be blank when provided.');
+  }
   if (
     record.bridgeProtocolVersion !== undefined &&
     (!Number.isSafeInteger(record.bridgeProtocolVersion) || record.bridgeProtocolVersion < 1)
@@ -190,12 +196,14 @@ export function manifestEntryFromCertification(
     transports: [record.transport],
     adapterKey: record.adapterKey,
     supportTier,
+    platforms: [record.platform],
     runtimeRequirements: {
       minAppVersion: record.appVersion,
       minAdapterVersion: record.adapterVersion,
     },
   };
   if (record.paperWidthMm !== undefined) entry.paperWidthsMm = [record.paperWidthMm];
+  if (record.firmwareVersion !== undefined) entry.firmwareVersions = [record.firmwareVersion];
   if (record.bridgeVersion !== undefined) {
     entry.runtimeRequirements = {
       ...entry.runtimeRequirements,
