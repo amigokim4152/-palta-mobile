@@ -1,4 +1,8 @@
-import type { PaymentIntent } from '../src/payment/paymentModel.js';
+import {
+  paymentTransitionAllowed,
+  transitionPaymentIntent,
+  type PaymentIntent,
+} from '../src/payment/paymentModel.js';
 import {
   planPaymentRecovery,
   reconcilePaymentOutcome,
@@ -21,6 +25,7 @@ function payment(status: PaymentIntent['status'], providerReference?: string): P
     amount: { currency: 'CLP', amountMinor: 45000 },
     rail: 'card',
     status,
+    revision: 0,
     providerKey: 'provider-test',
     settlementStatus: 'not_applicable',
     idempotencyKey: 'idem-pay-1',
@@ -147,5 +152,30 @@ try {
   actionBlocked = true;
 }
 assert(actionBlocked, 'Operator-action payment must not be silently auto-retried.');
+
+const paidIntent = transitionPaymentIntent(
+  payment('processing', 'ref-paid'),
+  'paid',
+  '2026-09-17T10:00:02.000Z',
+);
+assert(
+  paidIntent.status === 'paid' && paidIntent.revision === 1,
+  'Authoritative payment transition must advance optimistic revision.',
+);
+assert(
+  paymentTransitionAllowed('paid', 'processing') === false,
+  'Late provider callbacks must not regress a paid payment back to processing.',
+);
+let staleRegressionBlocked = false;
+try {
+  transitionPaymentIntent(
+    paidIntent,
+    'processing',
+    '2026-09-17T10:00:03.000Z',
+  );
+} catch {
+  staleRegressionBlocked = true;
+}
+assert(staleRegressionBlocked, 'Stale callback regression must be rejected by canonical payment state machine.');
 
 console.log('PASS: canonical payment recovery orchestration tests');
