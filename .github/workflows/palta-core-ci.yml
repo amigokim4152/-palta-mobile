@@ -83,3 +83,5 @@ jobs:
           test "$(psql -Atqc "select to_regclass('public.home_candidate_user_dedupe_uidx') is not null")" = "t"
           test "$(psql -Atqc "select to_regclass('public.care_track_user_client_request_uq') is not null")" = "t"
           test "$(psql -Atqc "select exists (select 1 from information_schema.columns where table_schema='public' and table_name='care_track' and column_name='client_request_id')")" = "t"
+          test "$(psql -Atqc "select to_regclass('public.notification_delivery') is not null")" = "t"
+          test "$(psql -Atqc "select to_regclass('public.notification_delivery_ready_idx') is not null")" = "t"
