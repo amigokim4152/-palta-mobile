@@ -26,6 +26,7 @@ type PaymentIntentRow = {
   order_id: string | null;
   idempotency_key: string;
   amount_minor: number | string;
+  processed_amount_minor: number | string | null;
   currency: string;
   rail: PaymentRail;
   status: PaymentStatus;
@@ -54,6 +55,7 @@ const PAYMENT_COLUMNS = `
   order_id,
   idempotency_key,
   amount_minor,
+  processed_amount_minor,
   currency,
   rail,
   status,
@@ -81,6 +83,12 @@ function safeInteger(value: number | string, field: string): number {
   return parsed;
 }
 
+function positiveSafeInteger(value: number | string, field: string): number {
+  const parsed = safeInteger(value, field);
+  if (parsed <= 0) throw new Error(`${field} must be greater than zero.`);
+  return parsed;
+}
+
 function rowToIntent(row: PaymentIntentRow): PaymentIntent {
   const amount: Money = {
     currency: row.currency,
@@ -99,6 +107,15 @@ function rowToIntent(row: PaymentIntentRow): PaymentIntent {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
+  if (row.processed_amount_minor !== null) {
+    intent.processedAmount = {
+      currency: row.currency,
+      amountMinor: positiveSafeInteger(
+        row.processed_amount_minor,
+        'payment processed_amount_minor',
+      ),
+    };
+  }
   if (row.order_id !== null) intent.orderId = row.order_id;
   if (row.provider_key !== null) intent.providerKey = row.provider_key;
   if (row.provider_connection_id !== null) intent.providerConnectionId = row.provider_connection_id;
@@ -124,10 +141,22 @@ function outboxEvents(commit: PaymentAtomicCommit): readonly CommerceOutboxEvent
   return commit.outboxEvents ?? [];
 }
 
+function assertProcessedAmount(intent: PaymentIntent): void {
+  const processed = intent.processedAmount;
+  if (processed === undefined) return;
+  if (processed.currency !== intent.amount.currency) {
+    throw new Error('Payment processedAmount currency must match requested amount currency.');
+  }
+  if (!Number.isSafeInteger(processed.amountMinor) || processed.amountMinor <= 0) {
+    throw new Error('Payment processedAmount must be a positive safe integer.');
+  }
+}
+
 function assertCommitShape(commit: PaymentAtomicCommit): void {
   if (commit.event.paymentIntentId !== commit.intent.id) {
     throw new Error('Payment event belongs to another PaymentIntent.');
   }
+  assertProcessedAmount(commit.intent);
   if (commit.expectedRevision === null) {
     if (commit.intent.revision !== 0) {
       throw new PaymentConcurrencyError('New PaymentIntent must start at revision 0.');
@@ -328,6 +357,7 @@ export class PostgresPaymentRepository implements CommercePaymentQueryRepository
             order_id,
             idempotency_key,
             amount_minor,
+            processed_amount_minor,
             currency,
             rail,
             status,
@@ -346,7 +376,7 @@ export class PostgresPaymentRepository implements CommercePaymentQueryRepository
             created_at,
             updated_at
           ) values (
-            $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23
+            $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24
           )
           returning ${PAYMENT_COLUMNS}`,
           [
@@ -356,6 +386,7 @@ export class PostgresPaymentRepository implements CommercePaymentQueryRepository
             commit.intent.orderId ?? null,
             commit.intent.idempotencyKey,
             commit.intent.amount.amountMinor,
+            commit.intent.processedAmount?.amountMinor ?? null,
             commit.intent.amount.currency,
             commit.intent.rail,
             commit.intent.status,
@@ -402,7 +433,8 @@ export class PostgresPaymentRepository implements CommercePaymentQueryRepository
           settlement_status = $15,
           settlement_reference = $16,
           revision = $17,
-          updated_at = $18
+          updated_at = $18,
+          processed_amount_minor = $19
         where business_id = $1 and id = $2 and revision = $3
         returning ${PAYMENT_COLUMNS}`,
         [
@@ -424,6 +456,7 @@ export class PostgresPaymentRepository implements CommercePaymentQueryRepository
           commit.intent.settlementReference ?? null,
           commit.intent.revision,
           commit.intent.updatedAt,
+          commit.intent.processedAmount?.amountMinor ?? null,
         ],
       );
       const row = updated.rows[0];
