@@ -1,3 +1,5 @@
+import { handleBusinessServicesRequest } from './business-services-state.mjs';
+
 function ownerManaged(business) {
   return business.verification_status === 'claimed' || business.verification_status === 'verified';
 }
@@ -30,6 +32,18 @@ export async function handleBusinessOwnerProfileRequest({
   json,
   readJson,
 }) {
+  // Dev mock composition only: service management remains a separate API
+  // client/domain contract even though this small server delegates it here.
+  const servicesHandled = await handleBusinessServicesRequest({
+    req,
+    res,
+    url,
+    businesses,
+    json,
+    readJson,
+  });
+  if (servicesHandled) return true;
+
   const match = url.pathname.match(/^\/v1\/business\/([^/]+)\/owner-profile$/);
   if (!match || (req.method !== 'GET' && req.method !== 'PUT')) return false;
 
