@@ -5,6 +5,10 @@
 -- Printer configuration is business-scoped infrastructure metadata.
 -- Browsers/native clients do not receive raw DB access; Palta Commerce API owns writes.
 -- Device Bridge never owns Sale/Payment/Fiscal state and does not connect directly to this DB.
+--
+-- Multi-printer rule:
+-- A register/role is pinned to one primary printer. Automatic physical-printer
+-- switching is disabled unless the owner explicitly enables fallback for that route.
 
 create table if not exists public.printer_device (
   id uuid primary key default gen_random_uuid(),
@@ -58,14 +62,22 @@ create table if not exists public.printer_route (
   business_id uuid not null,
   outlet_key text not null default 'default'
     check (length(outlet_key) between 1 and 160),
+  -- '*' means outlet/default route. A concrete register key pins this route to one POS/caja.
+  register_key text not null default '*'
+    check (length(register_key) between 1 and 160),
   role text not null check (role in ('receipt', 'label', 'a4', 'kitchen', 'packing')),
+  failover_mode text not null default 'disabled'
+    check (failover_mode in ('disabled', 'explicit')),
   enabled boolean not null default true,
   revision bigint not null default 0 check (revision >= 0),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   unique (business_id, id),
-  unique (business_id, outlet_key, role)
+  unique (business_id, outlet_key, register_key, role)
 );
+
+create index if not exists printer_route_scope_idx
+  on public.printer_route(business_id, outlet_key, register_key, role, enabled);
 
 create table if not exists public.printer_route_candidate (
   route_id uuid not null,
