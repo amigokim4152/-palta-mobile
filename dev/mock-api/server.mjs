@@ -69,6 +69,7 @@ const businesses = [
 
 const idempotencyCareIds = new Map();
 const idempotencyBusinessResults = new Map();
+const businessRelationships = new Map();
 
 const careTracks = new Map([
   ['care-demo-1', {
@@ -119,6 +120,20 @@ function normalizeSafePublicUrl(value) {
   } catch {
     return null;
   }
+}
+
+function relationshipFor(businessId) {
+  const existing = businessRelationships.get(businessId);
+  if (existing) return existing;
+  const relationship = {
+    business_id: businessId,
+    saved: false,
+    following: false,
+    regular_customer: false,
+    updated_at: new Date().toISOString(),
+  };
+  businessRelationships.set(businessId, relationship);
+  return relationship;
 }
 
 function ownerGuidanceFor(business) {
@@ -183,7 +198,7 @@ const server = http.createServer(async (req, res) => {
     const url = new URL(req.url, `http://${req.headers.host ?? `${host}:${port}`}`);
 
     if (req.method === 'GET' && url.pathname === '/health') {
-      return json(res, 200, { ok: true, service: 'palta-mock-api', version: '0.5.0' });
+      return json(res, 200, { ok: true, service: 'palta-mock-api', version: '0.6.0' });
     }
 
     if (req.method === 'GET' && url.pathname === '/v1/home') {
@@ -293,6 +308,28 @@ const server = http.createServer(async (req, res) => {
         idempotencyBusinessResults.set(idempotencyKey, result);
       }
       return json(res, 201, result);
+    }
+
+    const relationshipMatch = url.pathname.match(/^\/v1\/business\/([^/]+)\/relationship$/);
+    if (relationshipMatch && (req.method === 'GET' || req.method === 'PUT')) {
+      const id = decodeURIComponent(relationshipMatch[1]);
+      const business = businesses.find((item) => item.id === id);
+      if (!business) return json(res, 404, { error: 'business_not_found' });
+
+      const relationship = relationshipFor(id);
+      if (req.method === 'PUT') {
+        const body = await readJson(req);
+        if (body.saved !== undefined && typeof body.saved !== 'boolean') {
+          return json(res, 400, { error: 'saved_must_be_boolean' });
+        }
+        if (body.following !== undefined && typeof body.following !== 'boolean') {
+          return json(res, 400, { error: 'following_must_be_boolean' });
+        }
+        if (body.saved !== undefined) relationship.saved = body.saved;
+        if (body.following !== undefined) relationship.following = body.following;
+        relationship.updated_at = new Date().toISOString();
+      }
+      return json(res, 200, relationship);
     }
 
     const channelLinksMatch = req.method === 'PUT'
