@@ -18,7 +18,13 @@ export type CreatePaymentInput = {
   metadata?: Record<string, string>;
 };
 
-export type CreatePaymentResult = {
+export type ProviderPaymentEvidence = {
+  authorizationCode?: string;
+  cardBrand?: string;
+  cardLast4?: string;
+};
+
+export type CreatePaymentResult = ProviderPaymentEvidence & {
   providerKey: string;
   providerReference: string;
   status: PaymentStatus;
@@ -32,7 +38,7 @@ export type CreatePaymentResult = {
   };
 };
 
-export type ProviderPaymentStatus = {
+export type ProviderPaymentStatus = ProviderPaymentEvidence & {
   providerKey: string;
   providerReference: string;
   status: PaymentStatus;
