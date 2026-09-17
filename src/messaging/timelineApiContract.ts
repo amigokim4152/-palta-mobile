@@ -51,7 +51,7 @@ function timelineItemToApi(item: ConversationTimelineEntry): TimelineApiItem {
     event: {
       projection_id: item.event.projectionId,
       conversation_id: item.event.conversationId,
-      scope_id: item.event.scopeId ?? '',
+      scope_id: item.event.scopeId,
       sequence: item.event.sequence,
       source_core: item.event.sourceCore,
       domain_event_id: item.event.eventId,
