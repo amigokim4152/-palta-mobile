@@ -69,13 +69,17 @@ export default function BusinessOwnerHomeScreen() {
     const ownerManaged =
       business.verification_status === 'claimed' ||
       business.verification_status === 'verified';
+    const verified = business.verification_status === 'verified';
 
-    const [guidance, ownerCoupon, corrections] = await Promise.all([
+    const [guidance, ownerCoupon, corrections, reviews] = await Promise.all([
       mobileRuntime.client.getOwnerBusinessGuidance(businessId),
       mobileRuntime.client.getOwnerBusinessBasicCoupon(businessId),
       ownerManaged
         ? mobileRuntime.client.corrections.getOwnerBusinessCorrections(businessId)
         : Promise.resolve({ business_id: businessId, items: [] }),
+      verified
+        ? mobileRuntime.client.reviews.getBusinessReviews(businessId)
+        : Promise.resolve({ business_id: businessId, summary: { count: 0 }, items: [] }),
     ]);
 
     return {
@@ -83,6 +87,7 @@ export default function BusinessOwnerHomeScreen() {
       guidance,
       coupon: ownerCoupon.coupon,
       correctionCount: corrections.items.length,
+      reviewCount: reviews.summary.count,
       ownerManaged,
     };
   }, [businessId]);
@@ -109,6 +114,7 @@ export default function BusinessOwnerHomeScreen() {
   const guidance = state.data?.guidance;
   const ownerCoupon = state.data?.coupon;
   const correctionCount = state.data?.correctionCount ?? 0;
+  const reviewCount = state.data?.reviewCount ?? 0;
   const ownerManaged = state.data?.ownerManaged ?? false;
   if (!business || !guidance) return null;
 
@@ -215,6 +221,16 @@ export default function BusinessOwnerHomeScreen() {
                 router.push(`/business/manage/${encodeURIComponent(business.id)}/coupons`)
               }
             />
+            {reviewCount > 0 ? (
+              <OwnerCard
+                title="Opiniones verificadas"
+                body={`${reviewCount} ${reviewCount === 1 ? 'opinión vinculada' : 'opiniones vinculadas'} a una atención confirmada. Puedes responder desde aquí.`}
+                badge="RESPONDER"
+                onPress={() =>
+                  router.push(`/business/manage/${encodeURIComponent(business.id)}/reviews`)
+                }
+              />
+            ) : null}
           </>
         ) : null}
         <Text style={{ opacity: 0.66, lineHeight: 20 }}>
