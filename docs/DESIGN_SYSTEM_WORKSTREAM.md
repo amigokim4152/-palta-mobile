@@ -1,13 +1,28 @@
 # PALTA DESIGN SYSTEM WORKSTREAM
 
-Status: ACTIVE
+Status: CENTRAL MAINTENANCE MODE
 Branch: `integration/design-system-v1`
 
 ## Mission
 
-Build and maintain the shared visual/interaction language used by every Palta domain without blocking parallel functional development.
+Maintain the shared visual/interaction language used by every Palta domain without blocking parallel functional development.
 
-This workstream is an implementation bridge. It does not replace the existing Brand Master or PALTA Experience Foundation.
+The initial design-system foundation is sufficiently established. This workstream is now a central maintenance and integration bridge, not a place to continuously redesign Palta or create independent visual concepts.
+
+It does not replace the existing Brand Master or PALTA Experience Foundation.
+
+## Operating mode
+
+Default behavior from this point:
+
+- domain workstreams continue functional development independently
+- production UI consumes shared Palta semantic contracts when available
+- this workstream is reopened for changes when a domain exposes a genuinely reusable UI need, shared interaction/state requirement, missing icon/reaction/character need, or cross-domain inconsistency
+- new shared requirements are solved once here and then reused by affected domains
+- visual exploration that belongs only to one domain does not automatically become a shared Design System rule
+- final brand decisions remain controlled by upstream Brand/Experience sources
+
+Do not continue expanding the Design System for completeness alone. Add only what real Palta product flows require.
 
 ## This workstream owns
 
@@ -140,7 +155,7 @@ Not frozen:
 - final icon geometry
 - stroke/fill policy
 - optical metrics
-- complete SVG/icon assets
+- complete icon assets
 
 Reference: `docs/PALTA_CORE_ICON_SET_V1.md`.
 
@@ -224,7 +239,7 @@ Reference: `docs/CHARACTER_REACTION_BINDING_V1.md`.
 
 ### Gate G onward
 
-Pending representative real-domain integration, native render adapters and cross-domain regression.
+Deferred until representative real-domain integration, native render adapters and cross-domain regression are actually needed by production implementation.
 
 ## Automated guardrails
 
@@ -248,30 +263,26 @@ Pending representative real-domain integration, native render adapters and cross
 
 ## Verification status
 
-- `src/ui` TypeScript contracts: PASS under TypeScript 5.8.3 strict settings before the latest Character/QA expansion; full branch re-verification required after current additions.
-- GitHub branch-wide CI: NOT VERIFIED; no workflow/status run was attached to the Design System commits at review time.
+- `src/ui` TypeScript contracts: PASS under TypeScript 5.8.3 strict settings after Character, Reaction, Living Example, Locale, Accessibility, QA Persona and Platform Adapter additions.
+- GitHub branch-wide CI: NOT VERIFIED; no workflow/status run was attached to the latest Design System commits at review time.
 - real-device UI measurement: NOT VERIFIED.
 - final brand color/font/icon geometry: NOT FROZEN by upstream source, intentionally.
 - final Character/Reaction artwork: NOT FROZEN by upstream source, intentionally.
 
-## First implementation sequence
+## Implementation sequence when native runtime exists
 
-1. Semantic token interfaces — IMPLEMENTED
-2. Typography roles — CANDIDATE IMPLEMENTED
-3. Shared primitive interfaces — IMPLEMENTED
-4. Core action/input/surface contracts — IMPLEMENTED
-5. Header/search/chip/status/trust contracts — REGISTRY READY
-6. BottomSheet/modal/toast/error/empty/loading contracts — REGISTRY READY
-7. Icon meaning registry and canonical mappings — IMPLEMENTED
-8. Home pattern structural prototype — READY
-9. Discovery + Map/Sheet structural prototype — READY
-10. Feed + Thread structural prototype — READY
-11. Character/expression binding — IMPLEMENTED
-12. Accessibility/state/locale QA checklist — IMPLEMENTED
-13. Domain adoption guide — READY
-14. Framework-neutral platform adapter — IMPLEMENTED
-15. Native Expo/React Native shell + adapter — BLOCKED UNTIL RUNTIME SHELL EXISTS
-16. Cross-domain regression — PENDING REAL ADAPTERS
+1. React Native Palta platform adapter
+2. PaltaText / PaltaIcon / PaltaButton / PaltaInput / PaltaSurface
+3. Status / Trust / Empty / Error / Skeleton
+4. BottomSheet / Modal / Toast
+5. Home representative flow
+6. Map + Result Sheet representative flow
+7. Community Feed + Reaction representative flow
+8. ES-CL + KO + Dynamic Text device QA
+9. iOS/Android gesture/safe-area/haptic/reduced-motion QA
+10. cross-domain regression
+
+Do not start this sequence merely to make the Design System look complete. Start it when the actual native runtime shell is available and production screens need it.
 
 ## Design freeze policy
 
@@ -280,6 +291,21 @@ Values such as final brand color codes, official typeface choices, precise icon 
 Before freeze, code should expose semantic interfaces rather than hard-code provisional sampled values.
 
 Implementation candidates such as spacing/radius/elevation/motion metrics may be prototyped centrally, but domain branches may not treat those candidate values as independent domain contracts.
+
+## Maintenance trigger
+
+Return to active Design System implementation when any of the following occurs:
+
+- two or more domains need the same missing UI element or interaction
+- an existing shared component cannot represent a real product state
+- a new trust/freshness/error/loading semantic is needed across domains
+- a missing core icon or Reaction is required
+- Character use exposes a new shared context rule
+- Brand Master freezes a previously provisional value or asset
+- Expo/React Native runtime becomes available
+- cross-domain regression exposes inconsistency
+
+Otherwise, keep this workstream stable and let domain teams build.
 
 ## Completion gate
 
