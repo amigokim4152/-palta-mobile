@@ -94,6 +94,8 @@ export default function BusinessOwnerHomeScreen() {
   const couponExpired = Boolean(
     ownerCoupon?.expires_at && Date.parse(ownerCoupon.expires_at) <= Date.now(),
   );
+  const postCount = business.posts?.length ?? 0;
+  const latestPost = business.posts?.[0];
 
   return (
     <ScreenFrame
@@ -136,19 +138,31 @@ export default function BusinessOwnerHomeScreen() {
           }
         />
         {business.verification_status === 'verified' ? (
-          <OwnerCard
-            title="Cupón básico"
-            body={ownerCoupon
-              ? `${couponExpired ? 'Vencido · ' : ''}${ownerCoupon.title}${ownerCoupon.audience === 'followers' ? ' · Sólo seguidores' : ' · Visible para todos'}`
-              : 'Publica un beneficio simple sin pagar por una campaña, segmentación o automatización.'}
-            badge="SIN COSTO"
-            onPress={() =>
-              router.push(`/business/manage/${encodeURIComponent(business.id)}/coupons`)
-            }
-          />
+          <>
+            <OwnerCard
+              title="Novedades"
+              body={latestPost
+                ? `${postCount} publicada${postCount === 1 ? '' : 's'} · Última: ${latestPost.title}`
+                : 'Publica horarios especiales, disponibilidad o noticias concretas en el mismo perfil del negocio.'}
+              badge="SIN COSTO"
+              onPress={() =>
+                router.push(`/business/manage/${encodeURIComponent(business.id)}/posts`)
+              }
+            />
+            <OwnerCard
+              title="Cupón básico"
+              body={ownerCoupon
+                ? `${couponExpired ? 'Vencido · ' : ''}${ownerCoupon.title}${ownerCoupon.audience === 'followers' ? ' · Sólo seguidores' : ' · Visible para todos'}`
+                : 'Publica un beneficio simple sin pagar por una campaña, segmentación o automatización.'}
+              badge="SIN COSTO"
+              onPress={() =>
+                router.push(`/business/manage/${encodeURIComponent(business.id)}/coupons`)
+              }
+            />
+          </>
         ) : null}
         <Text style={{ opacity: 0.66, lineHeight: 20 }}>
-          Tu presencia básica, la información pública y el descubrimiento orgánico no dependen de contratar un módulo adicional.
+          Tu presencia básica, las novedades, la información pública y el descubrimiento orgánico no dependen de contratar un módulo adicional.
         </Text>
 
         <SectionHeading
