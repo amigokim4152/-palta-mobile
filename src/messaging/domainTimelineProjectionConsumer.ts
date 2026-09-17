@@ -1,7 +1,16 @@
 import type { EventBusPort } from '../events/eventBusPort.js';
 import { parseCanonicalResourceChangeEvent } from '../events/canonicalChangeContract.js';
-import type { ConversationTimelineService } from './conversationTimelineService.js';
+import type {
+  ProjectDomainEventCommand,
+  ProjectDomainEventResult,
+} from './conversationTimelineService.js';
 import type { TimelineRoutingPort } from './timelineRoutingPort.js';
+
+export interface DomainTimelineProjectionPort {
+  projectDomainEvent(
+    command: ProjectDomainEventCommand,
+  ): Promise<ProjectDomainEventResult>;
+}
 
 export interface DomainTimelineProjectionRuntime {
   now(): string;
@@ -15,7 +24,7 @@ export interface DomainTimelineProjectionConsumerSet {
 export async function startDomainTimelineProjectionConsumer(input: {
   eventBus: EventBusPort;
   routing: TimelineRoutingPort;
-  timeline: ConversationTimelineService;
+  timeline: DomainTimelineProjectionPort;
   runtime: DomainTimelineProjectionRuntime;
 }): Promise<DomainTimelineProjectionConsumerSet> {
   const maxTargets = Math.min(100, Math.max(1, Math.trunc(input.runtime.maxTargets ?? 100)));
