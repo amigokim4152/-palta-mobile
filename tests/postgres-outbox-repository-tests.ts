@@ -77,6 +77,37 @@ assert(
   'Claim must persist worker identity and bounded batch size.',
 );
 
+const exactClaimDb = new QueueDatabase([{ rows: [row], rowCount: 1 }]);
+const exactClaim = await new PostgresOutboxRepository(exactClaimDb).claimEvent({
+  eventId: row.id as string,
+  workerId: 'queue-consumer-1',
+  now: '2026-09-17T15:00:00.000Z',
+  leaseExpiresAt: '2026-09-17T15:00:30.000Z',
+});
+assert(
+  exactClaim?.id === row.id,
+  'Queue delivery should claim the exact canonical Outbox ID before side effects.',
+);
+const exactSql = exactClaimDb.queries[0]?.sql.toLowerCase() ?? '';
+assert(
+  exactSql.includes('where id = $1') &&
+    exactSql.includes("status in ('pending', 'retryable_error')") &&
+    exactSql.includes('lease_expires_at <= $3::timestamptz'),
+  'Exact claim must accept due work or an expired lease only.',
+);
+
+const duplicateQueueDb = new QueueDatabase([{ rows: [], rowCount: 0 }]);
+const duplicateQueueClaim = await new PostgresOutboxRepository(duplicateQueueDb).claimEvent({
+  eventId: row.id as string,
+  workerId: 'queue-consumer-2',
+  now: '2026-09-17T15:00:05.000Z',
+  leaseExpiresAt: '2026-09-17T15:00:35.000Z',
+});
+assert(
+  duplicateQueueClaim === null,
+  'Duplicate Queue delivery must become a no-op while another worker owns a live lease.',
+);
+
 const deliveredDb = new QueueDatabase([{ rows: [{ id: row.id }], rowCount: 1 }]);
 const delivered = await new PostgresOutboxRepository(deliveredDb).markDelivered({
   eventId: row.id as string,
