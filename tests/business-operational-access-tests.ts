@@ -55,8 +55,14 @@ assert(
       businessId: baseGrant.businessId,
       capability: 'pos.cash.adjust',
       now,
+    }) &&
+    !canPerformBusinessOperation({
+      grant: baseGrant,
+      businessId: baseGrant.businessId,
+      capability: 'printing.reprint',
+      now,
     }),
-  'Accountant access must not silently become money-moving or Caja authority.',
+  'Accountant access must not silently become money-moving, Caja or physical-reprint authority.',
 );
 assert(
   !canPerformBusinessOperation({
@@ -93,9 +99,10 @@ const cashierCaps = capabilitiesForBusinessRole('cashier');
 assert(
   cashierCaps.includes('payment.initiate') &&
     cashierCaps.includes('fiscal.request') &&
+    cashierCaps.includes('printing.reprint') &&
     !cashierCaps.includes('payment.refund') &&
     !cashierCaps.includes('fiscal.settings.manage'),
-  'Cashier may complete ordinary checkout/fiscal requests without provider/fiscal administration powers.',
+  'Cashier may complete ordinary checkout/fiscal/reprint operations without provider/fiscal administration powers.',
 );
 assert(ACCOUNTANT_IS_NOT_PAYMENT_OPERATOR === true, 'Accountant/payment separation is a frozen invariant.');
 
