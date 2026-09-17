@@ -1,9 +1,12 @@
 import type { MessageActorAuthorizationPort } from './authorizationPort.js';
 import { selfAuthorizesUserActor } from './authorizationPort.js';
+import type { MessageAttachmentAuthorizationPort } from './attachmentAuthorizationPort.js';
 import type {
   ActionReference,
   ActorRef,
   Message,
+  MessageAttachment,
+  MessageAttachmentDraft,
   MessageType,
   OutboxEvent,
   ParticipantState,
@@ -13,6 +16,7 @@ import type { MessagePersistencePort } from './persistencePort.js';
 export interface MessageServiceRuntime {
   nextMessageId(): string;
   nextOutboxEventId(): string;
+  nextAttachmentId?(): string;
 }
 
 export interface SendMessageCommand {
@@ -23,6 +27,7 @@ export interface SendMessageCommand {
   sender: ActorRef;
   type: MessageType;
   body?: string;
+  attachments?: MessageAttachmentDraft[];
   replyToMessageId?: string;
   actionRef?: ActionReference;
   createdAt: string;
@@ -40,6 +45,7 @@ export class MessageServiceError extends Error {
       | 'INVALID_MESSAGE'
       | 'INVALID_CURSOR'
       | 'ACTOR_NOT_AUTHORIZED'
+      | 'ATTACHMENT_NOT_AUTHORIZED'
       | 'NOT_PARTICIPANT'
       | 'CONVERSATION_NOT_FOUND'
       | 'SCOPE_NOT_FOUND'
@@ -59,6 +65,35 @@ function required(value: string, label: string): string {
   return normalized;
 }
 
+function validateAttachment(attachment: MessageAttachmentDraft): void {
+  required(attachment.assetId, 'attachment.assetId');
+  required(attachment.mimeType, 'attachment.mimeType');
+  if (/^[a-z][a-z0-9+.-]*:\/\//i.test(attachment.assetId)) {
+    throw new MessageServiceError(
+      'INVALID_MESSAGE',
+      'Attachment assetId must be provider-neutral and must not be a URL.',
+    );
+  }
+  if (
+    attachment.sizeBytes !== undefined &&
+    (!Number.isInteger(attachment.sizeBytes) || attachment.sizeBytes < 0)
+  ) {
+    throw new MessageServiceError(
+      'INVALID_MESSAGE',
+      'attachment.sizeBytes must be a non-negative integer.',
+    );
+  }
+  if (
+    attachment.durationMs !== undefined &&
+    (!Number.isInteger(attachment.durationMs) || attachment.durationMs < 0)
+  ) {
+    throw new MessageServiceError(
+      'INVALID_MESSAGE',
+      'attachment.durationMs must be a non-negative integer.',
+    );
+  }
+}
+
 function validateContent(command: SendMessageCommand): void {
   required(command.principalUserId, 'principalUserId');
   required(command.conversationId, 'conversationId');
@@ -70,6 +105,43 @@ function validateContent(command: SendMessageCommand): void {
   if (command.body !== undefined && command.body.length > 10_000) {
     throw new MessageServiceError('INVALID_MESSAGE', 'Message body is too long.');
   }
+
+  const attachments = command.attachments ?? [];
+  if (attachments.length > 10) {
+    throw new MessageServiceError(
+      'INVALID_MESSAGE',
+      'A message cannot contain more than 10 attachments.',
+    );
+  }
+  for (const attachment of attachments) validateAttachment(attachment);
+
+  if (command.type === 'voice') {
+    if (attachments.length !== 1 || attachments[0]?.kind !== 'voice') {
+      throw new MessageServiceError(
+        'INVALID_MESSAGE',
+        'Voice message requires exactly one voice attachment.',
+      );
+    }
+  } else if (command.type === 'image') {
+    if (attachments.length < 1 || attachments.some((item) => item.kind !== 'image')) {
+      throw new MessageServiceError(
+        'INVALID_MESSAGE',
+        'Image message requires image attachments only.',
+      );
+    }
+  } else if (command.type === 'file') {
+    if (attachments.length < 1 || attachments.some((item) => item.kind !== 'file')) {
+      throw new MessageServiceError(
+        'INVALID_MESSAGE',
+        'File message requires file attachments only.',
+      );
+    }
+  } else if (attachments.length > 0) {
+    throw new MessageServiceError(
+      'INVALID_MESSAGE',
+      `Message type ${command.type} does not accept attachments.`,
+    );
+  }
 }
 
 export class MessageService {
@@ -77,6 +149,7 @@ export class MessageService {
     private readonly persistence: MessagePersistencePort,
     private readonly actorAuthorization: MessageActorAuthorizationPort,
     private readonly runtime: MessageServiceRuntime,
+    private readonly attachmentAuthorization?: MessageAttachmentAuthorizationPort,
   ) {}
 
   private async assertActorAuthority(
@@ -107,9 +180,52 @@ export class MessageService {
     }
   }
 
+  private async assertAttachmentAuthority(command: SendMessageCommand): Promise<void> {
+    const attachments = command.attachments ?? [];
+    if (attachments.length === 0) return;
+    if (!this.attachmentAuthorization) {
+      throw new MessageServiceError(
+        'ATTACHMENT_NOT_AUTHORIZED',
+        'Attachment authorization is not configured.',
+      );
+    }
+    for (const attachment of attachments) {
+      const allowed = await this.attachmentAuthorization.canAttach({
+        principalUserId: command.principalUserId,
+        actor: command.sender,
+        attachment,
+      });
+      if (!allowed) {
+        throw new MessageServiceError(
+          'ATTACHMENT_NOT_AUTHORIZED',
+          'Authenticated principal cannot attach the requested asset.',
+        );
+      }
+    }
+  }
+
+  private buildAttachments(
+    messageId: string,
+    drafts: MessageAttachmentDraft[],
+  ): MessageAttachment[] {
+    if (drafts.length === 0) return [];
+    if (!this.runtime.nextAttachmentId) {
+      throw new MessageServiceError(
+        'INVALID_MESSAGE',
+        'Attachment ID runtime is not configured.',
+      );
+    }
+    return drafts.map((draft) => ({
+      attachmentId: this.runtime.nextAttachmentId!(),
+      messageId,
+      ...draft,
+    }));
+  }
+
   async send(command: SendMessageCommand): Promise<SendMessageResult> {
     validateContent(command);
     await this.assertActorAuthority(command.principalUserId, command.sender);
+    await this.assertAttachmentAuthority(command);
 
     return this.persistence.transaction(async (tx) => {
       const conversation = await tx.lockConversation(command.conversationId);
@@ -157,8 +273,10 @@ export class MessageService {
       }
 
       const sequence = conversation.lastSequence + 1;
+      const messageId = this.runtime.nextMessageId();
+      const attachments = this.buildAttachments(messageId, command.attachments ?? []);
       const message: Message = {
-        messageId: this.runtime.nextMessageId(),
+        messageId,
         conversationId: command.conversationId,
         ...(command.scopeId !== undefined ? { scopeId: command.scopeId } : {}),
         clientMessageId: command.clientMessageId,
@@ -166,6 +284,7 @@ export class MessageService {
         sequence,
         type: command.type,
         ...(command.body !== undefined ? { body: command.body } : {}),
+        ...(attachments.length > 0 ? { attachments } : {}),
         ...(command.replyToMessageId !== undefined
           ? { replyToMessageId: command.replyToMessageId }
           : {}),
@@ -187,6 +306,7 @@ export class MessageService {
       };
 
       await tx.insertMessage(message);
+      if (attachments.length > 0) await tx.insertAttachments(attachments);
       await tx.updateConversationSequence({
         conversationId: command.conversationId,
         lastSequence: sequence,
