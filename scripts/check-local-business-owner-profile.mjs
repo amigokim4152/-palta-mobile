@@ -4,6 +4,7 @@ import ts from 'typescript';
 
 const root = process.cwd();
 const profilePath = 'mobile-overlay/src/app/business/manage/[businessId]/profile.tsx';
+const servicesPath = 'mobile-overlay/src/app/business/manage/[businessId]/services.tsx';
 const ownerHomePath = 'mobile-overlay/src/app/business/manage/[businessId].tsx';
 const correctionsPath = 'mobile-overlay/src/app/business/manage/[businessId]/corrections.tsx';
 
@@ -58,6 +59,7 @@ function readChecked(relativeFile) {
 }
 
 const profile = readChecked(profilePath);
+const services = readChecked(servicesPath);
 const ownerHome = readChecked(ownerHomePath);
 const corrections = readChecked(correctionsPath);
 
@@ -75,6 +77,24 @@ assert(
   'Basic profile editor must not bypass identity, taxonomy or location contracts.',
 );
 assert(
+  profile.includes('/services') && profile.includes('Servicios'),
+  'Basic profile must link to its separate service taxonomy control.',
+);
+assert(
+  services.includes('mobileRuntime.client.services.getOwnerServices') &&
+  services.includes('mobileRuntime.client.services.updateOwnerServices'),
+  'Service editor must use the dedicated owner services API contract.',
+);
+assert(
+  services.includes('suggestBusinessServices') && services.includes('CHILE_LOCAL_SERVICE_SEED'),
+  'Service editor must reuse the canonical resolver rather than inventing a second category list.',
+);
+assert(
+  services.includes('No se convertirá en una categoría de búsqueda') &&
+  !services.includes('service_labels:'),
+  'Unmatched wording may be retained but must not become canonical search taxonomy from the client.',
+);
+assert(
   ownerHome.includes('/profile') && ownerHome.includes('title="Perfil público"'),
   'Mi negocio must expose the free profile editor.',
 );
@@ -83,4 +103,4 @@ assert(
   'Contact corrections must link to the canonical profile editor before resolution.',
 );
 
-console.log('PASS: Local Business free owner profile source check');
+console.log('PASS: Local Business free owner profile + services source check');
