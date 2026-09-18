@@ -1,4 +1,7 @@
-import { demoRealEstateListings } from './real-estate-demo-fixtures.mjs';
+import {
+  demoRealEstateContexts,
+  demoRealEstateListings,
+} from './real-estate-demo-fixtures.mjs';
 
 function normalize(value) {
   return String(value ?? '')
@@ -67,6 +70,18 @@ export async function handleRealEstateRequest({ req, res, url, json }) {
       generated_at: new Date().toISOString(),
       items: searchRealEstateListings(url),
     });
+    return true;
+  }
+
+  const contextMatch = url.pathname.match(/^\/v1\/real-estate\/properties\/([^/]+)\/context$/);
+  if (contextMatch) {
+    const propertyId = decodeURIComponent(contextMatch[1]);
+    const context = demoRealEstateContexts.find((candidate) => candidate.property_id === propertyId);
+    if (!context) {
+      json(res, 404, { error: 'real_estate_property_context_not_found' });
+      return true;
+    }
+    json(res, 200, context);
     return true;
   }
 
