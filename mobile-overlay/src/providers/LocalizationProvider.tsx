@@ -34,19 +34,10 @@ type LocalizationContextValue = {
 
 const LocalizationContext = createContext<LocalizationContextValue | null>(null);
 
-function deviceLocales(): string[] {
-  try {
-    const locale = Intl.DateTimeFormat().resolvedOptions().locale;
-    return locale ? [locale] : [];
-  } catch {
-    return [];
-  }
-}
-
 export function LocalizationProvider({ children }: { children: ReactNode }) {
   const { state } = useAuthRuntime();
   const [locale, setLocaleState] = useState<PaltaLocale>(() =>
-    resolvePreferredLocale({ deviceLocales: deviceLocales() }),
+    resolvePreferredLocale({}),
   );
   const [loading, setLoading] = useState(true);
   const port = useMemo(() => createLocalePreferencePort(), []);
@@ -69,7 +60,6 @@ export function LocalizationProvider({ children }: { children: ReactNode }) {
             remoteLocale: remote?.preferredLocale,
             remoteExplicit: remote?.explicit,
             localExplicitLocale: localStored,
-            deviceLocales: deviceLocales(),
           });
 
           if (!cancelled) setLocaleState(resolved.locale);
@@ -88,7 +78,6 @@ export function LocalizationProvider({ children }: { children: ReactNode }) {
         const next = resolvePreferredLocale({
           storedLocale: localStored,
           storedLocaleExplicit: Boolean(localStored),
-          deviceLocales: deviceLocales(),
         });
         if (!cancelled) setLocaleState(next);
       } catch {
