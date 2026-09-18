@@ -1,0 +1,45 @@
+{
+  "dataset": "palta_food_menu_corroborations_rm",
+  "observed_at": "2026-09-18",
+  "policy": {
+    "factual_fields_only": true,
+    "collect_images": false,
+    "collect_reviews": false,
+    "collect_ratings": false,
+    "collect_long_descriptions": false
+  },
+  "records": [
+    {
+      "brand_name": "Fritomania de Casa",
+      "menu_scope": "official_brand_product_families_no_current_price",
+      "source": {
+        "kind": "official_website",
+        "url": "https://lafritomania.com/",
+        "observed_at": "2026-09-18"
+      },
+      "items": [
+        {"name": "Pasteles"},
+        {"name": "Patacones"},
+        {"name": "Hamburguesas"},
+        {"name": "Empanadas"},
+        {"name": "Tequeños"}
+      ]
+    },
+    {
+      "outlet_key": "cl-rm-independencia-astoria-av-independencia-565",
+      "menu_scope": "official_brand_menu_names_requires_outlet_price_confirmation",
+      "source": {
+        "kind": "official_website",
+        "url": "https://astoria.cl/Men%C3%BA.html",
+        "observed_at": "2026-09-18"
+      },
+      "items": [
+        {"name": "Promo Churrascos"},
+        {"name": "Promo Lomitos"},
+        {"name": "Promo Vienesa Completa"},
+        {"name": "Completo Romano"},
+        {"name": "Churrasco Italiano"}
+      ]
+    }
+  ]
+}
