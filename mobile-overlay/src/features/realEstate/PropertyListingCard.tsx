@@ -6,8 +6,8 @@ import {
   REAL_ESTATE_PROPERTY_TYPE_LABELS,
   REAL_ESTATE_PUBLISHER_LABELS,
 } from '../../../../src/realEstate/realEstateDiscovery';
+import type { RealEstateListingSearchItem } from '../../../../src/realEstate/realEstateRepository';
 import { paltaTheme } from '../../theme/paltaTheme';
-import type { PropertyListingPreview } from './propertyDemoData';
 
 export function PropertyListingCard({
   item,
@@ -17,7 +17,7 @@ export function PropertyListingCard({
   onPress,
   onToggleSaved,
 }: {
-  item: PropertyListingPreview;
+  item: RealEstateListingSearchItem;
   compact?: boolean;
   selected?: boolean;
   saved?: boolean;
