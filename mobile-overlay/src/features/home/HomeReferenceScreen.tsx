@@ -145,6 +145,8 @@ export function HomeReferenceScreen() {
           items={glanceItems}
           columns={adaptive.layout.columns}
           maxItems={adaptive.layout.maxInitialGlanceItems}
+          accessibilityLabel="Información rápida"
+          formatMoreLabel={(count) => `Ver ${count} más`}
           onMore={() => {}}
         />
 
