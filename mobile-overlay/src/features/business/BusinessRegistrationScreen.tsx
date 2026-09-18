@@ -63,14 +63,16 @@ export function BusinessRegistrationScreen() {
   const businessResults = results.filter((item) => item.entity_type === 'business');
   const selected = businessResults.find((item) => item.entity_id === selectedId);
   const features = useMemo<MapFeature[]>(
-    () => businessResults.map((item) => ({
-      id: item.entity_id,
-      entityType: 'business',
-      coordinate: { latitude: item.location.lat, longitude: item.location.lng },
-      title: item.name,
-      ...(item.category_key ? { categoryKey: item.category_key } : {}),
-      selected: item.entity_id === selectedId,
-    })),
+    () => businessResults
+      .filter((item) => item.location !== undefined)
+      .map((item) => ({
+        id: item.entity_id,
+        entityType: 'business',
+        coordinate: { latitude: item.location!.lat, longitude: item.location!.lng },
+        title: item.name,
+        ...(item.category_key ? { categoryKey: item.category_key } : {}),
+        selected: item.entity_id === selectedId,
+      })),
     [businessResults, selectedId],
   );
 
@@ -141,7 +143,9 @@ export function BusinessRegistrationScreen() {
       setDraft((current) => chooseExistingBusiness(current, {
         businessId: selected.entity_id,
         name: selected.name,
-        location: { lat: selected.location.lat, lng: selected.location.lng },
+        ...(selected.location
+          ? { location: { lat: selected.location.lat, lng: selected.location.lng } }
+          : {}),
         alreadyClaimed: selected.verification_status === 'claimed' || selected.verification_status === 'verified',
       }));
       setMessage(null);
