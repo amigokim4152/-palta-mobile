@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { router } from 'expo-router';
 import { Pressable, Text, TextInput, View } from 'react-native';
 import type { LocalSearchItem } from '../../../../src/api/paltaApiClient';
@@ -112,6 +112,7 @@ function Field({
 }
 
 export function BusinessQuickRegistrationScreen() {
+  const startedAtMs = useRef(Date.now());
   const [step, setStep] = useState<Step>('business');
   const [businessName, setBusinessName] = useState('');
   const [point, setPoint] = useState<Point | null>(null);
@@ -266,6 +267,10 @@ export function BusinessQuickRegistrationScreen() {
     setBusy(true);
     setMessage(null);
     try {
+      const clientElapsedSeconds = Math.max(
+        0,
+        Math.min(3600, Math.round((Date.now() - startedAtMs.current) / 1000)),
+      );
       const result = await submitBusinessQuickRegistration({
         baseUrl: mobileRuntime.apiBaseUrl,
         publicApiKey: mobileRuntime.publicApiKey,
@@ -289,6 +294,7 @@ export function BusinessQuickRegistrationScreen() {
             ...(normalizedPhone ? { phone: normalizedPhone } : {}),
           },
           idempotencyKey: createClientMutationId(Date.now(), Math.random()),
+          clientElapsedSeconds,
         },
       });
 
