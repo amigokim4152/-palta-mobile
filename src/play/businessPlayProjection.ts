@@ -39,8 +39,8 @@ export function projectBusinessExposureToPlay(
     contentKind: exposure.contentKind ?? inferPlayContentKind({
       category: exposure.exposureReason,
       title: exposure.title,
-      venue: exposure.venue,
-      tags: exposure.experienceTags,
+      ...(exposure.venue ? { venue: exposure.venue } : {}),
+      ...(exposure.experienceTags ? { tags: exposure.experienceTags } : {}),
     }),
     title: exposure.title,
     comuna: exposure.comuna,
