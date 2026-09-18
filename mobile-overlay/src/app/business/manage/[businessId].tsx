@@ -91,7 +91,7 @@ export default function BusinessOwnerHomeScreen() {
       business.verification_status === 'verified';
     const verified = business.verification_status === 'verified';
 
-    const [guidance, ownerCoupon, corrections, reviews] = await Promise.all([
+    const [guidance, ownerCoupon, corrections, reviews, quoteInbox] = await Promise.all([
       mobileRuntime.client.getOwnerBusinessGuidance(businessId),
       mobileRuntime.client.getOwnerBusinessBasicCoupon(businessId),
       ownerManaged
@@ -100,6 +100,11 @@ export default function BusinessOwnerHomeScreen() {
       verified
         ? mobileRuntime.client.reviews.getBusinessReviews(businessId)
         : Promise.resolve({ business_id: businessId, summary: { count: 0 }, items: [] }),
+      verified
+        ? mobileRuntime.client.quotes
+            .getBusinessInbox(businessId)
+            .catch(() => ({ business_id: businessId, items: [] }))
+        : Promise.resolve({ business_id: businessId, items: [] }),
     ]);
 
     return {
@@ -108,6 +113,7 @@ export default function BusinessOwnerHomeScreen() {
       coupon: ownerCoupon.coupon,
       correctionCount: corrections.items.length,
       reviewCount: reviews.summary.count,
+      quoteInboxItems: quoteInbox.items,
       ownerManaged,
     };
   }, [businessId]);
@@ -135,6 +141,7 @@ export default function BusinessOwnerHomeScreen() {
   const ownerCoupon = state.data?.coupon;
   const correctionCount = state.data?.correctionCount ?? 0;
   const reviewCount = state.data?.reviewCount ?? 0;
+  const quoteInboxItems = state.data?.quoteInboxItems ?? [];
   const ownerManaged = state.data?.ownerManaged ?? false;
   if (!business || !guidance) return null;
 
@@ -154,6 +161,9 @@ export default function BusinessOwnerHomeScreen() {
   );
   const postCount = business.posts?.length ?? 0;
   const latestPost = business.posts?.[0];
+  const pendingQuoteCount = quoteInboxItems.filter(
+    (item) => item.can_respond && !item.response,
+  ).length;
   const operationalSummary = [
     operationalStateLabel(business.operational_state),
     business.hours_summary,
@@ -174,7 +184,11 @@ export default function BusinessOwnerHomeScreen() {
   const paidSuggestions = guidance.items.filter(
     (item) => item.commercial === 'may_be_paid',
   );
-  const hasAttention = correctionCount > 0 || actionItems.length > 0 || correctionTargets.length > 0;
+  const hasAttention =
+    correctionCount > 0 ||
+    pendingQuoteCount > 0 ||
+    actionItems.length > 0 ||
+    correctionTargets.length > 0;
 
   return (
     <ScreenFrame
@@ -248,6 +262,17 @@ export default function BusinessOwnerHomeScreen() {
             />
           ) : null}
 
+          {pendingQuoteCount > 0 ? (
+            <OwnerPartnerCard
+              eyebrow="Cotizaciones"
+              title={`${pendingQuoteCount} ${pendingQuoteCount === 1 ? 'solicitud espera' : 'solicitudes esperan'} tu respuesta`}
+              body="Son solicitudes reales enviadas a este negocio. Puedes responder con un monto, una nota útil o ambos."
+              badge="RESPONDER"
+              tone="attention"
+              onPress={() => router.push(`/business/manage/${encodeURIComponent(business.id)}/quotes`)}
+            />
+          ) : null}
+
           {actionItems.slice(0, 2).map((item) => {
             const targetKind = guidanceTargetKind(item.target);
             return (
@@ -275,19 +300,29 @@ export default function BusinessOwnerHomeScreen() {
           ) : null}
         </View>
 
-        {reviewCount > 0 ? (
+        {(reviewCount > 0 || (quoteInboxItems.length > 0 && pendingQuoteCount === 0)) ? (
           <View style={{ gap: paltaTheme.spacing.sm }}>
             <SectionHeading
               title="Relación con clientes"
               subtitle="Sólo señales reales que ya existen en Palta, sin métricas inventadas."
             />
-            <OwnerPartnerCard
-              eyebrow="Atención verificada"
-              title={`${reviewCount} ${reviewCount === 1 ? 'opinión' : 'opiniones'} para revisar`}
-              body="Estas opiniones están vinculadas a una atención confirmada. Puedes leerlas y responder desde aquí."
-              badge="RESPONDER"
-              onPress={() => router.push(`/business/manage/${encodeURIComponent(business.id)}/reviews`)}
-            />
+            {reviewCount > 0 ? (
+              <OwnerPartnerCard
+                eyebrow="Atención verificada"
+                title={`${reviewCount} ${reviewCount === 1 ? 'opinión' : 'opiniones'} para revisar`}
+                body="Estas opiniones están vinculadas a una atención confirmada. Puedes leerlas y responder desde aquí."
+                badge="RESPONDER"
+                onPress={() => router.push(`/business/manage/${encodeURIComponent(business.id)}/reviews`)}
+              />
+            ) : null}
+            {quoteInboxItems.length > 0 && pendingQuoteCount === 0 ? (
+              <OwnerPartnerCard
+                eyebrow="Cotizaciones"
+                title={`${quoteInboxItems.length} ${quoteInboxItems.length === 1 ? 'solicitud recibida' : 'solicitudes recibidas'}`}
+                body="No hay una solicitud nueva esperando respuesta. Puedes revisar lo que respondió tu negocio y el estado de cada solicitud."
+                onPress={() => router.push(`/business/manage/${encodeURIComponent(business.id)}/quotes`)}
+              />
+            ) : null}
           </View>
         ) : null}
 
