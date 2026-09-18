@@ -10,8 +10,10 @@ import React, {
 import * as Linking from 'expo-linking';
 
 import type {
+  AuthCapabilities,
   AuthProvider,
   AuthSession,
+  AuthState,
   InteractiveAuthPort,
 } from '../../../src/ports/authPort';
 import { AuthPortError } from '../../../src/ports/authPort';
@@ -26,6 +28,7 @@ type RuntimeState =
 
 type AuthRuntimeContextValue = {
   state: RuntimeState;
+  capabilities: AuthCapabilities | null;
   busy: boolean;
   signInWithOAuth(provider: AuthProvider): Promise<void>;
   signInWithEmail(email: string): Promise<void>;
@@ -48,9 +51,7 @@ function visibleError(error: unknown): RuntimeState {
   };
 }
 
-function toRuntimeState(
-  state: Awaited<ReturnType<InteractiveAuthPort['getState']>>,
-): RuntimeState {
+function toRuntimeState(state: AuthState): RuntimeState {
   if (state.status === 'signed_in') {
     return { status: 'signed_in', session: state.session };
   }
@@ -59,8 +60,13 @@ function toRuntimeState(
     : { status: 'signed_out' };
 }
 
+function hasAnyLoginMethod(capabilities: AuthCapabilities): boolean {
+  return capabilities.apple || capabilities.google || capabilities.email;
+}
+
 export function AuthRuntimeProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<RuntimeState>({ status: 'loading' });
+  const [capabilities, setCapabilities] = useState<AuthCapabilities | null>(null);
   const [busy, setBusy] = useState(false);
 
   const portResult = useMemo(() => {
@@ -71,6 +77,19 @@ export function AuthRuntimeProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const loadCapabilities = useCallback(async () => {
+    if (!portResult.port) throw portResult.error;
+    const next = await portResult.port.getCapabilities();
+    if (!hasAnyLoginMethod(next)) {
+      throw new AuthPortError(
+        'provider_unavailable',
+        '현재 사용할 수 있는 로그인 방식이 없습니다.',
+      );
+    }
+    setCapabilities(next);
+    return next;
+  }, [portResult]);
+
   const restore = useCallback(async () => {
     if (!portResult.port) {
       setState(visibleError(portResult.error));
@@ -79,13 +98,19 @@ export function AuthRuntimeProvider({ children }: { children: ReactNode }) {
     setBusy(true);
     try {
       const authState = await portResult.port.getState();
+      if (authState.status === 'signed_in') {
+        setState(toRuntimeState(authState));
+        void loadCapabilities().catch(() => undefined);
+        return;
+      }
+      await loadCapabilities();
       setState(toRuntimeState(authState));
     } catch (error) {
       setState(visibleError(error));
     } finally {
       setBusy(false);
     }
-  }, [portResult]);
+  }, [loadCapabilities, portResult]);
 
   const handleIncomingUrl = useCallback(
     async (url: string | null) => {
@@ -116,6 +141,13 @@ export function AuthRuntimeProvider({ children }: { children: ReactNode }) {
 
     const unsubscribeAuth = portResult.port.subscribe(
       (authState) => {
+        if (authState.status === 'signed_out') {
+          setState({ status: 'loading' });
+          void loadCapabilities()
+            .then(() => setState({ status: 'signed_out' }))
+            .catch((error) => setState(visibleError(error)));
+          return;
+        }
         setState(toRuntimeState(authState));
       },
       (error) => {
@@ -131,7 +163,7 @@ export function AuthRuntimeProvider({ children }: { children: ReactNode }) {
       unsubscribeAuth();
       linkingSubscription.remove();
     };
-  }, [handleIncomingUrl, portResult, restore]);
+  }, [handleIncomingUrl, loadCapabilities, portResult, restore]);
 
   const signInWithOAuth = useCallback(
     async (provider: AuthProvider) => {
@@ -179,24 +211,34 @@ export function AuthRuntimeProvider({ children }: { children: ReactNode }) {
     setBusy(true);
     try {
       await portResult.port.signOut();
+      await loadCapabilities();
       setState({ status: 'signed_out' });
     } catch (error) {
       setState(visibleError(error));
     } finally {
       setBusy(false);
     }
-  }, [portResult]);
+  }, [loadCapabilities, portResult]);
 
   const value = useMemo<AuthRuntimeContextValue>(
     () => ({
       state,
+      capabilities,
       busy,
       signInWithOAuth,
       signInWithEmail,
       signOut,
       retry: restore,
     }),
-    [busy, restore, signInWithEmail, signInWithOAuth, signOut, state],
+    [
+      busy,
+      capabilities,
+      restore,
+      signInWithEmail,
+      signInWithOAuth,
+      signOut,
+      state,
+    ],
   );
 
   return (
