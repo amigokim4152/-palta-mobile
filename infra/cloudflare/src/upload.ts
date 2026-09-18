@@ -17,12 +17,23 @@ type R2BucketLike = {
     },
   ): Promise<R2MultipartUpload>;
   resumeMultipartUpload(key: string, uploadId: string): R2MultipartUpload;
+  put(
+    key: string,
+    value: ReadableStream | ArrayBuffer | ArrayBufferView | string | Blob,
+    options?: {
+      httpMetadata?: Record<string, string>;
+      customMetadata?: Record<string, string>;
+    },
+  ): Promise<unknown>;
 };
 
 type Env = {
   MAPS: R2BucketLike;
   UPLOAD_TOKEN: string;
 };
+
+const BUSINESS_PREFIX = 'palta/cl/local-business/';
+const MAX_JSON_BYTES = 20 * 1024 * 1024;
 
 function json(value: unknown, status = 200): Response {
   return Response.json(value, { status });
@@ -43,6 +54,15 @@ function requiredHeader(request: Request, name: string): string {
   return value;
 }
 
+function allowedBusinessKey(key: string): boolean {
+  return (
+    key.startsWith(BUSINESS_PREFIX) &&
+    key.endsWith('.json') &&
+    !key.includes('..') &&
+    !key.includes('\\')
+  );
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
@@ -54,6 +74,61 @@ export default {
     if (!authOk(request, env)) return unauthorized();
 
     try {
+      if (url.pathname === '/json' && request.method === 'PUT') {
+        const key = requiredHeader(request, 'x-palta-key');
+        if (!allowedBusinessKey(key)) {
+          return json({ ok: false, error: 'business_json_key_not_allowed' }, 400);
+        }
+
+        const contentLength = Number(request.headers.get('content-length') ?? '0');
+        if (Number.isFinite(contentLength) && contentLength > MAX_JSON_BYTES) {
+          return json({ ok: false, error: 'json_snapshot_too_large' }, 413);
+        }
+
+        const bytes = new Uint8Array(await request.arrayBuffer());
+        if (bytes.byteLength === 0) {
+          return json({ ok: false, error: 'body required' }, 400);
+        }
+        if (bytes.byteLength > MAX_JSON_BYTES) {
+          return json({ ok: false, error: 'json_snapshot_too_large' }, 413);
+        }
+
+        let parsed: unknown;
+        try {
+          parsed = JSON.parse(new TextDecoder().decode(bytes));
+        } catch {
+          return json({ ok: false, error: 'invalid_json' }, 400);
+        }
+        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+          return json({ ok: false, error: 'json_snapshot_must_be_object' }, 400);
+        }
+
+        const sha256 = request.headers.get('x-palta-sha256') ?? undefined;
+        const schemaVersion = request.headers.get('x-palta-schema-version') ?? undefined;
+        await env.MAPS.put(key, bytes, {
+          httpMetadata: {
+            contentType: 'application/json; charset=utf-8',
+            cacheControl: key.includes('/current/')
+              ? 'public, max-age=60, s-maxage=300'
+              : 'public, max-age=31536000, immutable',
+          },
+          customMetadata: {
+            ...(sha256 ? { sha256 } : {}),
+            ...(schemaVersion ? { schemaVersion } : {}),
+            size: String(bytes.byteLength),
+            managedBy: 'palta-local-business-production',
+          },
+        });
+
+        return json({
+          ok: true,
+          key,
+          bytes: bytes.byteLength,
+          ...(sha256 ? { sha256 } : {}),
+          ...(schemaVersion ? { schemaVersion } : {}),
+        });
+      }
+
       if (url.pathname === '/start' && request.method === 'POST') {
         const input = (await request.json()) as {
           key?: string;
