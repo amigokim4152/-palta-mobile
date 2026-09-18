@@ -1,3 +1,4 @@
+import type { PaltaLocale } from '../localization/locales.js';
 import type { BusinessCapability } from '../business/businessActionPolicy.js';
 import type {
   BusinessChannelProvider,
@@ -251,14 +252,25 @@ export class PaltaApiClient {
     return payload as HomeApiResponse;
   }
 
-  async searchLocal(input: { latitude: number; longitude: number; radiusM?: number; query?: string }): Promise<LocalSearchItem[]> {
+  async searchLocal(input: {
+    latitude: number;
+    longitude: number;
+    radiusM?: number;
+    query?: string;
+    locale?: PaltaLocale;
+  }): Promise<LocalSearchItem[]> {
     const params = new URLSearchParams({
       lat: String(input.latitude),
       lng: String(input.longitude),
       radius_m: String(input.radiusM ?? 5000),
     });
     if (input.query) params.set('q', input.query);
-    const payload = expectObject(await this.request(`/v1/local/search?${params.toString()}`), 'GET /v1/local/search');
+    if (input.locale) params.set('locale', input.locale);
+
+    const payload = expectObject(
+      await this.request(`/v1/local/search?${params.toString()}`),
+      'GET /v1/local/search',
+    );
     if (!Array.isArray(payload.items)) throw new Error('GET /v1/local/search payload missing items[]');
     return payload.items as LocalSearchItem[];
   }
@@ -274,9 +286,15 @@ export class PaltaApiClient {
     return result as BusinessFollowedUpdatesApiResponse;
   }
 
-  async getBusiness(businessId: string): Promise<BusinessApiDetail> {
+  async getBusiness(
+    businessId: string,
+    locale?: PaltaLocale,
+  ): Promise<BusinessApiDetail> {
+    const path = `/v1/business/${encodeURIComponent(businessId)}`;
     const result = expectObject(
-      await this.request(`/v1/business/${encodeURIComponent(businessId)}`),
+      await this.request(
+        locale ? `${path}?locale=${encodeURIComponent(locale)}` : path,
+      ),
       'GET /v1/business/{id}',
     );
     if (typeof result.id !== 'string' || typeof result.name !== 'string') {
