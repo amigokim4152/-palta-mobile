@@ -8,16 +8,15 @@ import type {
   CommunityMembershipDecision,
   CommunityMembershipRecordState,
 } from '../../src/community/communityMembershipLifecycle.js';
-import { membershipStateForJoin } from '../../src/community/communityMembershipLifecycle.js';
+import {
+  membershipStateForJoin,
+  transitionCommunityMembership,
+} from '../../src/community/communityMembershipLifecycle.js';
 
 export type SqlQueryResult<Row = Record<string, unknown>> = { rows: Row[] };
 export interface SqlTransaction { query<Row = Record<string, unknown>>(sql: string, params?: readonly unknown[]): Promise<SqlQueryResult<Row>>; }
 export interface SqlPool { transaction<T>(work: (tx: SqlTransaction) => Promise<T>): Promise<T>; }
 function oneOrNull<Row>(result: SqlQueryResult<Row>): Row | null { return result.rows[0] ?? null; }
-
-const ALLOWED_ROLES = new Set<CommunityMemberRole>([
-  'member', 'guardian', 'student', 'teacher', 'staff', 'leader', 'admin',
-]);
 
 class SupabaseCommunityTransaction implements CommunityRepositoryTransaction {
   constructor(private readonly tx: SqlTransaction) {}
@@ -99,12 +98,13 @@ class SupabaseCommunityTransaction implements CommunityRepositoryTransaction {
     const active = await this.tx.query(
       `select id as "membershipId",
               coalesce(nullif(eligibility->>'displayLabel',''), 'Miembro de la comunidad') as "memberLabel",
-              role_key as "roleKey", effective_from as "effectiveFrom"
+              role_key as "roleKey", effective_from as "effectiveFrom",
+              (user_id = $2) as "isSelf"
          from community_membership
         where community_space_id = $1 and state = 'active'
           and (effective_to is null or effective_to > now())
         order by effective_from asc nulls last, created_at asc`,
-      [spaceId],
+      [spaceId, userId],
     );
     return {
       currentRoleKey: actor?.roleKey ?? 'member',
@@ -129,9 +129,7 @@ class SupabaseCommunityTransaction implements CommunityRepositoryTransaction {
       ...(current?.state ? { currentState: current.state } : {}),
     });
 
-    if (current?.state === 'active' || current?.state === 'pending') {
-      return { state: nextState };
-    }
+    if (current?.state === 'active' || current?.state === 'pending') return { state: nextState };
 
     await this.tx.query(
       `insert into community_membership
@@ -160,42 +158,48 @@ class SupabaseCommunityTransaction implements CommunityRepositoryTransaction {
     decision: CommunityMembershipDecision;
     roleKey?: CommunityMemberRole;
   }): Promise<void> {
-    if (input.roleKey && !ALLOWED_ROLES.has(input.roleKey)) {
-      throw new Error('COMMUNITY_MEMBERSHIP_INVALID_ROLE');
-    }
+    const actor = oneOrNull(await this.tx.query<{ roleKey: CommunityMemberRole }>(
+      `select role_key as "roleKey"
+         from community_membership
+        where community_space_id=$1 and user_id=$2 and state='active'
+          and (effective_to is null or effective_to > now())`,
+      [input.spaceId, input.actorUserId],
+    ));
+    if (!actor) throw new Error('COMMUNITY_MEMBERSHIP_MANAGE_FORBIDDEN');
 
-    let result: SqlQueryResult;
-    if (input.decision === 'approve') {
-      if (!input.roleKey) throw new Error('COMMUNITY_MEMBERSHIP_ROLE_REQUIRED');
-      result = await this.tx.query(
-        `update community_membership
-            set state='active', role_key=$1, decided_at=now(), decided_by_user_id=$2,
-                effective_from=coalesce(effective_from,now()), effective_to=null,
-                ended_at=null, end_reason=null, updated_at=now()
-          where id=$3 and community_space_id=$4 and state in ('pending','invited')
-          returning id`,
-        [input.roleKey, input.actorUserId, input.membershipId, input.spaceId],
-      );
-    } else if (input.decision === 'reject') {
-      result = await this.tx.query(
-        `update community_membership
-            set state='rejected', decided_at=now(), decided_by_user_id=$1,
-                effective_to=now(), ended_at=now(), end_reason='rejected', updated_at=now()
-          where id=$2 and community_space_id=$3 and state in ('pending','invited')
-          returning id`,
-        [input.actorUserId, input.membershipId, input.spaceId],
-      );
-    } else {
-      result = await this.tx.query(
-        `update community_membership
-            set state='removed', decided_at=now(), decided_by_user_id=$1,
-                effective_to=now(), ended_at=now(), end_reason='ended_by_manager', updated_at=now()
-          where id=$2 and community_space_id=$3 and state in ('active','suspended')
-          returning id`,
-        [input.actorUserId, input.membershipId, input.spaceId],
-      );
-    }
+    const target = oneOrNull(await this.tx.query<{
+      state: CommunityMembershipRecordState;
+      roleKey: CommunityMemberRole;
+    }>(
+      `select state, role_key as "roleKey"
+         from community_membership
+        where id=$1 and community_space_id=$2`,
+      [input.membershipId, input.spaceId],
+    ));
+    if (!target) throw new Error('COMMUNITY_MEMBERSHIP_INVALID_TRANSITION');
 
+    const nowIso = new Date().toISOString();
+    const transition = transitionCommunityMembership({
+      currentState: target.state,
+      currentRoleKey: target.roleKey,
+      actorRoleKey: actor.roleKey,
+      decision: input.decision,
+      ...(input.roleKey ? { assignedRoleKey: input.roleKey } : {}),
+      nowIso,
+    });
+
+    const result = await this.tx.query(
+      `update community_membership
+          set state=$1, role_key=$2, decided_at=$3::timestamptz, decided_by_user_id=$4,
+              effective_from=case when $1='active' then coalesce(effective_from,$3::timestamptz) else effective_from end,
+              effective_to=case when $1 in ('removed','rejected') then $3::timestamptz else null end,
+              ended_at=case when $1 in ('removed','rejected') then $3::timestamptz else null end,
+              end_reason=case when $1='removed' then 'ended_by_manager' when $1='rejected' then 'rejected' else null end,
+              updated_at=now()
+        where id=$5 and community_space_id=$6 and state=$7
+        returning id`,
+      [transition.state, transition.roleKey, transition.decidedAt, input.actorUserId, input.membershipId, input.spaceId, target.state],
+    );
     if (result.rows.length === 0) throw new Error('COMMUNITY_MEMBERSHIP_INVALID_TRANSITION');
   }
 

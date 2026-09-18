@@ -37,6 +37,15 @@ export function canManageCommunityMemberships(roleKey: CommunityMemberRole): boo
   return MANAGER_ROLES.has(roleKey);
 }
 
+export function canAssignCommunityRole(
+  actorRoleKey: CommunityMemberRole,
+  assignedRoleKey: CommunityMemberRole,
+): boolean {
+  if (actorRoleKey === 'admin') return true;
+  if (actorRoleKey !== 'leader') return false;
+  return assignedRoleKey !== 'leader' && assignedRoleKey !== 'admin';
+}
+
 export function membershipStateForJoin(input: {
   joinPolicy: CommunityJoinPolicy;
   currentState?: CommunityMembershipRecordState;
@@ -75,6 +84,9 @@ export function transitionCommunityMembership(input: {
     }
     if (!input.assignedRoleKey) {
       throw new Error('COMMUNITY_MEMBERSHIP_ROLE_REQUIRED');
+    }
+    if (!canAssignCommunityRole(input.actorRoleKey, input.assignedRoleKey)) {
+      throw new Error('COMMUNITY_MEMBERSHIP_ROLE_ASSIGN_FORBIDDEN');
     }
     return {
       state: 'active',

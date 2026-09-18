@@ -9,9 +9,7 @@ export interface CommunityIdentityResolver {
 }
 
 const MEMBERSHIP_ACTIONS = new Set<CommunityMembershipDecision>(['approve', 'reject', 'end']);
-const MEMBERSHIP_ROLES = new Set<CommunityMemberRole>([
-  'member', 'guardian', 'student', 'teacher', 'staff', 'leader', 'admin',
-]);
+const MEMBERSHIP_ROLES = new Set<CommunityMemberRole>(['member', 'guardian', 'student', 'teacher', 'staff', 'leader', 'admin']);
 
 function json(body: unknown, status = 200): Response {
   return Response.json(body, { status, headers: { 'Cache-Control': 'no-store' } });
@@ -21,9 +19,7 @@ function contextFor(request: Request, identity: CommunityRequestContext['identit
   return {
     identity,
     requestId: request.headers.get('x-request-id') ?? crypto.randomUUID(),
-    ...(request.headers.get('idempotency-key')
-      ? { idempotencyKey: request.headers.get('idempotency-key')! }
-      : {}),
+    ...(request.headers.get('idempotency-key') ? { idempotencyKey: request.headers.get('idempotency-key')! } : {}),
   };
 }
 
@@ -42,9 +38,7 @@ export async function handleCommunityRequest(input: {
   const segments = url.pathname.split('/').filter(Boolean);
 
   try {
-    if (request.method === 'GET' && url.pathname === '/v1/community/tab') {
-      return json(await service.getTab(context));
-    }
+    if (request.method === 'GET' && url.pathname === '/v1/community/tab') return json(await service.getTab(context));
 
     if (segments[0] === 'v1' && segments[1] === 'community' && segments[2] === 'spaces' && segments[3]) {
       const spaceId = decodeURIComponent(segments[3]);
@@ -57,18 +51,12 @@ export async function handleCommunityRequest(input: {
         return new Response(null, { status: 204 });
       }
       if (segments[4] === 'memberships') {
-        if (request.method === 'GET' && segments.length === 5) {
-          return json(await service.getMembershipManagement(context, spaceId));
-        }
+        if (request.method === 'GET' && segments.length === 5) return json(await service.getMembershipManagement(context, spaceId));
         if (request.method === 'PATCH' && segments[5] && segments.length === 6) {
           const membershipId = decodeURIComponent(segments[5]);
           const payload = (await request.json()) as { action?: unknown; roleKey?: unknown };
-          if (typeof payload.action !== 'string' || !MEMBERSHIP_ACTIONS.has(payload.action as CommunityMembershipDecision)) {
-            return json({ error: 'INVALID_MEMBERSHIP_ACTION' }, 400);
-          }
-          if (payload.roleKey !== undefined && (typeof payload.roleKey !== 'string' || !MEMBERSHIP_ROLES.has(payload.roleKey as CommunityMemberRole))) {
-            return json({ error: 'INVALID_MEMBERSHIP_ROLE' }, 400);
-          }
+          if (typeof payload.action !== 'string' || !MEMBERSHIP_ACTIONS.has(payload.action as CommunityMembershipDecision)) return json({ error: 'INVALID_MEMBERSHIP_ACTION' }, 400);
+          if (payload.roleKey !== undefined && (typeof payload.roleKey !== 'string' || !MEMBERSHIP_ROLES.has(payload.roleKey as CommunityMemberRole))) return json({ error: 'INVALID_MEMBERSHIP_ROLE' }, 400);
           const action = payload.action as CommunityMembershipDecision;
           const roleKey = typeof payload.roleKey === 'string' ? payload.roleKey as CommunityMemberRole : undefined;
           if (action === 'approve' && !roleKey) return json({ error: 'MEMBERSHIP_ROLE_REQUIRED' }, 400);
@@ -99,21 +87,11 @@ export async function handleCommunityRequest(input: {
 
     return json({ error: 'NOT_FOUND' }, 404);
   } catch (error) {
-    if (error instanceof Error && error.message === 'IDEMPOTENCY_KEY_OPERATION_CONFLICT') {
-      return json({ error: error.message }, 409);
-    }
-    if (error instanceof Error && error.message === 'COMMUNITY_SPACE_NOT_FOUND') {
-      return json({ error: 'NOT_FOUND' }, 404);
-    }
-    if (error instanceof Error && (error.message === 'COMMUNITY_INVITE_REQUIRED' || error.message === 'COMMUNITY_MEMBERSHIP_BLOCKED' || error.message === 'COMMUNITY_MEMBERSHIP_MANAGE_FORBIDDEN')) {
-      return json({ error: error.message }, 403);
-    }
-    if (error instanceof Error && error.message === 'COMMUNITY_MEMBERSHIP_INVALID_TRANSITION') {
-      return json({ error: error.message }, 409);
-    }
-    if (error instanceof Error && (error.message === 'COMMUNITY_MEMBERSHIP_ROLE_REQUIRED' || error.message === 'COMMUNITY_MEMBERSHIP_INVALID_ROLE')) {
-      return json({ error: error.message }, 400);
-    }
+    if (!(error instanceof Error)) throw error;
+    if (error.message === 'IDEMPOTENCY_KEY_OPERATION_CONFLICT' || error.message === 'COMMUNITY_MEMBERSHIP_INVALID_TRANSITION') return json({ error: error.message }, 409);
+    if (error.message === 'COMMUNITY_SPACE_NOT_FOUND') return json({ error: 'NOT_FOUND' }, 404);
+    if (error.message === 'COMMUNITY_INVITE_REQUIRED' || error.message === 'COMMUNITY_MEMBERSHIP_BLOCKED' || error.message === 'COMMUNITY_MEMBERSHIP_MANAGE_FORBIDDEN' || error.message === 'COMMUNITY_MEMBERSHIP_ROLE_ASSIGN_FORBIDDEN') return json({ error: error.message }, 403);
+    if (error.message === 'COMMUNITY_MEMBERSHIP_ROLE_REQUIRED') return json({ error: error.message }, 400);
     throw error;
   }
 }
