@@ -24,6 +24,14 @@ function refSha(branch) {
   }
 }
 
+function blobSha(ref, repoPath) {
+  try {
+    return git(['rev-parse', `${ref}:${repoPath}`]);
+  } catch {
+    return null;
+  }
+}
+
 function normalizeRepoPath(value) {
   return String(value ?? '').replace(/\\/g, '/').replace(/^\.\//, '').replace(/\/$/, '');
 }
@@ -62,18 +70,33 @@ for (const surface of manifest.surfaces ?? []) {
     surface.integration_mode === 'live_overlay'
       ? surface.ownership_baseline_sha
       : surface.integrated_source_sha;
+  const branchOwnedPaths = surface.branch_owned_paths ?? surface.owned_paths ?? [];
   const changed = changedFiles(ownershipBaseline, current);
   const unowned = changed.filter(
-    (file) => !ownsPath(surface.owned_paths ?? [], file) && !ownsPath(branchMetadataPaths, file),
+    (file) => !ownsPath(branchOwnedPaths, file) && !ownsPath(branchMetadataPaths, file),
   );
 
   if (unowned.length > 0) {
     driftCount += 1;
     console.log(
-      `OWNERSHIP REVIEW REQUIRED: ${surface.id} changed ${unowned.length} path(s) outside its declared surface (${surface.source_branch})`,
+      `OWNERSHIP REVIEW REQUIRED: ${surface.id} changed ${unowned.length} path(s) outside its declared branch ownership (${surface.source_branch})`,
     );
     for (const file of unowned.slice(0, 8)) console.log(`  - ${file}`);
     if (unowned.length > 8) console.log(`  - ... ${unowned.length - 8} more`);
+  }
+
+  for (const rawPath of surface.reviewed_contract_paths ?? []) {
+    const contractPath = normalizeRepoPath(rawPath);
+    const sourceBlob = blobSha(`${remoteName}/${surface.source_branch}`, contractPath);
+    const composedBlob = blobSha('HEAD', contractPath);
+    if (!sourceBlob || !composedBlob || sourceBlob !== composedBlob) {
+      driftCount += 1;
+      console.log(
+        `CONTRACT REVIEW REQUIRED: ${surface.id} ${contractPath} differs from ${surface.source_branch}`,
+      );
+    } else {
+      console.log(`CONTRACT REVIEWED: ${surface.id} ${contractPath}`);
+    }
   }
 
   if (surface.integration_mode === 'live_overlay') {
