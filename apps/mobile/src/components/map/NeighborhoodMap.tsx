@@ -37,6 +37,151 @@ const SELECTION_PADDING = {
   left: 24,
 } as const;
 
+const CATEGORY_MARKER_LABEL = [
+  'match',
+  ['get', 'categoryKey'],
+  'auto_repair',
+  '⚙',
+  'home_repair',
+  '⚒',
+  'pharmacy',
+  '✚',
+  'clinic',
+  '✚',
+  'cesfam',
+  '✚',
+  'hospital',
+  '✚',
+  'restaurant',
+  '🍴',
+  'cafe',
+  '☕',
+  'bakery',
+  '🍞',
+  'grocery',
+  '🛒',
+  'supermarket',
+  '🛒',
+  'feria',
+  '🛒',
+  'pet',
+  '🐾',
+  'veterinary',
+  '🐾',
+  'school',
+  '✎',
+  'education',
+  '✎',
+  'university',
+  '✎',
+  'hotel',
+  '⌂',
+  'beauty',
+  '✂',
+  'barber',
+  '✂',
+  'municipality',
+  '⚑',
+  'townhall',
+  '⚑',
+  'metro',
+  'Ⓜ',
+  'metro_station',
+  'Ⓜ',
+  'station',
+  '↔',
+  'bus_stop',
+  '↔',
+  'public_transport',
+  '↔',
+  'fuel',
+  '⛽',
+  'police',
+  '⚑',
+  'fire_station',
+  '✦',
+  'park',
+  '♣',
+  'plaza',
+  '♣',
+  'service',
+  '•',
+  '•',
+] as const;
+
+const ENTITY_MARKER_COLOR = [
+  'case',
+  ['==', ['get', 'selected'], true],
+  paltaTheme.color.brandFresh,
+  [
+    'match',
+    ['get', 'entityType'],
+    'business',
+    paltaTheme.color.brandPrimary,
+    'public_service',
+    paltaTheme.color.info,
+    'event',
+    '#A96414',
+    'place',
+    '#59655E',
+    paltaTheme.color.brandPrimary,
+  ],
+] as const;
+
+const OPERATIONAL_OPACITY = [
+  'match',
+  ['get', 'operationalState'],
+  ['closed_now', 'closed', 'temporarily_closed'],
+  0.56,
+  0.98,
+] as const;
+
+const TIER_VISIBILITY = [
+  'case',
+  ['==', ['get', 'selected'], true],
+  1,
+  ['==', ['get', 'markerTier'], 'anchor'],
+  ['step', ['zoom'], 0, 12.4, 1],
+  ['==', ['get', 'markerTier'], 'local'],
+  ['step', ['zoom'], 0, 13.6, 1],
+  ['step', ['zoom'], 0, 14.6, 1],
+] as const;
+
+const MARKER_OPACITY = ['*', OPERATIONAL_OPACITY, TIER_VISIBILITY] as const;
+
+const MARKER_OUTER_RADIUS = [
+  'case',
+  ['==', ['get', 'selected'], true],
+  16,
+  ['==', ['get', 'markerTier'], 'anchor'],
+  ['step', ['zoom'], 0, 12.4, 12],
+  ['==', ['get', 'markerTier'], 'local'],
+  ['step', ['zoom'], 0, 13.6, 11.5],
+  ['step', ['zoom'], 0, 14.6, 11],
+] as const;
+
+const MARKER_INNER_RADIUS = [
+  'case',
+  ['==', ['get', 'selected'], true],
+  11,
+  ['==', ['get', 'markerTier'], 'anchor'],
+  ['step', ['zoom'], 0, 12.4, 8.5],
+  ['==', ['get', 'markerTier'], 'local'],
+  ['step', ['zoom'], 0, 13.6, 8],
+  ['step', ['zoom'], 0, 14.6, 7.5],
+] as const;
+
+const MARKER_TEXT_SIZE = [
+  'case',
+  ['==', ['get', 'selected'], true],
+  11.5,
+  ['==', ['get', 'markerTier'], 'anchor'],
+  ['step', ['zoom'], 0, 12.4, 9.5],
+  ['==', ['get', 'markerTier'], 'local'],
+  ['step', ['zoom'], 0, 13.6, 9.2],
+  ['step', ['zoom'], 0, 14.6, 9],
+] as const;
+
 export function NeighborhoodMap({
   mapStyle,
   features,
@@ -101,7 +246,7 @@ export function NeighborhoodMap({
           data={data}
           cluster
           clusterRadius={46}
-          clusterMaxZoom={15}
+          clusterMaxZoom={13}
           onPress={(event) => {
             const feature = event.nativeEvent.features?.[0];
             if (!feature) return;
@@ -149,13 +294,8 @@ export function NeighborhoodMap({
             filter={['!', ['has', 'point_count']]}
             paint={{
               'circle-color': '#FFFFFF',
-              'circle-radius': [
-                'case',
-                ['==', ['get', 'selected'], true],
-                16,
-                12,
-              ],
-              'circle-opacity': 0.98,
+              'circle-radius': MARKER_OUTER_RADIUS,
+              'circle-opacity': TIER_VISIBILITY,
               'circle-stroke-color': 'rgba(24,32,27,0.08)',
               'circle-stroke-width': 1,
             }}
@@ -165,39 +305,11 @@ export function NeighborhoodMap({
             type="circle"
             filter={['!', ['has', 'point_count']]}
             paint={{
-              'circle-color': [
-                'case',
-                ['==', ['get', 'selected'], true],
-                paltaTheme.color.brandFresh,
-                [
-                  'match',
-                  ['get', 'entityType'],
-                  'business',
-                  paltaTheme.color.brandPrimary,
-                  'public_service',
-                  paltaTheme.color.info,
-                  'event',
-                  '#A96414',
-                  'place',
-                  '#59655E',
-                  paltaTheme.color.brandPrimary,
-                ],
-              ],
-              'circle-radius': [
-                'case',
-                ['==', ['get', 'selected'], true],
-                11,
-                8.5,
-              ],
+              'circle-color': ENTITY_MARKER_COLOR,
+              'circle-radius': MARKER_INNER_RADIUS,
               'circle-stroke-color': '#FFFFFF',
               'circle-stroke-width': 1.4,
-              'circle-opacity': [
-                'match',
-                ['get', 'operationalState'],
-                ['closed_now', 'closed', 'temporarily_closed'],
-                0.56,
-                0.98,
-              ],
+              'circle-opacity': MARKER_OPACITY,
             }}
           />
           <Layer
@@ -205,70 +317,21 @@ export function NeighborhoodMap({
             type="symbol"
             filter={['!', ['has', 'point_count']]}
             layout={{
-              'text-field': [
-                'match',
-                ['get', 'categoryKey'],
-                'auto_repair',
-                '⚙',
-                'pharmacy',
-                '✚',
-                'clinic',
-                '✚',
-                'hospital',
-                '✚',
-                'restaurant',
-                '🍴',
-                'cafe',
-                '☕',
-                'bakery',
-                '🍞',
-                'grocery',
-                '🛒',
-                'supermarket',
-                '🛒',
-                'pet',
-                '🐾',
-                'veterinary',
-                '🐾',
-                'school',
-                '✎',
-                'education',
-                '✎',
-                'hotel',
-                '⌂',
-                'beauty',
-                '✂',
-                'barber',
-                '✂',
-                'service',
-                '•',
-                '•',
-              ],
+              'text-field': CATEGORY_MARKER_LABEL,
               'text-font': ['Noto Sans Symbols 2'],
-              'text-size': [
-                'case',
-                ['==', ['get', 'selected'], true],
-                11.5,
-                9.5,
-              ],
+              'text-size': MARKER_TEXT_SIZE,
               'text-allow-overlap': true,
               'text-ignore-placement': true,
             }}
             paint={{
               'text-color': '#FFFFFF',
-              'text-opacity': [
-                'match',
-                ['get', 'operationalState'],
-                ['closed_now', 'closed', 'temporarily_closed'],
-                0.56,
-                0.98,
-              ],
+              'text-opacity': MARKER_OPACITY,
             }}
           />
           <Layer
             id="palta-local-verified-mark"
             type="symbol"
-            minzoom={14}
+            minzoom={13.6}
             filter={[
               'all',
               ['!', ['has', 'point_count']],
@@ -286,6 +349,7 @@ export function NeighborhoodMap({
               'text-color': paltaTheme.color.brandFresh,
               'text-halo-color': '#FFFFFF',
               'text-halo-width': 2,
+              'text-opacity': TIER_VISIBILITY,
             }}
           />
           <Layer
