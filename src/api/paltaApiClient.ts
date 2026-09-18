@@ -37,6 +37,7 @@ export type HomeApiResponse = {
 export type LocalSearchItem = {
   entity_id: string;
   entity_type: 'place' | 'business' | 'public_service' | 'event';
+  entity_type_label?: string;
   name: string;
   category_key?: string;
   category_label?: string;
