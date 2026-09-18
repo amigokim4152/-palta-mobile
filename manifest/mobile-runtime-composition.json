@@ -145,6 +145,8 @@
       "reviewed_contract_paths": [
         "src/play/playDiscovery.ts",
         "src/play/playContentTaxonomy.ts",
+        "src/play/businessPlayProjection.ts",
+        "src/play/municipalEventProjection.ts",
         "src/play/playFeedComposer.ts",
         "src/play/contextSpacePolicy.ts"
       ]
