@@ -41,7 +41,7 @@ function projectItem(item: HomeFunctionalItem): HomeApiItem {
     projected.action_kind = item.action.kind;
   }
 
-  if (item.source.domain === 'care' && item.action?.target.startsWith('/care/')) {
+  if (item.action?.kind === 'internal' && item.action.target.startsWith('/care/')) {
     projected.care_track_id = decodeURIComponent(item.action.target.slice('/care/'.length));
   }
   if (item.subject?.id) projected.related_entity_id = item.subject.id;
