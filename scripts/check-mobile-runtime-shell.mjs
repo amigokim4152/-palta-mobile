@@ -38,7 +38,7 @@ assert(
   'Mobile overlay sync must support live watch mode for simulator Fast Refresh.',
 );
 assert(
-  iosRunnerSource.includes('sync-mobile-runtime.mjs\" --watch') ||
+  iosRunnerSource.includes('sync-mobile-runtime.mjs\\\" --watch') ||
     iosRunnerSource.includes('sync-mobile-runtime.mjs" --watch'),
   'iOS runner must keep mobile-overlay synchronized while Expo is running.',
 );
@@ -68,9 +68,19 @@ assert(
   'Generated Negocios tab must use the canonical BusinessDiscoveryExperience.',
 );
 assert(
-  discoverySource.includes("useState<'list' | 'map'>('list')") &&
-    discoverySource.includes('<ViewModeSwitch value={viewMode}'),
-  'Generated Negocios runtime must open in the list-first production experience with map available as a peer view.',
+  discoverySource.includes('<NeighborhoodMap') &&
+    discoverySource.includes('<MapResultSheet') &&
+    discoverySource.includes('Buscar en esta zona') &&
+    discoverySource.includes("position: 'absolute', top: 0, right: 0, bottom: 0, left: 0") &&
+    !discoverySource.includes("useState<'list' | 'map'>"),
+  'Generated Negocios runtime must remain the full-map production experience with an edge-to-edge result sheet.',
+);
+assert(
+  discoverySource.includes('preview: readLocalBusinessDiscoveryPreview(item)') &&
+    discoverySource.includes('imageUrl={item.preview.photoUrl}') &&
+    discoverySource.includes('highlight={item.preview.highlight?.label}') &&
+    !discoverySource.includes('function discoveryVisual'),
+  'Generated Negocios runtime must consume the bounded canonical discovery preview instead of parsing transport fields in the screen.',
 );
 
-console.log('PASS: runnable Expo shell materializes current Local Business UI with live simulator sync');
+console.log('PASS: runnable Expo shell materializes current map-first Local Business UI with live simulator sync');
