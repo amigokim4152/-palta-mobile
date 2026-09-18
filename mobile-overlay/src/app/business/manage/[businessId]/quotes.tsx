@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import { useLocalSearchParams } from 'expo-router';
 import { Pressable, Text, TextInput, View } from 'react-native';
-import type { BusinessQuoteInboxItem } from '../../../../../src/api/businessQuotesApiClient';
+import type { BusinessQuoteInboxItem } from '../../../../../../src/api/businessQuotesApiClient';
 import { EmptyState, ErrorState, LoadingState } from '../../../../components/AsyncStateBlock';
 import { ScreenFrame } from '../../../../components/ScreenFrame';
 import { useAsyncResource } from '../../../../hooks/useAsyncResource';
