@@ -83,7 +83,10 @@
         "comuna": "San Bernardo",
         "region": "Región Metropolitana",
         "postal_code": "8050000",
-        "identity_status": "platform_only"
+        "public_contact": {
+          "phone": "+56229952486"
+        },
+        "identity_status": "corroborated"
       },
       "listing": {
         "platform": "uber_eats",
@@ -107,7 +110,9 @@
         ]
       },
       "evidence": [
-        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/el-cacique-san-bernardo/4AqO5XYLVSiFxDHqwD96TA", "observed_at": "2026-09-18"}
+        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/el-cacique-san-bernardo/4AqO5XYLVSiFxDHqwD96TA", "observed_at": "2026-09-18"},
+        {"kind": "other_public_source", "url": "https://www.tumenuya.com/elcaciquesanbernardo", "observed_at": "2026-09-18"},
+        {"kind": "other_public_source", "url": "https://www.restaurants10.com/CL/Santiago/230674644071064/Restaurant-El-Cacique---San-Bernardo", "observed_at": "2026-09-18"}
       ]
     },
     {
@@ -155,7 +160,11 @@
         "comuna": "Puente Alto",
         "region": "Región Metropolitana",
         "postal_code": "8220627",
-        "identity_status": "platform_only"
+        "public_contact": {
+          "phone": "+56982269273",
+          "website": "https://www.merakisushi.cl/locales/"
+        },
+        "identity_status": "verified"
       },
       "listing": {
         "platform": "uber_eats",
@@ -175,7 +184,8 @@
         ]
       },
       "evidence": [
-        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/meraki-sushi-puente-alto/pW-8yvgpUtiAgJHQ1buKqQ", "observed_at": "2026-09-18"}
+        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/meraki-sushi-puente-alto/pW-8yvgpUtiAgJHQ1buKqQ", "observed_at": "2026-09-18"},
+        {"kind": "official_website", "url": "https://www.merakisushi.cl/locales/", "observed_at": "2026-09-18"}
       ]
     },
     {
