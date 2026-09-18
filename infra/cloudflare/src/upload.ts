@@ -45,9 +45,13 @@ function requiredHeader(request: Request, name: string): string {
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
-    if (!authOk(request, env)) return unauthorized();
-
     const url = new URL(request.url);
+
+    if (url.pathname === '/health' && request.method === 'GET') {
+      return json({ ok: true, service: 'palta-map-uploader' });
+    }
+
+    if (!authOk(request, env)) return unauthorized();
 
     try {
       if (url.pathname === '/start' && request.method === 'POST') {
@@ -112,12 +116,13 @@ export default {
         return json({ ok: true });
       }
 
-      return json({ ok: false, error: 'not found' }, 404);
+      return json({ ok: false, error: 'not found', path: url.pathname }, 404);
     } catch (error) {
       return json(
         {
           ok: false,
           error: error instanceof Error ? error.message : 'upload error',
+          path: url.pathname,
         },
         500,
       );
