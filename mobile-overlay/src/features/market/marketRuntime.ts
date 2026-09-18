@@ -2,6 +2,8 @@ import type {
   MarketMutationPort,
   MarketReadPort,
 } from '../../../../src/market/marketApiContract';
+import type { MarketMessageIntent } from '../../../../src/market/marketMessageIntent';
+import type { MarketLocationSummary } from '../../../../src/market/marketPersistenceContract';
 import { createMarketDevelopmentRuntime } from './marketRuntimeDevelopment';
 
 export type MarketRuntimeMode =
@@ -13,6 +15,15 @@ export type MarketRuntime = {
   mode: MarketRuntimeMode;
   read?: MarketReadPort;
   mutation?: MarketMutationPort;
+  /** Coarse public area supplied by shared Location Core; never exact coordinates. */
+  publicArea?: MarketLocationSummary;
+  /** Shared Media Core picker/uploader returns already-owned asset ids. */
+  selectListingMedia?: (input: {
+    currentAssetIds: readonly string[];
+    maxAssets: number;
+  }) => Promise<string[]>;
+  /** Shared Message Core consumes the canonical Mercado handoff intent. */
+  openMessageIntent?: (intent: MarketMessageIntent) => Promise<void>;
   resolveMediaAssetUrl: (mediaAssetId: string) => string | undefined;
   unavailableReason?: string;
 };
