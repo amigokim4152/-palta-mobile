@@ -1,8 +1,11 @@
+import { useRef } from 'react';
 import {
   Camera,
   GeoJSONSource,
   Layer,
   Map,
+  type CameraRef,
+  type GeoJSONSourceRef,
 } from '@maplibre/maplibre-react-native';
 import type { MapFeature } from '../../../../../src/adapters/mapCore';
 import { toPointFeatureCollection } from '../../../../../src/map/mapFeatureCollection';
@@ -24,6 +27,13 @@ type Props = {
   ) => void;
 };
 
+const SELECTION_PADDING = {
+  top: 28,
+  right: 24,
+  bottom: 176,
+  left: 24,
+} as const;
+
 export function NeighborhoodMap({
   mapStyle,
   features,
@@ -32,6 +42,8 @@ export function NeighborhoodMap({
   onSelectEntity,
   onViewportChanged,
 }: Props) {
+  const cameraRef = useRef<CameraRef>(null);
+  const sourceRef = useRef<GeoJSONSourceRef>(null);
   const data = toPointFeatureCollection(features);
 
   return (
@@ -48,6 +60,7 @@ export function NeighborhoodMap({
       }}
     >
       <Camera
+        ref={cameraRef}
         initialViewState={{
           center: [initialCenter.longitude, initialCenter.latitude],
           zoom: initialZoom,
@@ -55,14 +68,49 @@ export function NeighborhoodMap({
       />
 
       <GeoJSONSource
+        ref={sourceRef}
         id="palta-local-entities"
         data={data}
         cluster
         clusterRadius={46}
+        clusterMaxZoom={15}
         onPress={(event) => {
           const feature = event.nativeEvent.features?.[0];
-          const entityId = feature?.properties?.entityId;
-          if (typeof entityId === 'string') {
+          if (!feature) return;
+
+          const clusterId = feature.properties?.cluster_id;
+          if (
+            typeof clusterId === 'number' &&
+            feature.geometry?.type === 'Point' &&
+            Array.isArray(feature.geometry.coordinates)
+          ) {
+            const coordinates = feature.geometry.coordinates;
+            void sourceRef.current
+              ?.getClusterExpansionZoom(clusterId)
+              .then((zoom) => {
+                cameraRef.current?.easeTo({
+                  center: [Number(coordinates[0]), Number(coordinates[1])],
+                  zoom,
+                  duration: 220,
+                  easing: 'ease',
+                });
+              });
+            return;
+          }
+
+          const entityId = feature.properties?.entityId;
+          if (
+            typeof entityId === 'string' &&
+            feature.geometry?.type === 'Point' &&
+            Array.isArray(feature.geometry.coordinates)
+          ) {
+            const coordinates = feature.geometry.coordinates;
+            cameraRef.current?.easeTo({
+              center: [Number(coordinates[0]), Number(coordinates[1])],
+              padding: SELECTION_PADDING,
+              duration: 180,
+              easing: 'ease',
+            });
             onSelectEntity?.(entityId);
           }
         }}
@@ -76,8 +124,8 @@ export function NeighborhoodMap({
             'circle-radius': [
               'case',
               ['==', ['get', 'selected'], true],
-              12,
-              10,
+              14,
+              11,
             ],
             'circle-opacity': 0.96,
           }}
@@ -96,8 +144,8 @@ export function NeighborhoodMap({
             'circle-radius': [
               'case',
               ['==', ['get', 'selected'], true],
-              8,
-              6.5,
+              9,
+              7,
             ],
             'circle-stroke-color': '#FFFFFF',
             'circle-stroke-width': 1.5,
@@ -112,11 +160,11 @@ export function NeighborhoodMap({
             'circle-radius': [
               'step',
               ['get', 'point_count'],
-              16,
+              17,
               10,
-              20,
+              21,
               50,
-              24,
+              25,
             ],
             'circle-opacity': 0.96,
           }}
@@ -130,11 +178,11 @@ export function NeighborhoodMap({
             'circle-radius': [
               'step',
               ['get', 'point_count'],
-              12,
+              13,
               10,
-              16,
+              17,
               50,
-              20,
+              21,
             ],
             'circle-stroke-color': '#FFFFFF',
             'circle-stroke-width': 1.5,
