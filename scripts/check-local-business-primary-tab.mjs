@@ -5,6 +5,7 @@ import ts from 'typescript';
 const root = process.cwd();
 const tabLayoutPath = path.join(root, 'mobile-overlay/src/app/(tabs)/_layout.tsx');
 const tabRoutePath = path.join(root, 'mobile-overlay/src/app/(tabs)/businesses.tsx');
+const neighborhoodCompatibilityPath = path.join(root, 'mobile-overlay/src/app/(tabs)/neighborhood.tsx');
 const legacyRoutePath = path.join(root, 'mobile-overlay/src/app/local-businesses/index.tsx');
 const discoveryPath = path.join(root, 'mobile-overlay/src/features/business/BusinessDiscoveryExperience.tsx');
 const manifestPath = path.join(root, 'manifest/app-route-manifest.json');
@@ -37,6 +38,7 @@ function parseTsx(file) {
 
 const layout = parseTsx(tabLayoutPath);
 const route = parseTsx(tabRoutePath);
+const neighborhoodCompatibility = parseTsx(neighborhoodCompatibilityPath);
 const legacyRoute = parseTsx(legacyRoutePath);
 const discovery = parseTsx(discoveryPath);
 
@@ -64,6 +66,11 @@ assert(
 assert(
   route.includes('BusinessVerticalHandoffBar'),
   'Negocios primary tab must expose independent vertical handoffs without moving their inventory state into Local Business.',
+);
+assert(
+  neighborhoodCompatibility.includes('BusinessDiscoveryExperience') &&
+    neighborhoodCompatibility.includes('BusinessVerticalHandoffBar'),
+  'Barrio/neighborhood compatibility route must preserve the same canonical discovery and Autos/Propiedades vertical handoffs.',
 );
 
 assert(
