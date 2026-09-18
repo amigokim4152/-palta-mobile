@@ -37,6 +37,73 @@ const SELECTION_PADDING = {
   left: 24,
 } as const;
 
+const CATEGORY_MARKER_LABEL = [
+  'match',
+  ['get', 'categoryKey'],
+  'auto_repair',
+  'T',
+  'pharmacy',
+  'F',
+  'clinic',
+  '+',
+  'hospital',
+  '+',
+  'restaurant',
+  'R',
+  'cafe',
+  'C',
+  'bakery',
+  'P',
+  'grocery',
+  'M',
+  'supermarket',
+  'M',
+  'pet',
+  'P',
+  'veterinary',
+  'V',
+  'school',
+  'E',
+  'education',
+  'E',
+  'hotel',
+  'H',
+  'beauty',
+  'B',
+  'barber',
+  'B',
+  'service',
+  'S',
+  '',
+] as const;
+
+const ENTITY_MARKER_COLOR = [
+  'case',
+  ['==', ['get', 'selected'], true],
+  paltaTheme.color.brandFresh,
+  [
+    'match',
+    ['get', 'entityType'],
+    'business',
+    paltaTheme.color.brandPrimary,
+    'public_service',
+    paltaTheme.color.info,
+    'event',
+    '#A96414',
+    'place',
+    '#59655E',
+    paltaTheme.color.brandPrimary,
+  ],
+] as const;
+
+const OPERATIONAL_OPACITY = [
+  'match',
+  ['get', 'operationalState'],
+  ['closed_now', 'closed', 'temporarily_closed'],
+  0.56,
+  0.98,
+] as const;
+
 export function NeighborhoodMap({
   mapStyle,
   features,
@@ -152,10 +219,12 @@ export function NeighborhoodMap({
               'circle-radius': [
                 'case',
                 ['==', ['get', 'selected'], true],
-                14,
-                11,
+                16,
+                12,
               ],
-              'circle-opacity': 0.96,
+              'circle-opacity': 0.98,
+              'circle-stroke-color': 'rgba(24,32,27,0.08)',
+              'circle-stroke-width': 1,
             }}
           />
           <Layer
@@ -163,20 +232,85 @@ export function NeighborhoodMap({
             type="circle"
             filter={['!', ['has', 'point_count']]}
             paint={{
-              'circle-color': [
-                'case',
-                ['==', ['get', 'selected'], true],
-                paltaTheme.color.brandFresh,
-                paltaTheme.color.brandPrimary,
-              ],
+              'circle-color': ENTITY_MARKER_COLOR,
               'circle-radius': [
                 'case',
                 ['==', ['get', 'selected'], true],
-                9,
-                7,
+                11,
+                8.5,
               ],
               'circle-stroke-color': '#FFFFFF',
-              'circle-stroke-width': 1.5,
+              'circle-stroke-width': 1.4,
+              'circle-opacity': OPERATIONAL_OPACITY,
+            }}
+          />
+          <Layer
+            id="palta-local-category-mark"
+            type="symbol"
+            filter={['!', ['has', 'point_count']]}
+            layout={{
+              'text-field': CATEGORY_MARKER_LABEL,
+              'text-font': ['Noto Sans'],
+              'text-size': [
+                'case',
+                ['==', ['get', 'selected'], true],
+                11,
+                9,
+              ],
+              'text-allow-overlap': true,
+              'text-ignore-placement': true,
+            }}
+            paint={{
+              'text-color': '#FFFFFF',
+              'text-opacity': OPERATIONAL_OPACITY,
+            }}
+          />
+          <Layer
+            id="palta-local-verified-mark"
+            type="symbol"
+            minzoom={14}
+            filter={[
+              'all',
+              ['!', ['has', 'point_count']],
+              ['==', ['get', 'verificationStatus'], 'verified'],
+            ]}
+            layout={{
+              'text-field': '✓',
+              'text-font': ['Noto Sans'],
+              'text-size': 10,
+              'text-offset': [0.85, -0.85],
+              'text-allow-overlap': true,
+              'text-ignore-placement': true,
+            }}
+            paint={{
+              'text-color': paltaTheme.color.brandFresh,
+              'text-halo-color': '#FFFFFF',
+              'text-halo-width': 2,
+            }}
+          />
+          <Layer
+            id="palta-local-selected-label"
+            type="symbol"
+            filter={[
+              'all',
+              ['!', ['has', 'point_count']],
+              ['==', ['get', 'selected'], true],
+            ]}
+            layout={{
+              'text-field': ['get', 'title'],
+              'text-font': ['Noto Sans'],
+              'text-size': 12,
+              'text-offset': [0, -1.7],
+              'text-anchor': 'bottom',
+              'text-max-width': 12,
+              'text-padding': 4,
+              'text-optional': true,
+            }}
+            paint={{
+              'text-color': paltaTheme.color.textPrimary,
+              'text-halo-color': '#FFFFFF',
+              'text-halo-width': 2.4,
+              'text-halo-blur': 0.4,
             }}
           />
           <Layer
@@ -188,13 +322,13 @@ export function NeighborhoodMap({
               'circle-radius': [
                 'step',
                 ['get', 'point_count'],
-                17,
+                18,
                 10,
-                21,
+                22,
                 50,
-                25,
+                26,
               ],
-              'circle-opacity': 0.96,
+              'circle-opacity': 0.98,
             }}
           />
           <Layer
@@ -206,15 +340,30 @@ export function NeighborhoodMap({
               'circle-radius': [
                 'step',
                 ['get', 'point_count'],
-                13,
+                14,
                 10,
-                17,
+                18,
                 50,
-                21,
+                22,
               ],
               'circle-stroke-color': '#FFFFFF',
               'circle-stroke-width': 1.5,
               'circle-opacity': 0.96,
+            }}
+          />
+          <Layer
+            id="palta-local-cluster-count"
+            type="symbol"
+            filter={['has', 'point_count']}
+            layout={{
+              'text-field': ['get', 'point_count_abbreviated'],
+              'text-font': ['Noto Sans'],
+              'text-size': 11,
+              'text-allow-overlap': true,
+              'text-ignore-placement': true,
+            }}
+            paint={{
+              'text-color': '#FFFFFF',
             }}
           />
         </GeoJSONSource>
@@ -226,7 +375,7 @@ export function NeighborhoodMap({
             paint={{
               'circle-color': '#FFFFFF',
               'circle-radius': 12,
-              'circle-opacity': 0.98,
+              'circle-opacity': 0.99,
               'circle-stroke-color': '#D8E5F2',
               'circle-stroke-width': 1,
             }}
@@ -246,24 +395,56 @@ export function NeighborhoodMap({
 
       <Pressable
         accessibilityRole="button"
+        accessibilityLabel="Volver a mi ubicación"
+        hitSlop={10}
+        onPress={() =>
+          cameraRef.current?.easeTo({
+            center: [initialCenter.longitude, initialCenter.latitude],
+            duration: 220,
+            easing: 'ease',
+          })
+        }
+        style={{
+          position: 'absolute',
+          right: 8,
+          top: insets.top + 34,
+          width: 34,
+          height: 34,
+          borderRadius: 17,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: 'rgba(255,255,255,0.96)',
+          borderWidth: 1,
+          borderColor: 'rgba(52,66,57,0.16)',
+          shadowColor: '#000000',
+          shadowOpacity: 0.08,
+          shadowRadius: 5,
+          shadowOffset: { width: 0, height: 2 },
+        }}
+      >
+        <Text style={{ fontSize: 18, lineHeight: 20, color: '#315A86' }}>◎</Text>
+      </Pressable>
+
+      <Pressable
+        accessibilityRole="button"
         accessibilityLabel="Información y atribución del mapa"
         hitSlop={12}
         onPress={() => void mapRef.current?.showAttribution()}
         style={{
           position: 'absolute',
-          right: 8,
+          right: 10,
           top: insets.top + 8,
-          width: 20,
-          height: 20,
-          borderRadius: 10,
+          width: 18,
+          height: 18,
+          borderRadius: 9,
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: 'rgba(255,255,255,0.90)',
+          backgroundColor: 'rgba(255,255,255,0.88)',
           borderWidth: 1,
-          borderColor: 'rgba(52,66,57,0.18)',
+          borderColor: 'rgba(52,66,57,0.16)',
         }}
       >
-        <Text style={{ fontSize: 12, fontWeight: '700', color: '#4B5A51' }}>i</Text>
+        <Text style={{ fontSize: 10, fontWeight: '700', color: '#4B5A51' }}>i</Text>
       </Pressable>
     </View>
   );
