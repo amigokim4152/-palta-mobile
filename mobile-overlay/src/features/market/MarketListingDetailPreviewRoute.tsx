@@ -1,16 +1,24 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
-import type { MarketRecommendationReason } from '../../../../src/market/marketRecommendation';
+import type { DiscoverMarketListingsQuery } from '../../../../src/market/marketApiContract';
+import type { MarketListingStatus } from '../../../../src/market/marketLifecycle';
+import {
+  marketListingVerticalOf,
+  type MarketPublicListing,
+} from '../../../../src/market/marketPersistenceContract';
+import {
+  rankMarketRecommendations,
+  type MarketRecommendationReason,
+} from '../../../../src/market/marketRecommendation';
 import { paltaTheme } from '../../theme/paltaTheme';
 import { ListingDetailRuntimeScreen } from './ListingDetailRuntimeScreen';
-import {
-  marketPreviewRecommendations,
-} from './marketPreviewData';
+import { marketPreviewRecommendations } from './marketPreviewData';
 import { getMarketRuntime } from './marketRuntime';
 
 function formatPrice(priceClp: number | undefined, tradeMode: string) {
   if (tradeMode === 'free') return 'Gratis';
+  if (tradeMode === 'wanted') return 'Busco';
   if (tradeMode === 'exchange') return 'Intercambio';
   if (typeof priceClp !== 'number') return 'A convenir';
   return `$${new Intl.NumberFormat('es-CL').format(priceClp)}`;
@@ -40,18 +48,123 @@ function recommendationReasonLabel(reasons: MarketRecommendationReason[]) {
     .join(' · ');
 }
 
+type RelatedCard = {
+  id: string;
+  title: string;
+  priceClp?: number;
+  tradeMode: string;
+  status: MarketListingStatus;
+  imageUrl?: string;
+  comuna: string;
+  distanceKm?: number;
+  reasons: MarketRecommendationReason[];
+};
+
+function toLiveRecommendationCandidate(listing: MarketPublicListing) {
+  return {
+    listingId: listing.id,
+    vertical: marketListingVerticalOf(listing),
+    category: listing.category,
+    tradeMode: listing.tradeMode,
+    status: listing.status,
+    priceClp: listing.priceClp,
+    distanceKm: listing.distanceKm,
+  };
+}
+
 /**
- * Visual-review shell only. Production recommendation retrieval belongs behind
- * the Mercado recommendation/read service; the preview uses the same pure
- * scorer contract so ranking behavior can be validated without paid AI.
+ * Mercado listing detail shell with a deterministic related-items rail.
+ *
+ * Preview fixtures can provide a product-family key, so smartphone browsing is
+ * narrowed to smartphones. Live listings fall back to same-category + price +
+ * distance until the server-side taxonomy/classifier supplies product family.
+ * No raw coordinates or exact seller address are needed by this ranking path.
  */
 export function MarketListingDetailPreviewRoute() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const runtime = useMemo(() => getMarketRuntime(), []);
-  const related = useMemo(() => {
-    if (!id || runtime.mode !== 'development_preview') return [];
-    return marketPreviewRecommendations(id, 2);
-  }, [id, runtime.mode]);
+  const [related, setRelated] = useState<RelatedCard[]>([]);
+
+  useEffect(() => {
+    if (!id) {
+      setRelated([]);
+      return;
+    }
+
+    if (runtime.mode === 'development_preview') {
+      setRelated(
+        marketPreviewRecommendations(id, 2).map(({ listing, reasons }) => ({
+          id: listing.id,
+          title: listing.title,
+          priceClp: listing.priceClp,
+          tradeMode: listing.tradeMode,
+          status: listing.status,
+          imageUrl: listing.imageUrl,
+          comuna: listing.comuna,
+          distanceKm: listing.distanceKm,
+          reasons,
+        })),
+      );
+      return;
+    }
+
+    if (!runtime.read) {
+      setRelated([]);
+      return;
+    }
+
+    let active = true;
+    setRelated([]);
+
+    runtime.read
+      .getPublicListing(id)
+      .then(async (seed) => {
+        if (!seed || !active) return;
+        const query: DiscoverMarketListingsQuery = {
+          vertical: marketListingVerticalOf(seed),
+          category: seed.category,
+          sort: 'distance',
+          limit: 16,
+        };
+        const page = await runtime.read!.discover(query);
+        if (!active) return;
+
+        const ranked = rankMarketRecommendations({
+          seed: toLiveRecommendationCandidate(seed),
+          candidates: page.items.map(toLiveRecommendationCandidate),
+          limit: 2,
+        });
+        const byId = new Map(page.items.map((item) => [item.id, item]));
+        const next = ranked.flatMap((rankedItem) => {
+          const item = byId.get(rankedItem.listingId);
+          if (!item) return [];
+          const firstMedia = item.media[0];
+          return [
+            {
+              id: item.id,
+              title: item.title,
+              priceClp: item.priceClp,
+              tradeMode: item.tradeMode,
+              status: item.status,
+              imageUrl: firstMedia
+                ? runtime.resolveMediaAssetUrl(firstMedia.mediaAssetId)
+                : undefined,
+              comuna: item.location.comunaName,
+              distanceKm: item.distanceKm,
+              reasons: rankedItem.reasons,
+            } satisfies RelatedCard,
+          ];
+        });
+        setRelated(next);
+      })
+      .catch(() => {
+        if (active) setRelated([]);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [id, runtime]);
 
   return (
     <View style={styles.root}>
@@ -67,8 +180,8 @@ export function MarketListingDetailPreviewRoute() {
             <Text style={styles.railCount}>{related.length}</Text>
           </View>
           <View style={styles.items}>
-            {related.map(({ listing: item, reasons }) => {
-              const reasonLabel = recommendationReasonLabel(reasons);
+            {related.map((item) => {
+              const reasonLabel = recommendationReasonLabel(item.reasons);
               return (
                 <Pressable
                   key={item.id}
@@ -76,7 +189,13 @@ export function MarketListingDetailPreviewRoute() {
                   onPress={() => router.replace(`/market/listing/${item.id}`)}
                   style={({ pressed }) => [styles.item, pressed && styles.pressed]}
                 >
-                  <Image source={{ uri: item.imageUrl }} style={styles.thumbnail} />
+                  {item.imageUrl ? (
+                    <Image source={{ uri: item.imageUrl }} style={styles.thumbnail} />
+                  ) : (
+                    <View style={[styles.thumbnail, styles.thumbnailPlaceholder]}>
+                      <Text style={styles.thumbnailPlaceholderText}>Sin foto</Text>
+                    </View>
+                  )}
                   <View style={styles.itemBody}>
                     <Text numberOfLines={1} style={styles.itemTitle}>
                       {item.title}
@@ -87,7 +206,10 @@ export function MarketListingDetailPreviewRoute() {
                       </Text>
                     ) : null}
                     <Text numberOfLines={1} style={styles.itemMeta}>
-                      {item.comuna} · {item.distanceKm.toFixed(1).replace('.', ',')} km
+                      {item.comuna}
+                      {typeof item.distanceKm === 'number'
+                        ? ` · ${item.distanceKm.toFixed(1).replace('.', ',')} km`
+                        : ''}
                     </Text>
                     <View style={styles.itemPriceLine}>
                       <Text style={styles.itemPrice}>
@@ -170,6 +292,12 @@ const styles = StyleSheet.create({
     height: 54,
     borderRadius: 9,
     backgroundColor: paltaTheme.color.surface,
+  },
+  thumbnailPlaceholder: { alignItems: 'center', justifyContent: 'center' },
+  thumbnailPlaceholderText: {
+    color: paltaTheme.color.textMuted,
+    fontSize: 7,
+    fontWeight: '700',
   },
   itemBody: { flex: 1, minWidth: 0 },
   itemTitle: {
