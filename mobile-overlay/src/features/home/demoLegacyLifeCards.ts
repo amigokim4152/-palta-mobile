@@ -34,9 +34,11 @@ export const LEGACY_LIFE_CARD_DEMO_ITEMS: readonly HomeApiItem[] = [
   demoItem('glance.precipitation', 'weather', 'Precipitación', 'Ejemplo: probabilidad de lluvia en las próximas horas.'),
   demoItem('glance.uv', 'weather', 'Índice UV', 'Ejemplo: nivel UV actual y máximo previsto para hoy.'),
 
+  demoItem('today.palta_notice', 'palta-notice', 'Aviso de Somos Palta', 'Ejemplo: información pública de operación o servicio, separada de tus notificaciones privadas.'),
   demoItem('today.exchange_rate', 'economy', 'Tipo de cambio', 'Ejemplo: USD/CLP y la moneda personal seleccionada.'),
   demoItem('today.uf', 'economy', 'UF de hoy', 'Ejemplo: valor UF vigente y referencia de tendencia.'),
   demoItem('today.food_prices', 'food', 'Precios de alimentos', 'Ejemplo: referencia ODEPA para productos relevantes de tu zona.'),
+  demoItem('today.nearby_food_available', 'food', 'Comida disponible ahora', 'Ejemplo: almuerzo, retiro o delivery que realmente está aceptando pedidos en este momento.'),
   demoItem('today.fuel_nearby', 'fuel', 'Bencina cerca de ti', 'Ejemplo: precios y cambios recientes en estaciones cercanas.'),
   demoItem('today.traffic_commute', 'traffic', 'Tránsito de tu recorrido', 'Ejemplo: demora respecto de lo normal y alternativa cuando corresponda.'),
   demoItem('today.vehicle_restriction', 'vehicle', 'Restricción vehicular', 'Ejemplo: restricción activa en RM cuando aplica a tu vehículo.'),
