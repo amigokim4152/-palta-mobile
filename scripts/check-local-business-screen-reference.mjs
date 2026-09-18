@@ -146,6 +146,12 @@ assert(
   ownerHome.includes('/services') && ownerHome.includes('/location') && ownerHome.includes('/channels'),
   'Owner free-base management must expose services, location/service area and public links from the same canonical business.',
 );
+assert(
+  ownerHome.includes('guidanceTargetKind') &&
+  ownerHome.includes('openGuidanceTarget') &&
+  ownerHome.includes('onPress={targetKind'),
+  'Owner guidance must open only implemented management surfaces and remain non-clickable for unavailable shared-core targets.',
+);
 
 assert(
   liveReference.includes('<LocalResultCard') &&
