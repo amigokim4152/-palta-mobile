@@ -1,8 +1,19 @@
+import { View } from 'react-native';
 import { BusinessDiscoveryExperience } from '../../features/business/BusinessDiscoveryExperience';
+import { BusinessVerticalHandoffBar } from '../../features/business/BusinessVerticalHandoffBar';
 
 /**
- * Legacy route kept only for compatibility with older links/runtime state.
- * It renders the canonical map-first Negocios experience and is hidden from
- * the primary tab bar.
+ * Legacy Barrio/neighborhood route kept for older links/runtime state.
+ * It must render the same canonical Negocios surface as the primary route so
+ * independent verticals such as Autos and Propiedades remain discoverable.
  */
-export default BusinessDiscoveryExperience;
+export default function NeighborhoodCompatibilityTab() {
+  return (
+    <View style={{ flex: 1 }}>
+      <BusinessVerticalHandoffBar />
+      <View style={{ flex: 1 }}>
+        <BusinessDiscoveryExperience />
+      </View>
+    </View>
+  );
+}
