@@ -123,7 +123,7 @@ const styles = StyleSheet.create({
   },
   optionSelected: { borderColor: '#111111' },
   optionCopy: { gap: 2 },
-  optionTitle: { fontSize: 16, fontWeight: '650' },
+  optionTitle: { fontSize: 16, fontWeight: '600' },
   optionSubtitle: { fontSize: 12, color: '#77776F' },
   check: { width: 24, fontSize: 20, textAlign: 'center' },
   error: { marginTop: 16, color: '#8A1C16' },
