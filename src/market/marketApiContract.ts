@@ -11,6 +11,7 @@ import type {
   MarketReviewTag,
   MarketTransactionRecord,
   MarketTransactionReview,
+  PaltaUserId,
 } from './marketPersistenceContract.js';
 
 export type MarketApiErrorCode =
@@ -37,6 +38,27 @@ export type MarketApiError = {
 export type MarketCursorPage<T> = {
   items: T[];
   nextCursor?: string;
+};
+
+/**
+ * Participant-safe private projection for authenticated transaction history.
+ * The API resolves this from canonical Palta Profile/Trust data. It must never
+ * expose provider auth ids, phone/email or another user's exact location.
+ */
+export type MarketTransactionCounterpartySummary = {
+  userId: PaltaUserId;
+  displayName: string;
+  neighborhoodVerified: boolean;
+  completedTrades: number;
+};
+
+export type MarketTransactionView = MarketTransactionRecord & {
+  /**
+   * The other participant relative to the authenticated viewer.
+   * Optional only during the live API migration; UI must use a privacy-safe
+   * generic label rather than exposing raw user ids when it is absent.
+   */
+  counterparty?: MarketTransactionCounterpartySummary;
 };
 
 export type DiscoverMarketListingsQuery = {
@@ -89,7 +111,13 @@ export type SetMarketFavoriteCommand = {
 
 export type StartMarketTransactionCommand = {
   listingId: MarketId;
-  /** Optional Message Core conversation reference used for continuity only. */
+  /**
+   * Durable Message Core relationship reference.
+   *
+   * The server must ensure/reuse the buyer's currently coordinating/reserved
+   * transaction for this listing. Retries with the same durable conversation
+   * therefore converge instead of creating duplicate transaction rows.
+   */
   conversationId?: string;
 };
 
@@ -124,7 +152,7 @@ export interface MarketReadPort {
   listMyTransactions(input?: {
     cursor?: string;
     limit?: number;
-  }): Promise<MarketCursorPage<MarketTransactionRecord>>;
+  }): Promise<MarketCursorPage<MarketTransactionView>>;
 }
 
 export interface MarketMutationPort {
