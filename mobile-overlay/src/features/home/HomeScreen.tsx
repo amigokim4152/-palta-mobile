@@ -10,12 +10,9 @@ import { mobileRuntime } from '../../services/paltaClient';
 import { paltaTheme } from '../../theme/paltaTheme';
 import { selectHomeDisplayItems } from '../../../../src/home/selectHomeDisplayItems';
 
-function eyebrow(kind: string, sourceDomain: string): string {
+function eyebrow(kind: string): string {
   if (kind === 'action' || kind === 'alert') return 'Ahora';
   if (kind === 'status') return 'En curso';
-  if (sourceDomain === 'community') return 'Tu comunidad';
-  if (sourceDomain === 'local' || sourceDomain === 'business') return 'Cerca de ti';
-  if (sourceDomain === 'transport') return 'Tu trayecto';
   if (kind === 'content') return 'Para hoy';
   return 'Hoy';
 }
@@ -36,32 +33,8 @@ function HeaderAction() {
         paddingHorizontal: paltaTheme.spacing.sm,
       }}
     >
-      <Text style={{ color: paltaTheme.color.textPrimary, fontSize: 14, fontWeight: '700' }}>Buscar</Text>
+      <Text style={{ color: paltaTheme.color.textPrimary, fontSize: 15, fontWeight: '700' }}>Buscar</Text>
     </Pressable>
-  );
-}
-
-function ContextBar() {
-  return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingBottom: paltaTheme.spacing.lg }}>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Ver contexto de Santiago"
-        onPress={() => router.push('/context/santiago')}
-        style={{ minHeight: paltaTheme.touch.minimum, justifyContent: 'center' }}
-      >
-        <Text style={{ color: paltaTheme.color.textMuted, fontSize: 12, fontWeight: '700' }}>TU ZONA</Text>
-        <Text style={{ marginTop: 2, color: paltaTheme.color.textPrimary, fontSize: 16, fontWeight: '700' }}>Santiago</Text>
-      </Pressable>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Ver barrio"
-        onPress={() => router.push('/(tabs)/neighborhood')}
-        style={{ minHeight: paltaTheme.touch.minimum, justifyContent: 'center', paddingHorizontal: paltaTheme.spacing.sm }}
-      >
-        <Text style={{ color: paltaTheme.color.brandPrimary, fontSize: 14, fontWeight: '700' }}>Ver barrio</Text>
-      </Pressable>
-    </View>
   );
 }
 
@@ -74,25 +47,32 @@ export function HomeScreen() {
 
   const { state, refresh } = useAsyncResource(loadHome, { isEmpty: (data) => data.items.length === 0 });
   const selection = useMemo(() => selectHomeDisplayItems(state.data?.items ?? []), [state.data?.items]);
-  const visibleItems = selection.items.slice(0, adaptive.textScaleClass === 'accessibility' ? 4 : selection.items.length);
+  const visibleItems = selection.items.slice(
+    0,
+    adaptive.textScaleClass === 'accessibility' ? Math.min(selection.items.length, 4) : selection.items.length,
+  );
 
   return (
-    <ScreenFrame title="Palta" subtitle="Lo que importa, cerca de ti" action={<HeaderAction />}>
-      <ContextBar />
-
+    <ScreenFrame title="Palta" subtitle="Lo importante de tu día" action={<HeaderAction />}>
       {state.status === 'loading' && !state.data ? <LoadingState label="Preparando tu día…" /> : null}
       {state.status === 'error' && !state.data ? <ErrorState message={state.message} onRetry={() => void refresh()} /> : null}
 
       {state.status === 'empty' ? (
-        <View>
-          <Text allowFontScaling style={{ color: paltaTheme.color.textPrimary, fontSize: 22, lineHeight: 29, fontWeight: '700' }}>
+        <View style={{ paddingTop: paltaTheme.spacing.xs }}>
+          <Text
+            allowFontScaling
+            style={{ color: paltaTheme.color.textPrimary, fontSize: 22, lineHeight: 29, fontWeight: '700' }}
+          >
             Todo tranquilo por ahora.
           </Text>
-          <Text allowFontScaling style={{ marginTop: 6, color: paltaTheme.color.textSecondary, fontSize: 15, lineHeight: 22 }}>
+          <Text
+            allowFontScaling
+            style={{ marginTop: paltaTheme.spacing.xs, color: paltaTheme.color.textSecondary, fontSize: 15, lineHeight: 22 }}
+          >
             Cuando haya algo que preparar, resolver o recordar, aparecerá aquí.
           </Text>
           <View style={{ marginTop: paltaTheme.spacing.xl }}>
-            <EmptyState title="Sin pendientes" body="Puedes seguir explorando tu barrio y tus comunidades." />
+            <EmptyState title="Sin pendientes" body="No hace falta llenar tu pantalla cuando no hay nada importante." />
           </View>
         </View>
       ) : null}
@@ -100,22 +80,32 @@ export function HomeScreen() {
       {visibleItems.length > 0 ? (
         <View>
           <View style={{ paddingBottom: paltaTheme.spacing.xs }}>
-            <Text allowFontScaling style={{ color: paltaTheme.color.textPrimary, fontSize: 22, lineHeight: 29, fontWeight: '700' }}>
+            <Text
+              allowFontScaling
+              style={{ color: paltaTheme.color.textPrimary, fontSize: 22, lineHeight: 29, fontWeight: '700' }}
+            >
               Para ti, ahora
             </Text>
-            <Text allowFontScaling style={{ marginTop: 4, color: paltaTheme.color.textSecondary, fontSize: 14, lineHeight: 20 }}>
-              Lo importante primero. Sin llenar la pantalla por llenar.
+            <Text
+              allowFontScaling
+              style={{ marginTop: 4, color: paltaTheme.color.textSecondary, fontSize: 14, lineHeight: 20 }}
+            >
+              Primero lo que necesita tu atención.
             </Text>
           </View>
 
           {visibleItems.map((item) => (
             <HomeCandidateCard
               key={item.id}
-              eyebrow={eyebrow(item.kind, item.source_domain)}
+              eyebrow={eyebrow(item.kind)}
               title={item.title}
               body={item.body}
               actionLabel={item.care_track_id ? 'Ver seguimiento' : undefined}
-              onPress={item.care_track_id ? () => router.push(`/care/${encodeURIComponent(item.care_track_id!)}`) : undefined}
+              onPress={
+                item.care_track_id
+                  ? () => router.push(`/care/${encodeURIComponent(item.care_track_id!)}`)
+                  : undefined
+              }
             />
           ))}
 
@@ -126,16 +116,12 @@ export function HomeScreen() {
           ) : null}
 
           {selection.showQuietEndState ? (
-            <View style={{ paddingVertical: paltaTheme.spacing.xl }}>
-              <Text allowFontScaling style={{ color: paltaTheme.color.textMuted, fontSize: 13 }}>Eso es todo lo útil por ahora.</Text>
-              <Pressable
-                accessibilityRole="button"
-                onPress={() => router.push('/(tabs)/neighborhood')}
-                style={{ minHeight: paltaTheme.touch.minimum, justifyContent: 'center', alignSelf: 'flex-start' }}
-              >
-                <Text style={{ color: paltaTheme.color.brandPrimary, fontSize: 14, fontWeight: '700' }}>Explorar cerca de mí</Text>
-              </Pressable>
-            </View>
+            <Text
+              allowFontScaling
+              style={{ paddingVertical: paltaTheme.spacing.xl, color: paltaTheme.color.textMuted, fontSize: 13 }}
+            >
+              Eso es todo lo útil por ahora.
+            </Text>
           ) : null}
         </View>
       ) : null}
