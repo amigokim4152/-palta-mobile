@@ -9,12 +9,16 @@
     "mobile-overlay/src/services",
     "src/api/paltaApiClient.ts",
     "scripts/run-ios-mobile.sh",
-    "scripts/sync-mobile-runtime.mjs"
+    "scripts/sync-mobile-runtime.mjs",
+    "scripts/compose-mobile-runtime.mjs",
+    "scripts/watch-runtime-composition.sh"
   ],
   "surfaces": [
     {
       "id": "home",
       "source_branch": "integration/home-functional-foundation-v1",
+      "integration_mode": "reviewed_snapshot",
+      "integrated_source_sha": "9edb070af8fc9d3366656b231efcfda45c36edd9",
       "owned_paths": [
         "mobile-overlay/src/features/home/HomeScreen.tsx",
         "mobile-overlay/src/components/home/ActionSurface.tsx",
@@ -26,6 +30,7 @@
     {
       "id": "negocios",
       "source_branch": "integration/local-business-v1",
+      "integration_mode": "live_overlay",
       "owned_paths": [
         "mobile-overlay/src/features/business",
         "mobile-overlay/src/components/business",
@@ -40,6 +45,8 @@
     {
       "id": "community",
       "source_branch": "integration/community-runtime-v1",
+      "integration_mode": "reviewed_snapshot",
+      "integrated_source_sha": "1a90545e18c19542dc4cd540bed22356a79f7842",
       "owned_paths": [
         "mobile-overlay/src/features/community",
         "mobile-overlay/src/app/(tabs)/community.tsx",
