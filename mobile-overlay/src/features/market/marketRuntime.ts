@@ -116,12 +116,21 @@ export function installMarketRuntime(runtime: MarketRuntime): () => void {
   };
 }
 
+/**
+ * Explicit preview entrypoint used by the composed PWA preview only.
+ * Production/native runtime wiring never selects this unless the preview flag
+ * is set by the deployment workflow.
+ */
+export function createMarketPreviewRuntime(): MarketRuntime {
+  developmentRuntime ??= createComposedMarketDevelopmentRuntime();
+  return developmentRuntime;
+}
+
 export function getMarketRuntime(): MarketRuntime {
   if (installedRuntime) return installedRuntime;
 
   if (__DEV__) {
-    developmentRuntime ??= createComposedMarketDevelopmentRuntime();
-    return developmentRuntime;
+    return createMarketPreviewRuntime();
   }
 
   return {
