@@ -95,6 +95,25 @@
         "src/market/marketCatalog.ts",
         "src/market/marketVerticalPolicy.ts"
       ]
+    },
+    {
+      "id": "play",
+      "source_branch": "integration/play-discovery-v1",
+      "integration_mode": "live_overlay",
+      "ownership_baseline_sha": "d3781adb9a4434d0511a437608b8d787b8a39388",
+      "owned_paths": [
+        "mobile-overlay/src/features/play",
+        "mobile-overlay/src/app/(tabs)/play.tsx"
+      ],
+      "branch_owned_paths": [
+        "mobile-overlay/src/features/play",
+        "mobile-overlay/src/app/(tabs)/play.tsx",
+        "src/play"
+      ],
+      "reviewed_contract_paths": [
+        "src/play/playDiscovery.ts",
+        "src/play/contextSpacePolicy.ts"
+      ]
     }
   ],
   "core_integrations": [
