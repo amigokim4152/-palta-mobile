@@ -6,7 +6,6 @@ export type MarketVerticalKey =
 
 export type MarketVerticalDefinition = {
   key: MarketVerticalKey;
-  title: string;
   mapUseful: boolean;
   createContextual: true;
   browseWithoutLogin: boolean;
@@ -15,28 +14,24 @@ export type MarketVerticalDefinition = {
 export const marketVerticals: MarketVerticalDefinition[] = [
   {
     key: 'secondhand',
-    title: 'Usados',
     mapUseful: false,
     createContextual: true,
     browseWithoutLogin: true,
   },
   {
     key: 'vehicles',
-    title: 'Vehículos',
     mapUseful: true,
     createContextual: true,
     browseWithoutLogin: true,
   },
   {
     key: 'property',
-    title: 'Propiedades',
     mapUseful: true,
     createContextual: true,
     browseWithoutLogin: true,
   },
   {
     key: 'jobs_services',
-    title: 'Empleos y servicios',
     mapUseful: true,
     createContextual: true,
     browseWithoutLogin: true,
