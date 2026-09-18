@@ -9,10 +9,20 @@ Primary v1 provider remains **Supabase Postgres/PostGIS** as decided in v2.1. Ne
 1. `0001_core_preflight.sql` — canonical entity/place/business, Care and Home foundations.
 2. `0002_access_boundary_preflight.sql` — Supabase RLS/Data API access boundary.
 3. `0003_community_preflight.sql` — Community spaces, memberships, posts, comments, reactions, idempotency receipts and transactional outbox.
+4. `0004_community_access_boundary_preflight.sql` — server-only Community persistence boundary.
+5. `0005_auth_profile_preflight.sql` — canonical Palta account/profile identity using UUID `palta_user_id`, provider identity bindings, and private-domain identity foreign keys.
 
 All files are review artifacts and are **NOT APPLIED** yet. They remain Postgres-compatible where practical.
 
-`infra/postgres` contains auth/profile work produced by the authentication workstream. It is not a second production database or a second migration runner. Its identity model must be reconciled into this canonical migration sequence before any production migration is applied. New domain persistence should not create another parallel migration root.
+`infra/postgres/001_auth_profile_core.sql` is now a staging/reference artifact from the authentication workstream. Its useful domain shape is reconciled into canonical migration `0005`, but the staging file itself must not be applied. It uses text IDs and would create a conflicting second identity path.
+
+## Canonical identity rule
+
+- `palta_user_id` is a Palta-owned UUID and is the canonical private-domain identity.
+- Apple/Google/email/phone provider subjects are login bindings only; they never become `palta_user_id`.
+- TypeScript/API layers may serialize the UUID as `string`, but persistence validates/stores it as PostgreSQL `uuid`.
+- The authenticated API boundary verifies the bearer session, resolves its provider subject to one active Palta identity, then passes only canonical `palta_user_id` into Home/Care/Community application services.
+- Mobile clients never choose or submit `palta_user_id` for private mutations.
 
 ## Access rules
 
@@ -21,10 +31,11 @@ All files are review artifacts and are **NOT APPLIED** yet. They remain Postgres
 - Public canonical data and private/personal data remain explicitly separated.
 - Community reads require membership/audience/moderation filtering.
 - Community mutations and their outbox events are committed atomically; idempotency receipts protect retries.
+- `palta_private` identity/profile tables are server-only and granted to `service_role`, not `anon` or `authenticated` clients.
 
 ## Do not apply until
 
-1. Supabase development project is deliberately selected/created.
-2. The auth/profile identity migration is reconciled with the UUID user IDs already used by the core DB preflight.
-3. Community RLS/server-only grants are reviewed together with `0002_access_boundary_preflight.sql`.
-4. Migration validation is run against a disposable development database.
+1. A Supabase development project is deliberately selected/created.
+2. `0001` through `0005` are validated in sequence against a disposable development database.
+3. The server identity resolver is wired to the selected auth provider/session verifier and maps provider subject → canonical Palta UUID.
+4. Community authorization and transaction adapters are exercised against that development database.
