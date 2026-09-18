@@ -10,10 +10,11 @@ Whole-app iOS simulator/review is composed on:
 
 - `integration/runtime-composition-v1`
 
-Canonical composition contract:
+Canonical composition entry points:
 
 - `docs/MOBILE_RUNTIME_COMPOSITION.md` on `integration/runtime-composition-v1`
 - `manifest/mobile-runtime-composition.json` on `integration/runtime-composition-v1`
+- repository-global GitHub Issue #9: `[Source of Truth] Mobile runtime composition for parallel feature work`
 
 If the current branch does not contain those files, inspect them from the composition branch before changing any mobile-visible surface.
 
@@ -48,6 +49,8 @@ The manifest on `integration/runtime-composition-v1` is authoritative if this li
 
 ## Shared/Core branches
 
-Auth/Profile, Messaging, Commerce/POS, Localization, Map Runtime and other Shared Cores must be reconciled at contract/adapter boundaries rather than copied wholesale into feature screens.
+Auth/Profile, Messaging, Commerce/POS, Localization and Map Runtime are explicitly watched by the composition runtime. Their branch advances must surface as Core review requirements rather than being silently ignored or copied wholesale.
+
+Other Shared Cores must also be reconciled at contract/adapter boundaries rather than duplicated inside feature screens.
 
 When handing work to another chat/agent, include the current branch and tell it to read this file plus the composition contract before changing mobile runtime behavior.
