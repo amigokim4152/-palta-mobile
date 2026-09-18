@@ -25,7 +25,7 @@ assert(
 const manifest = await manifestResponse.json();
 assert(manifest.country === 'CL', 'Manifest country must be CL');
 assert(typeof manifest.version === 'string', 'Manifest version missing');
-assert(manifest.style_version === 'palta-v1.2', 'Unexpected map style version');
+assert(manifest.style_version === 'palta-v1.3', 'Unexpected map style version');
 assert(manifest.pmtiles_url === mapUrl, 'Manifest PMTiles URL mismatch');
 assert(manifest.style_url === styleUrl, 'Manifest style URL mismatch');
 assert(manifest.metadata_url === metadataUrl, 'Manifest metadata URL mismatch');
@@ -39,6 +39,7 @@ const styleResponse = await fetch(styleUrl);
 assert(styleResponse.status === 200, `Style expected 200, got ${styleResponse.status}`);
 const style = await styleResponse.json();
 assert(style.version === 8, 'MapLibre style version must be 8');
+assert(style.metadata?.['palta:style-version'] === 'palta-v1.3', 'Style metadata version mismatch');
 assert(style.sources?.chile?.type === 'vector', 'Chile vector source missing');
 assert(
   style.sources?.chile?.url === `pmtiles://${mapUrl}`,
@@ -49,10 +50,44 @@ assert(
   'Self-hosted Noto Sans font-face missing',
 );
 
-const layerIds = new Set((style.layers ?? []).map((layer) => layer?.id));
-for (const id of ['place-labels', 'road-labels', 'water-labels', 'poi-labels']) {
+const layers = style.layers ?? [];
+const layerIds = new Set(layers.map((layer) => layer?.id));
+for (const id of [
+  'place-labels',
+  'road-labels',
+  'road-labels-local',
+  'water-labels',
+  'poi-labels',
+]) {
   assert(layerIds.has(id), `Style label layer missing: ${id}`);
 }
+
+const roadsMajor = layers.find((layer) => layer?.id === 'roads-major');
+const roadsMajorFilter = JSON.stringify(roadsMajor?.filter ?? null);
+assert(
+  roadsMajorFilter.includes('highway') && roadsMajorFilter.includes('major_road'),
+  `roads-major must use Protomaps kind values, got ${roadsMajorFilter}`,
+);
+assert(
+  !roadsMajorFilter.includes('motorway') && !roadsMajorFilter.includes('trunk'),
+  'roads-major must not confuse kind_detail with kind',
+);
+
+const localRoadLabels = layers.find((layer) => layer?.id === 'road-labels-local');
+const localRoadFilter = JSON.stringify(localRoadLabels?.filter ?? null);
+assert(
+  localRoadFilter.includes('minor_road') && localRoadFilter.includes('path'),
+  `local road label filter is incomplete: ${localRoadFilter}`,
+);
+
+const poiLabels = layers.find((layer) => layer?.id === 'poi-labels');
+const poiFilter = JSON.stringify(poiLabels?.filter ?? null);
+assert(poiFilter.includes('hospital'), 'Context POI labels must include hospitals');
+assert(poiFilter.includes('school'), 'Context POI labels must include schools');
+assert(
+  !poiFilter.includes('restaurant') && !poiFilter.includes('cafe'),
+  'Basemap POI labels must not compete with Palta business discovery',
+);
 
 const fontHead = await fetch(fontUrl, { method: 'HEAD' });
 assert(fontHead.status === 200, `Font HEAD expected 200, got ${fontHead.status}`);
@@ -81,11 +116,17 @@ assert(metadata.pmtiles_version === 3, 'PMTiles version must be 3');
 assert(Array.isArray(metadata.bounds), 'PMTiles bounds missing');
 assert(Array.isArray(metadata.center), 'PMTiles center missing');
 
-const vectorLayers = Array.isArray(metadata.metadata?.vector_layers)
-  ? metadata.metadata.vector_layers.map((layer) => layer?.id).filter(Boolean)
+const vectorLayerDefinitions = Array.isArray(metadata.metadata?.vector_layers)
+  ? metadata.metadata.vector_layers
   : [];
+const vectorLayers = vectorLayerDefinitions.map((layer) => layer?.id).filter(Boolean);
 for (const id of ['places', 'roads', 'water', 'pois']) {
   assert(vectorLayers.includes(id), `PMTiles label source layer missing: ${id}`);
+}
+for (const id of ['places', 'roads', 'water', 'pois']) {
+  const definition = vectorLayerDefinitions.find((layer) => layer?.id === id);
+  assert(definition?.fields?.name === 'String', `${id} must expose name`);
+  assert(definition?.fields?.['name:es'] === 'String', `${id} must expose name:es`);
 }
 
 const head = await fetch(mapUrl, { method: 'HEAD' });
@@ -145,7 +186,13 @@ console.log(
       bounds: metadata.bounds,
       center: metadata.center,
       vectorLayers,
-      labelLayers: ['place-labels', 'road-labels', 'water-labels', 'poi-labels'],
+      labelLayers: [
+        'place-labels',
+        'road-labels',
+        'road-labels-local',
+        'water-labels',
+        'poi-labels',
+      ],
       firstRange: range.headers.get('content-range'),
       suffixRange: suffix.headers.get('content-range'),
     },
