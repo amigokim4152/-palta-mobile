@@ -53,7 +53,7 @@ export const CHILE_1_6_BASIC_CURRENT: CurriculumFramework = {
   sourceRefs: ['MINEDUC-CARTILLA-VIGENTE-2026', 'MINEDUC-BASES-1-6'],
 };
 
-export const CHILE_FIRST_GRADE_SUBJECTS: CurriculumSubject[] = [
+const FIRST_GRADE_SUBJECT_SEEDS = [
   ['language', 'Lenguaje y Comunicación'],
   ['math', 'Matemática'],
   ['science', 'Ciencias Naturales'],
@@ -63,14 +63,18 @@ export const CHILE_FIRST_GRADE_SUBJECTS: CurriculumSubject[] = [
   ['physical-education-health', 'Educación Física y Salud'],
   ['technology', 'Tecnología'],
   ['orientation', 'Orientación'],
-].map(([key, name]) => ({
-  id: `CL-1B-${key}`,
-  country: 'CL',
-  grade: '1_basico',
-  name,
-  required: true,
-  frameworkId: CHILE_1_6_BASIC_CURRENT.id,
-}));
+] as const;
+
+export const CHILE_FIRST_GRADE_SUBJECTS: CurriculumSubject[] = FIRST_GRADE_SUBJECT_SEEDS.map(
+  ([key, name]) => ({
+    id: `CL-1B-${key}`,
+    country: 'CL',
+    grade: '1_basico',
+    name,
+    required: true,
+    frameworkId: CHILE_1_6_BASIC_CURRENT.id,
+  }),
+);
 
 export const CHILE_FIRST_GRADE_OBJECTIVE_SEEDS: CurriculumObjectiveRef[] = [
   {

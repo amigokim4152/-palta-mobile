@@ -6,7 +6,7 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "build": "tsc",
-    "test": "npm run build && node dist/tests/run-tests.js",
+    "test": "npm run build && node dist/tests/run-tests.js && node dist/tests/knowledge-platform.test.js",
     "mock:api": "node dev/mock-api/server.mjs",
     "mock:smoke": "node dev/mock-api/smoke.mjs",
     "check:independence": "node scripts/check-core-independence.mjs",

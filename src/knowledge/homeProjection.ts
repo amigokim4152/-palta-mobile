@@ -24,12 +24,14 @@ export function knowledgeToHomeCandidate(input: KnowledgeHomeProjectionInput): H
     throw new Error(`Knowledge ${entity.id} must be published before Home projection.`);
   }
 
+  const summary = input.reasonRelevantNow ?? entity.summary;
+
   return {
     id: `knowledge:${entity.id}:v${entity.version}:${input.locale}`,
     domain: toHomeDomain(entity.domain),
     kind: 'content',
     title: entity.title,
-    summary: input.reasonRelevantNow ?? entity.summary,
+    ...(summary ? { summary } : {}),
     subjectRef: entity.id,
     sourceRef: `${entity.id}@v${entity.version}`,
     urgency: 0,
@@ -42,8 +44,8 @@ export function knowledgeToHomeCandidate(input: KnowledgeHomeProjectionInput): H
     dedupeKey: `knowledge:${entity.id}:v${entity.version}`,
     clusterKey: `knowledge:${entity.domain}`,
     deliveryHint: 'home',
-    action: input.publicTarget
-      ? { label: 'Ver más', target: input.publicTarget, kind: 'deeplink' }
-      : undefined,
+    ...(input.publicTarget
+      ? { action: { label: 'Ver más', target: input.publicTarget, kind: 'deeplink' as const } }
+      : {}),
   };
 }
