@@ -52,4 +52,24 @@ for (const surface of manifest.surfaces ?? []) {
   );
 }
 
+for (const core of manifest.core_integrations ?? []) {
+  if (typeof core.source_branch !== 'string') continue;
+  const current = refSha(core.source_branch);
+  if (!current) {
+    console.log(`CORE SOURCE UNKNOWN: ${core.id} (${remoteName}/${core.source_branch} not fetched)`);
+    continue;
+  }
+
+  const observed = core.observed_source_sha;
+  if (current === observed) {
+    console.log(`CORE TRACKED: ${core.id} @${current.slice(0, 12)} (${core.status ?? 'unknown'})`);
+    continue;
+  }
+
+  driftCount += 1;
+  console.log(
+    `CORE REVIEW REQUIRED: ${core.id} source advanced ${String(observed).slice(0, 12)} -> ${current.slice(0, 12)} (${core.source_branch})`,
+  );
+}
+
 if (strict && driftCount > 0) process.exit(2);
