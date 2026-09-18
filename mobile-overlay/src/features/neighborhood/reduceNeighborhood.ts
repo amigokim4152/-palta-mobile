@@ -66,7 +66,9 @@ export function reduceNeighborhood(
       return {
         ...state,
         searchOrigin: state.camera?.center ?? state.effectiveLocation,
-        resultIds: action.resultIds,
+        // The previous result set belongs to the previous search origin. Clear it
+        // while the canonical loader re-queries from the current map center.
+        resultIds: [],
         selectedEntityId: null,
         mapMovedSinceSearch: false,
       };
