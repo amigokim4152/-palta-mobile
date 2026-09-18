@@ -30,6 +30,35 @@ export type BusinessQuoteApiDetail = {
   responses: BusinessQuoteApiResponseItem[];
 };
 
+export type BusinessQuoteInboxOwnResponse = {
+  id: string;
+  amount_clp?: number;
+  note?: string;
+  available_at?: string;
+  valid_until?: string;
+};
+
+/**
+ * Business-scoped projection for owner CRM/inbox surfaces.
+ * It intentionally omits recipient lists and every other business response.
+ */
+export type BusinessQuoteInboxItem = {
+  id: string;
+  care_track_id: string;
+  description: string;
+  status: BusinessQuoteApiStatus;
+  created_at: string;
+  requested_for?: string;
+  response?: BusinessQuoteInboxOwnResponse;
+  selected: boolean;
+  can_respond: boolean;
+};
+
+export type BusinessQuoteInboxApiResponse = {
+  business_id: string;
+  items: BusinessQuoteInboxItem[];
+};
+
 export type CreateBusinessQuoteInput = {
   description: string;
   recipientBusinessIds: readonly string[];
@@ -91,6 +120,40 @@ function validateQuoteDetail(value: unknown, label: string): BusinessQuoteApiDet
   return result as BusinessQuoteApiDetail;
 }
 
+function validateBusinessInbox(value: unknown, label: string): BusinessQuoteInboxApiResponse {
+  const result = expectObject(value, label);
+  if (typeof result.business_id !== 'string' || !Array.isArray(result.items)) {
+    throw new Error(`${label} returned invalid business quote inbox`);
+  }
+  for (const item of result.items as unknown[]) {
+    const row = expectObject(item, `${label} item`);
+    if (
+      typeof row.id !== 'string' ||
+      typeof row.care_track_id !== 'string' ||
+      typeof row.description !== 'string' ||
+      typeof row.status !== 'string' ||
+      typeof row.created_at !== 'string' ||
+      typeof row.selected !== 'boolean' ||
+      typeof row.can_respond !== 'boolean'
+    ) {
+      throw new Error(`${label} returned invalid business quote inbox item`);
+    }
+    if ('recipient_business_ids' in row || 'responses' in row || 'selected_business_id' in row) {
+      throw new Error(`${label} leaked cross-business quote data`);
+    }
+    if (row.response !== undefined) {
+      const response = expectObject(row.response, `${label} item response`);
+      if (typeof response.id !== 'string') {
+        throw new Error(`${label} returned invalid own quote response`);
+      }
+      if ('business_id' in response || 'business_name' in response || 'selected' in response) {
+        throw new Error(`${label} own response must stay business-local`);
+      }
+    }
+  }
+  return result as BusinessQuoteInboxApiResponse;
+}
+
 export class BusinessQuotesApiClient {
   private readonly baseUrl: string;
   private readonly fetchImpl: FetchLike;
@@ -144,6 +207,13 @@ export class BusinessQuotesApiClient {
         },
       }),
       'POST /v1/local-business/quotes',
+    );
+  }
+
+  async getBusinessInbox(businessId: string): Promise<BusinessQuoteInboxApiResponse> {
+    return validateBusinessInbox(
+      await this.request(`/v1/business/${encodeURIComponent(businessId)}/quote-requests`),
+      'GET /v1/business/{businessId}/quote-requests',
     );
   }
 
