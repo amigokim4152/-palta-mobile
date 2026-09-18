@@ -294,6 +294,7 @@ function buildManifest(origin: string, objectKey: string, version: string) {
     style_version: MAP_STYLE_VERSION,
     object_key: objectKey,
     style_url: `${origin}/maps/cl/style.json`,
+    metadata_url: `${origin}/maps/cl/metadata.json`,
     pmtiles_url: `${origin}/maps/cl/basemap.pmtiles`,
     immutable_version_url: `${origin}/maps/cl/versions/${version}/basemap.pmtiles`,
     attribution: '© OpenStreetMap contributors',
@@ -319,6 +320,94 @@ async function serveJson(
     status: 200,
     headers,
   });
+}
+
+async function readObjectRange(
+  env: Env,
+  key: string,
+  offset: number,
+  length: number,
+): Promise<Uint8Array> {
+  const range = new Headers({
+    Range: `bytes=${offset}-${offset + length - 1}`,
+  });
+  const object = await env.MAPS.get(key, { range });
+  if (!object || !('body' in object)) {
+    throw new Error(`Unable to read PMTiles range ${offset}+${length}`);
+  }
+  return new Uint8Array(await new Response(object.body).arrayBuffer());
+}
+
+function uint64(view: DataView, offset: number): number {
+  const value = view.getBigUint64(offset, true);
+  const number = Number(value);
+  if (!Number.isSafeInteger(number)) {
+    throw new Error('PMTiles offset exceeds JavaScript safe integer range');
+  }
+  return number;
+}
+
+async function decodePmtilesMetadata(
+  env: Env,
+  key: string,
+): Promise<Record<string, unknown>> {
+  const header = await readObjectRange(env, key, 0, 127);
+  const magic = new TextDecoder().decode(header.slice(0, 7));
+  if (magic !== 'PMTiles') throw new Error('Invalid PMTiles magic');
+
+  const view = new DataView(header.buffer, header.byteOffset, header.byteLength);
+  const pmtilesVersion = header[7];
+  const metadataOffset = uint64(view, 24);
+  const metadataLength = uint64(view, 32);
+  const internalCompression = header[97];
+  const tileCompression = header[98];
+  const tileType = header[99];
+  const minZoom = header[100];
+  const maxZoom = header[101];
+  const minLon = view.getInt32(102, true) / 10_000_000;
+  const minLat = view.getInt32(106, true) / 10_000_000;
+  const maxLon = view.getInt32(110, true) / 10_000_000;
+  const maxLat = view.getInt32(114, true) / 10_000_000;
+  const centerZoom = header[118];
+  const centerLon = view.getInt32(119, true) / 10_000_000;
+  const centerLat = view.getInt32(123, true) / 10_000_000;
+
+  let metadataBytes = await readObjectRange(
+    env,
+    key,
+    metadataOffset,
+    metadataLength,
+  );
+
+  if (internalCompression === 2) {
+    const decompressed = new Blob([metadataBytes])
+      .stream()
+      .pipeThrough(new DecompressionStream('gzip'));
+    metadataBytes = new Uint8Array(
+      await new Response(decompressed).arrayBuffer(),
+    );
+  } else if (internalCompression !== 1) {
+    throw new Error(
+      `Unsupported PMTiles internal compression: ${internalCompression}`,
+    );
+  }
+
+  const metadata = JSON.parse(new TextDecoder().decode(metadataBytes)) as Record<
+    string,
+    unknown
+  >;
+
+  return {
+    pmtiles_version: pmtilesVersion,
+    internal_compression: internalCompression,
+    tile_compression: tileCompression,
+    tile_type: tileType,
+    min_zoom: minZoom,
+    max_zoom: maxZoom,
+    bounds: [minLon, minLat, maxLon, maxLat],
+    center: [centerLon, centerLat, centerZoom],
+    metadata,
+  };
 }
 
 async function serveMapObject(
@@ -381,6 +470,7 @@ export default {
           mapStyleVersion: MAP_STYLE_VERSION,
           mapManifestPath: '/maps/cl/manifest.json',
           mapStylePath: '/maps/cl/style.json',
+          mapMetadataPath: '/maps/cl/metadata.json',
         },
         'no-store',
       );
@@ -396,6 +486,31 @@ export default {
 
     if (url.pathname === '/maps/cl/style.json') {
       return serveJson(request, buildChileStyle(url.origin, version));
+    }
+
+    if (url.pathname === '/maps/cl/metadata.json') {
+      try {
+        const metadata = await decodePmtilesMetadata(env, objectKey);
+        return serveJson(
+          request,
+          {
+            country: 'CL',
+            map_version: version,
+            style_version: MAP_STYLE_VERSION,
+            ...metadata,
+          },
+          'public, max-age=3600, s-maxage=86400',
+        );
+      } catch (error) {
+        return serveJson(
+          request,
+          {
+            ok: false,
+            error: error instanceof Error ? error.message : 'metadata_error',
+          },
+          'no-store',
+        );
+      }
     }
 
     if (url.pathname === '/maps/cl/basemap.pmtiles') {
