@@ -65,10 +65,10 @@ export function BusinessReservationExperience() {
   const [note, setNote] = useState('');
   const [requestedFor, setRequestedFor] = useState('');
   const [openingChannel, setOpeningChannel] = useState(false);
-  const [creatingCare, setCreatingCare] = useState(false);
+  const [registeringReservation, setRegisteringReservation] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [preparedReservation, setPreparedReservation] = useState<PreparedReservation | null>(null);
-  const [careMutationId, setCareMutationId] = useState<string | null>(null);
+  const [reservationMutationId, setReservationMutationId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!businessId) throw new Error('Business ID missing');
@@ -85,7 +85,7 @@ export function BusinessReservationExperience() {
 
   function resetPreparedReservation() {
     setPreparedReservation(null);
-    setCareMutationId(null);
+    setReservationMutationId(null);
     setMessage(null);
   }
 
@@ -161,33 +161,30 @@ export function BusinessReservationExperience() {
 
   async function confirmReservationSent() {
     if (!businessId || !preparedReservation || mobileRuntime.status !== 'ready') return;
-    const mutationId = careMutationId ?? createClientMutationId(Date.now(), Math.random());
-    if (!careMutationId) setCareMutationId(mutationId);
+    const mutationId = reservationMutationId ?? createClientMutationId(Date.now(), Math.random());
+    if (!reservationMutationId) setReservationMutationId(mutationId);
 
-    setCreatingCare(true);
+    setRegisteringReservation(true);
     setMessage(null);
     try {
-      const care = await mobileRuntime.client.createCare({
-        intentKey: 'local_business_reservation_request',
-        subjectEntityId: businessId,
-        actionType: 'external_reservation_request_sent',
-        payload: {
-          channel: 'whatsapp',
-          requested_for: preparedReservation.requestedForIso,
-          messaging_context_type: preparedReservation.contextType,
-          messaging_purpose_key: preparedReservation.purposeKey,
-        },
+      const reservation = await mobileRuntime.client.reservations.createReservation({
+        businessId,
+        requestedFor: preparedReservation.requestedForIso,
+        note: note.trim(),
+        channel: 'whatsapp',
+        messagingContextType: preparedReservation.contextType,
+        messagingPurposeKey: preparedReservation.purposeKey,
         idempotencyKey: mutationId,
       });
-      router.replace(`/care/${encodeURIComponent(care.id)}`);
+      router.replace(`/care/${encodeURIComponent(reservation.care_track_id)}`);
     } catch (error) {
       setMessage(
         error instanceof Error
-          ? `La solicitud se envió por WhatsApp, pero no pudimos iniciar el seguimiento: ${error.message}`
-          : 'La solicitud se envió por WhatsApp, pero no pudimos iniciar el seguimiento.',
+          ? `La solicitud se envió por WhatsApp, pero no pudimos registrarla para seguimiento: ${error.message}`
+          : 'La solicitud se envió por WhatsApp, pero no pudimos registrarla para seguimiento.',
       );
     } finally {
-      setCreatingCare(false);
+      setRegisteringReservation(false);
     }
   }
 
@@ -255,19 +252,19 @@ export function BusinessReservationExperience() {
 
         <PaltaButton
           label={openingChannel ? 'Abriendo WhatsApp…' : 'Abrir WhatsApp para solicitar'}
-          disabled={openingChannel || creatingCare || !whatsappBaseUrl}
+          disabled={openingChannel || registeringReservation || !whatsappBaseUrl}
           onPress={() => void openWhatsapp()}
         />
 
         {preparedReservation ? (
           <View style={{ gap: 10 }}>
             <PaltaButton
-              label={creatingCare ? 'Iniciando seguimiento…' : 'Ya envié la solicitud'}
-              disabled={creatingCare}
+              label={registeringReservation ? 'Registrando seguimiento…' : 'Ya envié la solicitud'}
+              disabled={registeringReservation}
               onPress={() => void confirmReservationSent()}
             />
             <Text style={{ fontSize: 12, opacity: 0.6, lineHeight: 18 }}>
-              Al confirmar, Palta crea un Care track ligado al mismo Business ID. No marca la reserva como confirmada: sólo conserva que enviaste la solicitud y queda pendiente la respuesta del negocio.
+              Al confirmar, Palta registra una solicitud de reserva ligada al mismo Business ID y a un único Care track. No marca la reserva como confirmada: queda esperando la decisión real del negocio.
             </Text>
           </View>
         ) : null}
