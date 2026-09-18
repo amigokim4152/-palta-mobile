@@ -62,6 +62,15 @@ const transaction: MarketTransactionRecord = {
   sellerUserId: sellerId,
   buyerUserId: buyerId,
   status: 'reserved',
+  listingSnapshot: {
+    listingId: listing.id,
+    title: listing.title,
+    category: listing.category,
+    tradeMode: listing.tradeMode,
+    priceClp: listing.priceClp,
+    comunaName: listing.location.comunaName,
+    mediaAssetId: listing.media[0]?.mediaAssetId,
+  },
   conversationId: 'conversation-1',
   createdAt: '2026-09-18T12:05:00Z',
   updatedAt: '2026-09-18T12:10:00Z',
@@ -91,6 +100,10 @@ assert(!canReserveMarketTransaction({ userId: sellerId }, transaction), 'Already
 assert(canCompleteMarketTransaction({ userId: sellerId }, transaction), 'Seller may complete reserved transaction.');
 assert(!canCompleteMarketTransaction({ userId: buyerId }, transaction), 'Buyer cannot unilaterally mark sold.');
 assert(canCancelMarketTransaction({ userId: buyerId }, transaction), 'Buyer may cancel before completion.');
+assert(
+  transaction.listingSnapshot.title === listing.title,
+  'Transaction must preserve immutable listing context for history/reviews.',
+);
 
 const completed: MarketTransactionRecord = {
   ...transaction,
@@ -145,4 +158,4 @@ assertThrows(
   'Free listing must not persist a sale price.',
 );
 
-console.log('PASS: Mercado lifecycle, privacy, transaction and Message Core handoff contracts');
+console.log('PASS: Mercado lifecycle, privacy, transaction snapshot and Message Core handoff contracts');
