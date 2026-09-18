@@ -1,4 +1,10 @@
 import { useSyncExternalStore } from 'react';
+import {
+  validateVehicleInspectionCoordination,
+  type VehicleCoordinationContactConsent,
+  type VehicleCoordinationLocationConsent,
+  type VehicleInspectionVenueMode,
+} from '../../../../src/autos/autosAcquisitionCoordination';
 import type { VehicleSaleMilestoneRecord } from '../../../../src/autos/autosSaleCare';
 import {
   validateVehicleOfferAdjustment,
@@ -15,11 +21,21 @@ export type DemoVehiclePriceReview = {
   status: DemoVehiclePriceReviewStatus;
 };
 
+export type DemoVehicleInspectionCoordination = {
+  venueMode: VehicleInspectionVenueMode;
+  scheduledAt: string;
+  contactConsent: VehicleCoordinationContactConsent;
+  locationConsent: VehicleCoordinationLocationConsent;
+  phoneShared: boolean;
+  exactLocationShared: boolean;
+};
+
 export type DemoVehicleSaleCare = {
   requestId: string;
   selectedOfferId: string;
   finalPriceClp: number;
   records: readonly VehicleSaleMilestoneRecord[];
+  inspectionCoordination?: DemoVehicleInspectionCoordination;
   priceReview?: DemoVehiclePriceReview;
 };
 
@@ -45,6 +61,10 @@ function getSnapshot() {
 
 function nowIso() {
   return new Date().toISOString();
+}
+
+function defaultInspectionIso() {
+  return new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 }
 
 function replaceCare(requestId: string, care: DemoVehicleSaleCare) {
@@ -110,8 +130,75 @@ export function ensureDemoVehicleSaleCare(requestId: string): DemoVehicleSaleCar
   return replaceCare(requestId, created);
 }
 
+export function scheduleDemoVehicleInspection(
+  requestId: string,
+  input: {
+    venueMode: VehicleInspectionVenueMode;
+    sharePhone: boolean;
+    shareExactLocation: boolean;
+  },
+): DemoVehicleSaleCare | undefined {
+  const current = ensureDemoVehicleSaleCare(requestId);
+  if (!current) return undefined;
+  const latest = current.records[current.records.length - 1];
+  if (latest?.milestone !== 'offer_selected') return current;
+
+  const contactConsent: VehicleCoordinationContactConsent = input.sharePhone
+    ? 'share_selected_dealer'
+    : 'private';
+  const locationConsent: VehicleCoordinationLocationConsent = input.venueMode === 'seller_location'
+    && input.shareExactLocation
+    ? 'share_selected_dealer'
+    : 'private';
+  const scheduledAt = defaultInspectionIso();
+  const details = {
+    ...(input.sharePhone ? { phone: '+56 9 1111 2222' } : {}),
+    ...(input.venueMode === 'seller_location' && input.shareExactLocation
+      ? {
+          exactLocation: {
+            latitude: -33.401,
+            longitude: -70.58,
+            label: 'Lugar acordado · demo',
+          },
+        }
+      : {}),
+  };
+  const validation = validateVehicleInspectionCoordination(
+    {
+      venueMode: input.venueMode,
+      scheduledAt,
+      contactConsent,
+      locationConsent,
+    },
+    details,
+  );
+  if (!validation.valid) return current;
+
+  return replaceCare(requestId, {
+    ...current,
+    inspectionCoordination: {
+      venueMode: input.venueMode,
+      scheduledAt,
+      contactConsent,
+      locationConsent,
+      phoneShared: contactConsent === 'share_selected_dealer',
+      exactLocationShared: locationConsent === 'share_selected_dealer',
+    },
+    records: [
+      ...current.records,
+      {
+        milestone: 'inspection_scheduled',
+        observedAt: scheduledAt,
+        summary: input.venueMode === 'dealer_location'
+          ? 'Inspección coordinada en la automotora'
+          : 'Inspección coordinada en el lugar elegido por la persona vendedora',
+      },
+    ],
+  });
+}
+
 const nextMilestone: Record<VehicleSaleMilestoneRecord['milestone'], VehicleSaleMilestoneRecord['milestone'] | null> = {
-  offer_selected: 'inspection_scheduled',
+  offer_selected: null,
   inspection_scheduled: 'inspection_completed',
   inspection_completed: null,
   final_price_confirmed: 'payment_confirmed',
