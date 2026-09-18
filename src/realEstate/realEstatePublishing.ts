@@ -2,7 +2,7 @@ import type {
   ListingPublisherType,
   PropertyTransactionType,
   PropertyType,
-} from './realEstateContracts';
+} from './realEstateContracts.js';
 
 export type RealEstateContactPreference = 'palta' | 'whatsapp' | 'phone';
 export type RealEstateDraftStatus = 'draft' | 'ready_for_review';
