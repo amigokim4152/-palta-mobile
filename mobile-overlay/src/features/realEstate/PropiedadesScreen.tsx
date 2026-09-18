@@ -18,19 +18,16 @@ import {
   REAL_ESTATE_TRANSACTION_LABELS,
   type RealEstateDiscoveryView,
 } from '../../../../src/realEstate/realEstateDiscovery';
-import {
-  filterRealEstateListings,
-  type RealEstateListingQuery,
-} from '../../../../src/realEstate/realEstateRepository';
+import type { RealEstateListingQuery } from '../../../../src/realEstate/realEstateRepository';
 import { FilterChip } from '../../components/common/FilterChip';
 import { NeighborhoodMap } from '../../components/map/NeighborhoodMap';
 import { mobileRuntime } from '../../services/paltaClient';
 import { paltaTheme } from '../../theme/paltaTheme';
 import { PropertyListingCard } from './PropertyListingCard';
-import { PROPERTY_DEMO_LISTINGS } from './propertyDemoData';
 import { RealEstateAccountActions } from './RealEstateAccountActions';
 import { RealEstateHomeSections } from './RealEstateHomeSections';
 import { SaveRealEstateSearchButton } from './SaveRealEstateSearchButton';
+import { useRealEstateListings } from './useRealEstateListings';
 import { useSavedRealEstateListings } from './useSavedRealEstateListings';
 
 const SANTIAGO_CENTER = { latitude: -33.4489, longitude: -70.6693 } as const;
@@ -271,10 +268,7 @@ export function PropiedadesScreen({ initialView = 'list' }: { initialView?: Real
     };
   }, [minArea, minBathrooms, minBedrooms, minParking, ownerDirectOnly, params.businessId, pricePresetIndex, propertyType, query, transactionType]);
 
-  const listings = useMemo(
-    () => filterRealEstateListings(PROPERTY_DEMO_LISTINGS, repositoryQuery),
-    [repositoryQuery],
-  );
+  const { listings, loading, error } = useRealEstateListings(repositoryQuery);
 
   const mapFeatures = useMemo<MapFeature[]>(
     () =>
@@ -418,11 +412,26 @@ export function PropiedadesScreen({ initialView = 'list' }: { initialView?: Real
               {query ? 'Resultados' : params.businessId ? 'Propiedades publicadas' : 'Propiedades para ti'}
             </Text>
             <Text style={{ fontSize: 12, color: paltaTheme.color.textMuted }}>
-              {listings.length} {listings.length === 1 ? 'propiedad' : 'propiedades'}
+              {loading ? 'Buscando…' : `${listings.length} ${listings.length === 1 ? 'propiedad' : 'propiedades'}`}
             </Text>
           </View>
 
-          {listings.length ? (
+          {error ? (
+            <View
+              style={{
+                padding: paltaTheme.spacing.md,
+                borderRadius: paltaTheme.radius.surface,
+                backgroundColor: paltaTheme.color.surface,
+                borderWidth: 1,
+                borderColor: paltaTheme.color.divider,
+              }}
+            >
+              <Text style={{ fontWeight: '800', color: paltaTheme.color.textPrimary }}>No pudimos cargar las propiedades</Text>
+              <Text style={{ marginTop: 5, color: paltaTheme.color.textMuted }}>{error}</Text>
+            </View>
+          ) : null}
+
+          {!loading && !error && listings.length ? (
             <View style={{ gap: paltaTheme.spacing.sm }}>
               {listings.map((item) => (
                 <PropertyListingCard
@@ -434,7 +443,9 @@ export function PropiedadesScreen({ initialView = 'list' }: { initialView?: Real
                 />
               ))}
             </View>
-          ) : (
+          ) : null}
+
+          {!loading && !error && !listings.length ? (
             <View
               style={{
                 padding: paltaTheme.spacing.xl,
@@ -447,7 +458,7 @@ export function PropiedadesScreen({ initialView = 'list' }: { initialView?: Real
               <Text style={{ fontSize: 17, fontWeight: '800', color: paltaTheme.color.textPrimary }}>No encontramos propiedades con estos filtros</Text>
               <Text style={{ marginTop: 6, color: paltaTheme.color.textSecondary }}>Prueba otra zona, tipo de propiedad o rango de precio.</Text>
             </View>
-          )}
+          ) : null}
         </View>
 
         <Text style={{ fontSize: 11, lineHeight: 16, color: paltaTheme.color.textMuted }}>
