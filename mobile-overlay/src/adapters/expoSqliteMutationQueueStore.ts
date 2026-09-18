@@ -22,11 +22,31 @@ CREATE INDEX IF NOT EXISTS offline_mutation_queue_created_idx
   ON offline_mutation_queue(created_at);
 `;
 
+const CREATE_REAL_ESTATE_LOCAL_STATE_SQL = `
+CREATE TABLE IF NOT EXISTS real_estate_saved_listing (
+  listing_id TEXT PRIMARY KEY NOT NULL,
+  saved_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS real_estate_saved_listing_saved_at_idx
+  ON real_estate_saved_listing(saved_at DESC);
+
+CREATE TABLE IF NOT EXISTS real_estate_saved_search (
+  id TEXT PRIMARY KEY NOT NULL,
+  label TEXT NOT NULL,
+  query_json TEXT NOT NULL,
+  alert_enabled INTEGER NOT NULL DEFAULT 0,
+  saved_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS real_estate_saved_search_saved_at_idx
+  ON real_estate_saved_search(saved_at DESC);
+`;
+
 export async function initializePaltaSQLite(
   db: SQLiteDatabase,
 ): Promise<void> {
   await db.execAsync('PRAGMA journal_mode = WAL');
   await db.execAsync(CREATE_QUEUE_SQL);
+  await db.execAsync(CREATE_REAL_ESTATE_LOCAL_STATE_SQL);
 }
 
 export class ExpoSQLiteMutationQueueStore implements MutationQueueStore {
