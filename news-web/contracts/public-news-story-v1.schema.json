@@ -68,7 +68,7 @@
     },
     "correctionState": {"enum": ["none", "updated", "corrected"]},
     "updatedNotice": {"type": "string"},
-    "body": {"type": "array", "items": {"type": "string"}},
+    "body": {"type": "array", "items": {"type": "string", "minLength": 1}},
     "whyItMatters": {"type": "string"},
     "knownUnknown": {
       "type": "object",
@@ -90,6 +90,40 @@
           "label": {"type": "string", "minLength": 1}
         }
       }
+    },
+    "voiceType": {"enum": ["essay", "interview", "field_note", "photo_essay", "student_art", "local_memory", "proposal"]},
+    "contributorLabel": {"type": "string", "minLength": 1},
+    "perspectiveDisclosure": {"type": "string", "minLength": 1},
+    "mediaRights": {"enum": ["none_required", "cleared"]}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"contentClass": {"const": "local_voice"}}, "required": ["contentClass"]},
+      "then": {
+        "required": ["voiceType", "contributorLabel", "perspectiveDisclosure", "mediaRights"],
+        "properties": {
+          "section": {"const": "voices"},
+          "source": {
+            "type": "object",
+            "required": ["sourceType"],
+            "properties": {"sourceType": {"const": "contributor"}}
+          }
+        }
+      },
+      "else": {
+        "not": {
+          "anyOf": [
+            {"required": ["voiceType"]},
+            {"required": ["contributorLabel"]},
+            {"required": ["perspectiveDisclosure"]},
+            {"required": ["mediaRights"]}
+          ]
+        }
+      }
+    },
+    {
+      "if": {"properties": {"section": {"const": "voices"}}, "required": ["section"]},
+      "then": {"properties": {"contentClass": {"const": "local_voice"}}}
     }
-  }
+  ]
 }
