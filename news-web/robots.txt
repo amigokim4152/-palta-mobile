@@ -1,0 +1,6 @@
+User-agent: *
+Disallow: /
+
+# Palta News Web is not public yet.
+# This file must remain fail-closed until legal_ready, public_publish_enabled,
+# owner approval flow, edge publication gate, production domain and release QA are all confirmed.
