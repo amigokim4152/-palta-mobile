@@ -1,6 +1,7 @@
 import {
   projectVehicleCoordinationForDealer,
   validateVehicleCoordinationSelection,
+  validateVehicleInspectionCoordination,
 } from '../src/autos/autosAcquisitionCoordination.js';
 import {
   evaluateDealerForAcquisition,
@@ -184,5 +185,54 @@ const privateSelection = {
 };
 const stillPrivate = projectVehicleCoordinationForDealer(privateSelection, privateCoordination, 'biz-a');
 assert(!stillPrivate.phone && !stillPrivate.exactLocation, 'Selecting a dealer must not automatically reveal private coordination facts.');
+
+assert(
+  validateVehicleInspectionCoordination(
+    {
+      venueMode: 'dealer_location',
+      scheduledAt: '2026-09-19T15:00:00.000Z',
+      contactConsent: 'private',
+      locationConsent: 'private',
+    },
+    {},
+  ).valid,
+  'Inspection at the dealer should work without seller phone or exact location.',
+);
+assert(
+  !validateVehicleInspectionCoordination(
+    {
+      venueMode: 'dealer_location',
+      scheduledAt: '2026-09-19T15:00:00.000Z',
+      contactConsent: 'private',
+      locationConsent: 'share_selected_dealer',
+    },
+    privateCoordination,
+  ).valid,
+  'Dealer-location inspection must not unnecessarily share seller exact location.',
+);
+assert(
+  !validateVehicleInspectionCoordination(
+    {
+      venueMode: 'seller_location',
+      scheduledAt: '2026-09-19T15:00:00.000Z',
+      contactConsent: 'private',
+      locationConsent: 'private',
+    },
+    privateCoordination,
+  ).valid,
+  'Seller-location inspection must require explicit location consent.',
+);
+assert(
+  validateVehicleInspectionCoordination(
+    {
+      venueMode: 'seller_location',
+      scheduledAt: '2026-09-19T15:00:00.000Z',
+      contactConsent: 'share_selected_dealer',
+      locationConsent: 'share_selected_dealer',
+    },
+    privateCoordination,
+  ).valid,
+  'Seller-location inspection should validate only with the explicitly shared private facts.',
+);
 
 console.log('PASS: Autos dealer routing, Chile data merge, Shared Care and selected-dealer privacy projection');
