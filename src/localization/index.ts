@@ -23,6 +23,13 @@ export {
 } from './uiCatalog.js';
 
 export {
+  DISCOVERY_ES,
+  discoveryT,
+  type DiscoveryInterpolation,
+  type DiscoveryKey,
+} from './discoveryCatalog.js';
+
+export {
   hasTranslation,
   resolveLocalizedContent,
   type ContentTranslation,
