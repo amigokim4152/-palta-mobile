@@ -30,6 +30,7 @@ const demoDealers = [
 
 const acquisitionRequests = new Map();
 const offersByRequest = new Map();
+const coordinationByRequest = new Map();
 
 function json(res, status, body) {
   const payload = JSON.stringify(body);
@@ -123,7 +124,7 @@ const server = http.createServer(async (req, res) => {
     const url = new URL(req.url, `http://${req.headers.host ?? `${host}:${port}`}`);
 
     if (req.method === 'GET' && url.pathname === '/health') {
-      return json(res, 200, { ok: true, service: 'palta-autos-mock-api', version: '1.0.0' });
+      return json(res, 200, { ok: true, service: 'palta-autos-mock-api', version: '1.1.0' });
     }
 
     if (!requireAuth(req, res)) return;
@@ -134,8 +135,6 @@ const server = http.createServer(async (req, res) => {
         return json(res, 400, { error: 'sale_price_required' });
       }
 
-      // The mock intentionally does not invent an SII value. A connected official snapshot
-      // can later populate this without changing the API response shape.
       const fiscalValue = Number.isFinite(body.sii_fiscal_value_clp) && body.sii_fiscal_value_clp > 0
         ? positiveInteger(body.sii_fiscal_value_clp)
         : undefined;
@@ -218,6 +217,106 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, { request_id: requestId, items: offersByRequest.get(requestId) ?? [] });
     }
 
+    const selectionMatch = req.method === 'POST'
+      ? url.pathname.match(/^\/v1\/autos\/acquisition-requests\/([^/]+)\/selection$/)
+      : null;
+    if (selectionMatch) {
+      const requestId = decodeURIComponent(selectionMatch[1]);
+      const request = acquisitionRequests.get(requestId);
+      if (!request) return json(res, 404, { error: 'request_not_found' });
+      const body = await readJson(req);
+      if ('phone' in body || 'exact_location' in body || 'address' in body) {
+        return json(res, 400, { error: 'coordination_data_not_allowed_in_selection' });
+      }
+      if (typeof body.offer_id !== 'string') return json(res, 400, { error: 'offer_id_required' });
+      const offers = offersByRequest.get(requestId) ?? [];
+      const selectedOffer = offers.find((offer) => offer.offer_id === body.offer_id);
+      if (!selectedOffer) return json(res, 404, { error: 'offer_not_found' });
+
+      request.status = 'offer_selected';
+      request.selectedOfferId = selectedOffer.offer_id;
+      request.selectedBusinessId = selectedOffer.business_id;
+      offersByRequest.set(
+        requestId,
+        offers.map((offer) => ({
+          ...offer,
+          status: offer.offer_id === selectedOffer.offer_id ? 'accepted' : 'declined',
+        })),
+      );
+      coordinationByRequest.set(requestId, {
+        contactConsent: 'private',
+        locationConsent: 'private',
+      });
+
+      return json(res, 200, {
+        request_id: requestId,
+        status: 'offer_selected',
+        selected_offer_id: selectedOffer.offer_id,
+        selected_business_id: selectedOffer.business_id,
+        contact_shared: false,
+        exact_location_shared: false,
+      });
+    }
+
+    const coordinationUpdateMatch = req.method === 'POST'
+      ? url.pathname.match(/^\/v1\/autos\/acquisition-requests\/([^/]+)\/coordination$/)
+      : null;
+    if (coordinationUpdateMatch) {
+      const requestId = decodeURIComponent(coordinationUpdateMatch[1]);
+      const request = acquisitionRequests.get(requestId);
+      if (!request) return json(res, 404, { error: 'request_not_found' });
+      if (request.status !== 'offer_selected' || !request.selectedBusinessId) {
+        return json(res, 409, { error: 'offer_selection_required' });
+      }
+
+      const body = await readJson(req);
+      if (body.contact_consent !== 'private' && body.contact_consent !== 'share_selected_dealer') {
+        return json(res, 400, { error: 'invalid_contact_consent' });
+      }
+      if (body.location_consent !== 'private' && body.location_consent !== 'share_selected_dealer') {
+        return json(res, 400, { error: 'invalid_location_consent' });
+      }
+      if (body.contact_consent === 'share_selected_dealer' && (typeof body.phone !== 'string' || !body.phone.trim())) {
+        return json(res, 400, { error: 'phone_required_for_contact_share' });
+      }
+      if (body.contact_consent === 'private' && 'phone' in body) {
+        return json(res, 400, { error: 'phone_not_allowed_without_consent' });
+      }
+
+      const location = body.exact_location;
+      if (
+        body.location_consent === 'share_selected_dealer' &&
+        (!location || !Number.isFinite(location.latitude) || !Number.isFinite(location.longitude))
+      ) {
+        return json(res, 400, { error: 'exact_location_required_for_share' });
+      }
+      if (body.location_consent === 'private' && 'exact_location' in body) {
+        return json(res, 400, { error: 'exact_location_not_allowed_without_consent' });
+      }
+
+      coordinationByRequest.set(requestId, {
+        contactConsent: body.contact_consent,
+        locationConsent: body.location_consent,
+        ...(body.contact_consent === 'share_selected_dealer' ? { phone: body.phone.trim() } : {}),
+        ...(body.location_consent === 'share_selected_dealer'
+          ? {
+              exactLocation: {
+                latitude: location.latitude,
+                longitude: location.longitude,
+                ...(typeof location.label === 'string' && location.label.trim() ? { label: location.label.trim() } : {}),
+              },
+            }
+          : {}),
+      });
+
+      return json(res, 200, {
+        request_id: requestId,
+        selected_business_id: request.selectedBusinessId,
+        contact_shared: body.contact_consent === 'share_selected_dealer',
+        exact_location_shared: body.location_consent === 'share_selected_dealer',
+      });
+    }
+
     const dealerQueueMatch = req.method === 'GET'
       ? url.pathname.match(/^\/v1\/business\/([^/]+)\/autos\/acquisition-requests$/)
       : null;
@@ -233,6 +332,38 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, { business_id: businessId, items });
     }
 
+    const dealerCoordinationMatch = req.method === 'GET'
+      ? url.pathname.match(/^\/v1\/business\/([^/]+)\/autos\/acquisition-requests\/([^/]+)\/coordination$/)
+      : null;
+    if (dealerCoordinationMatch) {
+      const businessId = decodeURIComponent(dealerCoordinationMatch[1]);
+      const requestId = decodeURIComponent(dealerCoordinationMatch[2]);
+      const dealer = demoDealers.find((item) => item.businessId === businessId);
+      const request = acquisitionRequests.get(requestId);
+      if (!dealer || !dealer.verified || !dealer.acquisitionEnabled) {
+        return json(res, 403, { error: 'vehicle_private_buy_bid_capability_required' });
+      }
+      if (!request) return json(res, 404, { error: 'request_not_found' });
+      if (request.selectedBusinessId !== businessId) {
+        return json(res, 403, { error: 'selected_dealer_only' });
+      }
+      const coordination = coordinationByRequest.get(requestId) ?? {
+        contactConsent: 'private',
+        locationConsent: 'private',
+      };
+      return json(res, 200, {
+        request_id: requestId,
+        business_id: businessId,
+        selected: true,
+        ...(coordination.contactConsent === 'share_selected_dealer' && coordination.phone
+          ? { phone: coordination.phone }
+          : {}),
+        ...(coordination.locationConsent === 'share_selected_dealer' && coordination.exactLocation
+          ? { exact_location: coordination.exactLocation }
+          : {}),
+      });
+    }
+
     const dealerOfferMatch = req.method === 'POST'
       ? url.pathname.match(/^\/v1\/business\/([^/]+)\/autos\/acquisition-requests\/([^/]+)\/offers$/)
       : null;
@@ -245,6 +376,9 @@ const server = http.createServer(async (req, res) => {
         return json(res, 403, { error: 'vehicle_private_buy_bid_capability_required' });
       }
       if (!request) return json(res, 404, { error: 'request_not_found' });
+      if (request.status !== 'open_for_offers') {
+        return json(res, 409, { error: 'request_not_open_for_offers' });
+      }
       if (!request.routedDealerIds.includes(businessId)) {
         return json(res, 403, { error: 'dealer_not_routed_for_request' });
       }
