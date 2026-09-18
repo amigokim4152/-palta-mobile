@@ -215,7 +215,6 @@ export default function BusinessOwnerHomeScreen() {
               body={item.reason}
               badge={item.commercial === 'free' ? 'SIN COSTO' : undefined}
               tone="attention"
-              onPress={item.target ? () => router.push(item.target as never) : undefined}
             />
           ))}
 
@@ -258,7 +257,6 @@ export default function BusinessOwnerHomeScreen() {
                 title={item.title}
                 body={item.reason}
                 badge="SIN COSTO"
-                onPress={item.target ? () => router.push(item.target as never) : undefined}
               />
             ))}
           </View>
@@ -336,7 +334,6 @@ export default function BusinessOwnerHomeScreen() {
                 body={item.reason}
                 badge="PUEDE SER DE PAGO"
                 tone="optional"
-                onPress={item.target ? () => router.push(item.target as never) : undefined}
               />
             ))}
           </View>
