@@ -35,6 +35,8 @@
     "/local-businesses/following",
     "/business/register",
     "/business/manage/[businessId]",
+    "/messages/business/[businessId]",
+    "/messages/[conversationId]",
     "/care/[careTrackId]",
     "/context/[contextId]"
   ],
@@ -44,6 +46,7 @@
   },
   "non_tabs": [
     "map",
+    "messages",
     "create/post",
     "notifications",
     "profile/settings"
