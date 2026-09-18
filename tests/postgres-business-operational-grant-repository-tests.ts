@@ -43,8 +43,8 @@ db.rows = [{
   role: 'cashier',
   status: 'active',
   granted_by_user_id: 'owner-1',
-  granted_at: '2026-09-18T00:00:00.000Z',
-  expires_at: '2026-12-31T23:59:59.000Z',
+  granted_at: new Date('2026-09-18T00:00:00.000Z'),
+  expires_at: new Date('2026-12-31T23:59:59.000Z'),
 }];
 
 const repository = new PostgresBusinessOperationalGrantRepository(db);
@@ -52,6 +52,7 @@ const grant = await repository.findGrant({ businessId: 'biz-1', userId: 'user-1'
 assert(grant !== null, 'Expected business operational grant.');
 assert(grant.role === 'cashier', 'Expected canonical cashier role.');
 assert(grant.status === 'active', 'Expected active status.');
+assert(grant.grantedAt === '2026-09-18T00:00:00.000Z', 'Expected granted timestamp normalization.');
 assert(grant.expiresAt === '2026-12-31T23:59:59.000Z', 'Expected expiration mapping.');
 assert(
   db.seen[0]?.params[0] === 'biz-1' && db.seen[0]?.params[1] === 'user-1',
@@ -85,5 +86,26 @@ try {
   corruptRejected = error instanceof Error && error.message.includes('role');
 }
 assert(corruptRejected, 'Unknown database role must fail closed.');
+
+const invalidTimestampDb = new FakeDatabase();
+invalidTimestampDb.rows = [{
+  business_id: 'biz-1',
+  user_id: 'user-1',
+  role: 'cashier',
+  status: 'active',
+  granted_by_user_id: 'owner-1',
+  granted_at: 'not-a-timestamp',
+  expires_at: null,
+}];
+let invalidTimestampRejected = false;
+try {
+  await new PostgresBusinessOperationalGrantRepository(invalidTimestampDb).findGrant({
+    businessId: 'biz-1',
+    userId: 'user-1',
+  });
+} catch (error) {
+  invalidTimestampRejected = error instanceof Error && error.message.includes('timestamp');
+}
+assert(invalidTimestampRejected, 'Invalid grant timestamps must fail closed.');
 
 console.log('PASS: PostgreSQL business operational grant repository tests');
