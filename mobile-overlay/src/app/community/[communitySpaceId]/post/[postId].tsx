@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { useLocalSearchParams } from 'expo-router';
-import { Text, TextInput, View } from 'react-native';
+import { Pressable, Text, TextInput, View } from 'react-native';
 import { ErrorState, LoadingState } from '../../../../components/AsyncStateBlock';
 import { ScreenFrame } from '../../../../components/ScreenFrame';
 import { PaltaButton } from '../../../../components/common/PaltaButton';
@@ -9,120 +9,124 @@ import { communityRuntime } from '../../../../features/community/communityRuntim
 import { paltaTheme } from '../../../../theme/paltaTheme';
 
 export default function CommunityThreadScreen() {
-  const { communitySpaceId, postId } = useLocalSearchParams<{
-    communitySpaceId: string;
-    postId: string;
-  }>();
+  const { communitySpaceId, postId } = useLocalSearchParams<{ communitySpaceId: string; postId: string }>();
   const [comment, setComment] = useState('');
-
+  const [submitting, setSubmitting] = useState(false);
+  const [acknowledging, setAcknowledging] = useState(false);
   const load = useCallback(() => {
     if (!communitySpaceId || !postId) throw new Error('Community thread ID missing');
     return communityRuntime.loadPost(communitySpaceId, postId);
   }, [communitySpaceId, postId]);
   const { state, refresh } = useAsyncResource(load);
 
-  if (state.status === 'loading' && !state.data) {
-    return (
-      <ScreenFrame title="Publicación">
-        <LoadingState label="Cargando conversación…" />
-      </ScreenFrame>
-    );
-  }
-  if (state.status === 'error' && !state.data) {
-    return (
-      <ScreenFrame title="Publicación">
-        <ErrorState message={state.message} onRetry={() => void refresh()} />
-      </ScreenFrame>
-    );
-  }
+  if (state.status === 'loading' && !state.data) return <ScreenFrame title="Publicación"><LoadingState label="Cargando conversación…" /></ScreenFrame>;
+  if (state.status === 'error' && !state.data) return <ScreenFrame title="Publicación"><ErrorState message={state.message} onRetry={() => void refresh()} /></ScreenFrame>;
   const thread = state.data;
-  if (!thread) {
-    return (
-      <ScreenFrame title="Publicación">
-        <Text>No hay datos disponibles.</Text>
-      </ScreenFrame>
-    );
-  }
+  if (!thread) return <ScreenFrame title="Publicación"><Text>No hay datos disponibles.</Text></ScreenFrame>;
 
   const submit = async () => {
     const body = comment.trim();
-    if (!body) return;
-    await communityRuntime.addComment(communitySpaceId, postId, body);
-    setComment('');
-    await refresh();
+    if (!body || submitting) return;
+    setSubmitting(true);
+    try {
+      await communityRuntime.addComment(communitySpaceId, postId, body);
+      setComment('');
+      await refresh();
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const acknowledge = async () => {
+    if (acknowledging || thread.post.acknowledged) return;
+    setAcknowledging(true);
+    try {
+      await communityRuntime.acknowledgePost(communitySpaceId, postId);
+      await refresh();
+    } finally {
+      setAcknowledging(false);
+    }
   };
 
   return (
     <ScreenFrame title={thread.communityName} subtitle="Conversación">
-      <View style={{ gap: paltaTheme.spacing.md }}>
-        <View
-          style={{
-            paddingBottom: paltaTheme.spacing.md,
-            borderBottomWidth: 1,
-            borderBottomColor: paltaTheme.color.divider,
-          }}
-        >
-          <Text style={{ fontSize: 12, color: paltaTheme.color.textMuted }}>
-            {thread.post.author} · {thread.post.timeLabel}
-          </Text>
-          <Text
-            style={{
-              marginTop: 8,
-              fontSize: 16,
-              lineHeight: 23,
-              color: paltaTheme.color.textPrimary,
-            }}
-          >
-            {thread.post.body}
-          </Text>
-          <PaltaButton
-            label={`Me sirve · ${thread.post.reactionCount}`}
-            variant="secondary"
-            onPress={() =>
-              void communityRuntime.reactToPost(communitySpaceId, postId).then(refresh)
-            }
-          />
+      <View style={{ gap: paltaTheme.spacing.lg }}>
+        <View style={{ paddingBottom: paltaTheme.spacing.md, borderBottomWidth: 1, borderBottomColor: paltaTheme.color.divider }}>
+          <View style={{ flexDirection: 'row', gap: 7, flexWrap: 'wrap' }}>
+            <Text style={{ fontSize: 12, color: paltaTheme.color.textMuted }}>{thread.post.author} · {thread.post.timeLabel}</Text>
+            {thread.post.sensitive ? <Text style={{ fontSize: 12, fontWeight: '700', color: paltaTheme.color.brandPrimary }}>Privado</Text> : null}
+          </View>
+          {thread.post.title ? <Text style={{ marginTop: 7, fontSize: 18, fontWeight: '700', color: paltaTheme.color.textPrimary }}>{thread.post.title}</Text> : null}
+          <Text style={{ marginTop: 8, fontSize: 17, lineHeight: 24, color: paltaTheme.color.textPrimary }}>{thread.post.body}</Text>
+
+          {thread.post.requiresAcknowledgement ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={thread.post.acknowledged ? 'Ya confirmado' : 'Confirmar que revisaste esta información'}
+              disabled={acknowledging || thread.post.acknowledged}
+              onPress={() => void acknowledge()}
+              style={({ pressed }) => ({
+                minHeight: paltaTheme.touch.minimum,
+                alignSelf: 'flex-start',
+                justifyContent: 'center',
+                marginTop: paltaTheme.spacing.md,
+                paddingHorizontal: paltaTheme.spacing.md,
+                borderRadius: paltaTheme.radius.pill,
+                backgroundColor: thread.post.acknowledged ? paltaTheme.color.surfaceMuted : paltaTheme.color.brandSoft,
+                opacity: pressed ? 0.72 : 1,
+              })}
+            >
+              <Text style={{ color: thread.post.acknowledged ? paltaTheme.color.textMuted : paltaTheme.color.brandPrimary, fontWeight: '700' }}>
+                {thread.post.acknowledged ? 'Confirmado' : acknowledging ? 'Confirmando…' : 'Confirmar'}
+              </Text>
+            </Pressable>
+          ) : null}
+
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: paltaTheme.spacing.sm, marginTop: paltaTheme.spacing.md }}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Marcar como útil. ${thread.post.reactionCount} reacciones`}
+              onPress={() => void communityRuntime.reactToPost(communitySpaceId, postId).then(refresh)}
+              style={({ pressed }) => ({ minHeight: paltaTheme.touch.minimum, justifyContent: 'center', paddingHorizontal: paltaTheme.spacing.md, borderRadius: paltaTheme.radius.pill, backgroundColor: paltaTheme.color.surfaceMuted, opacity: pressed ? 0.72 : 1 })}
+            >
+              <Text style={{ color: paltaTheme.color.brandPrimary, fontWeight: '700' }}>Útil · {thread.post.reactionCount}</Text>
+            </Pressable>
+            <Text style={{ color: paltaTheme.color.textSecondary, fontSize: 13 }}>{thread.comments.length} comentarios</Text>
+          </View>
         </View>
 
-        {thread.comments.map((item) => (
-          <View
-            key={item.id}
-            style={{
-              paddingVertical: paltaTheme.spacing.sm,
-              borderBottomWidth: 1,
-              borderBottomColor: paltaTheme.color.divider,
-            }}
-          >
-            <Text style={{ fontWeight: '700', color: paltaTheme.color.textPrimary }}>
-              {item.author}
-            </Text>
-            <Text style={{ marginTop: 4, color: paltaTheme.color.textPrimary }}>{item.body}</Text>
-            <Text style={{ marginTop: 4, fontSize: 12, color: paltaTheme.color.textMuted }}>
-              {item.timeLabel}
-            </Text>
-          </View>
-        ))}
+        <View>
+          <Text style={{ fontSize: 18, fontWeight: '700', color: paltaTheme.color.textPrimary }}>Comentarios</Text>
+          {thread.comments.length === 0 ? <Text style={{ marginTop: paltaTheme.spacing.sm, color: paltaTheme.color.textSecondary }}>Todavía no hay comentarios.</Text> : null}
+          {thread.comments.map((item) => (
+            <View key={item.id} style={{ paddingVertical: paltaTheme.spacing.md, borderBottomWidth: 1, borderBottomColor: paltaTheme.color.divider }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: paltaTheme.spacing.sm }}>
+                <Text style={{ flex: 1, fontWeight: '700', color: paltaTheme.color.textPrimary }}>{item.author}</Text>
+                <Text style={{ fontSize: 12, color: paltaTheme.color.textMuted }}>{item.timeLabel}</Text>
+              </View>
+              <Text style={{ marginTop: 5, lineHeight: 21, color: paltaTheme.color.textPrimary }}>{item.body}</Text>
+            </View>
+          ))}
+        </View>
 
         {thread.canComment ? (
           <View style={{ gap: paltaTheme.spacing.sm }}>
+            <Text style={{ fontSize: 15, fontWeight: '700', color: paltaTheme.color.textPrimary }}>Responder</Text>
             <TextInput
+              accessibilityLabel="Escribe un comentario"
               value={comment}
               onChangeText={setComment}
               placeholder="Escribe un comentario"
               placeholderTextColor={paltaTheme.color.textMuted}
               multiline
-              style={{
-                minHeight: 72,
-                padding: paltaTheme.spacing.sm,
-                borderWidth: 1,
-                borderColor: paltaTheme.color.divider,
-                borderRadius: paltaTheme.radius.surface,
-                color: paltaTheme.color.textPrimary,
-              }}
+              maxLength={2000}
+              style={{ minHeight: 88, padding: paltaTheme.spacing.md, borderWidth: 1, borderColor: paltaTheme.color.divider, borderRadius: paltaTheme.radius.surface, backgroundColor: paltaTheme.color.surface, color: paltaTheme.color.textPrimary, textAlignVertical: 'top' }}
             />
-            <PaltaButton label="Comentar" onPress={() => void submit()} disabled={!comment.trim()} />
+            <PaltaButton label={submitting ? 'Publicando…' : 'Comentar'} onPress={() => void submit()} disabled={!comment.trim() || submitting} />
           </View>
-        ) : null}
+        ) : (
+          <Text style={{ color: paltaTheme.color.textSecondary }}>Necesitas una membresía activa para participar en esta conversación.</Text>
+        )}
       </View>
     </ScreenFrame>
   );
