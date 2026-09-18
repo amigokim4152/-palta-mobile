@@ -102,7 +102,7 @@ export function BusinessRegistrationReceivedScreen() {
             marginTop: 16,
             padding: 14,
             borderRadius: 14,
-            backgroundColor: paltaTheme.color.surfaceSubtle ?? paltaTheme.color.surface,
+            backgroundColor: paltaTheme.color.surfaceMuted,
           }}
         >
           <Text style={{ fontWeight: '800', color: paltaTheme.color.textPrimary }}>
