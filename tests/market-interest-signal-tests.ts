@@ -11,6 +11,10 @@ function assert(condition: unknown, message: string): asserts condition {
 }
 
 const now = Date.parse('2026-09-18T22:00:00Z');
+const phoneBand = marketPriceBand(430000);
+const galaxyBand = marketPriceBand(390000);
+const bikeBand = marketPriceBand(120000);
+
 const signals: MarketInterestSignal[] = [
   {
     action: 'view',
@@ -19,7 +23,7 @@ const signals: MarketInterestSignal[] = [
     category: 'tech',
     productFamilyKey: 'smartphone',
     listingId: 'iphone-14',
-    priceBand: marketPriceBand(430000),
+    ...(phoneBand ? { priceBand: phoneBand } : {}),
   },
   {
     action: 'favorite',
@@ -28,7 +32,7 @@ const signals: MarketInterestSignal[] = [
     category: 'tech',
     productFamilyKey: 'smartphone',
     listingId: 'galaxy-s23',
-    priceBand: marketPriceBand(390000),
+    ...(galaxyBand ? { priceBand: galaxyBand } : {}),
   },
   {
     action: 'message',
@@ -37,7 +41,7 @@ const signals: MarketInterestSignal[] = [
     category: 'sports',
     productFamilyKey: 'urban_bike',
     listingId: 'bike',
-    priceBand: marketPriceBand(120000),
+    ...(bikeBand ? { priceBand: bikeBand } : {}),
   },
   {
     action: 'view',
@@ -62,7 +66,8 @@ assert(
   'Expired category interest must not affect the current profile.',
 );
 assert(
-  (profile.productFamilyWeights.urban_bike ?? 0) > (profile.productFamilyWeights.smartphone ?? 0) / 2,
+  (profile.productFamilyWeights.urban_bike ?? 0) >
+    (profile.productFamilyWeights.smartphone ?? 0) / 2,
   'High-intent message actions must carry stronger weight than a passive view.',
 );
 assert(marketPriceBand(28000) === 'under_50k', 'Low price band must be stable.');
