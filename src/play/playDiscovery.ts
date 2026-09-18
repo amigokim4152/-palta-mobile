@@ -4,6 +4,7 @@ export const playThemeKeys = [
   'today',
   'weekend',
   'family',
+  'couple',
   'free',
   'outdoor',
   'birthday',
@@ -47,12 +48,9 @@ export type PlayBusinessProjectionRef = Readonly<{
 
 export type PlayDiscoveryItem = {
   id: string;
-  /** Stable cross-source identity when an upstream matcher can provide it. */
   canonicalKey?: string;
   sourceKind: PlaySourceKind;
-  /** What the user can do, independent of the upstream provider/category vocabulary. */
   contentKind: PlayContentKind;
-  /** Canonical entity references remain separate from presentation/provenance. */
   eventId?: string;
   venueId?: string;
   offeringId?: string;
@@ -75,13 +73,11 @@ export type PlayDiscoveryItem = {
   distanceLabel?: string;
   experienceTags?: readonly string[];
   primaryAction?: PlayDiscoveryAction;
-  /** Alternate non-commercial actions discovered from duplicate source records. */
   alternateActions?: readonly PlayDiscoveryAction[];
   placeId?: string;
   businessId?: string;
   businessProjection?: PlayBusinessProjectionRef;
   source: PlayDiscoverySource;
-  /** Additional corroborating sources after cross-source deduplication. */
   alternateSources?: readonly PlayDiscoverySource[];
 };
 
@@ -120,44 +116,28 @@ export function validatePlayDiscoveryItem(item: PlayDiscoveryItem): readonly str
   if (!item.comuna.trim()) issues.push('comuna_required');
   if (!item.scheduleLabel.trim()) issues.push('schedule_required');
   if (!item.source.authority.trim()) issues.push('source_authority_required');
-  if (item.distanceM !== undefined && (!Number.isFinite(item.distanceM) || item.distanceM < 0)) {
-    issues.push('distance_m_invalid');
-  }
-  if (item.travelTimeMinutes !== undefined && (!Number.isFinite(item.travelTimeMinutes) || item.travelTimeMinutes < 0)) {
-    issues.push('travel_time_invalid');
-  }
-  if (item.primaryAction && !isHttpUrl(item.primaryAction.url)) {
-    issues.push('primary_action_url_invalid');
-  }
+  if (item.distanceM !== undefined && (!Number.isFinite(item.distanceM) || item.distanceM < 0)) issues.push('distance_m_invalid');
+  if (item.travelTimeMinutes !== undefined && (!Number.isFinite(item.travelTimeMinutes) || item.travelTimeMinutes < 0)) issues.push('travel_time_invalid');
+  if (item.primaryAction && !isHttpUrl(item.primaryAction.url)) issues.push('primary_action_url_invalid');
   for (const action of item.alternateActions ?? []) {
     if (!isHttpUrl(action.url)) issues.push('alternate_action_url_invalid');
   }
-  if (item.sourceKind === 'business' && !canonicalBusinessId(item)?.trim()) {
-    issues.push('canonical_business_id_required');
-  }
-  if (
-    item.businessProjection?.businessId &&
-    item.businessId &&
-    item.businessProjection.businessId !== item.businessId
-  ) {
+  if (item.sourceKind === 'business' && !canonicalBusinessId(item)?.trim()) issues.push('canonical_business_id_required');
+  if (item.businessProjection?.businessId && item.businessId && item.businessProjection.businessId !== item.businessId) {
     issues.push('business_projection_identity_mismatch');
   }
   return [...new Set(issues)];
 }
 
 function compareTravelTime(left: PlayDiscoveryItem, right: PlayDiscoveryItem): number {
-  if (left.travelTimeMinutes !== undefined && right.travelTimeMinutes !== undefined) {
-    return left.travelTimeMinutes - right.travelTimeMinutes;
-  }
+  if (left.travelTimeMinutes !== undefined && right.travelTimeMinutes !== undefined) return left.travelTimeMinutes - right.travelTimeMinutes;
   if (left.travelTimeMinutes !== undefined) return -1;
   if (right.travelTimeMinutes !== undefined) return 1;
   return 0;
 }
 
 function compareDistance(left: PlayDiscoveryItem, right: PlayDiscoveryItem): number {
-  if (left.distanceM !== undefined && right.distanceM !== undefined) {
-    return left.distanceM - right.distanceM;
-  }
+  if (left.distanceM !== undefined && right.distanceM !== undefined) return left.distanceM - right.distanceM;
   if (left.distanceM !== undefined) return -1;
   if (right.distanceM !== undefined) return 1;
   return 0;
@@ -170,11 +150,7 @@ function compareStartTime(left: PlayDiscoveryItem, right: PlayDiscoveryItem): nu
   return 0;
 }
 
-/**
- * Organic discovery ordering. Deliberately accepts no commercial capability,
- * commission or partner payout input. Monetization is joined only after this
- * selection step.
- */
+/** Organic ordering never accepts commission or deal terms. */
 export function selectPlayDiscoveryItems(
   items: readonly PlayDiscoveryItem[],
   context: PlayDiscoveryContext = {},
@@ -187,21 +163,16 @@ export function selectPlayDiscoveryItems(
   return filtered.sort((left, right) => {
     const travelTimeOrder = compareTravelTime(left, right);
     if (travelTimeOrder !== 0) return travelTimeOrder;
-
     const distanceOrder = compareDistance(left, right);
     if (distanceOrder !== 0) return distanceOrder;
-
     const leftLocal = context.locality && left.comuna === context.locality ? 0 : 1;
     const rightLocal = context.locality && right.comuna === context.locality ? 0 : 1;
     if (leftLocal !== rightLocal) return leftLocal - rightLocal;
-
     const timeOrder = compareStartTime(left, right);
     if (timeOrder !== 0) return timeOrder;
-
     const leftPublic = isPublicPlayItem(left) ? 0 : 1;
     const rightPublic = isPublicPlayItem(right) ? 0 : 1;
     if (leftPublic !== rightPublic) return leftPublic - rightPublic;
-
     return left.title.localeCompare(right.title, 'es');
   });
 }
