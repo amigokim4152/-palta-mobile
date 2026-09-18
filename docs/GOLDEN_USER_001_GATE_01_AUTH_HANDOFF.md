@@ -1,18 +1,18 @@
 # Golden User 001 — Gate 01 Auth Runtime Handoff
 
-Status: `RUNTIME_CONNECTED` — implementation and database boundary are connected; live provider/device E2E is still `NOT VERIFIED`.
+Status: `RUNTIME_CONNECTED` — Auth Core, mobile runtime, canonical account bootstrap, RLS boundary, and public configuration validation are connected and automated. Live provider/device E2E is still `NOT VERIFIED`.
 
-Gate 01 must **not** be changed to `E2E_VERIFIED` until the real mobile login → restart → logout → login cycle is executed against `palta-dev`.
+Gate 01 must **not** be changed to `E2E_VERIFIED` until the real mobile login → terminate/relaunch → logout → login-again cycle is executed against `palta-dev`.
 
 ## Source of truth
 
 Use these together; do not create a competing Auth model:
 
-1. `integration/golden-user-001-v1` — active Golden User branch.
-2. `integration/repository-normalization-v1` — normalized repository/database baseline.
-3. `integration/auth-profile-core-v1` — source of the account/identity/session/resolver concepts reconciled into the Golden branch.
-4. `integration/mobile-runtime-shell-v1` — Expo runtime/package reference.
-5. Supabase project `palta-dev` (`rqbpbauhkdgsrkbwmkmg`) — real development target.
+1. `integration/golden-user-001-v1` — active Golden User branch
+2. `integration/repository-normalization-v1` — normalized repository/database baseline
+3. `integration/auth-profile-core-v1` — source of account/identity/session/resolver concepts already reconciled into the Golden branch
+4. `integration/mobile-runtime-shell-v1` — historical Expo runtime/package reference only
+5. Supabase project `palta-dev` (`rqbpbauhkdgsrkbwmkmg`) — real development target
 
 The reconciliation deliberately does **not** restore the earlier independent `core_user`/identity persistence model. In normalized v1, `public.palta_account.user_id` is the canonical application id and is a FK to `auth.users(id)`.
 
@@ -20,13 +20,13 @@ The reconciliation deliberately does **not** restore the earlier independent `co
 
 Provider-specific Supabase SDK code remains under the mobile adapter/provider boundary. Core does not consume Supabase `Session` objects.
 
-The identity layers are now explicit:
+Identity layers are explicit:
 
 - raw Apple/Google/email provider subject — upstream provider identity; not a Palta id
 - `AuthBrokerUserId` — Supabase `auth.users.id`
 - `PaltaUserId` — canonical application id resolved by Core
 
-For normalized v1, `PaltaUserId` maps deterministically from `AuthBrokerUserId`, but the types remain distinct so provider subjects cannot silently become application ids.
+For normalized v1, `PaltaUserId` maps deterministically from `AuthBrokerUserId`, but the types remain distinct so raw provider subjects cannot silently become application ids.
 
 Relevant Core files:
 
@@ -36,12 +36,11 @@ Relevant Core files:
 - `src/auth/providerPrincipal.ts`
 - `src/auth/sessionPolicy.ts`
 - `src/ports/authPort.ts`
-
-The old Auth/Profile branch's account/identity/session/resolver concepts were reconciled. Its old independent account-id generator/storage tables were not copied.
+- `tests/auth-account-resolution-tests.ts`
 
 ## Implemented mobile runtime
 
-Source of Truth remains `mobile-overlay/src`; generated runtime is materialized from it.
+Source of Truth remains `mobile-overlay/src`; generated runtime is materialized into `apps/mobile/src`.
 
 Implemented controls and states:
 
@@ -58,7 +57,21 @@ Implemented controls and states:
 - logout
 - signed-in app gate
 
-Mobile configuration accepts only a Supabase publishable key. A CI guard scans mobile sources for service-role/secret-key credential patterns.
+### Configuration hardening
+
+The mobile Auth adapter is fail-closed:
+
+- no Supabase project URL fallback exists in mobile source
+- no concrete publishable key fallback exists in mobile source
+- missing URL/key produces a visible `configuration_error`
+- Supabase URL must match `https://<project>.supabase.co`
+- mobile key must use the `sb_publishable_` format
+
+`scripts/check-mobile-auth-secrets.mjs` rejects privileged Supabase material **and** hardcoded Supabase environment binding inside `mobile-overlay` / generated mobile source.
+
+`.env.example` is the canonical public development configuration and is validated during root `npm run verify`. The prior stale `EXPO_PUBLIC_APP_ENV=local` contract was removed; the runtime now consistently uses `EXPO_PUBLIC_ENV=development|preview|production`.
+
+For Golden User development on macOS, `scripts/run-ios-mobile.sh` injects the public `palta-dev` URL/publishable key at launch while allowing explicit environment overrides. This keeps application source environment-neutral while avoiding manual copy/paste for the development run.
 
 ## Canonical account bootstrap — `palta-dev`
 
@@ -86,7 +99,7 @@ Direct database verification confirmed:
 - `palta_account_bootstrap` trigger is enabled
 - bootstrap function is SECURITY DEFINER with fixed search path
 - `public.palta_account` RLS is enabled
-- authenticated SELECT = allowed
+- authenticated SELECT = allowed under owner RLS
 - authenticated INSERT = denied
 - authenticated UPDATE = denied by table grant at this stage
 - authenticated DELETE = denied
@@ -104,24 +117,28 @@ A transaction + rollback synthetic two-user test was executed against the real `
 
 This verifies the server bootstrap invariant and negative owner-RLS boundary without leaving fixture residue.
 
-## Automated verification evidence
+## Latest automated verification evidence
 
-Implementation baseline: `0b977f6716beada55dcc69ffd6caaabc61181288` (`refactor: reconcile Gate 01 auth with canonical account core`).
+Configuration-hardening baseline: `2aae9ebc8f9dd1e3264952ff34c7c7fb5027eaff` (`ci: validate canonical public env example`).
 
-Successful GitHub Actions on that implementation:
+Successful GitHub Actions on that baseline:
 
-- Palta Core Check run `35335051087`
+- Palta Core Check run `35335940242`
   - TypeScript typecheck: PASS
-  - Core tests including canonical Auth/account resolver test: PASS
-- Palta Core CI run `35335051144`
+  - Core tests, including canonical Auth/account resolution: PASS
+- Palta Core CI run `35335940202`
   - `npm ci`: PASS
   - `npm run verify`: PASS
+  - canonical `.env.example` validation: PASS as part of `verify`
+  - mobile Auth secret/environment-binding guard: PASS as part of `verify`
   - PostgreSQL migration preflight: PASS
-- Palta Mobile Runtime Shell run `35335051197`
+- Palta Mobile Runtime Shell run `35335940196`
+  - launcher shell syntax: PASS
+  - mobile Auth credential boundary: PASS
   - mobile overlay materialization: PASS
   - mobile dependency install: PASS
   - generated Expo runtime typecheck: PASS
-  - Expo public config resolution: PASS
+  - canonical Expo public config resolution: PASS
 
 ## Definition of Done status
 
@@ -134,22 +151,39 @@ Successful GitHub Actions on that implementation:
 | 5 | Sign out clears local session and returns to Auth | `NOT VERIFIED` | UI/runtime path implemented; device interaction not executed |
 | 6 | Sign in again resolves same account | `NOT VERIFIED` | Requires live provider/device cycle |
 | 7 | User A cannot read user B account | `VERIFIED` | Real `palta-dev` two-user transaction/RLS negative test |
-| 8 | Missing/invalid config fails visibly and safely | `PARTIALLY VERIFIED` | explicit error UI and publishable-key validation typechecked; live invalid-config runtime not executed |
-| 9 | No private/admin key bundled in mobile | `VERIFIED` | publishable-only config plus `check:auth-secrets` CI guard |
-| 10 | Applicable TypeScript/tests pass | `VERIFIED` | runs `35335051087`, `35335051144`, `35335051197` |
+| 8 | Missing/invalid config fails visibly and safely | `PARTIALLY VERIFIED` | fail-closed adapter + canonical env validation + visible error UI verified statically; live invalid-config interaction not executed |
+| 9 | No private/admin key bundled in mobile | `VERIFIED` | publishable-only contract + mobile credential/environment-binding CI guard |
+| 10 | Applicable TypeScript/tests/migrations pass | `VERIFIED` | runs `35335940242`, `35335940202`, `35335940196` |
 | 11 | Runbook changes to E2E_VERIFIED only with runtime evidence | `VERIFIED` | remains `RUNTIME_CONNECTED` |
+
+## Current Supabase advisor findings outside Gate 01
+
+A 2026-09-18 security-advisor pass did **not** report the private Palta account-bootstrap function as exposed. It did report existing PostGIS/public-schema findings and one inaccessible RLS-with-no-policy table.
+
+These are not modified inside Gate 01 because PostGIS relocation from `public` is not a safe one-line change on current PostGIS; it can require dependency backup/drop/recreate or a supported migration procedure. Do not disable/drop/move PostGIS merely to make the advisor list empty while Map Core depends on geo capability.
+
+Track these separately during database/platform hardening:
+
+- `business_registration_intake`: RLS enabled, no policies; current anon/authenticated CRUD grants were verified absent
+- `spatial_ref_sys`: extension-owned public table advisor finding
+- PostGIS installed in `public`: advisor warning; requires planned relocation strategy
+- `st_estimatedextent(...)`: PostGIS SECURITY DEFINER execute warnings for anon/authenticated
+
+The rule is: fix with a tested PostGIS migration plan, not an ad-hoc Gate 01 schema change.
 
 ## Remaining Gate 01 execution
 
-Do not build Gate 02 yet. The remaining work is runtime evidence only:
+Do not build Gate 02 yet. Remaining work is runtime evidence only:
 
-1. launch the actual generated mobile runtime against `palta-dev`
-2. confirm signed-out Auth surface
-3. complete at least one Golden User login path; then exercise Apple/Google/email as configured
-4. record the resulting `PaltaUserId`
-5. kill the app and relaunch; confirm same session/account
-6. logout; confirm Auth surface
-7. login again; confirm the same `PaltaUserId`
-8. only then change Gate 01 to `E2E_VERIFIED`
+1. on the development Mac, check out `integration/golden-user-001-v1`
+2. run `./scripts/run-ios-mobile.sh`
+3. confirm signed-out Auth surface
+4. complete at least one Golden User login path against `palta-dev`
+5. record the resulting `PaltaUserId`
+6. terminate the app and relaunch; confirm the same session/account
+7. logout; confirm Auth surface
+8. login again; confirm the same `PaltaUserId`
+9. exercise remaining configured providers and confirm they do not create unintended duplicate Palta accounts
+10. only then change Gate 01 to `E2E_VERIFIED`
 
 If a live provider fails, record the exact provider/configuration/deep-link failure and fix that blocker only. Do not advance to later product domains from this work package.
