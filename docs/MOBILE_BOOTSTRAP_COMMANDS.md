@@ -1,70 +1,67 @@
-# Mobile Bootstrap Commands — run only after GitHub integration branch is ready
+# Palta Mobile Bootstrap
 
-These commands are staging instructions, not yet executed in the Palta repository.
+Palta no longer creates a fresh Expo app during bootstrap. The repository contains a versioned Expo SDK 57 runtime shell at `apps/mobile`.
 
-## 1. Create/attach Expo SDK 57 shell
+## Source of Truth
 
-If the repository does **not** already contain a native mobile shell:
+- `mobile-overlay/src` = versioned mobile UI/source for the checked-out branch.
+- repository `src` = framework-neutral Palta core/contracts.
+- `apps/mobile` = versioned native/Expo execution shell.
+- `apps/mobile/src` = generated runtime material; never edit or commit it as a second UI Source of Truth.
 
-```bash
-npx create-expo-app@latest palta-mobile
-# When prompted, select SDK 57 / default TypeScript multi-screen template.
-```
+## Prepare the current branch
 
-If the repository already has a React Native/Expo shell, do not create a second app. Inspect and adapt the existing runtime instead.
-
-## 2. Verify baseline before Palta code
+From the repository root:
 
 ```bash
-cd palta-mobile
-npx expo-doctor
-npx expo start
+bash scripts/bootstrap-mobile.sh
 ```
 
-First verification: app shell launches and five primary surfaces can be routed without MapLibre.
+The script:
 
-## 3. Development build before MapLibre
+1. runs repository safety checks;
+2. refuses to create a second Expo app;
+3. requires Node 22+;
+4. materializes the current branch's `mobile-overlay/src` into `apps/mobile/src`;
+5. rewrites only relative imports that target repository-level `src` for the deeper runtime path;
+6. installs the exact locked mobile dependencies with `npm ci`.
 
-Palta must use a development build once native modules are introduced. Expo Go is not the MapLibre test environment.
+Do not replace this with `create-expo-app@latest`. That would allow the native baseline to drift away from Expo SDK 57.
+
+## iOS Simulator
+
+On macOS with a working Xcode installation:
 
 ```bash
-npx expo install expo-dev-client
+bash scripts/run-ios-mobile.sh
 ```
 
-Then create the platform build using the selected local/EAS path. EAS is optional infrastructure, not a Foundation dependency.
+The launcher uses the current checked-out branch. It does not fetch an older simulator recovery branch or overwrite selected UI files from another branch. It materializes the current overlay, verifies the mock API, reuses or boots an available iPhone Simulator, then runs the native Expo development build.
 
-## 4. MapLibre
+## MapLibre
 
-After the shell is verified:
+Palta uses `@maplibre/maplibre-react-native` through the shared Map Core. Expo Go is not the MapLibre verification environment. Native map behavior requires an iOS/Android development build.
 
-```bash
-npx expo install @maplibre/maplibre-react-native
-```
+Business, Property, Mobility, Events, Community, and other surfaces must consume the shared map/runtime contracts rather than initialize independent map engines.
 
-Add `@maplibre/maplibre-react-native` to the Expo config plugins, then rebuild the native development client.
+## Verification
 
-Do not let Business, Property, Mobility, or Events initialize separate MapLibre instances as their own map engines. They must consume Shared Map Core.
-
-## 5. Persistence modules when needed
-
-```bash
-npx expo install expo-sqlite expo-secure-store expo-location expo-notifications
-```
-
-Use SQLite for durable cache/offline/state-return data; SecureStore only for small sensitive session/token material.
-
-## 6. Verification order
+The `Palta Mobile Runtime Shell` GitHub workflow verifies:
 
 ```text
-shell/navigation
--> state return
--> current/exploring location behavior
--> local cache/reconnect
--> Shared Map Core
--> canonical Business layer
--> first vertical slice
--> Push/deep-link exact state return
--> real-device performance/accessibility regression
+launcher shell syntax
+-> current overlay materialization
+-> locked dependency installation
+-> generated app TypeScript
+-> resolved Expo app identity
 ```
 
-Never call an item PASS because it compiles. Native behavior needs device verification.
+Resolved identity must remain:
+
+- app name: `Palta`
+- slug: `palta`
+- scheme: `palta`
+- iOS bundle identifier: `cl.somospalta.app`
+- Android application ID: `cl.somospalta.app`
+
+Compilation is not the final native verification. Simulator/real-device behavior, MapLibre rendering, permissions, deep links, notifications, accessibility, and performance still require native runtime checks.

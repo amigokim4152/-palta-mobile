@@ -1,32 +1,20 @@
-# MOBILE OVERLAY v1
+# Palta Mobile Overlay
 
-Purpose: copy onto a fresh Expo Router SDK 57 app after GitHub integration is ready.
+`mobile-overlay/src` is the versioned mobile UI/source Source of Truth for the checked-out Palta integration branch.
 
-Status: NOT VERIFIED against installed Expo dependencies in this environment.
+It is no longer copied manually onto a freshly created Expo project. The repository contains a reproducible Expo SDK 57 shell at `apps/mobile`, and `scripts/sync-mobile-runtime.mjs` materializes this overlay into the gitignored `apps/mobile/src` runtime directory.
 
-Why not marked PASS:
-- Expo dependencies are not installed here.
-- MapLibre React Native requires a custom development build.
-- No iOS/Android native build has been executed yet.
+## Ownership
 
-This overlay intentionally contains:
-- 5 primary tabs
-- unified search route
-- canonical place route
-- activity/care route
-- Home and Neighborhood feature entry points
+- `mobile-overlay/src` — mobile routes, screens, components, hooks, providers, adapters, and theme.
+- repository `src` — framework-neutral Palta domain/core contracts.
+- `apps/mobile` — Expo/native shell and locked dependencies.
+- `apps/mobile/src` — generated runtime copy; never edit as a second Source of Truth.
 
-It intentionally does NOT contain:
-- fake map data
-- fake authentication
-- fake Supabase credentials
-- design token guesses
-- production provider secrets
+## Current route contract
 
+The overlay follows the application shell routes, including:
 
-## v2.2 route normalization
-
-The overlay now matches `docs/APP_SHELL_ROUTE_CONTRACT.md`:
 - `/business/[businessId]`
 - `/care/[careTrackId]`
 - `/context/[contextId]`
@@ -34,3 +22,21 @@ The overlay now matches `docs/APP_SHELL_ROUTE_CONTRACT.md`:
 - `/map`
 
 Legacy `/activity/[id]` redirects to the canonical Care route and should not be used for new code.
+
+## Runtime verification
+
+Prepare the current branch with:
+
+```bash
+bash scripts/bootstrap-mobile.sh
+```
+
+On macOS, run the native iOS path with:
+
+```bash
+bash scripts/run-ios-mobile.sh
+```
+
+GitHub CI also materializes the overlay into the Expo shell and typechecks the generated runtime. MapLibre still requires a native development build; Expo Go is not a valid native map verification environment.
+
+The overlay must not contain fake production data, fake authentication, provider secrets, or a second copy of framework-neutral business logic.
