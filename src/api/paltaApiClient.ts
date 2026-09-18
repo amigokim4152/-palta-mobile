@@ -22,8 +22,31 @@ export type HomeApiItem = {
   related_entity_id?: string;
 };
 
+export type HomeApiGlanceItem = {
+  id: string;
+  label: string;
+  value: string;
+  detail?: string;
+  exceptional?: boolean;
+  source_domain?: string;
+  data_mode?: 'live' | 'cached' | 'scheduled' | 'demo' | 'unavailable';
+  observed_at?: string;
+  expires_at?: string;
+};
+
+export type HomeApiSourceState = {
+  source_domain: string;
+  data_mode: 'live' | 'cached' | 'scheduled' | 'demo' | 'unavailable';
+  observed_at?: string;
+  expires_at?: string;
+  message?: string;
+};
+
 export type HomeApiResponse = {
   generated_at?: string;
+  locality_label?: string;
+  glance?: HomeApiGlanceItem[];
+  source_state?: HomeApiSourceState[];
   items: HomeApiItem[];
 };
 
@@ -147,6 +170,12 @@ export class PaltaApiClient {
     );
     if (!Array.isArray(payload.items)) {
       throw new Error('GET /v1/home payload missing items[]');
+    }
+    if (payload.glance !== undefined && !Array.isArray(payload.glance)) {
+      throw new Error('GET /v1/home glance must be an array when present');
+    }
+    if (payload.source_state !== undefined && !Array.isArray(payload.source_state)) {
+      throw new Error('GET /v1/home source_state must be an array when present');
     }
     return payload as HomeApiResponse;
   }
