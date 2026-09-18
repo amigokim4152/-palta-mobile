@@ -20,6 +20,8 @@ export type MunicipalHomeRecord = {
   validFrom?: string;
   validUntil?: string;
   deadlineAt?: string;
+  ongoing?: boolean;
+  sourceUrl?: string;
 };
 
 export type NewsHomeRecord = {
@@ -29,6 +31,7 @@ export type NewsHomeRecord = {
   localityMatches: boolean;
   relevance: number;
   publishedAt: string;
+  sourceUrl?: string;
 };
 
 function time(value: string | undefined): number | undefined {
@@ -42,10 +45,17 @@ function municipalRecordIsCurrent(record: MunicipalHomeRecord, now: Date): boole
     return false;
   }
   if (!record.localityMatches || !record.eligibilityRelevant) return false;
+
   const from = time(record.validFrom);
   const until = time(record.validUntil);
+  const deadline = time(record.deadlineAt);
+
+  // Undated municipal claims stay out of Home unless the canonical source
+  // explicitly marks the service/program as ongoing.
+  if (!record.ongoing && until === undefined && deadline === undefined) return false;
   if (from !== undefined && from > now.getTime()) return false;
   if (until !== undefined && until < now.getTime()) return false;
+  if (!record.ongoing && deadline !== undefined && deadline < now.getTime()) return false;
   return true;
 }
 
@@ -73,6 +83,13 @@ export function municipalToHome(input: {
         source_domain: 'public-life',
         delivery: withinThreeDays ? ('home_notify' as const) : ('home' as const),
         related_entity_id: record.id,
+        ...(record.sourceUrl
+          ? {
+              action_label: withinThreeDays ? 'Ver requisitos' : 'Ver información',
+              action_target: record.sourceUrl,
+              action_kind: 'external' as const,
+            }
+          : {}),
       };
     });
 
@@ -115,6 +132,13 @@ export function newsToHome(input: {
       source_domain: 'news',
       delivery: 'home' as const,
       related_entity_id: record.id,
+      ...(record.sourceUrl
+        ? {
+            action_label: 'Leer fuente',
+            action_target: record.sourceUrl,
+            action_kind: 'external' as const,
+          }
+        : {}),
     }));
 
   return {
