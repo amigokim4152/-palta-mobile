@@ -1,6 +1,7 @@
 import { parseRuntimeEnv } from '../../../src/config/runtimeEnv';
 import { createPaltaApiClient } from '../../../src/api/paltaApiFactory';
 import type { AuthPort } from '../../../src/ports/authPort';
+import { createSupabaseAuthPort } from '../adapters/createSupabaseAuthPort.native';
 
 const SHARED_DEV_MAP_STYLE_URL =
   'https://palta-edge-preflight.kimeuisin.workers.dev/maps/style.json';
@@ -63,6 +64,25 @@ export function createMobileRuntime(auth?: AuthPort): MobileRuntime {
       message: error instanceof Error ? error.message : 'Invalid runtime config',
     };
   }
+}
+
+/**
+ * Authenticated surfaces reuse the same singleton Supabase AuthPort owned by
+ * AuthRuntimeProvider. The adapter resolves/refreshed access tokens per request;
+ * callers must not snapshot or persist bearer tokens themselves.
+ */
+let authenticatedRuntime: MobileRuntime | null = null;
+export function getAuthenticatedMobileRuntime(): MobileRuntime {
+  if (authenticatedRuntime) return authenticatedRuntime;
+  try {
+    authenticatedRuntime = createMobileRuntime(createSupabaseAuthPort());
+  } catch (error) {
+    authenticatedRuntime = {
+      status: 'config_error',
+      message: error instanceof Error ? error.message : 'Invalid authenticated runtime config',
+    };
+  }
+  return authenticatedRuntime;
 }
 
 export const mobileRuntime = createMobileRuntime();
