@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { View } from 'react-native';
 import {
   resolveBusinessActions,
@@ -84,6 +85,14 @@ export function BusinessActionBar({
             />
           ))}
         </View>
+      ) : null}
+
+      {relationship.following ? (
+        <PaltaButton
+          label="Ver novedades y beneficios"
+          variant="quiet"
+          onPress={() => router.push('/local-businesses/following')}
+        />
       ) : null}
     </View>
   );
