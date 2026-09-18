@@ -4,8 +4,10 @@ import ts from 'typescript';
 
 const root = process.cwd();
 const cardPath = path.join(root, 'mobile-overlay/src/components/LocalResultCard.tsx');
+const ownerCardPath = path.join(root, 'mobile-overlay/src/components/business/OwnerPartnerCard.tsx');
 const discoveryPath = path.join(root, 'mobile-overlay/src/features/business/BusinessDiscoveryExperience.tsx');
 const detailPath = path.join(root, 'mobile-overlay/src/features/business/BusinessProfileExperience.tsx');
+const ownerHomePath = path.join(root, 'mobile-overlay/src/app/business/manage/[businessId].tsx');
 const liveReferencePath = path.join(root, 'mobile-overlay/src/features/business/BusinessReferenceScreen.tsx');
 const sampleRoutePath = path.join(root, 'mobile-overlay/src/app/dev/local-business-samples.tsx');
 const referencePath = path.join(root, 'docs/LOCAL_BUSINESS_SCREEN_REFERENCE_V1.md');
@@ -38,8 +40,10 @@ function readTsx(file) {
 }
 
 const card = readTsx(cardPath);
+const ownerCard = readTsx(ownerCardPath);
 const discovery = readTsx(discoveryPath);
 const detail = readTsx(detailPath);
+const ownerHome = readTsx(ownerHomePath);
 const liveReference = readTsx(liveReferencePath);
 const sampleRoute = readTsx(sampleRoutePath);
 assert(fs.existsSync(referencePath), 'Local Business screen reference must exist.');
@@ -109,13 +113,51 @@ assert(
 );
 
 assert(
-  liveReference.includes('<LocalResultCard') && liveReference.includes('<BusinessActionBar'),
+  ownerCard.includes('OwnerPartnerCardTone') &&
+  ownerCard.includes("'attention'") &&
+  ownerCard.includes("'success'"),
+  'Owner Partner Home and its reference sample must share one themed status card component.',
+);
+const ownerTodayIndex = ownerHome.indexOf('title="Tu negocio ahora"');
+const ownerAttentionIndex = ownerHome.indexOf('Información que podría estar incorrecta');
+const ownerRelationshipIndex = ownerHome.indexOf('title="Relación con clientes"');
+const ownerFreeIndex = ownerHome.indexOf('title="Mantén tu presencia útil"');
+const ownerAutomationIndex = ownerHome.indexOf('title="Automatiza sólo si te ahorra trabajo"');
+assert(ownerTodayIndex >= 0, 'Owner home must begin with today/current operating truth.');
+assert(ownerFreeIndex > ownerTodayIndex, 'Free profile-management tools must sit below current operational work.');
+assert(
+  ownerAttentionIndex === -1 || ownerAttentionIndex > ownerTodayIndex,
+  'Correction work must remain inside the today/attention layer rather than a generic settings list.',
+);
+assert(
+  ownerRelationshipIndex === -1 || ownerRelationshipIndex > ownerTodayIndex,
+  'Real customer relationship signals belong after current operating work.',
+);
+assert(
+  ownerAutomationIndex === -1 || ownerAutomationIndex > ownerFreeIndex,
+  'Optional automation must stay below free management tools.',
+);
+assert(
+  ownerHome.includes('paidSuggestions.length') &&
+  !ownerHome.includes('Un mismo negocio, más herramientas cuando hagan falta'),
+  'Owner home must not render a generic upsell wall; paid automation appears only from real guidance.',
+);
+assert(
+  ownerHome.includes('/services') && ownerHome.includes('/location') && ownerHome.includes('/channels'),
+  'Owner free-base management must expose services, location/service area and public links from the same canonical business.',
+);
+
+assert(
+  liveReference.includes('<LocalResultCard') &&
+  liveReference.includes('<BusinessActionBar') &&
+  liveReference.includes('<OwnerPartnerCard'),
   'The live screen reference must reuse production components instead of becoming a disconnected mock design.',
 );
 assert(
   liveReference.includes('Muestra A · resultado de búsqueda') &&
-  liveReference.includes('Muestra B · primera vista del perfil'),
-  'The live reference must keep both discovery-card and profile-first-viewport samples visible to implementers.',
+  liveReference.includes('Muestra B · primera vista del perfil') &&
+  liveReference.includes('Muestra C · Mi negocio'),
+  'The live reference must keep discovery, profile and owner-home samples visible to implementers.',
 );
 assert(
   sampleRoute.includes('BusinessReferenceScreen') && !sampleRoute.includes('<LocalResultCard'),
