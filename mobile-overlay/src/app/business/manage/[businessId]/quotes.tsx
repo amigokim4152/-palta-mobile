@@ -4,8 +4,8 @@ import { Pressable, Text, TextInput, View } from 'react-native';
 import type { BusinessQuoteInboxItem } from '../../../../../../src/api/businessQuotesApiClient';
 import { EmptyState, ErrorState, LoadingState } from '../../../../components/AsyncStateBlock';
 import { ScreenFrame } from '../../../../components/ScreenFrame';
+import { getBusinessAuthenticatedRuntime } from '../../../../features/business/authenticatedBusinessRuntime';
 import { useAsyncResource } from '../../../../hooks/useAsyncResource';
-import { mobileRuntime } from '../../../../services/paltaClient';
 import { paltaTheme } from '../../../../theme/paltaTheme';
 
 function statusCopy(item: BusinessQuoteInboxItem): { label: string; attention: boolean } {
@@ -39,8 +39,9 @@ export default function BusinessQuoteInboxScreen() {
 
   const load = useCallback(async () => {
     if (!businessId) throw new Error('Business ID missing');
-    if (mobileRuntime.status !== 'ready') throw new Error(mobileRuntime.message);
-    return mobileRuntime.client.quotes.getBusinessInbox(businessId);
+    const authenticatedRuntime = getBusinessAuthenticatedRuntime();
+    if (authenticatedRuntime.status !== 'ready') throw new Error(authenticatedRuntime.message);
+    return authenticatedRuntime.client.quotes.getBusinessInbox(businessId);
   }, [businessId]);
 
   const { state, refresh } = useAsyncResource(load, {
@@ -55,7 +56,7 @@ export default function BusinessQuoteInboxScreen() {
   }
 
   async function submitResponse() {
-    if (!businessId || !editingId || mobileRuntime.status !== 'ready') return;
+    if (!businessId || !editingId) return;
     const amountClp = parseClp(amountText);
     const cleanNote = note.trim();
     if (amountText.trim() && amountClp === undefined) {
@@ -67,10 +68,16 @@ export default function BusinessQuoteInboxScreen() {
       return;
     }
 
+    const authenticatedRuntime = getBusinessAuthenticatedRuntime();
+    if (authenticatedRuntime.status !== 'ready') {
+      setMessage(authenticatedRuntime.message);
+      return;
+    }
+
     setSubmitting(true);
     setMessage(null);
     try {
-      await mobileRuntime.client.quotes.submitBusinessResponse(editingId, businessId, {
+      await authenticatedRuntime.client.quotes.submitBusinessResponse(editingId, businessId, {
         ...(amountClp !== undefined ? { amountClp } : {}),
         ...(cleanNote ? { note: cleanNote } : {}),
       });
@@ -105,32 +112,18 @@ export default function BusinessQuoteInboxScreen() {
   const items = state.data?.items ?? [];
 
   return (
-    <ScreenFrame
-      title="Cotizaciones"
-      subtitle="Solicitudes reales enviadas a este negocio"
-    >
+    <ScreenFrame title="Cotizaciones" subtitle="Solicitudes reales enviadas a este negocio">
       <View style={{ gap: paltaTheme.spacing.sm }}>
-        <View
-          style={{
-            padding: paltaTheme.spacing.md,
-            borderRadius: paltaTheme.radius.surface,
-            backgroundColor: paltaTheme.color.surfaceMuted,
-          }}
-        >
+        <View style={{ padding: paltaTheme.spacing.md, borderRadius: paltaTheme.radius.surface, backgroundColor: paltaTheme.color.surfaceMuted }}>
           <Text style={{ color: paltaTheme.color.textSecondary, lineHeight: 20 }}>
             Aquí sólo ves la solicitud y la respuesta de tu propio negocio. Palta no muestra a un negocio los montos, notas ni identidad de las respuestas de otros negocios.
           </Text>
         </View>
 
-        {message ? (
-          <Text style={{ color: paltaTheme.color.textSecondary, lineHeight: 20 }}>{message}</Text>
-        ) : null}
+        {message ? <Text style={{ color: paltaTheme.color.textSecondary, lineHeight: 20 }}>{message}</Text> : null}
 
         {items.length === 0 ? (
-          <EmptyState
-            title="No hay solicitudes pendientes"
-            body="Cuando una persona incluya este negocio en una cotización, aparecerá aquí."
-          />
+          <EmptyState title="No hay solicitudes pendientes" body="Cuando una persona incluya este negocio en una cotización, aparecerá aquí." />
         ) : (
           items.map((item) => {
             const status = statusCopy(item);
@@ -142,70 +135,29 @@ export default function BusinessQuoteInboxScreen() {
                   padding: paltaTheme.spacing.md,
                   gap: paltaTheme.spacing.sm,
                   borderWidth: 1,
-                  borderColor: status.attention
-                    ? paltaTheme.color.brandFresh
-                    : paltaTheme.color.divider,
+                  borderColor: status.attention ? paltaTheme.color.brandFresh : paltaTheme.color.divider,
                   borderRadius: paltaTheme.radius.surface,
                   backgroundColor: paltaTheme.color.surface,
                 }}
               >
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: paltaTheme.spacing.sm }}>
-                  <Text
-                    style={{
-                      flex: 1,
-                      fontSize: 12,
-                      fontWeight: '800',
-                      color: status.attention
-                        ? paltaTheme.color.brandPrimary
-                        : paltaTheme.color.textMuted,
-                    }}
-                  >
+                  <Text style={{ flex: 1, fontSize: 12, fontWeight: '800', color: status.attention ? paltaTheme.color.brandPrimary : paltaTheme.color.textMuted }}>
                     {status.label.toUpperCase()}
                   </Text>
-                  <Text style={{ fontSize: 12, color: paltaTheme.color.textMuted }}>
-                    {new Date(item.created_at).toLocaleDateString('es-CL')}
-                  </Text>
+                  <Text style={{ fontSize: 12, color: paltaTheme.color.textMuted }}>{new Date(item.created_at).toLocaleDateString('es-CL')}</Text>
                 </View>
 
-                <Text
-                  style={{
-                    fontSize: 17,
-                    lineHeight: 23,
-                    fontWeight: '800',
-                    color: paltaTheme.color.textPrimary,
-                  }}
-                >
-                  {item.description}
-                </Text>
+                <Text style={{ fontSize: 17, lineHeight: 23, fontWeight: '800', color: paltaTheme.color.textPrimary }}>{item.description}</Text>
 
                 {item.requested_for ? (
-                  <Text style={{ color: paltaTheme.color.textSecondary }}>
-                    Solicitado para {new Date(item.requested_for).toLocaleString('es-CL')}
-                  </Text>
+                  <Text style={{ color: paltaTheme.color.textSecondary }}>Solicitado para {new Date(item.requested_for).toLocaleString('es-CL')}</Text>
                 ) : null}
 
                 {item.response ? (
-                  <View
-                    style={{
-                      gap: paltaTheme.spacing.xxs,
-                      padding: paltaTheme.spacing.sm,
-                      borderRadius: paltaTheme.radius.control,
-                      backgroundColor: paltaTheme.color.surfaceMuted,
-                    }}
-                  >
-                    <Text style={{ fontSize: 12, fontWeight: '800', color: paltaTheme.color.textMuted }}>
-                      TU RESPUESTA
-                    </Text>
-                    {item.response.amount_clp !== undefined ? (
-                      <Text style={{ fontWeight: '800', color: paltaTheme.color.textPrimary }}>
-                        {formatClp(item.response.amount_clp)}
-                      </Text>
-                    ) : null}
-                    {item.response.note ? (
-                      <Text style={{ color: paltaTheme.color.textSecondary, lineHeight: 20 }}>
-                        {item.response.note}
-                      </Text>
-                    ) : null}
+                  <View style={{ gap: paltaTheme.spacing.xxs, padding: paltaTheme.spacing.sm, borderRadius: paltaTheme.radius.control, backgroundColor: paltaTheme.color.surfaceMuted }}>
+                    <Text style={{ fontSize: 12, fontWeight: '800', color: paltaTheme.color.textMuted }}>TU RESPUESTA</Text>
+                    {item.response.amount_clp !== undefined ? <Text style={{ fontWeight: '800', color: paltaTheme.color.textPrimary }}>{formatClp(item.response.amount_clp)}</Text> : null}
+                    {item.response.note ? <Text style={{ color: paltaTheme.color.textSecondary, lineHeight: 20 }}>{item.response.note}</Text> : null}
                   </View>
                 ) : null}
 
@@ -219,14 +171,10 @@ export default function BusinessQuoteInboxScreen() {
                       justifyContent: 'center',
                       paddingHorizontal: paltaTheme.spacing.md,
                       borderRadius: paltaTheme.radius.control,
-                      backgroundColor: pressed
-                        ? paltaTheme.color.brandMid
-                        : paltaTheme.color.brandPrimary,
+                      backgroundColor: pressed ? paltaTheme.color.brandMid : paltaTheme.color.brandPrimary,
                     })}
                   >
-                    <Text style={{ color: paltaTheme.color.surface, fontWeight: '800' }}>
-                      {item.response ? 'Actualizar respuesta' : 'Responder'}
-                    </Text>
+                    <Text style={{ color: paltaTheme.color.surface, fontWeight: '800' }}>{item.response ? 'Actualizar respuesta' : 'Responder'}</Text>
                   </Pressable>
                 ) : null}
 
@@ -238,15 +186,7 @@ export default function BusinessQuoteInboxScreen() {
                       keyboardType="number-pad"
                       placeholder="Monto CLP (opcional)"
                       placeholderTextColor={paltaTheme.color.textMuted}
-                      style={{
-                        minHeight: paltaTheme.touch.minimum,
-                        paddingHorizontal: paltaTheme.spacing.sm,
-                        borderWidth: 1,
-                        borderColor: paltaTheme.color.border,
-                        borderRadius: paltaTheme.radius.control,
-                        color: paltaTheme.color.textPrimary,
-                        backgroundColor: paltaTheme.color.canvas,
-                      }}
+                      style={{ minHeight: paltaTheme.touch.minimum, paddingHorizontal: paltaTheme.spacing.sm, borderWidth: 1, borderColor: paltaTheme.color.border, borderRadius: paltaTheme.radius.control, color: paltaTheme.color.textPrimary, backgroundColor: paltaTheme.color.canvas }}
                     />
                     <TextInput
                       value={note}
@@ -254,56 +194,24 @@ export default function BusinessQuoteInboxScreen() {
                       multiline
                       placeholder="Qué incluye, disponibilidad u otra información útil"
                       placeholderTextColor={paltaTheme.color.textMuted}
-                      style={{
-                        minHeight: 96,
-                        padding: paltaTheme.spacing.sm,
-                        borderWidth: 1,
-                        borderColor: paltaTheme.color.border,
-                        borderRadius: paltaTheme.radius.control,
-                        color: paltaTheme.color.textPrimary,
-                        backgroundColor: paltaTheme.color.canvas,
-                        textAlignVertical: 'top',
-                      }}
+                      style={{ minHeight: 96, padding: paltaTheme.spacing.sm, borderWidth: 1, borderColor: paltaTheme.color.border, borderRadius: paltaTheme.radius.control, color: paltaTheme.color.textPrimary, backgroundColor: paltaTheme.color.canvas, textAlignVertical: 'top' }}
                     />
                     <View style={{ flexDirection: 'row', gap: paltaTheme.spacing.xs }}>
                       <Pressable
                         accessibilityRole="button"
                         disabled={submitting}
                         onPress={() => void submitResponse()}
-                        style={({ pressed }) => ({
-                          flex: 1,
-                          minHeight: paltaTheme.touch.minimum,
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          borderRadius: paltaTheme.radius.control,
-                          backgroundColor: pressed
-                            ? paltaTheme.color.brandMid
-                            : paltaTheme.color.brandPrimary,
-                          opacity: submitting ? 0.6 : 1,
-                        })}
+                        style={({ pressed }) => ({ flex: 1, minHeight: paltaTheme.touch.minimum, alignItems: 'center', justifyContent: 'center', borderRadius: paltaTheme.radius.control, backgroundColor: pressed ? paltaTheme.color.brandMid : paltaTheme.color.brandPrimary, opacity: submitting ? 0.6 : 1 })}
                       >
-                        <Text style={{ color: paltaTheme.color.surface, fontWeight: '800' }}>
-                          {submitting ? 'Guardando…' : 'Guardar respuesta'}
-                        </Text>
+                        <Text style={{ color: paltaTheme.color.surface, fontWeight: '800' }}>{submitting ? 'Guardando…' : 'Guardar respuesta'}</Text>
                       </Pressable>
                       <Pressable
                         accessibilityRole="button"
                         disabled={submitting}
                         onPress={() => setEditingId(null)}
-                        style={({ pressed }) => ({
-                          minHeight: paltaTheme.touch.minimum,
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          paddingHorizontal: paltaTheme.spacing.md,
-                          borderRadius: paltaTheme.radius.control,
-                          backgroundColor: pressed
-                            ? paltaTheme.color.surfaceMuted
-                            : paltaTheme.color.canvas,
-                        })}
+                        style={({ pressed }) => ({ minHeight: paltaTheme.touch.minimum, alignItems: 'center', justifyContent: 'center', paddingHorizontal: paltaTheme.spacing.md, borderRadius: paltaTheme.radius.control, backgroundColor: pressed ? paltaTheme.color.surfaceMuted : paltaTheme.color.canvas })}
                       >
-                        <Text style={{ fontWeight: '800', color: paltaTheme.color.textSecondary }}>
-                          Cancelar
-                        </Text>
+                        <Text style={{ fontWeight: '800', color: paltaTheme.color.textSecondary }}>Cancelar</Text>
                       </Pressable>
                     </View>
                   </View>
@@ -313,9 +221,7 @@ export default function BusinessQuoteInboxScreen() {
           })
         )}
 
-        {state.status === 'error' && state.data ? (
-          <ErrorState message={state.message} onRetry={() => void refresh()} />
-        ) : null}
+        {state.status === 'error' && state.data ? <ErrorState message={state.message} onRetry={() => void refresh()} /> : null}
       </View>
     </ScreenFrame>
   );
