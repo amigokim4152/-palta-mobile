@@ -47,7 +47,11 @@ export function reduceNeighborhood(
           state.mapMovedSinceSearch || action.userInteraction,
       };
     case 'select_entity':
-      return { ...state, selectedEntityId: action.entityId };
+      return {
+        ...state,
+        selectedEntityId: action.entityId,
+        sheetSnap: action.entityId ? 'half' : state.sheetSnap,
+      };
     case 'set_query':
       return { ...state, query: action.query };
     case 'set_filters':
