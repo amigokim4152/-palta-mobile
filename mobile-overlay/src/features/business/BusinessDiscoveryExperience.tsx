@@ -32,6 +32,7 @@ import {
   readLocalBusinessDiscoveryCache,
   writeLocalBusinessDiscoveryCache,
 } from './localBusinessDiscoveryCache';
+import { BusinessVerticalHandoffBar } from './BusinessVerticalHandoffBar';
 import { paltaTheme } from '../../theme/paltaTheme';
 
 const SANTIAGO_EXPLORATION_ORIGIN = {
@@ -504,6 +505,8 @@ export function BusinessDiscoveryExperience() {
           />
         </>
       ) : null}
+
+      <BusinessVerticalHandoffBar />
 
       {resultHeader}
 
