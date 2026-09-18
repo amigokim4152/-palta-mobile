@@ -5,6 +5,8 @@ on:
     paths:
       - 'infra/cloudflare/**'
       - 'scripts/deploy-chile-map-production.sh'
+      - 'scripts/redeploy-chile-map-edge.sh'
+      - 'scripts/run-ios-production-map-safe.sh'
       - 'mobile-overlay/src/app/map/**'
       - 'mobile-overlay/src/components/map/**'
       - 'mobile-overlay/.env.example'
@@ -15,6 +17,8 @@ on:
     paths:
       - 'infra/cloudflare/**'
       - 'scripts/deploy-chile-map-production.sh'
+      - 'scripts/redeploy-chile-map-edge.sh'
+      - 'scripts/run-ios-production-map-safe.sh'
       - 'mobile-overlay/src/app/map/**'
       - 'mobile-overlay/src/components/map/**'
       - 'mobile-overlay/.env.example'
@@ -29,7 +33,10 @@ jobs:
         with:
           node-version: '22'
       - name: Shell syntax
-        run: bash -n scripts/deploy-chile-map-production.sh
+        run: |
+          bash -n scripts/deploy-chile-map-production.sh
+          bash -n scripts/redeploy-chile-map-edge.sh
+          bash -n scripts/run-ios-production-map-safe.sh
       - name: Production Worker dry-run
         run: npx --yes wrangler@4.133.0 deploy --dry-run --config infra/cloudflare/wrangler.map-production.jsonc
       - name: Multipart uploader dry-run
