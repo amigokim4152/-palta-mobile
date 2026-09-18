@@ -1,3 +1,5 @@
+import { publicNewsObjectKey } from '../../../src/news/publicNewsRoutes.js';
+
 type R2RangeLike =
   | { offset: number; length: number }
   | { suffix: number };
@@ -27,6 +29,8 @@ type R2BucketLike = {
 type Env = {
   MAPS: R2BucketLike;
   MAP_OBJECT_KEY?: string;
+  NEWS_PUBLIC?: R2BucketLike;
+  NEWS_PUBLIC_ENABLED?: string;
 };
 
 function corsHeaders(): Headers {
@@ -37,6 +41,14 @@ function corsHeaders(): Headers {
     'Access-Control-Expose-Headers':
       'Accept-Ranges, Content-Length, Content-Range, ETag, Last-Modified',
   });
+}
+
+function jsonHeaders(): Headers {
+  const headers = corsHeaders();
+  headers.set('Content-Type', 'application/json; charset=utf-8');
+  headers.set('X-Content-Type-Options', 'nosniff');
+  headers.set('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=60');
+  return headers;
 }
 
 function applyObjectHeaders(
@@ -120,6 +132,49 @@ async function serveMapObject(
   });
 }
 
+async function servePublicNewsObject(
+  request: Request,
+  env: Env,
+  objectKey: string,
+): Promise<Response> {
+  const headers = jsonHeaders();
+
+  // Independent edge gate: stale R2 objects cannot become public merely because they exist.
+  if (env.NEWS_PUBLIC_ENABLED !== 'true') {
+    return Response.json(
+      { status: 'BLOCKED', reason: 'public_news_disabled' },
+      { status: 404, headers },
+    );
+  }
+  if (!env.NEWS_PUBLIC) {
+    return Response.json(
+      { status: 'UNAVAILABLE', reason: 'public_news_storage_not_bound' },
+      { status: 503, headers },
+    );
+  }
+  if (request.method !== 'GET' && request.method !== 'HEAD') {
+    headers.set('Allow', 'GET, HEAD, OPTIONS');
+    return new Response(null, { status: 405, headers });
+  }
+
+  const metadata = await env.NEWS_PUBLIC.head(objectKey);
+  if (!metadata) return new Response(null, { status: 404, headers });
+  headers.set('ETag', metadata.httpEtag);
+  headers.set('Content-Length', String(metadata.size));
+
+  if (request.headers.get('if-none-match') === metadata.httpEtag) {
+    headers.delete('Content-Length');
+    return new Response(null, { status: 304, headers });
+  }
+  if (request.method === 'HEAD') {
+    return new Response(null, { status: 200, headers });
+  }
+
+  const object = await env.NEWS_PUBLIC.get(objectKey);
+  if (!object || !('body' in object)) return new Response(null, { status: 404, headers });
+  return new Response(object.body, { status: 200, headers });
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
@@ -137,6 +192,8 @@ export default {
         service: 'palta-edge-preflight',
         mapObjectKey:
           env.MAP_OBJECT_KEY ?? 'maps/santiago/santiago.pmtiles',
+        publicNewsEnabled: env.NEWS_PUBLIC_ENABLED === 'true',
+        publicNewsStorageBound: Boolean(env.NEWS_PUBLIC),
       });
     }
 
@@ -150,6 +207,11 @@ export default {
         });
       }
       return serveMapObject(request, env);
+    }
+
+    const newsObjectKey = publicNewsObjectKey(url.pathname);
+    if (newsObjectKey) {
+      return servePublicNewsObject(request, env, newsObjectKey);
     }
 
     return new Response('Not Found', { status: 404 });
