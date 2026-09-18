@@ -18,6 +18,7 @@ backup="/tmp/palta-home-backup-$(date +%Y%m%d-%H%M%S)"
 mkdir -p "$backup"
 
 files=(
+  "app/(tabs)/_layout.tsx"
   "app/(tabs)/index.tsx"
   "app/(tabs)/home.tsx"
   "features/home/HomeScreen.tsx"
