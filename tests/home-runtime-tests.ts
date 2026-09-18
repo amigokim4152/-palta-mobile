@@ -1,4 +1,5 @@
 import { mergeHomeSources } from '../src/home/mergeHomeSources.js';
+import { projectHomeApiItem } from '../src/home/homeApiProjection.js';
 import { WeatherHomeAdapter } from '../src/home/adapters/weatherHomeAdapter.js';
 import { MobilityHomeAdapter } from '../src/home/adapters/mobilityHomeAdapter.js';
 import {
@@ -69,6 +70,7 @@ const publicLife = municipalToHome({
       localityMatches: true,
       eligibilityRelevant: true,
       validUntil: '2026-09-30T23:59:59.000Z',
+      sourceUrl: 'https://vitacura.cl/beneficio-vigente/',
     },
     {
       id: 'unverified-benefit',
@@ -78,10 +80,34 @@ const publicLife = municipalToHome({
       eligibilityRelevant: true,
       validUntil: '2026-09-30T23:59:59.000Z',
     },
+    {
+      id: 'undated-benefit',
+      title: 'Sin fecha ni estado permanente',
+      verification: 'verified',
+      localityMatches: true,
+      eligibilityRelevant: true,
+    },
+    {
+      id: 'ongoing-service',
+      title: 'Servicio permanente',
+      verification: 'corroborated',
+      localityMatches: true,
+      eligibilityRelevant: true,
+      ongoing: true,
+    },
   ],
 }, now);
-assert(publicLife.items?.length === 1, 'Only verified/corroborated municipal records may enter Home.');
-assert(publicLife.items?.[0]?.related_entity_id === 'verified-benefit', 'Verified municipal record should survive filtering.');
+assert(publicLife.items?.length === 2, 'Only dated/current or explicitly ongoing verified municipal records may enter Home.');
+assert(publicLife.items?.some((item) => item.related_entity_id === 'verified-benefit'), 'Verified current municipal record should survive filtering.');
+assert(!publicLife.items?.some((item) => item.related_entity_id === 'undated-benefit'), 'Undated municipal records must remain out of Home.');
+
+const verifiedBenefit = publicLife.items?.find(
+  (item) => item.related_entity_id === 'verified-benefit',
+);
+assert(verifiedBenefit?.action_kind === 'external', 'Municipal source URL should become an external Home action.');
+const projectedBenefit = projectHomeApiItem(verifiedBenefit!);
+assert(projectedBenefit.domain === 'public-life', 'Projection must preserve the public-life domain.');
+assert(projectedBenefit.action?.target === 'https://vitacura.cl/beneficio-vigente/', 'Projection must preserve the official external target.');
 
 const news = newsToHome({
   dataMode: 'scheduled',
@@ -94,6 +120,7 @@ const news = newsToHome({
       localityMatches: true,
       relevance: 0.9,
       publishedAt: '2026-09-17T12:00:00.000Z',
+      sourceUrl: 'https://vitacura.cl/noticias/noticia-local-util/',
     },
     {
       id: 'old-local',
@@ -112,6 +139,7 @@ const news = newsToHome({
   ],
 }, now);
 assert(news.items?.length === 1 && news.items[0]?.related_entity_id === 'fresh-local', 'News must be current, local and relevant.');
+assert(news.items?.[0]?.action_target === 'https://vitacura.cl/noticias/noticia-local-util/', 'Current local news should retain its canonical source action.');
 
 const expiredWeather = new WeatherHomeAdapter().toHome({
   dataMode: 'cached',
