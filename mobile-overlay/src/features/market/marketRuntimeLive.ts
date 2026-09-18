@@ -2,7 +2,7 @@ import {
   createMarketHttpPorts,
   type MarketHttpTransport,
 } from '../../../../src/market/marketHttpAdapter';
-import type { MarketMessageIntent } from '../../../../src/market/marketMessageIntent';
+import type { MarketMessagingPort } from '../../../../src/market/marketMessagingFlow';
 import type { MarketLocationSummary } from '../../../../src/market/marketPersistenceContract';
 import type { MarketSafetyIntent } from '../../../../src/market/marketSafetyIntent';
 import type { MarketRuntime } from './marketRuntime';
@@ -19,8 +19,8 @@ export type CreateMarketLiveRuntimeInput = {
     currentAssetIds: readonly string[];
     maxAssets: number;
   }) => Promise<string[]>;
-  /** Shared Message Core handoff. */
-  openMessageIntent?: (intent: MarketMessageIntent) => Promise<void>;
+  /** Shared Message Core durable relationship/opening bridge. */
+  messaging?: MarketMessagingPort;
   /** Shared Safety/Moderation handoff. */
   handleSafetyIntent?: (intent: MarketSafetyIntent) => Promise<void>;
 };
@@ -45,9 +45,7 @@ export function createMarketLiveRuntime(
     ...(input.selectListingMedia
       ? { selectListingMedia: input.selectListingMedia }
       : {}),
-    ...(input.openMessageIntent
-      ? { openMessageIntent: input.openMessageIntent }
-      : {}),
+    ...(input.messaging ? { messaging: input.messaging } : {}),
     ...(input.handleSafetyIntent
       ? { handleSafetyIntent: input.handleSafetyIntent }
       : {}),
