@@ -312,7 +312,7 @@ export function NeighborhoodScreen() {
               key={item.entity_id}
               name={item.name}
               meta={[
-                item.category_label ?? item.category_key,
+                item.category_label ?? item.entity_type_label ?? item.category_key,
                 item.verification_status === 'verified'
                   ? t('common.verified')
                   : undefined,
