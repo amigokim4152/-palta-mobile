@@ -6,9 +6,9 @@ Whole-app integration owner: `integration/runtime-composition-v1`.
 
 ## Why this boundary exists
 
-Mercado owns Mercado behavior and contracts, but it does not own the shared mobile API client, Auth/Profile, Media, Location or Messaging cores. The Mercado feature branch therefore exposes injection points instead of modifying shared runtime paths.
+Mercado owns Mercado behavior and contracts, but it does not own the shared mobile API client, Auth/Profile, Media, Location, Messaging or Safety/Moderation cores. The Mercado feature branch therefore exposes injection points instead of modifying shared runtime paths.
 
-Do not solve integration by importing Supabase directly into Mercado screens, constructing storage URLs in Mercado, creating a Mercado-only chat client, or copying the shared API client.
+Do not solve integration by importing Supabase directly into Mercado screens, constructing storage URLs in Mercado, creating a Mercado-only chat client, creating Mercado-specific moderation storage, or copying the shared API client.
 
 ## Feature-side entry points
 
@@ -16,6 +16,7 @@ Canonical domain/HTTP adapter:
 
 - `src/market/marketApiContract.ts`
 - `src/market/marketHttpAdapter.ts`
+- `src/market/marketSafetyIntent.ts`
 
 Mobile runtime boundary:
 
@@ -114,12 +115,35 @@ Shared Messaging opens/creates the conversation. Mercado does not own conversati
 
 The user-facing Mercado screen must not expose internal terms such as "Message Core", adapter state, branch names or runtime integration notes.
 
+## Safety / moderation injection
+
+`handleSafetyIntent(intent)` receives canonical Mercado safety intents from `marketSafetyIntent.ts`.
+
+Supported v1 actions:
+
+- `hide_listing`
+- `report_listing`
+
+Structured report reasons:
+
+- `suspected_scam`
+- `prohibited_item`
+- `spam`
+- `harassment`
+- `misleading_listing`
+- `other`
+
+The intent carries the listing id and seller Palta actor id so the shared Safety/Moderation layer can apply viewer-specific hiding, audit reports, aggregate repeat abuse and escalate account-level enforcement where appropriate.
+
+Mercado does not persist moderation audit state or overload the listing lifecycle with viewer hide/report state. Live UI must not claim success when the Safety handoff is unavailable.
+
 ## Runtime modes
 
 ### development_preview
 
 - explicit development fixtures are allowed
 - preview-only local mutations are allowed
+- Safety actions may be simulated without production persistence
 - UI displays a preview indicator where relevant
 
 ### live
@@ -128,6 +152,7 @@ The user-facing Mercado screen must not expose internal terms such as "Message C
 - public area comes from Location Core
 - media comes from Media Core
 - messages hand off to Messaging
+- hide/report actions hand off to shared Safety/Moderation
 
 ### unavailable
 
@@ -144,14 +169,17 @@ Before marking Mercado live in the composed runtime:
 3. Supply a coarse `publicArea` from Location Core.
 4. Supply Media Core asset resolver and picker/uploader.
 5. Supply Messaging handoff when Message Core integration is available.
-6. Create and install `createMarketLiveRuntime(...)` before Mercado screens read runtime state.
-7. Verify anonymous discovery.
-8. Verify authenticated favorite, create listing and My listings.
-9. Verify transaction creation/reservation/completion and review eligibility.
-10. Verify sold/withdrawn listings disappear from public discovery but transaction snapshots remain readable to participants.
-11. Verify exact address, phone, email and raw latitude/longitude never appear in public listing payloads.
-12. Verify production cannot show development preview listings when a live dependency is absent.
-13. Run composed runtime TypeScript check and iOS bundle verification.
+6. Supply shared Safety/Moderation handoff for hide/report intents.
+7. Create and install `createMarketLiveRuntime(...)` before Mercado screens read runtime state.
+8. Verify anonymous discovery.
+9. Verify authenticated favorite, create listing and My listings.
+10. Verify transaction creation/reservation/completion and review eligibility.
+11. Verify sold/withdrawn listings disappear from public discovery but transaction snapshots remain readable to participants.
+12. Verify a hidden listing disappears for that viewer without changing global listing status.
+13. Verify structured reports reach the shared Safety/Moderation audit path.
+14. Verify exact address, phone, email and raw latitude/longitude never appear in public listing payloads.
+15. Verify production cannot show development preview listings when a live dependency is absent.
+16. Run composed runtime TypeScript check and iOS bundle verification.
 
 ## Current external blockers
 
@@ -161,5 +189,6 @@ Feature-side contracts do not require these cores to be duplicated. Actual E2E c
 - Media Core mobile selection/upload capability
 - Location Core public-area capability
 - Message Core composed-runtime handoff
+- shared Safety/Moderation handoff
 
 These should be reconciled on their owning workstreams/composition branch, not implemented as Mercado-specific substitutes.
