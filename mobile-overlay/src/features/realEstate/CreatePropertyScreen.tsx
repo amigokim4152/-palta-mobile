@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { router } from 'expo-router';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSQLiteContext } from 'expo-sqlite';
 import type {
@@ -15,6 +15,7 @@ import {
 import {
   createRealEstateDraft,
   type RealEstateContactPreference,
+  type RealEstateListingDraft,
   type RealEstateListingDraftInput,
   validateRealEstateDraft,
 } from '../../../../src/realEstate/realEstatePublishing';
@@ -32,6 +33,10 @@ function numberValue(value: string): number | undefined {
   if (!normalized) return undefined;
   const parsed = Number(normalized);
   return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function fieldValue(value: number | undefined): string {
+  return value === undefined ? '' : String(value);
 }
 
 function FormField({
@@ -76,7 +81,7 @@ function FormField({
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <View style={{ gap: paltaTheme.spacing.sm }}>
       <Text style={{ fontSize: 18, fontWeight: '900', color: paltaTheme.color.textPrimary }}>{title}</Text>
@@ -97,8 +102,12 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 }
 
 export function CreatePropertyScreen() {
+  const params = useLocalSearchParams<{ draftId?: string }>();
+  const draftId = typeof params.draftId === 'string' ? params.draftId : undefined;
   const db = useSQLiteContext();
   const draftStore = useMemo(() => new ExpoSQLiteRealEstateDraftStore(db), [db]);
+  const [editingDraft, setEditingDraft] = useState<RealEstateListingDraft | null>(null);
+  const [loadingDraft, setLoadingDraft] = useState(Boolean(draftId));
   const [transactionType, setTransactionType] = useState<PropertyTransactionType>('rent');
   const [propertyType, setPropertyType] = useState<PropertyType>('apartment');
   const [publisherType, setPublisherType] = useState<ListingPublisherType>('owner_direct');
@@ -117,6 +126,51 @@ export function CreatePropertyScreen() {
   const [exactAddressPrivate, setExactAddressPrivate] = useState(true);
   const [saving, setSaving] = useState(false);
   const [validationMessage, setValidationMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    if (!draftId) {
+      setEditingDraft(null);
+      setLoadingDraft(false);
+      return () => {
+        active = false;
+      };
+    }
+
+    setLoadingDraft(true);
+    void draftStore.getDraft(draftId)
+      .then((draft) => {
+        if (!active) return;
+        if (!draft) {
+          setValidationMessage('No encontramos este borrador. Puedes crear una publicación nueva.');
+          return;
+        }
+        setEditingDraft(draft);
+        setTransactionType(draft.transactionType);
+        setPropertyType(draft.propertyType);
+        setPublisherType(draft.publisherType);
+        setComuna(draft.comuna);
+        setSectorOrAddress(draft.sectorOrAddress);
+        setPrice(fieldValue(draft.transactionType === 'sale' ? draft.priceUf : draft.priceClp));
+        setCommonExpenses(fieldValue(draft.commonExpensesClp));
+        setUsableArea(fieldValue(draft.usableAreaM2));
+        setTotalArea(fieldValue(draft.totalAreaM2));
+        setBedrooms(fieldValue(draft.bedrooms));
+        setBathrooms(fieldValue(draft.bathrooms));
+        setParking(fieldValue(draft.parkingSpaces));
+        setDescription(draft.description ?? '');
+        setContactPreference(draft.contactPreference);
+        setPhotoCount(draft.photoCount);
+        setExactAddressPrivate(draft.exactAddressPrivate);
+      })
+      .finally(() => {
+        if (active) setLoadingDraft(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [draftId, draftStore]);
 
   function buildInput(): RealEstateListingDraftInput {
     const numericPrice = numberValue(price);
@@ -147,7 +201,12 @@ export function CreatePropertyScreen() {
     try {
       const input = buildInput();
       const errors = validateRealEstateDraft(input);
-      const draft = createRealEstateDraft(input);
+      const draft = createRealEstateDraft(
+        input,
+        editingDraft
+          ? { id: editingDraft.id, createdAt: editingDraft.createdAt }
+          : undefined,
+      );
       await draftStore.saveDraft(draft);
       setValidationMessage(
         errors.length
@@ -158,6 +217,16 @@ export function CreatePropertyScreen() {
     } finally {
       setSaving(false);
     }
+  }
+
+  if (loadingDraft) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: paltaTheme.color.canvas }}>
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+          <Text style={{ color: paltaTheme.color.textSecondary }}>Cargando borrador…</Text>
+        </View>
+      </SafeAreaView>
+    );
   }
 
   return (
@@ -172,10 +241,12 @@ export function CreatePropertyScreen() {
       >
         <View style={{ gap: 4 }}>
           <Text style={{ fontSize: 28, fontWeight: '900', color: paltaTheme.color.textPrimary }}>
-            Publicar propiedad
+            {editingDraft ? 'Editar propiedad' : 'Publicar propiedad'}
           </Text>
           <Text style={{ fontSize: 13, lineHeight: 19, color: paltaTheme.color.textMuted }}>
-            Versión demo funcional. El borrador queda guardado en el dispositivo; publicación, identidad y verificación se conectarán al backend después.
+            {editingDraft
+              ? 'Continúa tu borrador. Los cambios se guardan en el mismo registro local.'
+              : 'Versión demo funcional. El borrador queda guardado en el dispositivo; publicación, identidad y verificación se conectarán al backend después.'}
           </Text>
         </View>
 
@@ -327,7 +398,11 @@ export function CreatePropertyScreen() {
           </Text>
         ) : null}
 
-        <PaltaButton label="Guardar borrador" loading={saving} onPress={() => void saveDraft()} />
+        <PaltaButton
+          label={editingDraft ? 'Guardar cambios' : 'Guardar borrador'}
+          loading={saving}
+          onPress={() => void saveDraft()}
+        />
       </ScrollView>
     </SafeAreaView>
   );
