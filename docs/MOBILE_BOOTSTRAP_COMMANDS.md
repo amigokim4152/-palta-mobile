@@ -1,70 +1,118 @@
-# Mobile Bootstrap Commands — run only after GitHub integration branch is ready
+# Mobile Bootstrap Commands — current Palta runtime
 
-These commands are staging instructions, not yet executed in the Palta repository.
+Status: ACTIVE
 
-## 1. Create/attach Expo SDK 57 shell
+The repository already contains the versioned Expo/React Native shell under `apps/mobile`. Do **not** run `create-expo-app` and do not create a second mobile application.
 
-If the repository does **not** already contain a native mobile shell:
+## Source of Truth
 
-```bash
-npx create-expo-app@latest palta-mobile
-# When prompted, select SDK 57 / default TypeScript multi-screen template.
-```
+- editable mobile UI/runtime source: `mobile-overlay/src`
+- generated runtime source: `apps/mobile/src`
+- native Expo shell and locked dependencies: `apps/mobile`
+- runtime materializer: `scripts/sync-mobile-runtime.mjs`
 
-If the repository already has a React Native/Expo shell, do not create a second app. Inspect and adapt the existing runtime instead.
+Generated `apps/mobile/src` files must not become a second source of truth.
 
-## 2. Verify baseline before Palta code
+## Prepare the mobile runtime
 
-```bash
-cd palta-mobile
-npx expo-doctor
-npx expo start
-```
-
-First verification: app shell launches and five primary surfaces can be routed without MapLibre.
-
-## 3. Development build before MapLibre
-
-Palta must use a development build once native modules are introduced. Expo Go is not the MapLibre test environment.
+From the repository root on an `integration/*` branch:
 
 ```bash
-npx expo install expo-dev-client
+./scripts/bootstrap-mobile.sh
 ```
 
-Then create the platform build using the selected local/EAS path. EAS is optional infrastructure, not a Foundation dependency.
+This command:
 
-## 4. MapLibre
+1. refuses unsafe repository state
+2. materializes `mobile-overlay/src` into the current runtime
+3. verifies Node 22+
+4. installs the locked mobile dependencies with `npm ci`
 
-After the shell is verified:
+## Launch Golden User on iOS Simulator
+
+On macOS with a working Xcode/Simulator installation:
 
 ```bash
-npx expo install @maplibre/maplibre-react-native
+./scripts/run-ios-mobile.sh
 ```
 
-Add `@maplibre/maplibre-react-native` to the Expo config plugins, then rebuild the native development client.
+The launcher:
 
-Do not let Business, Property, Mobility, or Events initialize separate MapLibre instances as their own map engines. They must consume Shared Map Core.
+- materializes the current overlay
+- installs locked dependencies when needed
+- starts and smoke-tests the local Palta mock API
+- injects the public `palta-dev` Supabase URL and publishable key for the development run
+- validates the public Auth configuration before launch
+- reuses a booted iPhone Simulator or boots an available iPhone simulator
+- builds and launches the current Palta branch with `expo run:ios`
 
-## 5. Persistence modules when needed
+The Supabase values used here are public client configuration, not service/admin credentials. They can be overridden by setting `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` before running the script.
 
-```bash
-npx expo install expo-sqlite expo-secure-store expo-location expo-notifications
-```
+## Public environment contract
 
-Use SQLite for durable cache/offline/state-return data; SecureStore only for small sensitive session/token material.
+Canonical example values live in `.env.example` and are validated by `npm run verify`.
 
-## 6. Verification order
+Required variables:
 
 ```text
-shell/navigation
--> state return
--> current/exploring location behavior
--> local cache/reconnect
--> Shared Map Core
--> canonical Business layer
--> first vertical slice
--> Push/deep-link exact state return
--> real-device performance/accessibility regression
+EXPO_PUBLIC_PALTA_API_BASE_URL
+EXPO_PUBLIC_ENV
+EXPO_PUBLIC_SUPABASE_URL
+EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY
 ```
 
-Never call an item PASS because it compiles. Native behavior needs device verification.
+`EXPO_PUBLIC_ENV` must be one of:
+
+```text
+development
+preview
+production
+```
+
+Mobile Auth fails closed with a visible configuration error if Supabase URL/key are absent or invalid. Mobile source must not contain a hardcoded Supabase project URL, a concrete publishable key, a service-role key, or other privileged credential material; CI enforces this boundary.
+
+## Auth Gate 01 verification order
+
+Run this sequence before beginning Gate 02:
+
+```text
+fresh signed-out launch
+-> Auth surface visible
+-> complete one configured login path against palta-dev
+-> confirm canonical PaltaUserId
+-> terminate app
+-> relaunch and confirm same session/account
+-> sign out and confirm Auth surface
+-> sign in again and confirm same PaltaUserId
+-> verify remaining configured providers do not create duplicate Palta accounts
+```
+
+Compilation or typecheck alone is not E2E evidence.
+
+## MapLibre and native modules
+
+The runtime already includes `@maplibre/maplibre-react-native`, SecureStore, SQLite, Location, Notifications, Linking, and the current Expo dependencies in `apps/mobile/package.json` / lockfile. Do not reinstall or create alternate native shells merely to test these modules.
+
+MapLibre requires an iOS/Android native development build; Expo Go is not the MapLibre verification environment. Business, Property, Mobility, and Events must continue to consume Shared Map Core instead of initializing competing map engines.
+
+## Routine verification
+
+Repository/core checks:
+
+```bash
+npm run verify
+```
+
+Environment contract using the canonical example:
+
+```bash
+npm run check:env-example
+```
+
+Local machine/repository readiness:
+
+```bash
+npm run preflight:local
+```
+
+Never mark native behavior `E2E_VERIFIED` solely because CI passes. Record the real simulator/device interaction evidence in `docs/GOLDEN_USER_001_GATE_01_AUTH_HANDOFF.md` and `docs/GOLDEN_USER_001_RUNBOOK.md`.
