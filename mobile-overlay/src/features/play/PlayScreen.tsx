@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { router } from 'expo-router';
-import { Image, Pressable, ScrollView, Text, View } from 'react-native';
+import { Image, Linking, Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { composePlayFeed } from '../../../../src/play/playFeedComposer';
 import type { PlayDiscoveryItem, PlayThemeKey } from '../../../../src/play/playDiscovery';
 import { ScreenFrame } from '../../components/ScreenFrame';
@@ -60,13 +60,8 @@ function sourceLabel(item: PlayDiscoveryItem): string {
   return 'Lugar';
 }
 
-function openDiscoveryItem(item: PlayDiscoveryItem) {
-  const businessId = item.businessProjection?.businessId ?? item.businessId;
-  if (businessId) {
-    router.push(`/business/${encodeURIComponent(businessId)}`);
-    return;
-  }
-  router.push('/map');
+function businessIdFor(item: PlayDiscoveryItem): string | undefined {
+  return item.businessProjection?.businessId ?? item.businessId;
 }
 
 function ExperienceTags({ item }: { item: PlayDiscoveryItem }) {
@@ -92,11 +87,11 @@ function ExperienceTags({ item }: { item: PlayDiscoveryItem }) {
   );
 }
 
-function HeroDiscoveryCard({ item }: { item: PlayDiscoveryItem }) {
+function HeroDiscoveryCard({ item, onPress }: { item: PlayDiscoveryItem; onPress: () => void }) {
   return (
     <Pressable
       accessibilityRole="button"
-      onPress={() => openDiscoveryItem(item)}
+      onPress={onPress}
       style={{
         overflow: 'hidden',
         borderRadius: paltaTheme.radius.prominent,
@@ -128,17 +123,13 @@ function HeroDiscoveryCard({ item }: { item: PlayDiscoveryItem }) {
         <Text allowFontScaling style={{ fontSize: 22, fontWeight: '800', color: paltaTheme.color.textPrimary }}>
           {item.title}
         </Text>
-
         <Text allowFontScaling style={{ fontSize: 14, color: paltaTheme.color.textSecondary }}>
           {item.comuna}{item.venue ? ` · ${item.venue}` : ''}{item.distanceLabel ? ` · ${item.distanceLabel}` : ''}
         </Text>
-
         <Text allowFontScaling style={{ fontSize: 14, fontWeight: '800', color: paltaTheme.color.textPrimary }}>
           {item.scheduleLabel}
         </Text>
-
         <ExperienceTags item={item} />
-
         <Text allowFontScaling numberOfLines={1} style={{ fontSize: 11, color: paltaTheme.color.textMuted }}>
           {item.source.authority}
         </Text>
@@ -147,11 +138,11 @@ function HeroDiscoveryCard({ item }: { item: PlayDiscoveryItem }) {
   );
 }
 
-function DiscoveryCard({ item }: { item: PlayDiscoveryItem }) {
+function DiscoveryCard({ item, onPress }: { item: PlayDiscoveryItem; onPress: () => void }) {
   return (
     <Pressable
       accessibilityRole="button"
-      onPress={() => openDiscoveryItem(item)}
+      onPress={onPress}
       style={{
         width: 278,
         overflow: 'hidden',
@@ -170,7 +161,6 @@ function DiscoveryCard({ item }: { item: PlayDiscoveryItem }) {
       ) : (
         <View style={{ height: 110, backgroundColor: paltaTheme.color.avocadoCream }} />
       )}
-
       <View style={{ padding: paltaTheme.spacing.md, gap: 8, minHeight: 180 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
           <Text allowFontScaling style={{ fontSize: 12, fontWeight: '800', color: paltaTheme.color.brandPrimary }}>
@@ -182,92 +172,146 @@ function DiscoveryCard({ item }: { item: PlayDiscoveryItem }) {
             </Text>
           ) : null}
         </View>
-
         <Text allowFontScaling numberOfLines={2} style={{ fontSize: 18, fontWeight: '800', color: paltaTheme.color.textPrimary }}>
           {item.title}
         </Text>
-
         <Text allowFontScaling style={{ fontSize: 13, color: paltaTheme.color.textSecondary }}>
           {item.comuna}{item.distanceLabel ? ` · ${item.distanceLabel}` : ''}
         </Text>
-
         <Text allowFontScaling style={{ fontSize: 13, fontWeight: '700', color: paltaTheme.color.textPrimary }}>
           {item.scheduleLabel}
         </Text>
-
         {item.audienceLabel ? (
           <Text allowFontScaling numberOfLines={1} style={{ fontSize: 12, color: paltaTheme.color.textSecondary }}>
             {item.audienceLabel}{item.registrationRequired ? ' · Requiere inscripción' : ''}
           </Text>
         ) : null}
-
         <ExperienceTags item={item} />
       </View>
     </Pressable>
   );
 }
 
+function PublicEventDetail({ item, onClose }: { item: PlayDiscoveryItem | null; onClose: () => void }) {
+  const sourceUrl = item?.source.sourceUrl;
+  return (
+    <Modal visible={Boolean(item)} transparent animationType="slide" onRequestClose={onClose}>
+      <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.28)' }}>
+        <View
+          style={{
+            maxHeight: '86%',
+            borderTopLeftRadius: 28,
+            borderTopRightRadius: 28,
+            backgroundColor: paltaTheme.color.surface,
+            overflow: 'hidden',
+          }}
+        >
+          {item ? (
+            <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
+              {item.imageUrl ? (
+                <Image source={{ uri: item.imageUrl }} resizeMode="cover" style={{ width: '100%', height: 220 }} />
+              ) : null}
+              <View style={{ padding: paltaTheme.spacing.lg, gap: 14 }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+                  <Text allowFontScaling style={{ fontSize: 12, fontWeight: '800', color: paltaTheme.color.brandPrimary }}>
+                    {sourceLabel(item)}{item.isFree ? ' · Gratis' : ''}
+                  </Text>
+                  <Pressable accessibilityRole="button" onPress={onClose} style={{ minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' }}>
+                    <Text allowFontScaling style={{ fontSize: 20 }}>×</Text>
+                  </Pressable>
+                </View>
+
+                <Text allowFontScaling style={{ fontSize: 24, fontWeight: '800', color: paltaTheme.color.textPrimary }}>
+                  {item.title}
+                </Text>
+                <Text allowFontScaling style={{ fontSize: 15, fontWeight: '800', color: paltaTheme.color.textPrimary }}>
+                  {item.scheduleLabel}
+                </Text>
+                <Text allowFontScaling style={{ fontSize: 14, color: paltaTheme.color.textSecondary }}>
+                  {item.comuna}{item.venue ? ` · ${item.venue}` : ''}
+                </Text>
+                {item.audienceLabel ? (
+                  <Text allowFontScaling style={{ fontSize: 14, color: paltaTheme.color.textSecondary }}>
+                    {item.audienceLabel}
+                  </Text>
+                ) : null}
+                {item.registrationRequired ? (
+                  <View style={{ padding: 12, borderRadius: paltaTheme.radius.surface, backgroundColor: paltaTheme.color.surfaceMuted }}>
+                    <Text allowFontScaling style={{ fontSize: 13, fontWeight: '700' }}>
+                      Requiere inscripción. Revisa la fuente oficial antes de ir.
+                    </Text>
+                  </View>
+                ) : null}
+                <ExperienceTags item={item} />
+
+                <View style={{ paddingTop: 6, gap: 4 }}>
+                  <Text allowFontScaling style={{ fontSize: 12, color: paltaTheme.color.textMuted }}>Fuente</Text>
+                  <Text allowFontScaling style={{ fontSize: 13, fontWeight: '700', color: paltaTheme.color.textPrimary }}>
+                    {item.source.authority}
+                  </Text>
+                  {item.source.verifiedAt ? (
+                    <Text allowFontScaling style={{ fontSize: 11, color: paltaTheme.color.textMuted }}>
+                      Verificado: {item.source.verifiedAt}
+                    </Text>
+                  ) : null}
+                </View>
+
+                <PaltaButton label="Ver en mapa" variant="secondary" onPress={() => { onClose(); router.push('/map'); }} />
+                {sourceUrl ? (
+                  <PaltaButton label="Ver fuente oficial" onPress={() => void Linking.openURL(sourceUrl)} />
+                ) : null}
+              </View>
+            </ScrollView>
+          ) : null}
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
 function CardSection({
   theme,
   items,
+  onOpenItem,
   showMapAction = false,
 }: {
   theme: PlayThemeKey;
   items: readonly PlayDiscoveryItem[];
+  onOpenItem: (item: PlayDiscoveryItem) => void;
   showMapAction?: boolean;
 }) {
   const copy = sectionCopy[theme];
   const heroItem = items[0];
   const remainingItems = items.slice(1);
-
   return (
     <View style={{ gap: paltaTheme.spacing.md }}>
       <SectionHeading title={copy.title} subtitle={copy.subtitle} />
       {heroItem ? (
-        <HeroDiscoveryCard item={heroItem} />
+        <HeroDiscoveryCard item={heroItem} onPress={() => onOpenItem(heroItem)} />
       ) : (
         <View style={{ padding: paltaTheme.spacing.lg, borderRadius: paltaTheme.radius.surface, borderWidth: 1, borderColor: paltaTheme.color.border, gap: 6 }}>
-          <Text allowFontScaling style={{ fontWeight: '800' }}>
-            Estamos conectando más panoramas de tu zona.
-          </Text>
+          <Text allowFontScaling style={{ fontWeight: '800' }}>Estamos conectando más panoramas de tu zona.</Text>
           <Text allowFontScaling style={{ color: paltaTheme.color.textSecondary }}>
             Mostraremos horario, comuna, costo, imagen y fuente cuando estén disponibles.
           </Text>
         </View>
       )}
-
       {remainingItems.length > 0 ? (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingRight: 18 }}>
-          {remainingItems.map((item) => <DiscoveryCard key={item.id} item={item} />)}
+          {remainingItems.map((item) => <DiscoveryCard key={item.id} item={item} onPress={() => onOpenItem(item)} />)}
         </ScrollView>
       ) : null}
-
-      {showMapAction ? (
-        <PaltaButton label="Ver cerca de mí en el mapa" variant="secondary" onPress={() => router.push('/map')} />
-      ) : null}
+      {showMapAction ? <PaltaButton label="Ver cerca de mí en el mapa" variant="secondary" onPress={() => router.push('/map')} /> : null}
     </View>
   );
 }
 
-function BirthdaySection({ items, onExplore }: { items: readonly PlayDiscoveryItem[]; onExplore: () => void }) {
+function BirthdaySection({ items, onExplore, onOpenItem }: { items: readonly PlayDiscoveryItem[]; onExplore: () => void; onOpenItem: (item: PlayDiscoveryItem) => void }) {
   return (
     <View style={{ gap: paltaTheme.spacing.md }}>
-      <SectionHeading
-        title="Cumpleaños"
-        subtitle="Piscina, indoor, aire libre y experiencias especiales cerca de ti."
-      />
-
-      <View
-        style={{
-          padding: paltaTheme.spacing.md,
-          borderRadius: paltaTheme.radius.prominent,
-          backgroundColor: paltaTheme.color.avocadoCream,
-          gap: 12,
-        }}
-      >
-        <Text allowFontScaling style={{ fontSize: 20, fontWeight: '800', color: paltaTheme.color.textPrimary }}>
-          ¿Preparando un cumpleaños?
-        </Text>
+      <SectionHeading title="Cumpleaños" subtitle="Piscina, indoor, aire libre y experiencias especiales cerca de ti." />
+      <View style={{ padding: paltaTheme.spacing.md, borderRadius: paltaTheme.radius.prominent, backgroundColor: paltaTheme.color.avocadoCream, gap: 12 }}>
+        <Text allowFontScaling style={{ fontSize: 20, fontWeight: '800', color: paltaTheme.color.textPrimary }}>¿Preparando un cumpleaños?</Text>
         <Text allowFontScaling style={{ fontSize: 14, color: paltaTheme.color.textSecondary }}>
           Edad, invitados, distancia, piscina, comida y tipo de experiencia en un solo lugar.
         </Text>
@@ -280,10 +324,9 @@ function BirthdaySection({ items, onExplore }: { items: readonly PlayDiscoveryIt
         </View>
         <PaltaButton label="Explorar cumpleaños" onPress={onExplore} />
       </View>
-
       {items.length > 0 ? (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingRight: 18 }}>
-          {items.slice(0, 6).map((item) => <DiscoveryCard key={item.id} item={item} />)}
+          {items.slice(0, 6).map((item) => <DiscoveryCard key={item.id} item={item} onPress={() => onOpenItem(item)} />)}
         </ScrollView>
       ) : null}
     </View>
@@ -292,121 +335,71 @@ function BirthdaySection({ items, onExplore }: { items: readonly PlayDiscoveryIt
 
 export function PlayScreen() {
   const [selectedTheme, setSelectedTheme] = useState<PlayThemeKey>('today');
+  const [selectedPublicItem, setSelectedPublicItem] = useState<PlayDiscoveryItem | null>(null);
   const locality = __DEV__ ? 'Vitacura' : undefined;
   const sourceItems = __DEV__ ? playPreviewItems : [];
 
   const feed = useMemo(
-    () => composePlayFeed({ items: sourceItems, locality, selectedTheme }),
+    () => composePlayFeed({ items: sourceItems, ...(locality ? { locality } : {}), selectedTheme }),
     [locality, selectedTheme, sourceItems],
   );
+
+  function openItem(item: PlayDiscoveryItem) {
+    const businessId = businessIdFor(item);
+    if (businessId) {
+      router.push(`/business/${encodeURIComponent(businessId)}`);
+      return;
+    }
+    setSelectedPublicItem(item);
+  }
 
   return (
     <ScreenFrame
       title="Panoramas"
       subtitle="Qué hacer hoy, cerca de ti"
       action={
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => router.push('/map')}
-          style={{
-            minHeight: paltaTheme.touch.minimum,
-            paddingHorizontal: 12,
-            justifyContent: 'center',
-            borderRadius: paltaTheme.radius.control,
-            borderWidth: 1,
-            borderColor: paltaTheme.color.border,
-          }}
-        >
+        <Pressable accessibilityRole="button" onPress={() => router.push('/map')} style={{ minHeight: paltaTheme.touch.minimum, paddingHorizontal: 12, justifyContent: 'center', borderRadius: paltaTheme.radius.control, borderWidth: 1, borderColor: paltaTheme.color.border }}>
           <Text allowFontScaling style={{ fontWeight: '800' }}>Mapa</Text>
         </Pressable>
       }
     >
       <View style={{ gap: 30, paddingBottom: paltaTheme.spacing.xxl }}>
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => router.push('/search')}
-          style={{
-            minHeight: 58,
-            paddingHorizontal: paltaTheme.spacing.md,
-            paddingVertical: paltaTheme.spacing.sm,
-            borderRadius: paltaTheme.radius.prominent,
-            backgroundColor: paltaTheme.color.surfaceMuted,
-            justifyContent: 'center',
-            gap: 3,
-          }}
-        >
-          <Text allowFontScaling style={{ fontSize: 12, color: paltaTheme.color.textSecondary }}>
-            {locality ? `${locality} · Santiago` : 'Tu zona'}
-          </Text>
-          <Text allowFontScaling style={{ fontSize: 17, fontWeight: '800', color: paltaTheme.color.textPrimary }}>
-            ¿Qué quieres hacer hoy?
-          </Text>
+        <Pressable accessibilityRole="button" onPress={() => router.push('/search')} style={{ minHeight: 58, paddingHorizontal: paltaTheme.spacing.md, paddingVertical: paltaTheme.spacing.sm, borderRadius: paltaTheme.radius.prominent, backgroundColor: paltaTheme.color.surfaceMuted, justifyContent: 'center', gap: 3 }}>
+          <Text allowFontScaling style={{ fontSize: 12, color: paltaTheme.color.textSecondary }}>{locality ? `${locality} · Santiago` : 'Tu zona'}</Text>
+          <Text allowFontScaling style={{ fontSize: 17, fontWeight: '800', color: paltaTheme.color.textPrimary }}>¿Qué quieres hacer hoy?</Text>
         </Pressable>
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingRight: 18 }}>
-          {themeOptions.map((option) => (
-            <FilterChip
-              key={option.key}
-              label={option.label}
-              selected={selectedTheme === option.key}
-              onPress={() => setSelectedTheme(option.key)}
-            />
-          ))}
+          {themeOptions.map((option) => <FilterChip key={option.key} label={option.label} selected={selectedTheme === option.key} onPress={() => setSelectedTheme(option.key)} />)}
         </ScrollView>
 
-        {__DEV__ ? (
-          <Text allowFontScaling style={{ fontSize: 11, color: paltaTheme.color.textMuted }}>
-            Vista previa visual · los datos marcados como ejemplo no se publican en producción.
-          </Text>
-        ) : null}
+        {__DEV__ ? <Text allowFontScaling style={{ fontSize: 11, color: paltaTheme.color.textMuted }}>Vista previa visual · los datos marcados como ejemplo no se publican en producción.</Text> : null}
 
-        <CardSection theme="today" items={feed.todayPublic.items} showMapAction />
+        <CardSection theme="today" items={feed.todayPublic.items} onOpenItem={openItem} showMapAction />
 
         {selectedTheme === 'birthday' ? (
-          <BirthdaySection items={feed.birthday.items} onExplore={() => setSelectedTheme('birthday')} />
+          <BirthdaySection items={feed.birthday.items} onExplore={() => setSelectedTheme('birthday')} onOpenItem={openItem} />
         ) : feed.selectedTheme ? (
-          <CardSection theme={feed.selectedTheme.theme} items={feed.selectedTheme.items} />
+          <CardSection theme={feed.selectedTheme.theme} items={feed.selectedTheme.items} onOpenItem={openItem} />
         ) : null}
 
-        {selectedTheme !== 'birthday' ? (
-          <BirthdaySection items={feed.birthday.items} onExplore={() => setSelectedTheme('birthday')} />
-        ) : null}
-
-        {selectedTheme !== 'weekend' && feed.weekendPublic.items.length > 0 ? (
-          <CardSection theme="weekend" items={feed.weekendPublic.items} />
-        ) : null}
+        {selectedTheme !== 'birthday' ? <BirthdaySection items={feed.birthday.items} onExplore={() => setSelectedTheme('birthday')} onOpenItem={openItem} /> : null}
+        {selectedTheme !== 'weekend' && feed.weekendPublic.items.length > 0 ? <CardSection theme="weekend" items={feed.weekendPublic.items} onOpenItem={openItem} /> : null}
 
         <View style={{ gap: paltaTheme.spacing.md }}>
           <SectionHeading title="Explora más" subtitle="Más formas de salir sin llenar la primera pantalla de categorías." />
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
             {secondarySections.map((label) => (
-              <Pressable
-                key={label}
-                accessibilityRole="button"
-                onPress={() => router.push('/search')}
-                style={{
-                  width: '48%',
-                  minHeight: 92,
-                  padding: paltaTheme.spacing.md,
-                  borderRadius: paltaTheme.radius.surface,
-                  borderWidth: 1,
-                  borderColor: paltaTheme.color.border,
-                  backgroundColor: paltaTheme.color.surface,
-                  justifyContent: 'center',
-                  gap: 4,
-                }}
-              >
-                <Text allowFontScaling style={{ fontSize: 15, fontWeight: '800', color: paltaTheme.color.textPrimary }}>
-                  {label}
-                </Text>
-                <Text allowFontScaling style={{ fontSize: 12, color: paltaTheme.color.textSecondary }}>
-                  Ver opciones cerca de ti
-                </Text>
+              <Pressable key={label} accessibilityRole="button" onPress={() => router.push('/search')} style={{ width: '48%', minHeight: 92, padding: paltaTheme.spacing.md, borderRadius: paltaTheme.radius.surface, borderWidth: 1, borderColor: paltaTheme.color.border, backgroundColor: paltaTheme.color.surface, justifyContent: 'center', gap: 4 }}>
+                <Text allowFontScaling style={{ fontSize: 15, fontWeight: '800', color: paltaTheme.color.textPrimary }}>{label}</Text>
+                <Text allowFontScaling style={{ fontSize: 12, color: paltaTheme.color.textSecondary }}>Ver opciones cerca de ti</Text>
               </Pressable>
             ))}
           </View>
         </View>
       </View>
+
+      <PublicEventDetail item={selectedPublicItem} onClose={() => setSelectedPublicItem(null)} />
     </ScreenFrame>
   );
 }
