@@ -13,6 +13,10 @@ import {
   LOCAL_BUSINESS_SHORTCUTS,
   projectLocalBusinesses,
 } from '../../../../src/business/localBusinessDiscovery';
+import {
+  localBusinessConsumerCategoryLabel,
+  readLocalBusinessDiscoveryPreview,
+} from '../../../../src/business/localBusinessDiscoveryPreview';
 import type { BusinessOperationalState } from '../../../../src/business/businessOperationalState';
 import {
   EmptyState,
@@ -41,52 +45,6 @@ const SANTIAGO_EXPLORATION_ORIGIN = {
 
 const FILTER_OPEN_NOW = 'local_business:open_now';
 const FILTER_VERIFIED = 'local_business:verified';
-
-const CATEGORY_SERVICE_LABELS: Record<string, readonly string[]> = {
-  auto_repair: ['Taller mecánico'],
-  pharmacy: ['Farmacia'],
-  restaurant: ['Restaurante'],
-  cafe: ['Café'],
-  bakery: ['Panadería'],
-  beauty: ['Belleza'],
-  home_repair: ['Hogar y reparación'],
-  pet: ['Mascotas'],
-  education: ['Clases y educación'],
-  professional_service: ['Servicios profesionales'],
-};
-
-type DiscoveryVisual = {
-  imageUrl?: string;
-  serviceLabels: string[];
-  highlight?: string;
-};
-
-function discoveryVisual(value: unknown): DiscoveryVisual {
-  if (!value || typeof value !== 'object') return { serviceLabels: [] };
-  const row = value as Record<string, unknown>;
-  const imageUrl = typeof row.image_url === 'string' ? row.image_url : undefined;
-  const explicitServices = Array.isArray(row.service_labels)
-    ? row.service_labels.filter((item): item is string => typeof item === 'string').slice(0, 2)
-    : [];
-  const categoryKey = typeof row.category_key === 'string' ? row.category_key : undefined;
-  const serviceLabels = explicitServices.length
-    ? explicitServices
-    : categoryKey
-      ? [...(CATEGORY_SERVICE_LABELS[categoryKey] ?? [])]
-      : [];
-  const explicitHighlight = typeof row.highlight === 'string' ? row.highlight.trim() : '';
-  const highlight = explicitHighlight
-    ? explicitHighlight
-    : row.verification_status === 'verified'
-      ? 'Negocio verificado'
-      : undefined;
-
-  return {
-    ...(imageUrl ? { imageUrl } : {}),
-    serviceLabels,
-    ...(highlight ? { highlight } : {}),
-  };
-}
 
 function isEmptyResults(items: readonly unknown[]) {
   return items.length === 0;
@@ -341,18 +299,21 @@ export function BusinessDiscoveryExperience() {
           ? { operationalConfirmedAt: item.operational_confirmed_at }
           : {}),
         ...(item.location ? { location: item.location } : {}),
+        preview: readLocalBusinessDiscoveryPreview(item),
         source: item,
       })),
       { verifiedOnly, openNowOnly },
     );
-    return projected.map((item) => item.source);
+    return projected.map((item) => ({
+      ...item.source,
+      preview: item.preview,
+    }));
   }, [state.data, verifiedOnly, openNowOnly]);
 
   const selectedBusiness = useMemo(
     () => businesses.find((item) => item.entity_id === neighborhood.selectedEntityId),
     [businesses, neighborhood.selectedEntityId],
   );
-  const selectedVisual = useMemo(() => discoveryVisual(selectedBusiness), [selectedBusiness]);
 
   const mapFeatures = useMemo<MapFeature[]>(
     () =>
@@ -422,7 +383,12 @@ export function BusinessDiscoveryExperience() {
   }
 
   function renderBusinessCard(item: (typeof businesses)[number], selected = false) {
-    const visual = discoveryVisual(item);
+    const categoryLabel = localBusinessConsumerCategoryLabel(item.category_key);
+    const serviceLabels = item.preview.serviceLabels.length
+      ? item.preview.serviceLabels
+      : categoryLabel
+        ? [categoryLabel]
+        : [];
     return (
       <LocalResultCard
         key={item.entity_id}
@@ -430,13 +396,13 @@ export function BusinessDiscoveryExperience() {
         name={item.name}
         meta={[
           formatOperationalState(item.operational_state, item.next_open_at),
-          item.category_key,
+          categoryLabel,
           item.verification_status === 'verified' ? 'Verificado' : undefined,
         ].filter(Boolean).join(' · ')}
         distance={item.location ? formatDistance(item.distance_m) : 'Zona de atención'}
-        imageUrl={visual.imageUrl}
-        serviceLabels={visual.serviceLabels}
-        highlight={visual.highlight}
+        imageUrl={item.preview.photoUrl}
+        serviceLabels={serviceLabels}
+        highlight={item.preview.highlight?.label}
         onPress={() => openBusiness(item.entity_id)}
       />
     );
@@ -488,20 +454,7 @@ export function BusinessDiscoveryExperience() {
               Seleccionado
             </Text>
           </View>
-          <LocalResultCard
-            selected
-            name={selectedBusiness.name}
-            meta={[
-              formatOperationalState(selectedBusiness.operational_state, selectedBusiness.next_open_at),
-              selectedBusiness.category_key,
-              selectedBusiness.verification_status === 'verified' ? 'Verificado' : undefined,
-            ].filter(Boolean).join(' · ')}
-            distance={selectedBusiness.location ? formatDistance(selectedBusiness.distance_m) : 'Zona de atención'}
-            imageUrl={selectedVisual.imageUrl}
-            serviceLabels={selectedVisual.serviceLabels}
-            highlight={selectedVisual.highlight}
-            onPress={() => openBusiness(selectedBusiness.entity_id)}
-          />
+          {renderBusinessCard(selectedBusiness, true)}
         </>
       ) : null}
 
