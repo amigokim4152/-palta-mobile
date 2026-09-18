@@ -10,11 +10,15 @@ import {
   Text,
   View,
 } from 'react-native';
+import { marketPriceBand } from '../../../../src/market/marketInterestSignal';
 import {
   canContactMarketSeller,
   marketListingStatusMeta,
 } from '../../../../src/market/marketLifecycle';
-import type { MarketPublicListing } from '../../../../src/market/marketPersistenceContract';
+import {
+  marketListingVerticalOf,
+  type MarketPublicListing,
+} from '../../../../src/market/marketPersistenceContract';
 import {
   buildMarketHideListingIntent,
   buildMarketReportListingIntent,
@@ -92,6 +96,18 @@ export function ListingDetailRuntimeScreen() {
       });
       setFavorite(result.favorite);
       setFavoriteCount((count) => Math.max(0, count + (result.favorite ? 1 : -1)));
+
+      if (result.favorite) {
+        const priceBand = marketPriceBand(listing.priceClp);
+        void runtime.recordInterestSignal?.({
+          action: 'favorite',
+          occurredAt: new Date().toISOString(),
+          vertical: marketListingVerticalOf(listing),
+          category: listing.category,
+          listingId: listing.id,
+          ...(priceBand ? { priceBand } : {}),
+        });
+      }
     } catch {
       Alert.alert('Mercado', 'No pudimos actualizar tus favoritos.');
     } finally {
