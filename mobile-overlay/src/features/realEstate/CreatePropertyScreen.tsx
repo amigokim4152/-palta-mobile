@@ -12,6 +12,7 @@ import {
   REAL_ESTATE_PUBLISHER_LABELS,
   REAL_ESTATE_TRANSACTION_LABELS,
 } from '../../../../src/realEstate/realEstateDiscovery';
+import type { RealEstateMediaRef } from '../../../../src/realEstate/realEstateMedia';
 import {
   createRealEstateDraft,
   type RealEstateContactPreference,
@@ -23,6 +24,7 @@ import { ExpoSQLiteRealEstateDraftStore } from '../../adapters/expoSqliteRealEst
 import { FilterChip } from '../../components/common/FilterChip';
 import { PaltaButton } from '../../components/common/PaltaButton';
 import { paltaTheme } from '../../theme/paltaTheme';
+import { RealEstateDraftMediaPicker } from './RealEstateDraftMediaPicker';
 
 const PROPERTY_TYPES: readonly PropertyType[] = [
   'apartment', 'house', 'room', 'office', 'commercial', 'land', 'parcel', 'warehouse',
@@ -104,6 +106,9 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 export function CreatePropertyScreen() {
   const params = useLocalSearchParams<{ draftId?: string }>();
   const draftId = typeof params.draftId === 'string' ? params.draftId : undefined;
+  const [workingDraftId] = useState(
+    () => draftId ?? `draft-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+  );
   const db = useSQLiteContext();
   const draftStore = useMemo(() => new ExpoSQLiteRealEstateDraftStore(db), [db]);
   const [editingDraft, setEditingDraft] = useState<RealEstateListingDraft | null>(null);
@@ -122,7 +127,8 @@ export function CreatePropertyScreen() {
   const [parking, setParking] = useState('');
   const [description, setDescription] = useState('');
   const [contactPreference, setContactPreference] = useState<RealEstateContactPreference>('palta');
-  const [photoCount, setPhotoCount] = useState(0);
+  const [mediaItems, setMediaItems] = useState<readonly RealEstateMediaRef[]>([]);
+  const [legacyPhotoCount, setLegacyPhotoCount] = useState(0);
   const [exactAddressPrivate, setExactAddressPrivate] = useState(true);
   const [saving, setSaving] = useState(false);
   const [validationMessage, setValidationMessage] = useState<string | null>(null);
@@ -160,7 +166,8 @@ export function CreatePropertyScreen() {
         setParking(fieldValue(draft.parkingSpaces));
         setDescription(draft.description ?? '');
         setContactPreference(draft.contactPreference);
-        setPhotoCount(draft.photoCount);
+        setMediaItems(draft.media ?? []);
+        setLegacyPhotoCount(draft.media ? 0 : draft.photoCount);
         setExactAddressPrivate(draft.exactAddressPrivate);
       })
       .finally(() => {
@@ -171,6 +178,12 @@ export function CreatePropertyScreen() {
       active = false;
     };
   }, [draftId, draftStore]);
+
+  function updateMedia(items: readonly RealEstateMediaRef[]) {
+    setMediaItems(items);
+    setLegacyPhotoCount(0);
+    setValidationMessage(null);
+  }
 
   function buildInput(): RealEstateListingDraftInput {
     const numericPrice = numberValue(price);
@@ -191,7 +204,8 @@ export function CreatePropertyScreen() {
       parkingSpaces: numberValue(parking),
       description: description.trim() || undefined,
       contactPreference,
-      photoCount,
+      photoCount: mediaItems.length,
+      media: mediaItems,
       exactAddressPrivate,
     };
   }
@@ -201,12 +215,10 @@ export function CreatePropertyScreen() {
     try {
       const input = buildInput();
       const errors = validateRealEstateDraft(input);
-      const draft = createRealEstateDraft(
-        input,
-        editingDraft
-          ? { id: editingDraft.id, createdAt: editingDraft.createdAt }
-          : undefined,
-      );
+      const draft = createRealEstateDraft(input, {
+        id: editingDraft?.id ?? workingDraftId,
+        ...(editingDraft?.createdAt ? { createdAt: editingDraft.createdAt } : {}),
+      });
       await draftStore.saveDraft(draft);
       setValidationMessage(
         errors.length
@@ -245,8 +257,8 @@ export function CreatePropertyScreen() {
           </Text>
           <Text style={{ fontSize: 13, lineHeight: 19, color: paltaTheme.color.textMuted }}>
             {editingDraft
-              ? 'Continúa tu borrador. Los cambios se guardan en el mismo registro local.'
-              : 'Versión demo funcional. El borrador queda guardado en el dispositivo; publicación, identidad y verificación se conectarán al backend después.'}
+              ? 'Continúa tu borrador. Los datos y fotos cargadas permanecen vinculados al mismo borrador.'
+              : 'Completa los datos y agrega fotos. El borrador queda guardado en el dispositivo mientras Palta prepara la publicación y verificación.'}
           </Text>
         </View>
 
@@ -289,7 +301,7 @@ export function CreatePropertyScreen() {
           </View>
           {publisherType !== 'owner_direct' ? (
             <Text style={{ fontSize: 12, lineHeight: 18, color: paltaTheme.color.textMuted }}>
-              En producción, Corredor e Inmobiliaria deberán vincularse a un Business Profile verificado de Palta.
+              Corredor e Inmobiliaria se vincularán a un Business Profile verificado de Palta antes de publicar.
             </Text>
           ) : null}
         </Section>
@@ -352,20 +364,24 @@ export function CreatePropertyScreen() {
         </Section>
 
         <Section title="Fotos y descripción">
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: paltaTheme.spacing.sm }}>
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontWeight: '900', color: paltaTheme.color.textPrimary }}>Fotos {photoCount}/6</Text>
-              <Text style={{ marginTop: 3, fontSize: 12, color: paltaTheme.color.textMuted }}>
-                El selector real de imágenes se conectará al Media/Object Storage Core.
+          {legacyPhotoCount > 0 ? (
+            <View
+              style={{
+                padding: paltaTheme.spacing.sm,
+                borderRadius: paltaTheme.radius.control,
+                backgroundColor: paltaTheme.color.surfaceMuted,
+              }}
+            >
+              <Text style={{ fontSize: 12, lineHeight: 18, color: paltaTheme.color.textSecondary }}>
+                Este borrador antiguo marcaba {legacyPhotoCount} foto(s) de demostración. Vuelve a elegir las fotos reales para cargarlas de forma segura.
               </Text>
             </View>
-            <PaltaButton
-              label="Agregar demo"
-              variant="secondary"
-              disabled={photoCount >= 6}
-              onPress={() => setPhotoCount((value) => Math.min(6, value + 1))}
-            />
-          </View>
+          ) : null}
+          <RealEstateDraftMediaPicker
+            draftId={workingDraftId}
+            items={mediaItems}
+            onChange={updateMedia}
+          />
           <FormField
             label="Descripción"
             value={description}
