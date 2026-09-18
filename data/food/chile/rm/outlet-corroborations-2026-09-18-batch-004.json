@@ -1,0 +1,51 @@
+{
+  "dataset": "palta_food_outlet_corroborations_rm",
+  "observed_at": "2026-09-18",
+  "records": [
+    {
+      "outlet_key": "cl-rm-maipu-delivery-sushi-sur-1207",
+      "identity_status": "verified",
+      "address": "Av. Sur 1207 Local A",
+      "comuna": "Maipú",
+      "public_contact": {
+        "phone": "+56975457129",
+        "website": "https://www.deliverysushimaipu.cl/"
+      },
+      "identity_note": "Official restaurant site confirms the Maipú outlet address, public business phone, opening hours and a WhatsApp ordering channel. The phone is stored as phone only because the WhatsApp endpoint number was not independently extracted.",
+      "evidence": [
+        {"kind": "official_website", "url": "https://www.deliverysushimaipu.cl/", "observed_at": "2026-09-18"}
+      ]
+    },
+    {
+      "outlet_key": "cl-rm-san-bernardo-el-cacique-san-jose-531",
+      "identity_status": "corroborated",
+      "address": "Av. San José 531",
+      "comuna": "San Bernardo",
+      "public_contact": {
+        "phone": "+56229952486",
+        "website": "https://www.tumenuya.com/elcaciquesanbernardo"
+      },
+      "identity_note": "Current digital menu/contact page and an independent business directory agree on the San Bernardo address. Public mobile contact also exists in the source but is not inferred to be WhatsApp.",
+      "evidence": [
+        {"kind": "other_public_source", "url": "https://www.tumenuya.com/elcaciquesanbernardo", "observed_at": "2026-09-18"},
+        {"kind": "other_public_source", "url": "https://cl.todosnegocios.com/restaurant-el-cacique-san-bernardo-9-5450-2451", "observed_at": "2026-09-18"}
+      ]
+    },
+    {
+      "outlet_key": "cl-rm-la-florida-mariberico-la-florida-9073-local-2",
+      "identity_status": "needs_review",
+      "address": "Av. La Florida 9073",
+      "comuna": "La Florida",
+      "public_contact": {
+        "phone": "+5622276806",
+        "whatsapp": "+56979975838",
+        "website": "https://www.mariberico.cl/"
+      },
+      "identity_note": "The street address and brand are independently corroborated, but the delivery-platform research record says Local 2 while Waze says Loc 1. Keep the neutral street number only and ask the merchant to resolve the local-number conflict before publication authorization.",
+      "evidence": [
+        {"kind": "official_website", "url": "https://www.mariberico.cl/puntos", "observed_at": "2026-09-18"},
+        {"kind": "waze", "url": "https://www.waze.com/live-map/directions/cl/region-metropolitana/la-florida/mariberico?to=place.ChIJaY0O6E7RYpYRD7tj2bfrJd8", "observed_at": "2026-09-18"}
+      ]
+    }
+  ]
+}
