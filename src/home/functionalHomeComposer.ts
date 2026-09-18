@@ -7,6 +7,11 @@ import {
   type HomeGlanceSignal,
 } from './homeFunctionalContract.js';
 import { canRenderGlanceSignal } from './homeCachePolicy.js';
+import {
+  homeBehaviorPriorityAdjustment,
+  isHomeItemExplicitlySuppressed,
+  type HomeBehaviorProfile,
+} from './homeBehaviorProfile.js';
 
 export type HomeFunctionalContribution = {
   glance?: readonly HomeGlanceSignal[];
@@ -20,6 +25,7 @@ export type ComposeFunctionalHomeOptions = {
   maxInProgress?: number;
   maxUpcoming?: number;
   maxUsefulToday?: number;
+  behaviorProfile?: HomeBehaviorProfile;
 };
 
 const SURFACE_WEIGHT: Record<HomeFunctionalItem['surface'], number> = {
@@ -37,20 +43,28 @@ const KIND_WEIGHT: Record<HomeFunctionalItem['kind'], number> = {
   content: 0.5,
 };
 
-function score(item: HomeFunctionalItem): number {
+function score(
+  item: HomeFunctionalItem,
+  behaviorProfile: HomeBehaviorProfile | undefined,
+): number {
   return (
     SURFACE_WEIGHT[item.surface] +
     KIND_WEIGHT[item.kind] +
     (item.personalized ? 1 : 0) +
     (item.urgency ?? 0) * 1.2 +
     (item.importance ?? 0) +
-    (item.relevance ?? 0) * 2
+    (item.relevance ?? 0) * 2 +
+    homeBehaviorPriorityAdjustment(item, behaviorProfile)
   );
 }
 
-function chooseBetter(a: HomeFunctionalItem, b: HomeFunctionalItem): HomeFunctionalItem {
-  const aScore = score(a);
-  const bScore = score(b);
+function chooseBetter(
+  a: HomeFunctionalItem,
+  b: HomeFunctionalItem,
+  behaviorProfile: HomeBehaviorProfile | undefined,
+): HomeFunctionalItem {
+  const aScore = score(a, behaviorProfile);
+  const bScore = score(b, behaviorProfile);
   if (aScore !== bScore) return aScore > bScore ? a : b;
 
   const aObserved = Date.parse(a.source.observedAt ?? '');
@@ -61,29 +75,43 @@ function chooseBetter(a: HomeFunctionalItem, b: HomeFunctionalItem): HomeFunctio
   return a;
 }
 
-function dedupe(items: readonly HomeFunctionalItem[]): HomeFunctionalItem[] {
+function dedupe(
+  items: readonly HomeFunctionalItem[],
+  behaviorProfile: HomeBehaviorProfile | undefined,
+): HomeFunctionalItem[] {
   const byKey = new Map<string, HomeFunctionalItem>();
   for (const item of items) {
     const key = item.dedupeKey?.trim() || item.id;
     const existing = byKey.get(key);
-    byKey.set(key, existing ? chooseBetter(existing, item) : item);
+    byKey.set(
+      key,
+      existing ? chooseBetter(existing, item, behaviorProfile) : item,
+    );
   }
   return [...byKey.values()];
 }
 
-function scoreDescending(a: HomeFunctionalItem, b: HomeFunctionalItem): number {
-  const difference = score(b) - score(a);
+function scoreDescending(
+  a: HomeFunctionalItem,
+  b: HomeFunctionalItem,
+  behaviorProfile: HomeBehaviorProfile | undefined,
+): number {
+  const difference = score(b, behaviorProfile) - score(a, behaviorProfile);
   if (difference !== 0) return difference;
   return a.id.localeCompare(b.id);
 }
 
-function upcomingAscending(a: HomeFunctionalItem, b: HomeFunctionalItem): number {
+function upcomingAscending(
+  a: HomeFunctionalItem,
+  b: HomeFunctionalItem,
+  behaviorProfile: HomeBehaviorProfile | undefined,
+): number {
   const aTime = Date.parse(a.scheduledAt ?? '');
   const bTime = Date.parse(b.scheduledAt ?? '');
   if (Number.isFinite(aTime) && Number.isFinite(bTime) && aTime !== bTime) {
     return aTime - bTime;
   }
-  return scoreDescending(a, b);
+  return scoreDescending(a, b, behaviorProfile);
 }
 
 function composeGlance(
@@ -130,6 +158,8 @@ function composeGlance(
  * Domain adapters decide whether a fact is Home-worthy and which semantic
  * surface it belongs to. This composer only performs cross-domain concerns:
  * validation, expiry filtering, dedupe, ordering and density control.
+ * Privacy-minimized explicit behavior aggregates may fine-tune ordering, but
+ * never replace semantic urgency/importance or suppress required state.
  */
 export function composeFunctionalHome(input: {
   generatedAt: string;
@@ -143,6 +173,7 @@ export function composeFunctionalHome(input: {
   const maxInProgress = input.options?.maxInProgress ?? 4;
   const maxUpcoming = input.options?.maxUpcoming ?? 5;
   const maxUsefulToday = input.options?.maxUsefulToday ?? 4;
+  const behaviorProfile = input.options?.behaviorProfile;
 
   const glance = composeGlance(
     input.contributions.flatMap((contribution) => contribution.glance ?? []),
@@ -153,28 +184,30 @@ export function composeFunctionalHome(input: {
   const admitted = dedupe(
     input.contributions
       .flatMap((contribution) => contribution.items ?? [])
-      .filter((item) => canRenderHomeFunctionalItem(item, now)),
+      .filter((item) => canRenderHomeFunctionalItem(item, now))
+      .filter((item) => !isHomeItemExplicitlySuppressed(item, behaviorProfile)),
+    behaviorProfile,
   );
 
   const nowItems = admitted
     .filter((item) => item.surface === 'now')
-    .sort(scoreDescending)
+    .sort((a, b) => scoreDescending(a, b, behaviorProfile))
     .slice(0, Math.max(0, maxNow));
 
   const inProgress = admitted
     .filter((item) => item.surface === 'in_progress')
-    .sort(scoreDescending)
+    .sort((a, b) => scoreDescending(a, b, behaviorProfile))
     .slice(0, Math.max(0, maxInProgress));
 
   const upcoming = admitted
     .filter((item) => item.surface === 'upcoming')
-    .sort(upcomingAscending)
+    .sort((a, b) => upcomingAscending(a, b, behaviorProfile))
     .slice(0, Math.max(0, maxUpcoming));
 
   const activeLoad = nowItems.length + inProgress.length + upcoming.length;
   const usefulCandidates = admitted
     .filter((item) => item.surface === 'useful_today')
-    .sort(scoreDescending);
+    .sort((a, b) => scoreDescending(a, b, behaviorProfile));
 
   // Useful operational/public-life information may remain when Home is busy,
   // but generic content/news is reduced first. This prevents engagement filler.

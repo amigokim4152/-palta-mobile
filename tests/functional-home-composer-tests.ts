@@ -204,4 +204,92 @@ const glanceBounded = composeFunctionalHome({
 assert(glanceBounded.glance.length === 4, 'Glance must respect its density cap.');
 assert(glanceBounded.glance[0]?.id === 'g-5', 'Exceptional Glance signal must sort first.');
 
+// Explicit, privacy-minimized behavior may reorder equally useful passive cards.
+const behaviorRanked = composeFunctionalHome({
+  generatedAt: now.toISOString(),
+  context,
+  contributions: [
+    {
+      items: [
+        item('generic-panorama', {
+          capabilityKey: 'today.panorama.generic',
+          surface: 'useful_today',
+          kind: 'content',
+          source: { domain: 'play', mode: 'live' },
+          relevance: 0.75,
+        }),
+        item('preferred-panorama', {
+          capabilityKey: 'today.panorama.preferred',
+          surface: 'useful_today',
+          kind: 'content',
+          source: { domain: 'play', mode: 'live' },
+          relevance: 0.75,
+        }),
+      ],
+    },
+  ],
+  options: {
+    now,
+    behaviorProfile: {
+      aggregates: [
+        {
+          dimension: 'capability',
+          key: 'today.panorama.preferred',
+          usefulConfirmedCount: 8,
+        },
+      ],
+    },
+  },
+});
+assert(
+  behaviorRanked.usefulToday[0]?.id === 'preferred-panorama',
+  'Explicit behavior aggregate should fine-tune passive useful-today ordering',
+);
+
+// Explicit suppression may remove passive content, but never a required alert/action.
+const behaviorSuppression = composeFunctionalHome({
+  generatedAt: now.toISOString(),
+  context,
+  contributions: [
+    {
+      items: [
+        item('suppressed-content', {
+          capabilityKey: 'today.local_service_change',
+          surface: 'useful_today',
+          kind: 'content',
+          source: { domain: 'public-life', mode: 'live' },
+        }),
+        item('protected-alert', {
+          capabilityKey: 'today.local_service_change',
+          surface: 'now',
+          kind: 'alert',
+          source: { domain: 'public-life', mode: 'live' },
+          urgency: 4,
+          importance: 4,
+        }),
+      ],
+    },
+  ],
+  options: {
+    now,
+    behaviorProfile: {
+      aggregates: [
+        {
+          dimension: 'capability',
+          key: 'today.local_service_change',
+          explicitSuppression: true,
+        },
+      ],
+    },
+  },
+});
+assert(
+  behaviorSuppression.usefulToday.length === 0,
+  'Explicit suppression should remove matching passive content',
+);
+assert(
+  behaviorSuppression.now[0]?.id === 'protected-alert',
+  'Behavior learning must never suppress required alert state',
+);
+
 console.log('PASS: Functional Home composer tests');

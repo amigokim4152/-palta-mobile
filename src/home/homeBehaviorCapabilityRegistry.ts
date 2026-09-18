@@ -64,6 +64,12 @@ export const HOME_BEHAVIOR_CAPABILITIES: readonly HomeBehaviorCapability[] = [
     description: 'Personal/action state outranks generic content; discovery is reduced on busy days.',
   },
   {
+    key: 'behavior.user_signal_ranking',
+    status: 'done',
+    owner: 'Home/Relevance',
+    description: 'Privacy-minimized explicit behavior aggregates may fine-tune ranking without using dwell time, clickstream or engagement maximization.',
+  },
+  {
     key: 'behavior.completion_reconciliation',
     status: 'done',
     owner: 'Home/Care',
@@ -74,6 +80,12 @@ export const HOME_BEHAVIOR_CAPABILITIES: readonly HomeBehaviorCapability[] = [
     status: 'partial',
     owner: 'Notification/Event',
     description: 'Home-worthy does not imply push-worthy; only meaningful state change, urgency or user-requested alerts escalate.',
+  },
+  {
+    key: 'behavior.event_driven_refresh',
+    status: 'partial',
+    owner: 'Home/Event',
+    description: 'Existing Event Core events invalidate Home/notification projections; mobile realtime transport subscription remains runtime work.',
   },
   {
     key: 'behavior.notification_inbox_sync',
