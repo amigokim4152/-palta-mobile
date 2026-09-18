@@ -11,7 +11,7 @@ export function ActionSurface({
   eyebrow?: string;
   title: string;
   body?: string;
-  actionLabel: string;
+  actionLabel?: string;
   onPress?: () => void;
 }) {
   return (
@@ -21,15 +21,16 @@ export function ActionSurface({
         borderWidth: 1,
         borderColor: paltaTheme.color.border,
         backgroundColor: paltaTheme.color.surface,
-        padding: paltaTheme.spacing.md,
+        padding: 14,
       }}
     >
       {eyebrow ? (
         <Text
           allowFontScaling
           style={{
-            fontSize: 12,
-            fontWeight: '700',
+            fontSize: 11,
+            lineHeight: 15,
+            fontWeight: '800',
             color: paltaTheme.color.brandPrimary,
           }}
         >
@@ -40,9 +41,9 @@ export function ActionSurface({
       <Text
         allowFontScaling
         style={{
-          marginTop: eyebrow ? 6 : 0,
-          fontSize: 21,
-          lineHeight: 28,
+          marginTop: eyebrow ? 4 : 0,
+          fontSize: 19,
+          lineHeight: 25,
           fontWeight: '700',
           color: paltaTheme.color.textPrimary,
         }}
@@ -54,9 +55,9 @@ export function ActionSurface({
         <Text
           allowFontScaling
           style={{
-            marginTop: 6,
-            fontSize: 15,
-            lineHeight: 22,
+            marginTop: 4,
+            fontSize: 14,
+            lineHeight: 20,
             color: paltaTheme.color.textSecondary,
           }}
         >
@@ -64,27 +65,30 @@ export function ActionSurface({
         </Text>
       ) : null}
 
-      <Pressable
-        accessibilityRole="button"
-        onPress={onPress}
-        style={{
-          minHeight: paltaTheme.touch.minimum,
-          alignSelf: 'flex-start',
-          justifyContent: 'center',
-          marginTop: 10,
-        }}
-      >
-        <Text
-          allowFontScaling
+      {actionLabel ? (
+        <Pressable
+          accessibilityRole={onPress ? 'button' : undefined}
+          disabled={!onPress}
+          onPress={onPress}
           style={{
-            color: paltaTheme.color.brandPrimary,
-            fontWeight: '800',
-            fontSize: 16,
+            minHeight: paltaTheme.touch.minimum,
+            alignSelf: 'flex-start',
+            justifyContent: 'center',
+            marginTop: 8,
           }}
         >
-          {actionLabel}
-        </Text>
-      </Pressable>
+          <Text
+            allowFontScaling
+            style={{
+              color: paltaTheme.color.brandPrimary,
+              fontWeight: '800',
+              fontSize: 15,
+            }}
+          >
+            {actionLabel}
+          </Text>
+        </Pressable>
+      ) : null}
     </View>
   );
 }
