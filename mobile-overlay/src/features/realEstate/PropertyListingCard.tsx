@@ -1,3 +1,4 @@
+import type { GestureResponderEvent } from 'react-native';
 import { Pressable, Text, View } from 'react-native';
 import {
   formatListingPrice,
@@ -12,14 +13,23 @@ export function PropertyListingCard({
   item,
   compact = false,
   selected = false,
+  saved = false,
   onPress,
+  onToggleSaved,
 }: {
   item: PropertyListingPreview;
   compact?: boolean;
   selected?: boolean;
+  saved?: boolean;
   onPress?: () => void;
+  onToggleSaved?: () => void;
 }) {
   const { listing, property } = item;
+
+  function toggleSaved(event: GestureResponderEvent) {
+    event.stopPropagation();
+    onToggleSaved?.();
+  }
 
   return (
     <Pressable
@@ -68,6 +78,29 @@ export function PropertyListingCard({
               Destacado
             </Text>
           </View>
+        ) : null}
+        {onToggleSaved ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={saved ? 'Quitar de guardados' : 'Guardar propiedad'}
+            onPress={toggleSaved}
+            style={({ pressed }) => ({
+              position: 'absolute',
+              top: 8,
+              right: 8,
+              minHeight: 30,
+              justifyContent: 'center',
+              paddingHorizontal: 9,
+              borderRadius: paltaTheme.radius.pill,
+              backgroundColor: pressed ? paltaTheme.color.surfaceMuted : paltaTheme.color.surface,
+              borderWidth: 1,
+              borderColor: saved ? paltaTheme.color.brandPrimary : paltaTheme.color.divider,
+            })}
+          >
+            <Text style={{ fontSize: 10, fontWeight: '800', color: saved ? paltaTheme.color.brandPrimary : paltaTheme.color.textSecondary }}>
+              {saved ? 'Guardado' : 'Guardar'}
+            </Text>
+          </Pressable>
         ) : null}
       </View>
 
