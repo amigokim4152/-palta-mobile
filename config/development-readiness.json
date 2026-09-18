@@ -1,27 +1,55 @@
 {
-  "version": 1,
+  "version": 2,
+  "updated_at": "2026-09-17",
   "required_to_start": [
     "git",
     "node>=22",
     "npm",
     "github_repository_access"
   ],
+  "current_platform_integration": {
+    "working_branch": "integration/platform-runtime-foundation-v1",
+    "mobile_runtime_target": "apps/mobile",
+    "mobile_runtime_source_control": "not_verified_not_committed",
+    "api_contract": "prepared",
+    "supabase_dev_project": "not_provisioned",
+    "cloudflare_dev_runtime_bindings": "not_recorded",
+    "payment_provider_sandbox_credentials": "not_acquired",
+    "staging_environment": "not_provisioned",
+    "production_environment": "blocked"
+  },
+  "required_before_real_backend_integration": [
+    "source_control_existing_apps_mobile",
+    "supabase_dev_project",
+    "verified_foundation_migrations",
+    "cloudflare_dev_api_binding",
+    "secret_boundary_verified"
+  ],
+  "required_before_payment_sandbox": [
+    "payment_provider_connection_persistence_applied",
+    "credential_envelope_persistence_applied",
+    "payment_secret_boundary_verified",
+    "provider_sandbox_credentials",
+    "provider_certification_registry_updated"
+  ],
   "optional_until_vertical_needs_it": [
     "expo_eas_account",
-    "cloudflare_account",
-    "supabase_project",
-    "payment_provider_account",
     "apple_developer",
-    "google_play_console"
+    "google_play_console",
+    "sentry_project",
+    "resend_account"
   ],
   "protected_branch": "main",
-  "working_branch": "integration/foundation-authorization-policy-v1",
   "principles": [
     "canonical_first",
     "provider_independence",
     "deny_by_default",
     "no_client_secrets",
     "not_verified_is_not_pass",
-    "mock_without_faking_capability"
+    "mock_without_faking_capability",
+    "no_duplicate_mobile_app",
+    "postgres_is_transactional_truth",
+    "queue_is_transport_not_truth",
+    "production_secrets_never_fall_back_to_dev"
   ]
 }
