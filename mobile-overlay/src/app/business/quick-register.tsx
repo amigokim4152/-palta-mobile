@@ -1,3 +1,3 @@
-import { BusinessQuickRegistrationV2Screen } from '../../features/business/BusinessQuickRegistrationV2Screen';
+import { BusinessQuickRegistrationScreen } from '../../features/business/BusinessQuickRegistrationScreen';
 
-export default BusinessQuickRegistrationV2Screen;
+export default BusinessQuickRegistrationScreen;
