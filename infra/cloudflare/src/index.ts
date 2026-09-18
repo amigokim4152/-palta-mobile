@@ -105,6 +105,7 @@ function buildChileStyle(origin: string, version: string) {
     },
     center: [-70.65, -33.45],
     zoom: 10,
+    glyphs: 'https://fonts.openmaptiles.org/{fontstack}/{range}.pbf',
     'font-faces': {
       'Noto Sans': [{ url: fontUrl }],
     },
