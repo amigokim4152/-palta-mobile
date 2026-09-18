@@ -11,6 +11,10 @@ import {
   eligibleLifeCardDefinitions,
   isLifeCardGeoScopeEligible,
 } from '../src/home/homeLifeCardEligibility.js';
+import {
+  HOME_ENTRY_CAPABILITIES,
+  requiredHomeEntryCapabilityKeys,
+} from '../src/home/homeEntryCapabilityParity.js';
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
@@ -78,6 +82,7 @@ for (const key of [
   'today.marine_alert',
   'today.tide',
   'today.daily_brief',
+  'today.chile_annual_rhythm',
   'today.seasonal_fruit',
   'today.seasonal_vegetable',
   'today.seasonal_seafood',
@@ -122,6 +127,28 @@ for (const definition of HOME_LIFE_CARD_PARITY) {
   );
 }
 
+const entryKeys = requiredHomeEntryCapabilityKeys();
+assert(HOME_ENTRY_CAPABILITIES.length >= 14, 'Legacy Home entry capability inventory is unexpectedly incomplete');
+assert(new Set(entryKeys).size === entryKeys.length, 'Home entry capability keys must be unique');
+for (const key of [
+  'entry.search',
+  'entry.local_business',
+  'entry.real_estate',
+  'entry.community',
+  'entry.map',
+  'entry.health',
+  'entry.pets',
+  'entry.education',
+  'entry.marketplace',
+  'entry.jobs',
+  'entry.food',
+  'entry.events',
+  'entry.exchange',
+  'entry.more',
+]) {
+  assert(entryKeys.includes(key), `Legacy Base44 Home entry capability missing: ${key}`);
+}
+
 const santiagoKeys = new Set(
   eligibleLifeCardDefinitions(HOME_LIFE_CARD_PARITY, {
     localityKey: 'vitacura',
@@ -159,5 +186,5 @@ assert(borderMountainKeys.has('now.snow_ice'), 'Foothill locality should allow s
 assert(!borderMountainKeys.has('today.marine_alert'), 'Inland border locality must not surface marine alerts');
 
 console.log(
-  `PASS: Home capability registry (${keys.length} capabilities; ${legacyCapabilityKeys.length} legacy life-card capabilities preserved)`,
+  `PASS: Home capability registry (${keys.length} capabilities; ${legacyCapabilityKeys.length} legacy life-card capabilities; ${entryKeys.length} entry capabilities preserved)`,
 );
