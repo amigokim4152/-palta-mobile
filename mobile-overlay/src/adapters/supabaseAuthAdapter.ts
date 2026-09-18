@@ -6,6 +6,7 @@ import {
 import type {
   AuthProvider,
   AuthState,
+  AuthSubscriptionErrorListener,
   EmailSignInResult,
   InteractiveAuthPort,
 } from '../../../src/ports/authPort';
@@ -96,13 +97,15 @@ export class SupabaseAuthAdapter implements InteractiveAuthPort {
     await this.bridge.signOut();
   }
 
-  subscribe(listener: (state: AuthState) => void): () => void {
+  subscribe(
+    listener: (state: AuthState) => void,
+    onError?: AuthSubscriptionErrorListener,
+  ): () => void {
     return this.bridge.subscribe((session) => {
-      void this.resolveSession(session)
-        .then(listener)
-        .catch(() => {
-          listener({ status: 'signed_out' });
-        });
+      void this.resolveSession(session).then(listener).catch((error: unknown) => {
+        if (onError) onError(error);
+        else console.error('Unhandled Auth subscription resolution error', error);
+      });
     });
   }
 
