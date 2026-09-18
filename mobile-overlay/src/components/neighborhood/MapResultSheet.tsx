@@ -4,6 +4,7 @@ import {
   nextSheetSnap,
   type ResultSheetSnap,
 } from '../../../../src/neighborhood/resultSheetPolicy';
+import { paltaTheme } from '../../theme/paltaTheme';
 
 const heightBySnap: Record<ResultSheetSnap, number> = {
   peek: 170,
@@ -19,6 +20,10 @@ export function MapResultSheet({
   snap: ResultSheetSnap;
   onSnapChange: (next: ResultSheetSnap) => void;
 }>) {
+  const expanding = snap !== 'full';
+  const direction = expanding ? 'up' : 'down';
+  const actionLabel = expanding ? 'Más resultados' : 'Más mapa';
+
   return (
     <View
       accessibilityLabel="Resultados del mapa"
@@ -26,34 +31,49 @@ export function MapResultSheet({
         minHeight: heightBySnap[snap],
         maxHeight: heightBySnap[snap],
         borderTopWidth: 1,
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 20,
-        padding: 12,
+        borderTopColor: paltaTheme.color.divider,
+        borderTopLeftRadius: paltaTheme.radius.sheet,
+        borderTopRightRadius: paltaTheme.radius.sheet,
+        paddingHorizontal: paltaTheme.spacing.md,
+        paddingBottom: paltaTheme.spacing.sm,
+        backgroundColor: paltaTheme.color.surface,
       }}
     >
       <View
         style={{
           alignItems: 'center',
-          flexDirection: 'row',
-          justifyContent: 'center',
-          gap: 14,
+          paddingTop: 8,
+          paddingBottom: 6,
         }}
       >
+        <View
+          style={{
+            width: 38,
+            height: 4,
+            borderRadius: 999,
+            backgroundColor: paltaTheme.color.border,
+          }}
+        />
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Mostrar más resultados"
-          onPress={() => onSnapChange(nextSheetSnap(snap, 'up'))}
-          style={{ minWidth: 44, minHeight: 44, justifyContent: 'center' }}
+          accessibilityLabel={actionLabel}
+          onPress={() => onSnapChange(nextSheetSnap(snap, direction))}
+          style={{
+            minHeight: 40,
+            justifyContent: 'center',
+            paddingHorizontal: 14,
+          }}
         >
-          <Text style={{ textAlign: 'center' }}>↑</Text>
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Mostrar más mapa"
-          onPress={() => onSnapChange(nextSheetSnap(snap, 'down'))}
-          style={{ minWidth: 44, minHeight: 44, justifyContent: 'center' }}
-        >
-          <Text style={{ textAlign: 'center' }}>↓</Text>
+          <Text
+            style={{
+              color: paltaTheme.color.textSecondary,
+              fontSize: 13,
+              fontWeight: '600',
+              textAlign: 'center',
+            }}
+          >
+            {actionLabel}
+          </Text>
         </Pressable>
       </View>
       <View style={{ flex: 1 }}>{children}</View>
