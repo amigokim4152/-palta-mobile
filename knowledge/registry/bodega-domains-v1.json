@@ -1,18 +1,25 @@
 {
-  "registry_version": 1,
-  "updated_at": "2026-09-18T07:55:00Z",
-  "principle": "All domains share one canonical Knowledge Core. Standalone means a dedicated surface, not a copied database.",
+  "registry_version": 2,
+  "updated_at": "2026-09-18T22:00:00-03:00",
+  "principle": "Durable knowledge shares one canonical Knowledge Core. News remains a separate system. Time-bound public benefits, cultural schedules and institution state remain in Public Data/Event Core and may link to knowledge without becoming canonical knowledge.",
   "domains": {
     "health": { "maturity": "standalone", "surface": "palta-health" },
     "pets": { "maturity": "standalone", "surface": "palta-pets" },
-    "news": { "maturity": "standalone", "surface": "palta-news" },
     "food": { "maturity": "growing", "surface": "palta-bodega/food" },
     "education": { "maturity": "growing", "surface": "palta-bodega/education" },
     "music": { "maturity": "seed", "surface": "palta-bodega/music" },
     "art": { "maturity": "seed", "surface": "palta-bodega/art" },
     "finance": { "maturity": "seed", "surface": "palta-bodega/finance" },
-    "culture": { "maturity": "seed", "surface": "palta-bodega/culture" },
+    "culture": { "maturity": "seed", "surface": "palta-bodega/culture", "scope_note": "Durable cultural knowledge only; event schedules stay in Public Data/Event Core." },
     "clothing": { "maturity": "seed", "surface": "palta-bodega/clothing" },
     "hobby": { "maturity": "seed", "surface": "palta-bodega/hobby" }
+  },
+  "external_lanes": {
+    "news": "news_system",
+    "public_benefits": "public_data_event_core",
+    "cultural_events": "public_data_event_core",
+    "institution_state": "public_data_event_core",
+    "dynamic_observations": "dynamic_read_model",
+    "private_personal_context": "private_store"
   }
 }
