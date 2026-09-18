@@ -20,6 +20,7 @@ function TabIndicator({ focused }: { focused: boolean }) {
 export default function TabLayout() {
   return (
     <Tabs
+      initialRouteName="home"
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: paltaTheme.color.brandPrimary,
