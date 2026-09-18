@@ -1,0 +1,282 @@
+{
+  "dataset": "palta_food_observations_rm",
+  "observed_at": "2026-09-18",
+  "currency": "CLP",
+  "scope": "Región Metropolitana de Santiago",
+  "records": [
+    {
+      "outlet": {
+        "outlet_key": "cl-rm-macul-pollos-parrilladas-lo-macul-av-macul-4287",
+        "brand_name": "Pollos y Parrilladas Lo Macul",
+        "address": "Avenida Macul 4287",
+        "comuna": "Macul",
+        "region": "Región Metropolitana",
+        "postal_code": "7820334",
+        "identity_status": "platform_only"
+      },
+      "listing": {
+        "platform": "uber_eats",
+        "listing_id": "0MvAuhs1WVWuKmDe6xar8g",
+        "listing_name": "Pollos y Parrilladas Lo Macul",
+        "url": "https://www.ubereats.com/cl/store/pollos-y-parrilladas-lo-macul/0MvAuhs1WVWuKmDe6xar8g",
+        "platform_categories": ["Comida reconfortante", "Americana", "Alitas"],
+        "delivery_supported": true,
+        "pickup_supported": true
+      },
+      "menu_snapshot": {
+        "sections": ["Artículos destacados"],
+        "sample_items": [
+          {"name": "Pechuga + Papas Fritas Chicas", "price_clp": 7920},
+          {"name": "Parrillada Lo Macul", "price_clp": 49900},
+          {"name": "Pollo Entero + Papas XL (1KG)", "price_clp": 28720},
+          {"name": "1/2 Pollo + Papas Grande", "price_clp": 21900},
+          {"name": "Pollo Entero", "price_clp": 23900},
+          {"name": "Ensalada Chilena", "price_clp": 3000}
+        ]
+      },
+      "evidence": [
+        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/pollos-y-parrilladas-lo-macul/0MvAuhs1WVWuKmDe6xar8g", "observed_at": "2026-09-18"}
+      ]
+    },
+    {
+      "outlet": {
+        "outlet_key": "cl-rm-macul-ying-feng-monckeberg-2317",
+        "brand_name": "Ying Feng",
+        "outlet_name": "Macul",
+        "address": "Alcalde Jorge Monckeberg 2317",
+        "comuna": "Macul",
+        "region": "Región Metropolitana",
+        "postal_code": "7810000",
+        "identity_status": "platform_only"
+      },
+      "listing": {
+        "platform": "uber_eats",
+        "listing_id": "QKkrXvtyRceazDQKHHnvrg",
+        "listing_name": "Ying Feng Macul",
+        "url": "https://www.ubereats.com/cl/store/ying-feng-macul/QKkrXvtyRceazDQKHHnvrg",
+        "platform_categories": ["China"],
+        "delivery_supported": true,
+        "scheduled_orders_supported": true
+      },
+      "menu_snapshot": {
+        "sections": ["Artículos destacados"],
+        "sample_items": [
+          {"name": "Carne mongoliana", "price_clp": 10000},
+          {"name": "Pollo mongoliano", "price_clp": 9600},
+          {"name": "Chapsui de pollo", "price_clp": 9300},
+          {"name": "Chapsui especial", "price_clp": 10200},
+          {"name": "Costillar cantones", "price_clp": 10200},
+          {"name": "Arrollado de mariscos", "price_clp": 13500}
+        ]
+      },
+      "evidence": [
+        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/ying-feng-macul/QKkrXvtyRceazDQKHHnvrg", "observed_at": "2026-09-18"}
+      ]
+    },
+    {
+      "outlet": {
+        "outlet_key": "cl-rm-san-miguel-del-beto-llano-subercaseaux-3153",
+        "brand_name": "Del Beto",
+        "outlet_name": "San Miguel",
+        "address": "Llano Subercaseaux 3153",
+        "comuna": "San Miguel",
+        "region": "Región Metropolitana",
+        "identity_status": "platform_only"
+      },
+      "listing": {
+        "platform": "uber_eats",
+        "listing_id": "_fRlk3SkRPCriWeGWPYu-g",
+        "listing_name": "Del Beto - San Miguel",
+        "url": "https://www.ubereats.com/cl/store/del-beto-san-miguel/_fRlk3SkRPCriWeGWPYu-g",
+        "platform_categories": ["Latinoamericana", "Carne", "Pescados y mariscos", "Chilena"],
+        "delivery_supported": true,
+        "pickup_supported": true,
+        "scheduled_orders_supported": true
+      },
+      "menu_snapshot": {
+        "sections": ["Artículos destacados", "Para compartir", "Entradas", "Guisos y chupes"],
+        "sample_items": [
+          {"name": "Plateada al jugo", "price_clp": 15200},
+          {"name": "Carne mechada con tallarines", "price_clp": 12100},
+          {"name": "Pastel de choclo", "price_clp": 15100},
+          {"name": "Causeo de patitas", "price_clp": 10900},
+          {"name": "Ceviche de cochayuyo", "price_clp": 10400},
+          {"name": "Guatitas a la jardinera", "price_clp": 12700},
+          {"name": "Pastel de papas", "price_clp": 12000},
+          {"name": "Pastel de jaiba", "price_clp": 18500}
+        ]
+      },
+      "evidence": [
+        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/del-beto-san-miguel/_fRlk3SkRPCriWeGWPYu-g", "observed_at": "2026-09-18"}
+      ]
+    },
+    {
+      "outlet": {
+        "outlet_key": "review-san-miguel-t-de-tequeno-tannenbaum-1097",
+        "brand_name": "T de Tequeño",
+        "outlet_name": "San Miguel",
+        "address": "Tannenbaum 1097",
+        "comuna": "San Miguel",
+        "region": "Región Metropolitana",
+        "postal_code": "8900000",
+        "identity_status": "possible_virtual_brand",
+        "identity_note": "Shares Tannenbaum 1097 with multiple separately named Uber Eats listings. Do not auto-create a distinct physical map outlet without corroboration."
+      },
+      "listing": {
+        "platform": "uber_eats",
+        "listing_id": "1opb_k-7XuGau6ULqiY6yA",
+        "listing_name": "T de Tequeño - San Miguel",
+        "url": "https://www.ubereats.com/cl/store/t-de-tequeno-san-miguel/1opb_k-7XuGau6ULqiY6yA",
+        "platform_categories": ["Saludable", "Vegetariana", "Ensaladas", "Venezolana"],
+        "delivery_supported": true,
+        "scheduled_orders_supported": true
+      },
+      "menu_snapshot": {
+        "sections": ["Artículos destacados"],
+        "sample_items": [
+          {"name": "8 Tequeños + 1 Salsa", "price_clp": 7990},
+          {"name": "20 Tequeños", "price_clp": 14990},
+          {"name": "12 Tequeños", "price_clp": 9990},
+          {"name": "4 Sopaipillas Caseras + 2 Salsas", "price_clp": 4190},
+          {"name": "12 Sopaipillas Coctel", "price_clp": 3890},
+          {"name": "6 Churros Españoles + 1 Salsa", "price_clp": 5990}
+        ]
+      },
+      "evidence": [
+        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/t-de-tequeno-san-miguel/1opb_k-7XuGau6ULqiY6yA", "observed_at": "2026-09-18"}
+      ]
+    },
+    {
+      "outlet": {
+        "outlet_key": "review-san-miguel-hey-foodie-tannenbaum-1097",
+        "brand_name": "Hey Foodie",
+        "outlet_name": "San Miguel",
+        "address": "Tannenbaum 1097",
+        "comuna": "San Miguel",
+        "region": "Región Metropolitana",
+        "postal_code": "8900000",
+        "identity_status": "possible_virtual_brand",
+        "identity_note": "Shares Tannenbaum 1097 with multiple separately named Uber Eats listings. Physical outlet identity requires corroboration."
+      },
+      "listing": {
+        "platform": "uber_eats",
+        "listing_id": "lD0AkZciVAKPa-uWJueeeA",
+        "listing_name": "Hey Foodie - San Miguel (Santiago)",
+        "url": "https://www.ubereats.com/cl/store/hey-foodie-san-miguel-santiago/lD0AkZciVAKPa-uWJueeeA",
+        "platform_categories": ["Gourmet", "Comida reconfortante", "Europea"],
+        "delivery_supported": true,
+        "scheduled_orders_supported": true
+      },
+      "menu_snapshot": {
+        "sections": ["Doha doha"],
+        "sample_items": [
+          {"name": "Chicken chicken y 2 acompañamientos y 1 salsa", "price_clp": 11990}
+        ]
+      },
+      "evidence": [
+        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/hey-foodie-san-miguel-santiago/lD0AkZciVAKPa-uWJueeeA", "observed_at": "2026-09-18"}
+      ]
+    },
+    {
+      "outlet": {
+        "outlet_key": "review-san-miguel-casa-del-ceviche-tannenbaum-1097",
+        "brand_name": "Casa del Ceviche",
+        "outlet_name": "San Miguel",
+        "address": "Tannenbaum 1097",
+        "comuna": "San Miguel",
+        "region": "Región Metropolitana",
+        "postal_code": "8900000",
+        "identity_status": "possible_virtual_brand",
+        "identity_note": "Shares Tannenbaum 1097 with multiple separately named Uber Eats listings. Physical outlet identity requires corroboration."
+      },
+      "listing": {
+        "platform": "uber_eats",
+        "listing_id": "VSWu0JTqXJykJmHEX_Pz8Q",
+        "listing_name": "Casa del Ceviche - San Miguel (Santiago)",
+        "url": "https://www.ubereats.com/cl/store/casa-del-ceviche-san-miguel-santiago/VSWu0JTqXJykJmHEX_Pz8Q",
+        "platform_categories": ["Ensaladas", "Americana", "Vegetariana"],
+        "delivery_supported": true,
+        "scheduled_orders_supported": true
+      },
+      "menu_snapshot": {
+        "sections": ["Ceviche del mes - edición limitada!", "¡Descuentos de La Casa del Ceviche 20% OFF🎣!"],
+        "sample_items": [
+          {"name": "Puerto Ceviche de la casa más Acompañamiento", "price_clp": 13990},
+          {"name": "4 Ceviches de la casa y Mini Sopaipillas con Churro Bites", "price_clp": 49990},
+          {"name": "2 Ceviches de la casa con Mini Sopaipillas y Crazy Churros", "price_clp": 29613},
+          {"name": "2 Ceviches de la casa y Mini Sopaipillas", "price_clp": 27863}
+        ]
+      },
+      "evidence": [
+        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/casa-del-ceviche-san-miguel-santiago/VSWu0JTqXJykJmHEX_Pz8Q", "observed_at": "2026-09-18"}
+      ]
+    },
+    {
+      "outlet": {
+        "outlet_key": "cl-rm-san-miguel-la-cafeteria-ventura-blanco-viel-1312",
+        "brand_name": "La Cafeteria",
+        "outlet_name": "San Miguel",
+        "address": "Calle Ventura Blanco Viel 1312",
+        "comuna": "San Miguel",
+        "region": "Región Metropolitana",
+        "postal_code": "890000",
+        "identity_status": "platform_only"
+      },
+      "listing": {
+        "platform": "uber_eats",
+        "listing_id": "le3VXzpmUfeA0_sZRwXYCw",
+        "listing_name": "La Cafeteria (San Miguel)",
+        "url": "https://www.ubereats.com/cl/store/la-cafeteria-san-miguel/le3VXzpmUfeA0_sZRwXYCw",
+        "platform_categories": ["Americana", "Hamburguesas", "Sándwiches", "Cafeterías", "Café", "Café y té", "Bebidas", "Sándwich", "Sándwich de carne y queso"],
+        "delivery_supported": true,
+        "pickup_supported": true,
+        "scheduled_orders_supported": true
+      },
+      "menu_snapshot": {
+        "sections": ["Sándwich"],
+        "sample_items": [
+          {"name": "Chacarero", "price_clp": 12490},
+          {"name": "Italiano", "price_clp": 12490},
+          {"name": "Luco", "price_clp": 12490},
+          {"name": "Ranchero", "price_clp": 14990}
+        ]
+      },
+      "evidence": [
+        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/la-cafeteria-san-miguel/le3VXzpmUfeA0_sZRwXYCw", "observed_at": "2026-09-18"}
+      ]
+    },
+    {
+      "outlet": {
+        "outlet_key": "cl-rm-san-miguel-green-lab-dresden-4238",
+        "brand_name": "Green Lab",
+        "outlet_name": "San Miguel",
+        "address": "Calle Dresden 4238",
+        "comuna": "San Miguel",
+        "region": "Región Metropolitana",
+        "postal_code": "8900000",
+        "identity_status": "platform_only"
+      },
+      "listing": {
+        "platform": "uber_eats",
+        "listing_id": "4Iuyyq9PQRmUlasDfFJ_jQ",
+        "listing_name": "Green Lab (San Miguel)",
+        "url": "https://www.ubereats.com/cl/store/green-lab-san-miguel/4Iuyyq9PQRmUlasDfFJ_jQ",
+        "platform_categories": ["Saludable", "Vegetariana", "Ensaladas"],
+        "delivery_supported": true,
+        "pickup_supported": true,
+        "scheduled_orders_supported": true
+      },
+      "menu_snapshot": {
+        "sections": ["Artículos destacados"],
+        "sample_items": [
+          {"name": "Arma tu Bowl", "price_clp": 8990},
+          {"name": "Arma tu Wrap", "price_clp": 8990},
+          {"name": "Arma tu Snack Bowl", "price_clp": 5990}
+        ]
+      },
+      "evidence": [
+        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/green-lab-san-miguel/4Iuyyq9PQRmUlasDfFJ_jQ", "observed_at": "2026-09-18"}
+      ]
+    }
+  ]
+}
