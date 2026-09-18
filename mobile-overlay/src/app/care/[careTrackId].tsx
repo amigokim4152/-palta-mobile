@@ -1,6 +1,11 @@
 import { useCallback } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Pressable, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
+import { careStateLabel } from '../../../../src/care/careTimeline';
+import {
+  DEFAULT_TIMEZONE,
+  careT,
+} from '../../../../src/localization/index';
 import {
   ErrorState,
   LoadingState,
@@ -10,10 +15,12 @@ import { CareTimeline } from '../../components/care/CareTimeline';
 import { PaltaButton } from '../../components/common/PaltaButton';
 import { SectionHeading } from '../../components/common/SectionHeading';
 import { useAsyncResource } from '../../hooks/useAsyncResource';
+import { useLocalization } from '../../providers/LocalizationProvider';
 import { mobileRuntime } from '../../services/paltaClient';
 
 export default function CareTrackScreen() {
   const { careTrackId } = useLocalSearchParams<{ careTrackId: string }>();
+  const { locale } = useLocalization();
 
   const loadCare = useCallback(async () => {
     if (!careTrackId) throw new Error('Care ID missing');
@@ -27,15 +34,15 @@ export default function CareTrackScreen() {
 
   if (state.status === 'loading' && !state.data) {
     return (
-      <ScreenFrame title="Seguimiento">
-        <LoadingState label="Cargando seguimiento…" />
+      <ScreenFrame title={careT('care.title', locale)}>
+        <LoadingState label={careT('care.loading', locale)} />
       </ScreenFrame>
     );
   }
 
   if (state.status === 'error' && !state.data) {
     return (
-      <ScreenFrame title="Seguimiento">
+      <ScreenFrame title={careT('care.title', locale)}>
         <ErrorState message={state.message} onRetry={() => void refresh()} />
       </ScreenFrame>
     );
@@ -44,35 +51,55 @@ export default function CareTrackScreen() {
   const care = state.data;
   if (!care) {
     return (
-      <ScreenFrame title="Seguimiento">
-        <Text>No hay datos disponibles.</Text>
+      <ScreenFrame title={careT('care.title', locale)}>
+        <Text>{careT('care.noData', locale)}</Text>
       </ScreenFrame>
     );
   }
 
+  const currentStateLabel = careStateLabel(care.state, locale);
+  const estimatedAt = care.expected_at
+    ? new Intl.DateTimeFormat(locale, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZone: DEFAULT_TIMEZONE,
+      }).format(new Date(care.expected_at))
+    : null;
+
   return (
-    <ScreenFrame title="Seguimiento" subtitle={care.intent_key}>
+    <ScreenFrame title={careT('care.title', locale)} subtitle={care.intent_key}>
       <View style={{ gap: 12 }}>
         <SectionHeading
-          eyebrow="SEGUIMIENTO"
-          title={`Estado: ${care.state.toUpperCase()}`}
-          subtitle="Palta conserva el proceso hasta resultado y seguimiento."
+          eyebrow={careT('care.eyebrow', locale)}
+          title={careT('care.state', locale, { state: currentStateLabel })}
+          subtitle={careT('care.subtitle', locale)}
         />
         <CareTimeline state={care.state} />
-        {care.waiting_for ? <Text>Esperando: {care.waiting_for}</Text> : null}
-        {care.expected_at ? (
-          <Text>Fecha estimada: {new Date(care.expected_at).toLocaleString('es-CL')}</Text>
+        {care.waiting_for ? (
+          <Text>
+            {careT('care.waitingFor', locale, { value: care.waiting_for })}
+          </Text>
         ) : null}
-        <Text style={{ opacity: 0.55 }}>Care ID: {care.id}</Text>
+        {estimatedAt ? (
+          <Text>
+            {careT('care.estimatedAt', locale, { value: estimatedAt })}
+          </Text>
+        ) : null}
+        <Text style={{ opacity: 0.55 }}>
+          {careT('care.id', locale, { id: care.id })}
+        </Text>
 
         <PaltaButton
-          label="Actualizar estado"
+          label={careT('care.refresh', locale)}
           variant="secondary"
           onPress={() => void refresh()}
         />
 
         <PaltaButton
-          label="Volver a Inicio"
+          label={careT('care.backHome', locale)}
           onPress={() => router.replace('/(tabs)/home')}
         />
 
