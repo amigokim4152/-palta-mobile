@@ -180,6 +180,7 @@ info "Verified Map/Barrio imports are adjusted for apps/mobile depth."
 GENERATED_CORE="$APP_DIR/src/palta-core"
 restore_ref_file "$HOME_REF" "src/api/homeApiContract.ts" "$GENERATED_CORE/api/homeApiContract.ts" "Home API contract snapshot"
 restore_ref_file "$HOME_REF" "src/api/notificationApiContract.ts" "$GENERATED_CORE/api/notificationApiContract.ts" "Notification API contract snapshot"
+restore_ref_file "$HOME_REF" "src/api/profileApiContract.ts" "$GENERATED_CORE/api/profileApiContract.ts" "Profile API contract snapshot"
 restore_ref_file "$HOME_REF" "src/api/paltaApiClient.ts" "$GENERATED_CORE/api/paltaApiClient.ts" "Palta API client snapshot"
 restore_ref_file "$HOME_REF" "src/api/paltaApiFactory.ts" "$GENERATED_CORE/api/paltaApiFactory.ts" "Palta API factory snapshot"
 restore_ref_file "$HOME_REF" "src/config/runtimeEnv.ts" "$GENERATED_CORE/config/runtimeEnv.ts" "runtime environment snapshot"
@@ -192,6 +193,7 @@ restore_ref_file "$HOME_REF" "mobile-overlay/src/services/paltaClient.ts" "$APP_
 bind_mobile_runtime_to_generated_core "$APP_DIR/src/services/paltaClient.ts"
 
 restore_ref_file "$HOME_REF" "mobile-overlay/src/components/AsyncStateBlock.tsx" "$APP_DIR/src/components/AsyncStateBlock.tsx" "Home async-state component"
+restore_ref_file "$HOME_REF" "mobile-overlay/src/components/common/PaltaButton.tsx" "$APP_DIR/src/components/common/PaltaButton.tsx" "Palta button"
 restore_ref_file "$HOME_REF" "mobile-overlay/src/components/home/ActionSurface.tsx" "$APP_DIR/src/components/home/ActionSurface.tsx" "Home action surface"
 restore_ref_file "$HOME_REF" "mobile-overlay/src/components/home/GlanceCluster.tsx" "$APP_DIR/src/components/home/GlanceCluster.tsx" "Home glance cluster"
 restore_ref_file "$HOME_REF" "mobile-overlay/src/components/home/SummaryListRow.tsx" "$APP_DIR/src/components/home/SummaryListRow.tsx" "Home summary row"
@@ -201,6 +203,9 @@ bind_home_view_to_generated_core "$APP_DIR/src/features/home/HomeScreen.tsx"
 
 restore_ref_file "$HOME_REF" "mobile-overlay/src/app/activity/notifications.tsx" "$APP_DIR/src/app/activity/notifications.tsx" "notification inbox route"
 bind_home_view_to_generated_core "$APP_DIR/src/app/activity/notifications.tsx"
+
+restore_ref_file "$HOME_REF" "mobile-overlay/src/app/context/[contextId].tsx" "$APP_DIR/src/app/context/[contextId].tsx" "Home context/profile route"
+bind_home_view_to_generated_core "$APP_DIR/src/app/context/[contextId].tsx"
 
 # The Care target used by Home must exist in the local app.
 restore_ref_file "$HOME_REF" "mobile-overlay/src/app/care/[careTrackId].tsx" "$APP_DIR/src/app/care/[careTrackId].tsx" "Care detail route"
@@ -253,7 +258,7 @@ if ! node "$TMP_SMOKE"; then
   tail -80 /tmp/palta-mock-api.log 2>/dev/null || true
   fail "Functional mock API smoke test failed. If port $MOCK_PORT belongs to another process, stop that process or set PALTA_MOCK_PORT."
 fi
-info "Functional Home + notification mock smoke test passed."
+info "Functional Home + notification + profile mock smoke test passed."
 
 DEVELOPER_DIR="$(xcode-select -p 2>/dev/null || true)"
 SIMULATOR_APP="${DEVELOPER_DIR}/Applications/Simulator.app"
