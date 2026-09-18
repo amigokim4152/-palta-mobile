@@ -24,11 +24,6 @@ export type HomeApiItem = {
 
 export type HomeApiResponse = { generated_at?: string; items: HomeApiItem[] };
 
-export type LocalSearchHighlight = {
-  kind: 'benefit' | 'post';
-  label: string;
-};
-
 export type LocalSearchItem = {
   entity_id: string;
   entity_type: 'place' | 'business' | 'public_service' | 'event';
@@ -39,10 +34,6 @@ export type LocalSearchItem = {
   operational_state?: BusinessOperationalState;
   operational_confirmed_at?: string;
   next_open_at?: string;
-  /** Lightweight display fields only. Full content still belongs to Business detail. */
-  primary_photo_url?: string;
-  service_labels?: string[];
-  highlight?: LocalSearchHighlight;
   /** Exact public point is absent for area-only or hidden-location businesses. */
   location?: { lat: number; lng: number };
 };
@@ -440,89 +431,92 @@ export class PaltaApiClient {
     return result as OwnerBusinessGuidanceApiResponse;
   }
 
-  async getBusinessPublicChannelLinks(businessId: string): Promise<BusinessPublicChannelLinksApiResponse> {
-    const result = expectObject(
-      await this.request(`/v1/business/${encodeURIComponent(businessId)}/public-channel-links`),
-      'GET /v1/business/{id}/public-channel-links',
-    );
-    if (typeof result.business_id !== 'string' || !Array.isArray(result.links)) {
-      throw new Error('GET /v1/business/{id}/public-channel-links returned invalid links');
-    }
-    return result as BusinessPublicChannelLinksApiResponse;
-  }
-
-  async updateBusinessPublicChannelLinks(
+  async replaceBusinessPublicChannelLinks(
     businessId: string,
     links: readonly BusinessPublicChannelLinkInput[],
   ): Promise<BusinessPublicChannelLinksApiResponse> {
     const result = expectObject(
-      await this.request(`/v1/business/${encodeURIComponent(businessId)}/public-channel-links`, {
+      await this.request(`/v1/business/${encodeURIComponent(businessId)}/channel-links`, {
         method: 'PUT',
-        body: { links },
+        body: {
+          links: links.map((link) => ({
+            provider: link.provider,
+            url: link.url,
+          })),
+        },
       }),
-      'PUT /v1/business/{id}/public-channel-links',
+      'PUT /v1/business/{id}/channel-links',
     );
     if (typeof result.business_id !== 'string' || !Array.isArray(result.links)) {
-      throw new Error('PUT /v1/business/{id}/public-channel-links returned invalid links');
+      throw new Error('PUT /v1/business/{id}/channel-links returned invalid links');
     }
     return result as BusinessPublicChannelLinksApiResponse;
   }
 
-  async registerBusiness(input: BusinessOnboardingApiInput): Promise<BusinessOnboardingApiResult> {
+  async submitBusinessOnboarding(input: BusinessOnboardingApiInput): Promise<BusinessOnboardingApiResult> {
+    const body: Record<string, unknown> = {
+      mode: input.mode,
+      business_name: input.businessName,
+      owner_description: input.ownerDescription,
+      confirmed_service_ids: [...input.confirmedServiceIds],
+      presence_modes: [...input.presenceModes],
+      service_area_ids: [...input.serviceAreaIds],
+      contact: input.contact ?? {},
+    };
+    if (input.businessId) body.business_id = input.businessId;
+    const mayExposeFixedLocation = input.presenceModes.includes('storefront') || input.presenceModes.includes('mixed');
+    if (mayExposeFixedLocation && input.anchorLocation) body.anchor_location = input.anchorLocation;
+    if (mayExposeFixedLocation && input.addressLabel) body.address_label = input.addressLabel;
+
     const result = expectObject(
       await this.request('/v1/business/onboarding', {
         method: 'POST',
-        body: {
-          mode: input.mode,
-          ...(input.businessId ? { business_id: input.businessId } : {}),
-          business_name: input.businessName,
-          owner_description: input.ownerDescription,
-          confirmed_service_ids: input.confirmedServiceIds,
-          presence_modes: input.presenceModes,
-          service_area_ids: input.serviceAreaIds,
-          ...(input.anchorLocation ? { anchor_location: input.anchorLocation } : {}),
-          ...(input.addressLabel ? { address_label: input.addressLabel } : {}),
-          ...(input.contact ? { contact: input.contact } : {}),
-        },
+        body,
         ...(input.idempotencyKey ? { headers: { 'Idempotency-Key': input.idempotencyKey } } : {}),
       }),
       'POST /v1/business/onboarding',
     );
     if (
       typeof result.business_id !== 'string' ||
-      (result.verification_status !== 'claimed' && result.verification_status !== 'verified')
+      typeof result.verification_status !== 'string' ||
+      typeof result.onboarding_status !== 'string'
     ) {
       throw new Error('POST /v1/business/onboarding returned invalid result');
     }
     return result as BusinessOnboardingApiResult;
   }
 
-  async createCare(input: { intentKey: string; linkedEntityId?: string; expectedAt?: string; idempotencyKey?: string }): Promise<CareApiTrack> {
+  async getCare(careTrackId: string): Promise<CareApiTrack> {
+    const result = expectObject(
+      await this.request(`/v1/care/${encodeURIComponent(careTrackId)}`),
+      'GET /v1/care/{id}',
+    );
+    if (typeof result.id !== 'string' || typeof result.intent_key !== 'string' || typeof result.state !== 'string') {
+      throw new Error('GET /v1/care/{id} returned invalid Care track');
+    }
+    return result as CareApiTrack;
+  }
+
+  async createCare(input: {
+    intentKey: string;
+    subjectEntityId?: string;
+    actionType?: string;
+    payload?: Record<string, unknown>;
+    idempotencyKey?: string;
+  }): Promise<CareApiTrack> {
+    const body: Record<string, unknown> = { intent_key: input.intentKey, payload: input.payload ?? {} };
+    if (input.subjectEntityId) body.subject_entity_id = input.subjectEntityId;
+    if (input.actionType) body.action_type = input.actionType;
     const result = expectObject(
       await this.request('/v1/care', {
         method: 'POST',
-        body: {
-          intent_key: input.intentKey,
-          ...(input.linkedEntityId ? { linked_entity_id: input.linkedEntityId } : {}),
-          ...(input.expectedAt ? { expected_at: input.expectedAt } : {}),
-        },
+        body,
         ...(input.idempotencyKey ? { headers: { 'Idempotency-Key': input.idempotencyKey } } : {}),
       }),
       'POST /v1/care',
     );
     if (typeof result.id !== 'string' || typeof result.state !== 'string') {
-      throw new Error('POST /v1/care returned invalid care track');
-    }
-    return result as CareApiTrack;
-  }
-
-  async getCare(careId: string): Promise<CareApiTrack> {
-    const result = expectObject(
-      await this.request(`/v1/care/${encodeURIComponent(careId)}`),
-      'GET /v1/care/{id}',
-    );
-    if (typeof result.id !== 'string' || typeof result.state !== 'string') {
-      throw new Error('GET /v1/care/{id} returned invalid care track');
+      throw new Error('POST /v1/care returned invalid Care track');
     }
     return result as CareApiTrack;
   }
