@@ -68,9 +68,10 @@ assert(
   'Generated Negocios tab must use the canonical BusinessDiscoveryExperience.',
 );
 assert(
-  discoverySource.includes("useState<'list' | 'map'>('list')") &&
-    discoverySource.includes('<ViewModeSwitch value={viewMode}'),
-  'Generated Negocios runtime must open in the list-first production experience with map available as a peer view.',
+  discoverySource.includes('<NeighborhoodMap') &&
+    discoverySource.includes('<MapResultSheet') &&
+    discoverySource.includes('Buscar en esta zona'),
+  'Generated Negocios runtime must materialize the current canonical map-first discovery experience with its result sheet.',
 );
 
 console.log('PASS: runnable Expo shell materializes current Local Business UI with live simulator sync');
