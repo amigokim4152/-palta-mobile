@@ -69,8 +69,6 @@ function municipalRecordIsCurrent(
   const until = time(record.validUntil);
   const deadline = time(record.deadlineAt);
 
-  // A public benefit without dates is not silently assumed current. Explicitly
-  // ongoing canonical records are the only exception.
   if (!record.ongoing && until === undefined && deadline === undefined) return false;
   if (from !== undefined && from > now.getTime()) return false;
   if (until !== undefined && until < now.getTime()) return false;
@@ -109,11 +107,16 @@ export function municipalRecordsToFunctionalHome(
         deadline !== undefined &&
         deadline >= now.getTime() &&
         deadline - now.getTime() <= attentionMs;
+      const hasExecutableAction = Boolean(record.sourceUrl);
 
       const item: HomeFunctionalItem = {
         id: `public-life-${record.id}`,
         surface: deadlineSoon ? 'now' : 'useful_today',
-        kind: deadlineSoon ? 'action' : 'useful',
+        kind: deadlineSoon
+          ? hasExecutableAction
+            ? 'action'
+            : 'alert'
+          : 'useful',
         title: record.title,
         personalized: true,
         corrections,
