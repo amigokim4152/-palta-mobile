@@ -1,92 +1,46 @@
 openapi: 3.1.0
 info:
   title: Palta Mobile API Preflight
-  version: 0.1.0
-  description: >
-    Development contract for the first Palta mobile vertical slice.
-    This is not a production API freeze.
+  version: 0.2.2
+  description: Development contract for Palta mobile vertical slices. This is not a production API freeze.
 servers:
   - url: https://api.somospalta.cl
     description: Future production boundary
   - url: http://localhost:8787
     description: Local/mock development boundary
-
 paths:
   /v1/home:
     get:
-      summary: Compose the user's current Home candidates
-      parameters:
-        - in: query
-          name: locale
-          schema:
-            type: string
-            default: es-CL
+      security: [{ bearerAuth: [] }]
+      summary: Compose the authenticated user's current Home candidates
       responses:
-        "200":
-          description: Home composition
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/HomeResponse"
-
+        "200": { description: Home composition }
+        "401": { $ref: "#/components/responses/Unauthorized" }
   /v1/local/search:
     get:
-      summary: Search nearby canonical places/businesses
+      security: []
+      summary: Search public nearby canonical places/businesses
       parameters:
-        - in: query
-          name: lat
-          required: true
-          schema: { type: number, format: double }
-        - in: query
-          name: lng
-          required: true
-          schema: { type: number, format: double }
-        - in: query
-          name: radius_m
-          schema: { type: integer, minimum: 100, maximum: 50000, default: 5000 }
-        - in: query
-          name: q
-          schema: { type: string }
+        - { in: query, name: lat, required: true, schema: { type: number, format: double } }
+        - { in: query, name: lng, required: true, schema: { type: number, format: double } }
+        - { in: query, name: radius_m, schema: { type: integer, minimum: 100, maximum: 50000, default: 5000 } }
+        - { in: query, name: q, schema: { type: string } }
       responses:
-        "200":
-          description: Local results
-          content:
-            application/json:
-              schema:
-                type: object
-                required: [items]
-                properties:
-                  items:
-                    type: array
-                    items:
-                      $ref: "#/components/schemas/LocalResult"
-
+        "200": { description: Public canonical local results }
   /v1/business/{businessId}:
     get:
-      summary: Get a canonical business
+      security: []
+      summary: Get a public canonical business
       parameters:
-        - in: path
-          name: businessId
-          required: true
-          schema: { type: string }
+        - { in: path, name: businessId, required: true, schema: { type: string } }
       responses:
-        "200":
-          description: Business detail
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Business"
-
+        "200": { description: Public canonical business detail }
+        "404": { $ref: "#/components/responses/NotFound" }
   /v1/care:
     post:
+      security: [{ bearerAuth: [] }]
       summary: Start or continue a Care track from a confirmed user action
-      parameters:
-        - in: header
-          name: Idempotency-Key
-          required: false
-          schema:
-            type: string
-          description: Stable client mutation ID used to prevent duplicate side effects.
+      parameters: [{ $ref: "#/components/parameters/IdempotencyKey" }]
       requestBody:
         required: true
         content:
@@ -100,131 +54,138 @@ paths:
                 action_type: { type: string }
                 payload: { type: object, additionalProperties: true }
       responses:
-        "201":
-          description: Care track created
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/CareTrack"
-
+        "201": { description: Care track created }
+        "401": { $ref: "#/components/responses/Unauthorized" }
   /v1/care/{careTrackId}:
     get:
-      summary: Get current Care state
+      security: [{ bearerAuth: [] }]
+      summary: Get current Care state for the authenticated user
       parameters:
-        - in: path
-          name: careTrackId
-          required: true
-          schema: { type: string }
+        - { in: path, name: careTrackId, required: true, schema: { type: string } }
       responses:
-        "200":
-          description: Care state
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/CareTrack"
-
+        "200": { description: Care state }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /v1/community/tab:
+    get:
+      security: [{ bearerAuth: [] }]
+      summary: Compose Community tab for the authenticated person
+      description: Membership, audience and moderation filtering are server-side. The client never supplies person_id.
+      responses:
+        "200": { description: Community tab }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /v1/community/spaces/{spaceId}:
+    get:
+      security: [{ bearerAuth: [] }]
+      summary: Get one Community space visible to the authenticated person
+      parameters: [{ $ref: "#/components/parameters/SpaceId" }]
+      responses:
+        "200": { description: Community space }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /v1/community/spaces/{spaceId}/posts/{postId}:
+    get:
+      security: [{ bearerAuth: [] }]
+      summary: Get a Community thread visible to the authenticated person
+      parameters: [{ $ref: "#/components/parameters/SpaceId" }, { $ref: "#/components/parameters/PostId" }]
+      responses:
+        "200": { description: Community thread }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /v1/community/spaces/{spaceId}/join:
+    post:
+      security: [{ bearerAuth: [] }]
+      summary: Join or request membership in a Community space
+      description: Open spaces activate immediately. Approval-required spaces create pending membership. Invite-only spaces require an existing invitation.
+      parameters: [{ $ref: "#/components/parameters/SpaceId" }, { $ref: "#/components/parameters/IdempotencyKey" }]
+      responses:
+        "204": { description: Membership transition accepted }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+  /v1/community/spaces/{spaceId}/memberships:
+    get:
+      security: [{ bearerAuth: [] }]
+      summary: List pending and active memberships for an authorized Community manager
+      parameters: [{ $ref: "#/components/parameters/SpaceId" }]
+      responses:
+        "200": { description: Membership management snapshot }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /v1/community/spaces/{spaceId}/memberships/{membershipId}:
+    patch:
+      security: [{ bearerAuth: [] }]
+      summary: Approve, reject, or end a Community membership
+      parameters: [{ $ref: "#/components/parameters/SpaceId" }, { $ref: "#/components/parameters/MembershipId" }, { $ref: "#/components/parameters/IdempotencyKey" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [action]
+              properties:
+                action: { type: string, enum: [approve, reject, end] }
+                roleKey: { type: string, enum: [member, guardian, student, teacher, staff, leader, admin] }
+      responses:
+        "204": { description: Membership transition accepted }
+        "400": { description: Invalid action or role }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+  /v1/community/spaces/{spaceId}/posts/{postId}/comments:
+    post:
+      security: [{ bearerAuth: [] }]
+      summary: Add a comment as the authenticated person
+      parameters: [{ $ref: "#/components/parameters/SpaceId" }, { $ref: "#/components/parameters/PostId" }, { $ref: "#/components/parameters/IdempotencyKey" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [body], properties: { body: { type: string, minLength: 1, maxLength: 5000 } } }
+      responses:
+        "204": { description: Comment accepted }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+  /v1/community/spaces/{spaceId}/posts/{postId}/reactions:
+    post:
+      security: [{ bearerAuth: [] }]
+      summary: Set a canonical Palta reaction as the authenticated person
+      parameters: [{ $ref: "#/components/parameters/SpaceId" }, { $ref: "#/components/parameters/PostId" }, { $ref: "#/components/parameters/IdempotencyKey" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reactionKey]
+              properties:
+                reactionKey:
+                  type: string
+                  enum: [appreciate, helpful, celebrate, curious, concerned, welcome, acknowledged]
+      responses:
+        "204": { description: Reaction accepted }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
 components:
-  schemas:
-    HomeResponse:
-      type: object
-      required: [items]
-      properties:
-        generated_at: { type: string, format: date-time }
-        items:
-          type: array
-          items:
-            $ref: "#/components/schemas/HomeCandidate"
-
-    HomeCandidate:
-      type: object
-      required: [id, kind, title, source_domain, delivery]
-      properties:
-        id: { type: string }
-        kind:
-          type: string
-          enum: [action, status, alert, useful_today, content]
-        title: { type: string }
-        body: { type: string }
-        source_domain: { type: string }
-        related_entity_id: { type: string }
-        care_track_id: { type: string }
-        valid_until: { type: string, format: date-time }
-        delivery:
-          type: string
-          enum: [home, home_notify, urgent]
-        action:
-          $ref: "#/components/schemas/AppAction"
-
-    AppAction:
-      type: object
-      required: [label, target]
-      properties:
-        label: { type: string }
-        target:
-          type: string
-          description: Palta internal route/deep-link target
-
-    LocalResult:
-      type: object
-      required: [entity_id, entity_type, name, location]
-      properties:
-        entity_id: { type: string }
-        entity_type:
-          type: string
-          enum: [place, business, public_service, event]
-        name: { type: string }
-        category_key: { type: string }
-        distance_m: { type: number }
-        verification_status: { type: string }
-        location:
-          $ref: "#/components/schemas/GeoPoint"
-
-    GeoPoint:
-      type: object
-      required: [lat, lng]
-      properties:
-        lat: { type: number, format: double }
-        lng: { type: number, format: double }
-
-    Business:
-      type: object
-      required: [id, name, verification_status]
-      properties:
-        id: { type: string }
-        name: { type: string }
-        category_key: { type: string }
-        verification_status:
-          type: string
-          enum: [unverified, claimed, verified, suspended]
-        location:
-          $ref: "#/components/schemas/GeoPoint"
-        opening_status: { type: string }
-        contact:
-          type: object
-          properties:
-            phone: { type: string }
-            whatsapp: { type: string }
-
-    CareTrack:
-      type: object
-      required: [id, state, intent_key]
-      properties:
-        id: { type: string }
-        intent_key: { type: string }
-        state:
-          type: string
-          enum:
-            - discover
-            - prepare
-            - act
-            - wait
-            - result
-            - follow_up
-            - outcome
-            - cancelled
-        waiting_for: { type: string }
-        expected_at: { type: string, format: date-time }
-        result: { type: object, additionalProperties: true }
-        outcome: { type: object, additionalProperties: true }
-        next_action:
-          $ref: "#/components/schemas/AppAction"
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  parameters:
+    SpaceId: { in: path, name: spaceId, required: true, schema: { type: string, format: uuid } }
+    PostId: { in: path, name: postId, required: true, schema: { type: string, format: uuid } }
+    MembershipId: { in: path, name: membershipId, required: true, schema: { type: string, format: uuid } }
+    IdempotencyKey: { in: header, name: Idempotency-Key, required: false, schema: { type: string, minLength: 8, maxLength: 200 }, description: Stable mutation ID for duplicate protection. }
+  responses:
+    Unauthorized: { description: Missing or invalid authenticated session }
+    Forbidden: { description: Authenticated person is not authorized for this resource/action }
+    NotFound: { description: Resource not found or intentionally concealed }
+    Conflict: { description: Mutation conflicts with current resource state or idempotency key usage }

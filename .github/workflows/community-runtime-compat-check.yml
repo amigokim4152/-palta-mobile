@@ -8,6 +8,7 @@ on:
       - 'mobile-overlay/**'
       - 'apps/mobile/**'
       - 'src/community/**'
+      - 'src/api/paltaApiClient.ts'
       - 'manifest/mobile-runtime-composition.json'
       - 'scripts/compose-mobile-runtime.mjs'
       - 'scripts/check-mobile-runtime-composition.mjs'
@@ -92,14 +93,17 @@ jobs:
       - name: Verify composed Community routes exist
         run: |
           test -f 'apps/mobile/src/features/community/communityRuntime.ts'
+          test -f 'apps/mobile/src/features/community/communityMembershipRuntime.ts'
           test -f 'apps/mobile/src/app/community/[communitySpaceId].tsx'
+          test -f 'apps/mobile/src/app/community/[communitySpaceId]/memberships.tsx'
           test -f 'apps/mobile/src/app/community/[communitySpaceId]/post/[postId].tsx'
           grep -q 'acknowledgePost' 'apps/mobile/src/features/community/communityRuntime.ts'
-          grep -q 'Lo importante de la escuela' 'apps/mobile/src/app/community/[communitySpaceId].tsx'
-          echo 'PASS: Community routes and acknowledgement flow are present in composed runtime'
+          grep -q 'getCommunityMembershipManagement' 'src/api/paltaApiClient.ts'
+          grep -q 'Solicitudes y miembros' 'apps/mobile/src/app/community/[communitySpaceId].tsx'
+          grep -q 'Finalizar vínculo' 'apps/mobile/src/app/community/[communitySpaceId]/memberships.tsx'
+          echo 'PASS: Community routes, acknowledgement, and membership management are present in composed runtime'
 
       - name: Bundle composed iOS simulator runtime diagnostic
-        continue-on-error: true
         working-directory: apps/mobile
         env:
           EXPO_PUBLIC_PALTA_API_BASE_URL: http://127.0.0.1:8787
