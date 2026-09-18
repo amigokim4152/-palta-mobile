@@ -5,19 +5,21 @@ const root = process.cwd();
 const actionBarPath = path.join(root, 'mobile-overlay/src/components/business/BusinessActionBar.tsx');
 const reservationPath = path.join(root, 'mobile-overlay/src/features/business/BusinessReservationExperience.tsx');
 const ownerInboxPath = path.join(root, 'mobile-overlay/src/app/business/manage/[businessId]/reservations.tsx');
+const ownerHomePath = path.join(root, 'mobile-overlay/src/app/business/manage/[businessId].tsx');
 const factoryPath = path.join(root, 'src/api/paltaApiFactory.ts');
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
 }
 
-for (const file of [actionBarPath, reservationPath, ownerInboxPath, factoryPath]) {
+for (const file of [actionBarPath, reservationPath, ownerInboxPath, ownerHomePath, factoryPath]) {
   assert(fs.existsSync(file), `Missing reservation source: ${path.relative(root, file)}`);
 }
 
 const actionBar = fs.readFileSync(actionBarPath, 'utf8');
 const reservation = fs.readFileSync(reservationPath, 'utf8');
 const ownerInbox = fs.readFileSync(ownerInboxPath, 'utf8');
+const ownerHome = fs.readFileSync(ownerHomePath, 'utf8');
 const factory = fs.readFileSync(factoryPath, 'utf8');
 
 assert(
@@ -37,7 +39,7 @@ assert(
 );
 assert(
   reservation.includes("channel: 'whatsapp'") &&
-    reservation.includes("messagingContextType: preparedReservation.contextType") &&
+    reservation.includes('messagingContextType: preparedReservation.contextType') &&
     reservation.includes('Ya envié la solicitud'),
   'Reservation must keep explicit WhatsApp send confirmation and booking context.',
 );
@@ -47,6 +49,14 @@ assert(
     ownerInbox.includes("respond('confirmed')") &&
     ownerInbox.includes("respond('declined')"),
   'Reservation owner inbox must be verified-only and support explicit confirm/decline decisions.',
+);
+assert(
+  ownerHome.includes('pendingReservationCount') &&
+    ownerHome.includes('mobileRuntime.client.reservations') &&
+    ownerHome.includes('/reservations`') &&
+    ownerHome.includes('solicitudes esperan') &&
+    ownerHome.includes('tu confirmación'),
+  'Verified owner home must surface reservation requests that need a real business decision.',
 );
 assert(
   factory.includes('BusinessReservationsApiClient') && factory.includes('client.reservations ='),

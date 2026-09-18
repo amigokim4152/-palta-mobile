@@ -90,8 +90,9 @@ export default function BusinessOwnerHomeScreen() {
       business.verification_status === 'claimed' ||
       business.verification_status === 'verified';
     const verified = business.verification_status === 'verified';
+    const reservationsEnabled = (business.enabled_capabilities ?? []).includes('reservation');
 
-    const [guidance, ownerCoupon, corrections, reviews, quoteInbox] = await Promise.all([
+    const [guidance, ownerCoupon, corrections, reviews, quoteInbox, reservationInbox] = await Promise.all([
       mobileRuntime.client.getOwnerBusinessGuidance(businessId),
       mobileRuntime.client.getOwnerBusinessBasicCoupon(businessId),
       ownerManaged
@@ -105,6 +106,11 @@ export default function BusinessOwnerHomeScreen() {
             .getBusinessInbox(businessId)
             .catch(() => ({ business_id: businessId, items: [] }))
         : Promise.resolve({ business_id: businessId, items: [] }),
+      verified && reservationsEnabled
+        ? mobileRuntime.client.reservations
+            .getBusinessInbox(businessId)
+            .catch(() => ({ business_id: businessId, items: [] }))
+        : Promise.resolve({ business_id: businessId, items: [] }),
     ]);
 
     return {
@@ -114,6 +120,7 @@ export default function BusinessOwnerHomeScreen() {
       correctionCount: corrections.items.length,
       reviewCount: reviews.summary.count,
       quoteInboxItems: quoteInbox.items,
+      reservationInboxItems: reservationInbox.items,
       ownerManaged,
     };
   }, [businessId]);
@@ -142,6 +149,7 @@ export default function BusinessOwnerHomeScreen() {
   const correctionCount = state.data?.correctionCount ?? 0;
   const reviewCount = state.data?.reviewCount ?? 0;
   const quoteInboxItems = state.data?.quoteInboxItems ?? [];
+  const reservationInboxItems = state.data?.reservationInboxItems ?? [];
   const ownerManaged = state.data?.ownerManaged ?? false;
   if (!business || !guidance) return null;
 
@@ -164,6 +172,10 @@ export default function BusinessOwnerHomeScreen() {
   const pendingQuoteCount = quoteInboxItems.filter(
     (item) => item.can_respond && !item.response,
   ).length;
+  const pendingReservationCount = reservationInboxItems.filter(
+    (item) => item.can_respond,
+  ).length;
+  const reservationsEnabled = (business.enabled_capabilities ?? []).includes('reservation');
   const operationalSummary = [
     operationalStateLabel(business.operational_state),
     business.hours_summary,
@@ -186,6 +198,7 @@ export default function BusinessOwnerHomeScreen() {
   );
   const hasAttention =
     correctionCount > 0 ||
+    pendingReservationCount > 0 ||
     pendingQuoteCount > 0 ||
     actionItems.length > 0 ||
     correctionTargets.length > 0;
@@ -262,6 +275,17 @@ export default function BusinessOwnerHomeScreen() {
             />
           ) : null}
 
+          {pendingReservationCount > 0 ? (
+            <OwnerPartnerCard
+              eyebrow="Reservas"
+              title={`${pendingReservationCount} ${pendingReservationCount === 1 ? 'solicitud espera' : 'solicitudes esperan'} tu confirmación`}
+              body="Son solicitudes que la persona confirmó haber enviado por WhatsApp. Revísalas antes de marcar disponibilidad."
+              badge="RESPONDER"
+              tone="attention"
+              onPress={() => router.push(`/business/manage/${encodeURIComponent(business.id)}/reservations`)}
+            />
+          ) : null}
+
           {pendingQuoteCount > 0 ? (
             <OwnerPartnerCard
               eyebrow="Cotizaciones"
@@ -300,7 +324,9 @@ export default function BusinessOwnerHomeScreen() {
           ) : null}
         </View>
 
-        {(reviewCount > 0 || (quoteInboxItems.length > 0 && pendingQuoteCount === 0)) ? (
+        {(reviewCount > 0 ||
+          (quoteInboxItems.length > 0 && pendingQuoteCount === 0) ||
+          (reservationInboxItems.length > 0 && pendingReservationCount === 0)) ? (
           <View style={{ gap: paltaTheme.spacing.sm }}>
             <SectionHeading
               title="Relación con clientes"
@@ -313,6 +339,14 @@ export default function BusinessOwnerHomeScreen() {
                 body="Estas opiniones están vinculadas a una atención confirmada. Puedes leerlas y responder desde aquí."
                 badge="RESPONDER"
                 onPress={() => router.push(`/business/manage/${encodeURIComponent(business.id)}/reviews`)}
+              />
+            ) : null}
+            {reservationInboxItems.length > 0 && pendingReservationCount === 0 ? (
+              <OwnerPartnerCard
+                eyebrow="Reservas"
+                title={`${reservationInboxItems.length} ${reservationInboxItems.length === 1 ? 'solicitud registrada' : 'solicitudes registradas'}`}
+                body="No hay una reserva nueva esperando decisión. Puedes revisar las solicitudes confirmadas o sin disponibilidad."
+                onPress={() => router.push(`/business/manage/${encodeURIComponent(business.id)}/reservations`)}
               />
             ) : null}
             {quoteInboxItems.length > 0 && pendingQuoteCount === 0 ? (
@@ -388,6 +422,16 @@ export default function BusinessOwnerHomeScreen() {
 
           {business.verification_status === 'verified' ? (
             <>
+              {reservationsEnabled ? (
+                <OwnerPartnerCard
+                  title="Reservas"
+                  body={pendingReservationCount > 0
+                    ? `${pendingReservationCount} ${pendingReservationCount === 1 ? 'solicitud pendiente' : 'solicitudes pendientes'} de confirmación.`
+                    : 'Revisa las solicitudes de reserva enviadas a este negocio y su estado.'}
+                  badge="SIN COSTO"
+                  onPress={() => router.push(`/business/manage/${encodeURIComponent(business.id)}/reservations`)}
+                />
+              ) : null}
               <OwnerPartnerCard
                 title="Novedades"
                 body={latestPost
