@@ -5,6 +5,7 @@ import { ErrorState, LoadingState } from '../../../components/AsyncStateBlock';
 import { ScreenFrame } from '../../../components/ScreenFrame';
 import { OwnerPartnerCard } from '../../../components/business/OwnerPartnerCard';
 import { SectionHeading } from '../../../components/common/SectionHeading';
+import { getBusinessAuthenticatedRuntime } from '../../../features/business/authenticatedBusinessRuntime';
 import { useAsyncResource } from '../../../hooks/useAsyncResource';
 import { mobileRuntime } from '../../../services/paltaClient';
 import { paltaTheme } from '../../../theme/paltaTheme';
@@ -91,6 +92,9 @@ export default function BusinessOwnerHomeScreen() {
       business.verification_status === 'verified';
     const verified = business.verification_status === 'verified';
     const reservationsEnabled = (business.enabled_capabilities ?? []).includes('reservation');
+    const authenticatedRuntime = verified && reservationsEnabled
+      ? getBusinessAuthenticatedRuntime()
+      : null;
 
     const [guidance, ownerCoupon, corrections, reviews, quoteInbox, reservationInbox] = await Promise.all([
       mobileRuntime.client.getOwnerBusinessGuidance(businessId),
@@ -106,8 +110,8 @@ export default function BusinessOwnerHomeScreen() {
             .getBusinessInbox(businessId)
             .catch(() => ({ business_id: businessId, items: [] }))
         : Promise.resolve({ business_id: businessId, items: [] }),
-      verified && reservationsEnabled
-        ? mobileRuntime.client.reservations
+      verified && reservationsEnabled && authenticatedRuntime?.status === 'ready'
+        ? authenticatedRuntime.client.reservations
             .getBusinessInbox(businessId)
             .catch(() => ({ business_id: businessId, items: [] }))
         : Promise.resolve({ business_id: businessId, items: [] }),

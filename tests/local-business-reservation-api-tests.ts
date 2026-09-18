@@ -4,7 +4,13 @@ function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
 }
 
-const calls: Array<{ input: string; method?: string; body?: string; idempotencyKey?: string }> = [];
+const calls: Array<{
+  input: string;
+  method?: string;
+  body?: string;
+  idempotencyKey?: string;
+  authorization?: string;
+}> = [];
 const reservationPayload = {
   id: 'reservation-1',
   business_id: 'biz-cafe-1',
@@ -19,12 +25,14 @@ const reservationPayload = {
 
 const client = new BusinessReservationsApiClient({
   baseUrl: 'https://api.example.test',
+  getAccessToken: async () => 'session-token-1',
   fetch: async (input, init) => {
     calls.push({
       input,
       ...(init?.method ? { method: init.method } : {}),
       ...(init?.body ? { body: init.body } : {}),
       ...(init?.headers?.['Idempotency-Key'] ? { idempotencyKey: init.headers['Idempotency-Key'] } : {}),
+      ...(init?.headers?.Authorization ? { authorization: init.headers.Authorization } : {}),
     });
 
     if (input.includes('/by-care/missing')) {
@@ -74,25 +82,30 @@ const created = await client.createReservation({
 assert(created.care_track_id === 'care-reservation-1', 'reservation creation must return Shared Care linkage');
 const createCall = calls[0];
 assert(createCall?.method === 'POST', 'reservation creation should POST');
+assert(createCall?.authorization === 'Bearer session-token-1', 'protected reservation calls must forward the current access token');
 assert(createCall?.idempotencyKey === 'reservation-idem-1', 'reservation creation should preserve idempotency');
 const createBody = JSON.parse(createCall?.body ?? '{}') as Record<string, unknown>;
 assert(createBody.business_id === 'biz-cafe-1', 'reservation must preserve canonical Business id');
 assert(createBody.messaging_context_type === 'booking', 'reservation must preserve booking context');
+assert(!('requester_user_id' in createBody), 'reservation client must never send a caller-controlled requester user id');
 assert(!('care_state' in createBody), 'reservation client must not author Shared Care state');
 
 const inbox = await client.getBusinessInbox('biz-cafe-1');
 assert(inbox.items[0]?.can_respond === true, 'verified owner inbox should expose pending response state');
 assert(!('requester_user_id' in (inbox.items[0] ?? {})), 'owner inbox must not expose requester identity');
+assert(calls.at(-1)?.authorization === 'Bearer session-token-1', 'owner inbox must use the authenticated session token');
 
 const confirmed = await client.respond('reservation-1', 'biz-cafe-1', {
   decision: 'confirmed',
   note: 'Reserva confirmada.',
 });
 assert(confirmed.status === 'confirmed', 'owner response should preserve confirmed state');
+assert(calls.at(-1)?.authorization === 'Bearer session-token-1', 'owner decisions must use the authenticated session token');
 
 const byCare = await client.getByCareTrack('care-reservation-1');
 assert(byCare?.id === 'reservation-1', 'Care id should resolve reservation projection');
+assert(calls.at(-1)?.authorization === 'Bearer session-token-1', 'requester reservation lookup must use the authenticated session token');
 const missing = await client.getByCareTrack('missing');
 assert(missing === null, 'unrelated Care should not fail reservation lookup');
 
-console.log('PASS: Local Business reservation API client');
+console.log('PASS: Local Business reservation API client + authenticated request headers');

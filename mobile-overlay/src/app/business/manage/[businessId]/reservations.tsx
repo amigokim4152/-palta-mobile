@@ -4,6 +4,7 @@ import { Pressable, Text, TextInput, View } from 'react-native';
 import type { BusinessReservationInboxItem } from '../../../../../../src/api/businessReservationsApiClient';
 import { EmptyState, ErrorState, LoadingState } from '../../../../components/AsyncStateBlock';
 import { ScreenFrame } from '../../../../components/ScreenFrame';
+import { getBusinessAuthenticatedRuntime } from '../../../../features/business/authenticatedBusinessRuntime';
 import { useAsyncResource } from '../../../../hooks/useAsyncResource';
 import { mobileRuntime } from '../../../../services/paltaClient';
 import { paltaTheme } from '../../../../theme/paltaTheme';
@@ -31,7 +32,12 @@ export default function BusinessReservationInboxScreen() {
     if (business.verification_status !== 'verified') {
       throw new Error('Sólo un propietario verificado puede gestionar solicitudes de reserva.');
     }
-    return mobileRuntime.client.reservations.getBusinessInbox(businessId);
+
+    const authenticatedRuntime = getBusinessAuthenticatedRuntime();
+    if (authenticatedRuntime.status !== 'ready') {
+      throw new Error(authenticatedRuntime.message);
+    }
+    return authenticatedRuntime.client.reservations.getBusinessInbox(businessId);
   }, [businessId]);
 
   const { state, refresh } = useAsyncResource(load, {
@@ -45,11 +51,18 @@ export default function BusinessReservationInboxScreen() {
   }
 
   async function respond(decision: 'confirmed' | 'declined') {
-    if (!businessId || !editingId || mobileRuntime.status !== 'ready') return;
+    if (!businessId || !editingId) return;
+
+    const authenticatedRuntime = getBusinessAuthenticatedRuntime();
+    if (authenticatedRuntime.status !== 'ready') {
+      setMessage(authenticatedRuntime.message);
+      return;
+    }
+
     setSubmitting(true);
     setMessage(null);
     try {
-      await mobileRuntime.client.reservations.respond(editingId, businessId, {
+      await authenticatedRuntime.client.reservations.respond(editingId, businessId, {
         decision,
         ...(note.trim() ? { note: note.trim() } : {}),
       });

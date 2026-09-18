@@ -9,6 +9,7 @@ import { ScreenFrame } from '../../components/ScreenFrame';
 import { PaltaButton } from '../../components/common/PaltaButton';
 import { useAsyncResource } from '../../hooks/useAsyncResource';
 import { mobileRuntime } from '../../services/paltaClient';
+import { getBusinessAuthenticatedRuntime } from './authenticatedBusinessRuntime';
 
 type PreparedReservation = {
   requestedForIso: string;
@@ -160,14 +161,21 @@ export function BusinessReservationExperience() {
   }
 
   async function confirmReservationSent() {
-    if (!businessId || !preparedReservation || mobileRuntime.status !== 'ready') return;
+    if (!businessId || !preparedReservation) return;
+
+    const authenticatedRuntime = getBusinessAuthenticatedRuntime();
+    if (authenticatedRuntime.status !== 'ready') {
+      setMessage(authenticatedRuntime.message);
+      return;
+    }
+
     const mutationId = reservationMutationId ?? createClientMutationId(Date.now(), Math.random());
     if (!reservationMutationId) setReservationMutationId(mutationId);
 
     setRegisteringReservation(true);
     setMessage(null);
     try {
-      const reservation = await mobileRuntime.client.reservations.createReservation({
+      const reservation = await authenticatedRuntime.client.reservations.createReservation({
         businessId,
         requestedFor: preparedReservation.requestedForIso,
         note: note.trim(),
