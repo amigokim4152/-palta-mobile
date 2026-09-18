@@ -1,3 +1,3 @@
-import { LocalBusinessDiscoveryScreen } from '../../features/business/LocalBusinessDiscoveryScreen';
+import { BusinessDiscoveryExperience } from '../../features/business/BusinessDiscoveryExperience';
 
-export default LocalBusinessDiscoveryScreen;
+export default BusinessDiscoveryExperience;
