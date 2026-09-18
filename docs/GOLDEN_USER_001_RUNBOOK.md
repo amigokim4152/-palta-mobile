@@ -53,32 +53,41 @@ Stable test namespace:
 
 ## Gate 01 current state — 2026-09-18
 
-Gate 01 is `RUNTIME_CONNECTED`. Known implementation blockers have been removed; what remains is real simulator/device/provider evidence.
+Gate 01 is `RUNTIME_CONNECTED`. Known code/database blockers have been removed. The remaining work is real simulator/device evidence on the currently enabled login path.
 
 Verified implementation/data facts:
 
 1. mobile UI Source of Truth remains `mobile-overlay/src`; `apps/mobile/src` remains generated
-2. Apple, Google, and email passwordless controls plus loading/error/retry/logout states are connected
-3. Supabase session persistence uses Expo SecureStore and PKCE callback handling
-4. the Auth adapter fails closed when public Supabase configuration is absent or invalid
-5. mobile application source contains no hardcoded Supabase environment binding; CI enforces the boundary
-6. `.env.example` uses the same `EXPO_PUBLIC_ENV` contract as runtime code and is validated by `npm run verify`
-7. Auth/Profile Core concepts were reconciled without restoring the older competing persistence model
-8. raw provider subject, Supabase `AuthBrokerUserId`, and canonical `PaltaUserId` are explicit separate identity layers
-9. `palta-dev` has server-owned canonical `palta_account` bootstrap from `auth.users`
-10. client INSERT on `palta_account` remains denied
-11. real `palta-dev` transaction/RLS test proved user A cannot read user B account
-12. generic PostgreSQL migration preflight, root verify/tests, generated Expo runtime typecheck, and Expo canonical config checks all pass
-13. the macOS iOS launcher now injects the public `palta-dev` development Auth configuration and validates it before launch
+2. Auth UI is capability-aware and only shows login methods enabled by the live Supabase project
+3. `palta-dev` public Auth settings are reachable
+4. email Auth is enabled and is the current Golden User execution path
+5. Apple and Google are currently disabled at the Supabase project level; their buttons are therefore hidden rather than failing after tap
+6. when Apple/Google are later enabled with valid provider credentials, the runtime can expose them without another UI redesign
+7. Supabase session persistence uses Expo SecureStore and PKCE callback handling
+8. duplicate delivery of the same PKCE callback code is deduplicated before exchange
+9. Auth subscription/account-resolution failures are surfaced as errors rather than being converted to a fake signed-out state
+10. the Auth adapter fails closed when public Supabase configuration is absent or invalid
+11. mobile application source contains no hardcoded Supabase environment binding; CI enforces the boundary
+12. `.env.example` uses the same `EXPO_PUBLIC_ENV` contract as runtime code and is validated by `npm run verify`
+13. Auth/Profile Core concepts were reconciled without restoring the older competing persistence model
+14. raw provider subject, Supabase `AuthBrokerUserId`, and canonical `PaltaUserId` are explicit separate identity layers
+15. `palta-dev` has server-owned canonical `palta_account` bootstrap from `auth.users`
+16. client INSERT on `palta_account` remains denied
+17. real `palta-dev` transaction/RLS test proved user A cannot read user B account
+18. generic PostgreSQL migration preflight, root verify/tests, generated Expo runtime typecheck, and Expo canonical config checks all pass
+19. the macOS iOS launcher injects the public `palta-dev` development Auth configuration and validates it before launch
 
-Latest successful verification baseline before these documentation updates:
+Latest successful capability-aware baseline:
 
-- commit: `2aae9ebc8f9dd1e3264952ff34c7c7fb5027eaff`
-- Core Check: `35335940242` — SUCCESS
-- Core CI + PostgreSQL preflight: `35335940202` — SUCCESS
-- Mobile Runtime Shell: `35335940196` — SUCCESS
+- commit: `5795418135bae8945e7dc3a0597e309eacd224c7`
+- Core Check: `35337118230` — SUCCESS
+- Core CI + PostgreSQL preflight: `35337118176` — SUCCESS
+- Mobile Runtime Shell: `35337118087` — SUCCESS
+- live Auth settings endpoint: PASS
+- required email Auth readiness: PASS
+- Apple/Google: observed as optional provider state; a preceding strict readiness run proved both are currently disabled
 
-What remains `NOT VERIFIED` is the live mobile/provider cycle itself: fresh signed-out launch, real login, terminate/relaunch restoration, logout, and login again to the same canonical account.
+What remains `NOT VERIFIED` is the live mobile cycle itself: fresh signed-out launch, real email passwordless login, terminate/relaunch restoration, logout, and email login again to the same canonical account.
 
 Therefore Gate 01 is **not** `E2E_VERIFIED`, and Gate 02 must not start yet.
 
@@ -93,17 +102,19 @@ On the development Mac:
 Then execute in order:
 
 1. verify the Auth surface appears with no valid session
-2. complete the selected Golden User provider login against `palta-dev`
-3. confirm and record the canonical `PaltaUserId`
-4. terminate the app
-5. relaunch and confirm the same session/account
-6. sign out and confirm return to Auth
-7. sign in again and confirm the same `PaltaUserId`
-8. exercise remaining configured providers and verify no unintended duplicate Palta account is created
+2. confirm only currently enabled login methods are shown
+3. complete Golden User email passwordless login against `palta-dev`
+4. confirm and record the canonical `PaltaUserId`
+5. terminate the app
+6. relaunch and confirm the same session/account
+7. sign out and confirm return to Auth
+8. email login again and confirm the same `PaltaUserId`
 9. record exact evidence in `docs/GOLDEN_USER_001_GATE_01_AUTH_HANDOFF.md`
 10. change Gate 01 to `E2E_VERIFIED` only after all required evidence exists
 
-If a provider/configuration/deep-link error occurs, stop at that exact failure and fix only that Gate 01 blocker.
+When Apple/Google provider credentials are configured later, verify each provider links/resolves without creating an unintended duplicate Palta account before treating that provider as production-ready.
+
+If the email flow fails, stop at the exact email-template/redirect/deep-link/runtime failure and fix only that Gate 01 blocker.
 
 ## Database hardening scope note
 
