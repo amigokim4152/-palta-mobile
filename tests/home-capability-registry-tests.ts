@@ -69,10 +69,12 @@ for (const key of [
   'upcoming.job_interview',
   'upcoming.property_viewing',
   'today.municipal_benefit',
+  'today.palta_notice',
   'today.local_news',
   'today.exchange_rate',
   'today.uf',
   'today.food_prices',
+  'today.nearby_food_available',
   'today.fuel_nearby',
   'today.traffic_commute',
   'today.vehicle_restriction',
@@ -120,10 +122,9 @@ for (const key of legacyCapabilityKeys) {
     `Complete demo must preserve legacy life-card capability: ${key}`,
   );
 }
-assert(
-  demoKeys.includes('today.interest_personalization'),
-  'Complete demo must preserve explicit interest-driven personalization.',
-);
+for (const key of ['today.interest_personalization', 'today.palta_notice', 'today.nearby_food_available']) {
+  assert(demoKeys.includes(key), `Complete demo must preserve Home capability: ${key}`);
+}
 
 for (const definition of HOME_LIFE_CARD_PARITY) {
   assert(
@@ -133,7 +134,7 @@ for (const definition of HOME_LIFE_CARD_PARITY) {
 }
 
 const entryKeys = requiredHomeEntryCapabilityKeys();
-assert(HOME_ENTRY_CAPABILITIES.length >= 18, 'Legacy Home entry capability inventory is unexpectedly incomplete');
+assert(HOME_ENTRY_CAPABILITIES.length >= 19, 'Legacy Home entry capability inventory is unexpectedly incomplete');
 assert(new Set(entryKeys).size === entryKeys.length, 'Home entry capability keys must be unique');
 for (const key of [
   'entry.search',
@@ -153,6 +154,7 @@ for (const key of [
   'entry.interests',
   'entry.kids',
   'entry.services',
+  'entry.notices',
   'entry.more',
 ]) {
   assert(entryKeys.includes(key), `Legacy Base44 Home entry capability missing: ${key}`);
