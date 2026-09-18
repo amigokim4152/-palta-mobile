@@ -130,7 +130,8 @@ export function VehicleListingDetailScreen() {
         </Pressable>
         <Pressable
           accessibilityRole="button"
-          style={{ flex: 1, minHeight: 52, alignItems: 'center', justifyContent: 'center', borderRadius: paltaTheme.radius.surface, backgroundColor: paltaTheme.color.brandPrimary }}
+          onPress={() => router.push(`/autos/inquiry/${encodeURIComponent(listing.id)}`)}
+          style={({ pressed }) => ({ flex: 1, minHeight: 52, alignItems: 'center', justifyContent: 'center', borderRadius: paltaTheme.radius.surface, backgroundColor: pressed ? paltaTheme.color.brandMid : paltaTheme.color.brandPrimary })}
         >
           <Text style={{ fontSize: 15, fontWeight: '900', color: paltaTheme.color.surface }}>Consultar</Text>
         </Pressable>
