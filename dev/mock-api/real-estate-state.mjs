@@ -63,19 +63,22 @@ export async function handleRealEstateRequest({ req, res, url, json }) {
   if (req.method !== 'GET') return false;
 
   if (url.pathname === '/v1/real-estate/listings') {
-    return json(res, 200, {
+    json(res, 200, {
       generated_at: new Date().toISOString(),
       items: searchRealEstateListings(url),
     });
+    return true;
   }
 
   if (url.pathname.startsWith('/v1/real-estate/listings/')) {
     const listingId = decodeURIComponent(url.pathname.slice('/v1/real-estate/listings/'.length));
     const item = demoRealEstateListings.find((candidate) => candidate.listing_id === listingId);
     if (!item || item.status !== 'active') {
-      return json(res, 404, { error: 'real_estate_listing_not_found' });
+      json(res, 404, { error: 'real_estate_listing_not_found' });
+      return true;
     }
-    return json(res, 200, item);
+    json(res, 200, item);
+    return true;
   }
 
   return false;
