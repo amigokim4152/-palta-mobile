@@ -10,7 +10,8 @@
     "mock:api": "node dev/mock-api/server.mjs",
     "mock:smoke": "node dev/mock-api/smoke.mjs",
     "check:independence": "node scripts/check-core-independence.mjs",
-    "verify": "npm run typecheck && npm test && npm run check:independence",
+    "check:naming": "node scripts/check-repository-naming.mjs",
+    "verify": "npm run typecheck && npm test && npm run check:independence && npm run check:naming",
     "preflight:env": "node scripts/preflight-env.mjs",
     "preflight:local": "bash scripts/preflight-local.sh",
     "check:machine": "bash scripts/machine-readiness-check.sh"
