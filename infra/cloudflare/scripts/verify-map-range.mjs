@@ -1,4 +1,6 @@
 const base = process.argv[2];
+const expectedStyleVersion =
+  process.env.PALTA_EXPECTED_MAP_STYLE_VERSION ?? 'palta-v1.4';
 
 if (!base) {
   console.error('Usage: node verify-map-range.mjs https://host.example');
@@ -25,7 +27,10 @@ assert(
 const manifest = await manifestResponse.json();
 assert(manifest.country === 'CL', 'Manifest country must be CL');
 assert(typeof manifest.version === 'string', 'Manifest version missing');
-assert(manifest.style_version === 'palta-v1.3', 'Unexpected map style version');
+assert(
+  manifest.style_version === expectedStyleVersion,
+  `Unexpected map style version: ${manifest.style_version}`,
+);
 assert(manifest.pmtiles_url === mapUrl, 'Manifest PMTiles URL mismatch');
 assert(manifest.style_url === styleUrl, 'Manifest style URL mismatch');
 assert(manifest.metadata_url === metadataUrl, 'Manifest metadata URL mismatch');
@@ -39,7 +44,10 @@ const styleResponse = await fetch(styleUrl);
 assert(styleResponse.status === 200, `Style expected 200, got ${styleResponse.status}`);
 const style = await styleResponse.json();
 assert(style.version === 8, 'MapLibre style version must be 8');
-assert(style.metadata?.['palta:style-version'] === 'palta-v1.3', 'Style metadata version mismatch');
+assert(
+  style.metadata?.['palta:style-version'] === expectedStyleVersion,
+  'Style metadata version mismatch',
+);
 assert(style.sources?.chile?.type === 'vector', 'Chile vector source missing');
 assert(
   style.sources?.chile?.url === `pmtiles://${mapUrl}`,
@@ -73,11 +81,35 @@ assert(
   'roads-major must not confuse kind_detail with kind',
 );
 
+const roadLabels = layers.find((layer) => layer?.id === 'road-labels');
+assert(
+  Number(roadLabels?.minzoom) >= 12,
+  `Major road labels are too dense below zoom 12: ${roadLabels?.minzoom}`,
+);
+assert(
+  Number(roadLabels?.layout?.['symbol-spacing']) >= 500,
+  'Major road label spacing regressed below product-safe density',
+);
+
 const localRoadLabels = layers.find((layer) => layer?.id === 'road-labels-local');
 const localRoadFilter = JSON.stringify(localRoadLabels?.filter ?? null);
 assert(
   localRoadFilter.includes('minor_road') && localRoadFilter.includes('path'),
   `local road label filter is incomplete: ${localRoadFilter}`,
+);
+assert(
+  Number(localRoadLabels?.minzoom) >= 14.5,
+  `Local road labels must wait until close zoom: ${localRoadLabels?.minzoom}`,
+);
+assert(
+  Number(localRoadLabels?.layout?.['symbol-spacing']) >= 700,
+  'Local road label spacing regressed below product-safe density',
+);
+
+const placeLabels = layers.find((layer) => layer?.id === 'place-labels');
+assert(
+  placeLabels?.layout?.['symbol-sort-key'] !== undefined,
+  'Place labels must preserve locality priority',
 );
 
 const poiLabels = layers.find((layer) => layer?.id === 'poi-labels');
