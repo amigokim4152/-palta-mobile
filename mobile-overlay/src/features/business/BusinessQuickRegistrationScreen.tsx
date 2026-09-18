@@ -2,18 +2,8 @@ import { useMemo, useState } from 'react';
 import { router } from 'expo-router';
 import { Pressable, Text, TextInput, View } from 'react-native';
 import type { LocalSearchItem } from '../../../../src/api/paltaApiClient';
+import { submitBusinessQuickRegistration } from '../../../../src/api/businessQuickRegistrationApiClient';
 import { createClientMutationId } from '../../../../src/api/retryPolicy';
-import {
-  chooseExistingBusiness,
-  confirmBusinessServices,
-  createBusinessOnboardingDraft,
-  describeBusinessServices,
-  requestOwnerVerification,
-  setBusinessPresence,
-  setBusinessPublicContact,
-  setServiceSuggestions,
-  startNewBusiness,
-} from '../../../../src/business/businessOnboarding';
 import { CHILE_LOCAL_SERVICE_SEED } from '../../../../src/business/chileServiceSeed';
 import { resolveServiceSuggestions } from '../../../../src/business/serviceResolver';
 import { expoLocationAdapter } from '../../adapters/expoLocationAdapter';
@@ -22,15 +12,26 @@ import { mobileRuntime } from '../../services/paltaClient';
 import { paltaTheme } from '../../theme/paltaTheme';
 
 type Step = 'business' | 'service' | 'contact';
-
 type Point = { latitude: number; longitude: number };
-
 type ServiceChoice = {
   serviceId: string;
   label: string;
   confidence: 'high' | 'medium' | 'low';
   matchedTerms: readonly string[];
 };
+
+function normalizeChileContact(value: string): string | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const hasPlus = trimmed.startsWith('+');
+  const digits = trimmed.replace(/\D/g, '');
+  if (!digits) return null;
+
+  if (hasPlus) return digits.length >= 10 && digits.length <= 15 ? `+${digits}` : null;
+  if (digits.startsWith('56') && digits.length === 11) return `+${digits}`;
+  if (digits.length === 9) return `+56${digits}`;
+  return null;
+}
 
 function ActionButton({
   label,
@@ -167,15 +168,13 @@ export function BusinessQuickRegistrationScreen() {
         radiusM: 1200,
         query: businessName.trim(),
       });
-      const businesses = items
-        .filter((item) => item.entity_type === 'business')
-        .slice(0, 4);
+      const businesses = items.filter((item) => item.entity_type === 'business').slice(0, 4);
       setMatches(businesses);
       setSelectedBusiness(null);
       setNewBusinessConfirmed(businesses.length === 0);
       setMessage(
         businesses.length
-          ? '¿Tu negocio ya aparece? Elígelo para no crear un duplicado.'
+          ? '¿Tu negocio ya aparece? Elígelo. Palta no creará una ficha duplicada.'
           : 'No encontramos una ficha cercana con ese nombre. Puedes continuar como negocio nuevo.',
       );
     } catch (error) {
@@ -186,22 +185,20 @@ export function BusinessQuickRegistrationScreen() {
   }
 
   function chooseMatch(item: LocalSearchItem) {
-    if (item.verification_status === 'claimed' || item.verification_status === 'verified') {
-      setSelectedBusiness(null);
-      setNewBusinessConfirmed(false);
-      setMessage('Este negocio ya tiene administración. Palta debe verificar el acceso en lugar de crear otro registro.');
-      return;
-    }
     setSelectedBusiness(item);
     setNewBusinessConfirmed(false);
     setBusinessName(item.name);
-    setMessage('Usaremos esta ficha existente y pediremos la verificación del responsable.');
+    setMessage(
+      item.verification_status === 'claimed' || item.verification_status === 'verified'
+        ? 'Esta ficha ya existe. Enviaremos una solicitud de verificación del responsable; no crearemos otra ficha.'
+        : 'Usaremos esta ficha existente y pediremos la verificación del responsable.',
+    );
   }
 
   function chooseNew() {
     setSelectedBusiness(null);
     setNewBusinessConfirmed(true);
-    setMessage('Se creará una ficha pendiente de verificación.');
+    setMessage('Se enviará una ficha nueva pendiente de verificación.');
   }
 
   function continueToService() {
@@ -221,9 +218,7 @@ export function BusinessQuickRegistrationScreen() {
     setSelectedServiceIds(
       resolution.ambiguous
         ? []
-        : choices
-            .filter((item) => item.confidence !== 'low')
-            .map((item) => item.serviceId),
+        : choices.filter((item) => item.confidence !== 'low').map((item) => item.serviceId),
     );
     setMessage(
       choices.length
@@ -248,75 +243,64 @@ export function BusinessQuickRegistrationScreen() {
 
   async function submit() {
     if (!point || !canSubmit || !canContinueService) return;
-    if (mobileRuntime.status !== 'ready') {
+    if (mobileRuntime.status !== 'ready' || !mobileRuntime.publicApiKey) {
       setMessage('Palta todavía no tiene conexión pública configurada.');
+      return;
+    }
+
+    const normalizedWhatsapp = whatsapp.trim() ? normalizeChileContact(whatsapp) : null;
+    const normalizedPhone = phone.trim() ? normalizeChileContact(phone) : null;
+    if (whatsapp.trim() && !normalizedWhatsapp) {
+      setMessage('Revisa el WhatsApp. En Chile puedes escribirlo como 9XXXXXXXX o +56 9XXXXXXXX.');
+      return;
+    }
+    if (phone.trim() && !normalizedPhone) {
+      setMessage('Revisa el teléfono. Usa el número chileno completo o el formato +56.');
+      return;
+    }
+    if (!normalizedWhatsapp && !normalizedPhone) {
+      setMessage('Deja al menos un WhatsApp o teléfono válido.');
       return;
     }
 
     setBusy(true);
     setMessage(null);
     try {
-      let draft = createBusinessOnboardingDraft(`quick-${Date.now()}`);
-
-      if (selectedBusiness) {
-        draft = chooseExistingBusiness(draft, {
-          businessId: selectedBusiness.entity_id,
-          name: selectedBusiness.name,
-          ...(selectedBusiness.location
-            ? {
-                location: {
-                  lat: selectedBusiness.location.lat,
-                  lng: selectedBusiness.location.lng,
-                },
-              }
-            : {
-                location: { lat: point.latitude, lng: point.longitude },
-              }),
-          alreadyClaimed: false,
-        });
-      } else {
-        draft = startNewBusiness(draft, {
+      const result = await submitBusinessQuickRegistration({
+        baseUrl: mobileRuntime.apiBaseUrl,
+        publicApiKey: mobileRuntime.publicApiKey,
+        fetch: async (input, init) => {
+          const response = await fetch(input, init);
+          return {
+            ok: response.ok,
+            status: response.status,
+            json: () => response.json(),
+          };
+        },
+        registration: {
+          mode: selectedBusiness ? 'claim_existing' : 'create_new',
+          ...(selectedBusiness ? { existingBusinessId: selectedBusiness.entity_id } : {}),
           businessName: businessName.trim(),
+          ownerDescription: description.trim(),
+          confirmedServiceIds: selectedServiceIds,
           anchorLocation: { lat: point.latitude, lng: point.longitude },
-        });
-      }
-
-      draft = describeBusinessServices(draft, description.trim());
-      const resolution = resolveServiceSuggestions(description, CHILE_LOCAL_SERVICE_SEED);
-      draft = setServiceSuggestions(
-        draft,
-        resolution.suggestions.map((item) => ({
-          serviceId: item.serviceId,
-          label: item.label,
-          confidence: item.confidence,
-          matchedTerms: item.matchedTerms,
-        })),
-      );
-      draft = confirmBusinessServices(draft, selectedServiceIds);
-      draft = setBusinessPresence(draft, {
-        presenceModes: ['storefront'],
-        anchorLocation: { lat: point.latitude, lng: point.longitude },
-      });
-      draft = setBusinessPublicContact(draft, {
-        ...(phone.trim() ? { phone: phone.trim() } : {}),
-        ...(whatsapp.trim() ? { whatsapp: whatsapp.trim() } : {}),
-      });
-      draft = requestOwnerVerification(draft);
-
-      const result = await mobileRuntime.client.submitBusinessOnboarding({
-        mode: draft.mode === 'claim_existing' ? 'claim_existing' : 'create_new',
-        ...(draft.businessId ? { businessId: draft.businessId } : {}),
-        businessName: draft.businessName ?? businessName.trim(),
-        ownerDescription: draft.ownerDescription ?? description.trim(),
-        confirmedServiceIds: draft.confirmedServiceIds,
-        presenceModes: draft.presenceModes,
-        serviceAreaIds: draft.serviceAreaIds,
-        anchorLocation: { lat: point.latitude, lng: point.longitude },
-        contact: draft.publicContact,
-        idempotencyKey: createClientMutationId(Date.now(), Math.random()),
+          contact: {
+            ...(normalizedWhatsapp ? { whatsapp: normalizedWhatsapp } : {}),
+            ...(normalizedPhone ? { phone: normalizedPhone } : {}),
+          },
+          idempotencyKey: createClientMutationId(Date.now(), Math.random()),
+        },
       });
 
-      router.replace(`/business/manage/${encodeURIComponent(result.business_id)}`);
+      const receiptStatus = result.mode === 'claim_existing' ? 'matched_existing' : result.status;
+      router.replace({
+        pathname: '/business/registration-received',
+        params: {
+          registrationId: result.registration_id,
+          businessName: businessName.trim(),
+          status: receiptStatus,
+        },
+      });
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'No pudimos enviar el registro.');
     } finally {
@@ -370,7 +354,11 @@ export function BusinessQuickRegistrationScreen() {
                 {item.name}
               </Text>
               <Text style={{ marginTop: 3, color: paltaTheme.color.textMuted }}>
-                {item.verification_status === 'verified' ? 'Negocio verificado' : 'Ficha existente'}
+                {item.verification_status === 'verified'
+                  ? 'Negocio verificado · puedes solicitar acceso'
+                  : item.verification_status === 'claimed'
+                    ? 'Ficha administrada · puedes solicitar acceso'
+                    : 'Ficha existente'}
               </Text>
             </Pressable>
           ))}
@@ -456,7 +444,7 @@ export function BusinessQuickRegistrationScreen() {
           <Field
             value={whatsapp}
             onChangeText={setWhatsapp}
-            placeholder="WhatsApp"
+            placeholder="WhatsApp · ej. 9 1234 5678"
             keyboardType="phone-pad"
           />
           <Field
@@ -466,12 +454,12 @@ export function BusinessQuickRegistrationScreen() {
             keyboardType="phone-pad"
           />
           <ActionButton
-            label={busy ? 'Registrando…' : 'Registrar negocio'}
+            label={busy ? 'Registrando…' : 'Enviar registro'}
             onPress={() => void submit()}
             disabled={busy || !canSubmit}
           />
           <Text style={{ marginTop: 12, fontSize: 13, lineHeight: 19, color: paltaTheme.color.textMuted }}>
-            Registrar no activa automáticamente cupones, promociones ni cambios sensibles. Esas funciones se habilitan después de verificar al propietario o administrador.
+            Enviar el registro no activa automáticamente cupones, promociones ni cambios sensibles. Esas funciones se habilitan después de verificar al propietario o administrador.
           </Text>
           <ActionButton label="Volver" onPress={() => setStep('service')} secondary />
         </View>
