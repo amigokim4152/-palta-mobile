@@ -17,6 +17,8 @@ export type MunicipalEventPlayInput = Readonly<{
   sourceUrl?: string;
   verifiedAt?: string;
   outdoor?: boolean;
+  distanceM?: number;
+  distanceLabel?: string;
 }>;
 
 export type MunicipalPlayProjectionContext = Readonly<{
@@ -93,6 +95,8 @@ export function projectMunicipalEventToPlay(input: MunicipalEventPlayInput, cont
     registrationRequired: Boolean(input.requiresRegistration),
     ...(input.audience ? { audienceLabel: input.audience } : {}),
     ...(input.imageUrl ? { imageUrl: input.imageUrl } : {}),
+    ...(input.distanceM !== undefined ? { distanceM: input.distanceM } : {}),
+    ...(input.distanceLabel ? { distanceLabel: input.distanceLabel } : {}),
     ...(tags.length ? { experienceTags: tags } : {}),
     themeTags: inferThemeTags(input, context),
     source: {
