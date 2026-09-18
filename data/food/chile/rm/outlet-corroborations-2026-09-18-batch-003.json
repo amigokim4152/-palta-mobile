@@ -1,0 +1,21 @@
+{
+  "dataset": "palta_food_outlet_corroborations_rm",
+  "observed_at": "2026-09-18",
+  "records": [
+    {
+      "outlet_key": "cl-rm-macul-ying-feng-monckeberg-2317",
+      "identity_status": "needs_review",
+      "address": "Alcalde Jorge Monckeberg 2316",
+      "comuna": "Macul",
+      "public_contact": {
+        "phone": "+56982153040",
+        "website": "https://comida-china-ying-feng.business.site"
+      },
+      "identity_note": "Delivery-platform research says Alcalde Jorge Monckeberg 2317. Two independent public business sources say 2316 and expose the same public phone. Do not publish either address as settled until merchant confirmation resolves 2316 vs 2317.",
+      "evidence": [
+        {"kind": "other_public_source", "url": "https://cl.todosnegocios.com/comida-china-ying-feng-9-8215-3040", "observed_at": "2026-09-18"},
+        {"kind": "other_public_source", "url": "https://es.restaurantguru.com/COMIDA-CHINA-YING-FENG-Macul", "observed_at": "2026-09-18"}
+      ]
+    }
+  ]
+}
