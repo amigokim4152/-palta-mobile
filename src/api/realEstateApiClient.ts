@@ -37,6 +37,41 @@ export type RealEstateListingSearchApiResponse = {
   items: RealEstateListingApiItem[];
 };
 
+export type RealEstateContextEvidenceApi = {
+  verification: 'verified' | 'corroborated' | 'needs_verification' | 'demo';
+  source_id?: string;
+  observed_at?: string;
+};
+
+export type RealEstateBuildingContextApi = {
+  building_id: string;
+  name?: string;
+  place_id?: string;
+  display_address?: string;
+  year_built?: number;
+  floors?: number;
+  unit_count?: number;
+  evidence: RealEstateContextEvidenceApi;
+};
+
+export type RealEstateNearbyContextApi = {
+  kind: 'transit' | 'school' | 'health' | 'park' | 'grocery' | 'business';
+  source_core: 'map' | 'transport' | 'business' | 'education' | 'health' | 'municipal';
+  entity_id: string;
+  place_id?: string;
+  display_label?: string;
+  distance_meters?: number;
+  walking_minutes?: number;
+  evidence: RealEstateContextEvidenceApi;
+};
+
+export type RealEstatePropertyContextApiResponse = {
+  property_id: string;
+  generated_at: string;
+  building?: RealEstateBuildingContextApi;
+  nearby: RealEstateNearbyContextApi[];
+};
+
 export type RealEstateApiClientOptions = {
   baseUrl: string;
   fetch: FetchLike;
@@ -94,6 +129,43 @@ function isListingItem(value: unknown): value is RealEstateListingApiItem {
   return true;
 }
 
+function isEvidence(value: unknown): value is RealEstateContextEvidenceApi {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const row = value as Record<string, unknown>;
+  const states = ['verified', 'corroborated', 'needs_verification', 'demo'];
+  return typeof row.verification === 'string' && states.includes(row.verification) &&
+    (row.source_id === undefined || typeof row.source_id === 'string') &&
+    (row.observed_at === undefined || typeof row.observed_at === 'string');
+}
+
+function isBuildingContext(value: unknown): value is RealEstateBuildingContextApi {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const row = value as Record<string, unknown>;
+  return typeof row.building_id === 'string' &&
+    (row.name === undefined || typeof row.name === 'string') &&
+    (row.place_id === undefined || typeof row.place_id === 'string') &&
+    (row.display_address === undefined || typeof row.display_address === 'string') &&
+    (row.year_built === undefined || isFiniteNumber(row.year_built)) &&
+    (row.floors === undefined || isFiniteNumber(row.floors)) &&
+    (row.unit_count === undefined || isFiniteNumber(row.unit_count)) &&
+    isEvidence(row.evidence);
+}
+
+function isNearbyContext(value: unknown): value is RealEstateNearbyContextApi {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const row = value as Record<string, unknown>;
+  const kinds = ['transit', 'school', 'health', 'park', 'grocery', 'business'];
+  const cores = ['map', 'transport', 'business', 'education', 'health', 'municipal'];
+  return typeof row.kind === 'string' && kinds.includes(row.kind) &&
+    typeof row.source_core === 'string' && cores.includes(row.source_core) &&
+    typeof row.entity_id === 'string' &&
+    (row.place_id === undefined || typeof row.place_id === 'string') &&
+    (row.display_label === undefined || typeof row.display_label === 'string') &&
+    (row.distance_meters === undefined || isFiniteNumber(row.distance_meters)) &&
+    (row.walking_minutes === undefined || isFiniteNumber(row.walking_minutes)) &&
+    isEvidence(row.evidence);
+}
+
 function validateSearchResponse(value: unknown, label: string): RealEstateListingSearchApiResponse {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     throw new Error(`${label} returned a non-object payload`);
@@ -113,6 +185,26 @@ function validateDetailResponse(value: unknown, label: string): RealEstateListin
     throw new Error(`${label} returned invalid real-estate listing`);
   }
   return value;
+}
+
+function validatePropertyContext(
+  value: unknown,
+  label: string,
+): RealEstatePropertyContextApiResponse {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error(`${label} returned a non-object payload`);
+  }
+  const row = value as Record<string, unknown>;
+  if (
+    typeof row.property_id !== 'string' ||
+    typeof row.generated_at !== 'string' ||
+    (row.building !== undefined && !isBuildingContext(row.building)) ||
+    !Array.isArray(row.nearby) ||
+    row.nearby.some((item) => !isNearbyContext(item))
+  ) {
+    throw new Error(`${label} returned invalid property context`);
+  }
+  return row as RealEstatePropertyContextApiResponse;
 }
 
 function queryString(query: RealEstateListingQuery): string {
@@ -157,6 +249,13 @@ export class RealEstateApiClient {
     return validateDetailResponse(
       await this.request(`/v1/real-estate/listings/${encodeURIComponent(listingId)}`),
       'GET /v1/real-estate/listings/{id}',
+    );
+  }
+
+  async getPropertyContext(propertyId: string): Promise<RealEstatePropertyContextApiResponse> {
+    return validatePropertyContext(
+      await this.request(`/v1/real-estate/properties/${encodeURIComponent(propertyId)}/context`),
+      'GET /v1/real-estate/properties/{propertyId}/context',
     );
   }
 }
