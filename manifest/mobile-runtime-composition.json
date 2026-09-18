@@ -1,0 +1,57 @@
+{
+  "version": 1,
+  "composition_branch": "integration/runtime-composition-v1",
+  "generated_runtime_root": "apps/mobile/src",
+  "shared_paths": [
+    "mobile-overlay/src/app/_layout.tsx",
+    "mobile-overlay/src/app/(tabs)/_layout.tsx",
+    "mobile-overlay/src/theme",
+    "mobile-overlay/src/services",
+    "src/api/paltaApiClient.ts",
+    "scripts/run-ios-mobile.sh",
+    "scripts/sync-mobile-runtime.mjs"
+  ],
+  "surfaces": [
+    {
+      "id": "home",
+      "source_branch": "integration/home-functional-foundation-v1",
+      "owned_paths": [
+        "mobile-overlay/src/features/home/HomeScreen.tsx",
+        "mobile-overlay/src/components/home/ActionSurface.tsx",
+        "mobile-overlay/src/components/home/GlanceCluster.tsx",
+        "mobile-overlay/src/components/home/SummaryListRow.tsx",
+        "mobile-overlay/src/app/(tabs)/home.tsx"
+      ]
+    },
+    {
+      "id": "negocios",
+      "source_branch": "integration/local-business-v1",
+      "owned_paths": [
+        "mobile-overlay/src/features/business",
+        "mobile-overlay/src/components/business",
+        "mobile-overlay/src/components/LocalResultCard.tsx",
+        "mobile-overlay/src/components/map/NeighborhoodMap.tsx",
+        "mobile-overlay/src/components/neighborhood/MapResultSheet.tsx",
+        "mobile-overlay/src/app/(tabs)/businesses.tsx",
+        "mobile-overlay/src/app/business",
+        "mobile-overlay/src/app/local-businesses"
+      ]
+    },
+    {
+      "id": "community",
+      "source_branch": "integration/community-runtime-v1",
+      "owned_paths": [
+        "mobile-overlay/src/features/community",
+        "mobile-overlay/src/app/(tabs)/community.tsx",
+        "mobile-overlay/src/app/community"
+      ]
+    }
+  ],
+  "planned_core_integrations": [
+    "integration/auth-profile-core-v1",
+    "integration/message-core-v1",
+    "integration/commercial-core-v1",
+    "integration/localization-core-v1",
+    "integration/map-runtime-v1"
+  ]
+}
