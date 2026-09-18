@@ -79,6 +79,52 @@ const deliveredBytes = Buffer.from(await delivered.arrayBuffer());
 assert(delivered.ok, 'uploaded media delivery URL failed');
 assert(Buffer.compare(deliveredBytes, uploadBytes) === 0, 'uploaded media bytes must round-trip in mock API');
 
+const publicationPayload = {
+  draft_id: 'draft-http-smoke',
+  transaction_type: 'rent',
+  property_type: 'apartment',
+  publisher_type: 'owner_direct',
+  comuna: 'Providencia',
+  sector_or_address: 'Pedro de Valdivia',
+  exact_address_private: true,
+  price_clp: 780000,
+  usable_area_m2: 68,
+  bedrooms: 2,
+  bathrooms: 2,
+  parking_spaces: 1,
+  contact_preference: 'palta',
+  media: [{
+    media_asset_id: completion.body.media_asset_id,
+    kind: 'image',
+    role: 'cover',
+    sort_order: 0,
+  }],
+};
+const firstSubmission = await json('/v1/real-estate/publications', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Idempotency-Key': 'real-estate-publication:draft-http-smoke',
+  },
+  body: JSON.stringify(publicationPayload),
+});
+assert(firstSubmission.response.status === 202, 'first publication submission should be accepted for review');
+assert(firstSubmission.body.status === 'pending_review', 'publication must not claim to be active before review');
+
+const duplicateSubmission = await json('/v1/real-estate/publications', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Idempotency-Key': 'real-estate-publication:draft-http-smoke',
+  },
+  body: JSON.stringify(publicationPayload),
+});
+assert(duplicateSubmission.response.status === 200, 'repeated publication submission should resolve idempotently');
+assert(
+  duplicateSubmission.body.submission_id === firstSubmission.body.submission_id,
+  'same draft must never create duplicate publication submissions',
+);
+
 const paused = await json('/v1/real-estate/listings/demo-paused-001');
 assert(paused.response.status === 404, 'paused listing must not be publicly readable from ordinary detail endpoint');
 
@@ -97,4 +143,5 @@ console.log(JSON.stringify({
   contextNearby: context.body.nearby.length,
   mediaCount: media.body.items.length,
   uploadedAsset: completion.body.media_asset_id,
+  publicationSubmission: firstSubmission.body.submission_id,
 }, null, 2));
