@@ -41,12 +41,25 @@ const duplicateOutletKeys = [];
 const contactCoverage = { phone: 0, website: 0, whatsapp: 0 };
 let itemCount = 0;
 let pricedItemCount = 0;
+let currentListingCount = 0;
+let relatedListingCount = 0;
 let closedPlatformListings = 0;
 
 const stopwords = new Set([
   'de', 'del', 'la', 'el', 'los', 'las', 'con', 'y', 'a', 'en', 'para', 'por',
   'un', 'una', 'x', 'al', 'sin', 'mas', 'más', 'eleccion', 'elección', 'piezas',
 ]);
+
+function observeListing(listing, related = false) {
+  if (!listing) return;
+  if (related) relatedListingCount += 1;
+  else currentListingCount += 1;
+  if (listing.observed_availability === 'closed_on_platform') closedPlatformListings += 1;
+  if (listing.listing_id) {
+    if (listingIds.has(listing.listing_id)) duplicateListingIds.push(listing.listing_id);
+    listingIds.add(listing.listing_id);
+  }
+}
 
 for (const record of records) {
   const outlet = record.outlet ?? {};
@@ -59,12 +72,10 @@ for (const record of records) {
   if (outlet.public_contact?.phone) contactCoverage.phone += 1;
   if (outlet.public_contact?.website) contactCoverage.website += 1;
   if (outlet.public_contact?.whatsapp) contactCoverage.whatsapp += 1;
-  if (listing.observed_availability === 'closed_on_platform') closedPlatformListings += 1;
 
-  if (listing.listing_id) {
-    if (listingIds.has(listing.listing_id)) duplicateListingIds.push(listing.listing_id);
-    listingIds.add(listing.listing_id);
-  }
+  observeListing(listing, false);
+  for (const related of record.related_platform_listings ?? []) observeListing(related, true);
+
   if (outlet.outlet_key) {
     if (outletKeys.has(outlet.outlet_key)) duplicateOutletKeys.push(outlet.outlet_key);
     outletKeys.add(outlet.outlet_key);
@@ -119,6 +130,9 @@ const output = {
   inputFiles: payloads.map(({ file }) => path.relative(process.cwd(), file)),
   observedDates,
   outletCount: records.length,
+  platformListingCount: currentListingCount + relatedListingCount,
+  currentListingCount,
+  relatedListingCount,
   sampledItemCount: itemCount,
   pricedItemCount,
   priceCoverage: itemCount ? Number((pricedItemCount / itemCount).toFixed(4)) : 0,
