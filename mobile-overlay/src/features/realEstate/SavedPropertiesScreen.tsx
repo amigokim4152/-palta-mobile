@@ -112,8 +112,10 @@ export function SavedPropertiesScreen() {
                   <Text style={{ fontSize: 15, fontWeight: '900', color: paltaTheme.color.textPrimary }}>
                     {search.label}
                   </Text>
-                  <Text style={{ fontSize: 12, color: paltaTheme.color.textMuted }}>
-                    {search.alertEnabled ? 'Alerta activa' : 'Alerta pendiente de Event Core'}
+                  <Text style={{ fontSize: 12, lineHeight: 17, color: paltaTheme.color.textMuted }}>
+                    {search.alertEnabled
+                      ? 'Quieres recibir avisos. La suscripción real se activará cuando Event Core sincronice esta búsqueda.'
+                      : 'Sin avisos. Puedes dejar preparada tu preferencia sin activar una notificación falsa.'}
                   </Text>
                 </View>
                 <View style={{ flexDirection: 'row', gap: paltaTheme.spacing.xs }}>
@@ -129,6 +131,11 @@ export function SavedPropertiesScreen() {
                     onPress={() => void savedSearches.remove(search.id)}
                   />
                 </View>
+                <PaltaButton
+                  label={search.alertEnabled ? 'No avisarme' : 'Avisarme de nuevas propiedades'}
+                  variant="secondary"
+                  onPress={() => void savedSearches.setAlertPreference(search.id, !search.alertEnabled)}
+                />
               </View>
             ))
           ) : (
