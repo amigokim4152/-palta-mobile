@@ -23,7 +23,10 @@ export type MarketApiErrorCode =
   | 'ALREADY_FAVORITED'
   | 'NOT_FAVORITED'
   | 'REVIEW_NOT_ALLOWED'
-  | 'RATE_LIMITED';
+  | 'RATE_LIMITED'
+  | 'NETWORK_ERROR'
+  | 'SERVICE_UNAVAILABLE'
+  | 'INVALID_RESPONSE';
 
 export type MarketApiError = {
   code: MarketApiErrorCode;
@@ -53,6 +56,7 @@ export type CreateMarketListingCommand = {
   tradeMode: MarketTradeMode;
   priceClp?: number;
   location: MarketLocationSummary;
+  /** Already-uploaded assets owned by shared Media Core. */
   mediaAssetIds: string[];
   publish: boolean;
 };
@@ -65,7 +69,8 @@ export type UpdateMarketListingCommand = {
     description?: string;
     category?: Exclude<MarketCategoryKey, 'all'>;
     tradeMode?: MarketTradeMode;
-    priceClp?: number;
+    /** null explicitly clears a previous sale price. */
+    priceClp?: number | null;
     location?: MarketLocationSummary;
     mediaAssetIds?: string[];
   };
@@ -84,6 +89,7 @@ export type SetMarketFavoriteCommand = {
 
 export type StartMarketTransactionCommand = {
   listingId: MarketId;
+  /** Optional Message Core conversation reference used for continuity only. */
   conversationId?: string;
 };
 
@@ -143,10 +149,16 @@ export interface MarketMutationPort {
   createReview(command: CreateMarketReviewCommand): Promise<MarketTransactionReview>;
 }
 
+/**
+ * Side-effecting Mercado calls must be authenticated Palta API operations.
+ * Mobile clients never receive permission to directly mutate Mercado tables.
+ */
 export const MARKET_API_ROUTES = {
   discover: 'GET /v1/market/listings',
   listing: 'GET /v1/market/listings/:listingId',
   myListings: 'GET /v1/market/me/listings',
+  favoriteState: 'GET /v1/market/listings/:listingId/favorite',
+  myTransactions: 'GET /v1/market/me/transactions',
   createListing: 'POST /v1/market/listings',
   updateListing: 'PATCH /v1/market/listings/:listingId',
   transitionListing: 'POST /v1/market/listings/:listingId/status',
