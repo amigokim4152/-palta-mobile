@@ -74,12 +74,37 @@ This is intentional:
 | Relevant municipal benefit | Municipal Data Engine + eligibility/relevance |
 | Important school/community notice | Community/School announcement source |
 | Local news | News Engine + locality/recency/relevance |
-| Seasonal food/local-life | Local-Life/Knowledge content source |
+| Seasonal fruit | Food/Seasonality canonical dataset |
+| Seasonal vegetables | Food/Seasonality canonical dataset |
+| Seasonal fish/seafood | Food/Seasonality canonical dataset |
 | Nearby weekend panorama | Events/Culture/Panoramas source |
 | Followed-business meaningful update | Local Business follow/subscription state |
 | Local service/operational change | Municipal/Public-Life source |
 | Highly relevant nearby job | Jobs relevance engine |
 | Meaningful saved-property change | Real Estate saved-item state |
+
+## Seasonal food migration boundary
+
+Home must not read migrated Base44 food tables or files directly.
+
+The migration/food side owns the factual seasonality dataset. Home receives a normalized `SeasonalFoodSnapshot` through `src/home/adapters/seasonalFoodFunctionalAdapter.ts` with only:
+
+- `category`: `fruit | vegetable | seafood`
+- `regionKey`
+- `periodKey`
+- `items[]` with canonical item id and display name
+- `dataMode`
+- `observedAt`
+- optional `expiresAt`
+- optional detail `actionTarget`
+
+The adapter maps those snapshots to the stable Home slots:
+
+- `today.seasonal_fruit`
+- `today.seasonal_vegetable`
+- `today.seasonal_seafood`
+
+The development Home already shows these three cards. When canonical migrated data is ready, the demo provider is removed only after the adapter receives the real snapshots and passes the replacement gates below. No Home redesign is required.
 
 ## Home behavior baseline
 
@@ -123,7 +148,7 @@ Replace only one source class at a time and keep the rest of the complete demo b
 16. Health confirmed schedules and follow-up
 17. Vehicle lifecycle
 18. Pets lifecycle
-19. Seasonal local-life content
+19. Seasonal fruit / vegetables / fish-seafood canonical data
 20. Culture/events/Panoramas
 
 ## Replacement rule
