@@ -31,7 +31,7 @@ APP_DIR="$ROOT/apps/mobile"
 
 info "Using existing mobile app: $APP_DIR"
 info "Fetching simulator recovery branch without switching your current branch..."
-git fetch origin "$TARGET_BRANCH" >/dev/null
+git fetch origin "$TARGET_BRANCH:refs/remotes/origin/$TARGET_BRANCH" >/dev/null
 REF="origin/$TARGET_BRANCH"
 git rev-parse --verify "$REF" >/dev/null 2>&1 || fail "Cannot resolve $REF after fetch."
 
@@ -62,6 +62,7 @@ fi
 # These exports are process-local; no .env file is overwritten.
 export EXPO_PUBLIC_PALTA_API_BASE_URL="http://127.0.0.1:${MOCK_PORT}"
 export EXPO_PUBLIC_ENV="development"
+export PALTA_MOCK_BASE_URL="http://127.0.0.1:${MOCK_PORT}"
 
 if lsof -nP -iTCP:"$MOCK_PORT" -sTCP:LISTEN -t >/dev/null 2>&1; then
   info "Port $MOCK_PORT already has a listener; reusing it for smoke verification."
