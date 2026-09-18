@@ -15,6 +15,7 @@ import {
   t as translate,
   tryNormalizeLocale,
   type PaltaLocale,
+  type UiInterpolation,
   type UiKey,
 } from '../../../src/localization/index';
 import { createLocalePreferencePort } from '../adapters/createLocalePreferencePort.native';
@@ -26,7 +27,7 @@ type LocalizationContextValue = {
   locale: PaltaLocale;
   supportedLocales: readonly PaltaLocale[];
   loading: boolean;
-  t(key: UiKey): string;
+  t(key: UiKey, values?: UiInterpolation): string;
   setLocale(locale: PaltaLocale): Promise<void>;
 };
 
@@ -122,7 +123,7 @@ export function LocalizationProvider({ children }: { children: ReactNode }) {
       locale,
       supportedLocales: SUPPORTED_LOCALES,
       loading,
-      t: (key) => translate(key, locale),
+      t: (key, values) => translate(key, locale, values),
       setLocale,
     }),
     [loading, locale, setLocale],
