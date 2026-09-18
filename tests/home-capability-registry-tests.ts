@@ -1,24 +1,27 @@
-import assert from 'node:assert/strict';
 import {
   HOME_CAPABILITIES,
   homeCapability,
   requiredDemoCapabilityKeys,
 } from '../src/home/homeCapabilityRegistry.js';
 
-const keys = HOME_CAPABILITIES.map((item) => item.key);
-assert.equal(new Set(keys).size, keys.length, 'Home capability keys must be unique');
-assert.ok(keys.length >= 35, 'Home capability registry is unexpectedly incomplete');
+function assert(condition: unknown, message: string): asserts condition {
+  if (!condition) throw new Error(message);
+}
 
-const requiredSurfaces = new Set([
+const keys = HOME_CAPABILITIES.map((item) => item.key);
+assert(new Set(keys).size === keys.length, 'Home capability keys must be unique');
+assert(keys.length >= 35, 'Home capability registry is unexpectedly incomplete');
+
+const requiredSurfaces = [
   'context',
   'glance',
   'now',
   'in_progress',
   'upcoming',
   'useful_today',
-]);
+] as const;
 for (const surface of requiredSurfaces) {
-  assert.ok(
+  assert(
     HOME_CAPABILITIES.some((item) => item.surface === surface),
     `Home capability surface missing: ${surface}`,
   );
@@ -50,11 +53,11 @@ for (const key of [
   'today.jobs_nearby',
   'today.property_saved_change',
 ]) {
-  assert.ok(homeCapability(key), `Required Home capability missing: ${key}`);
+  assert(homeCapability(key), `Required Home capability missing: ${key}`);
 }
 
 const demoKeys = requiredDemoCapabilityKeys();
-assert.equal(new Set(demoKeys).size, demoKeys.length, 'Demo capability keys must be unique');
-assert.ok(demoKeys.length >= 35, 'Complete demo must cover the functional registry');
+assert(new Set(demoKeys).size === demoKeys.length, 'Demo capability keys must be unique');
+assert(demoKeys.length >= 35, 'Complete demo must cover the functional registry');
 
 console.log(`PASS: Home capability registry (${keys.length} capabilities)`);
