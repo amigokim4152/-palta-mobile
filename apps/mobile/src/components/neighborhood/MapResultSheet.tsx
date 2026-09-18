@@ -44,9 +44,9 @@ export function MapResultSheet({
   const { height: windowHeight } = useWindowDimensions();
   const heights = useMemo<Record<ResultSheetSnap, number>>(
     () => ({
-      peek: clamp(windowHeight * 0.2, 150, 190),
-      half: clamp(windowHeight * 0.34, 240, 330),
-      full: clamp(windowHeight * 0.48, 330, 520),
+      peek: clamp(windowHeight * 0.13, 104, 132),
+      half: clamp(windowHeight * 0.38, 270, 360),
+      full: clamp(windowHeight * 0.7, 480, 680),
     }),
     [windowHeight],
   );
@@ -114,6 +114,10 @@ export function MapResultSheet({
     <Animated.View
       accessibilityLabel="Resultados del mapa"
       style={{
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        bottom: 0,
         height: animatedHeight,
         borderTopWidth: 1,
         borderColor: paltaTheme.color.border,
@@ -122,23 +126,28 @@ export function MapResultSheet({
         paddingHorizontal: paltaTheme.spacing.sm,
         paddingTop: paltaTheme.spacing.xxs,
         backgroundColor: paltaTheme.color.surface,
+        shadowColor: '#000000',
+        shadowOpacity: 0.08,
+        shadowRadius: 12,
+        shadowOffset: { width: 0, height: -4 },
+        elevation: 8,
       }}
     >
       <View
         {...panResponder.panHandlers}
         accessibilityLabel="Arrastra para mostrar más resultados o más mapa"
         style={{
-          minHeight: paltaTheme.touch.minimum,
+          minHeight: 42,
           alignItems: 'center',
           justifyContent: 'center',
-          gap: 6,
+          gap: 5,
         }}
       >
         <View
           accessibilityElementsHidden
           style={{
-            width: 44,
-            height: 5,
+            width: 40,
+            height: 4,
             borderRadius: paltaTheme.radius.pill,
             backgroundColor: paltaTheme.color.border,
           }}
@@ -147,19 +156,19 @@ export function MapResultSheet({
           accessibilityRole="button"
           accessibilityLabel={actionLabel}
           onPress={() => onSnapChange(nextSheetSnap(snap, actionDirection))}
+          hitSlop={8}
           style={{
-            minHeight: 30,
+            minHeight: 24,
             justifyContent: 'center',
-            paddingHorizontal: 14,
+            paddingHorizontal: 12,
             borderRadius: paltaTheme.radius.pill,
-            backgroundColor: paltaTheme.color.surfaceMuted,
           }}
         >
           <Text
             style={{
               textAlign: 'center',
               color: paltaTheme.color.textSecondary,
-              fontSize: 12,
+              fontSize: 11,
               fontWeight: '600',
             }}
           >
