@@ -6,6 +6,7 @@ import * as SecureStore from 'expo-secure-store';
 import * as WebBrowser from 'expo-web-browser';
 import { createClient, type Session } from '@supabase/supabase-js';
 
+import type { PaltaUserId } from '../../../src/auth/accountModel';
 import type {
   AuthProvider,
   InteractiveAuthPort,
@@ -156,7 +157,7 @@ export function createSupabaseAuthPort(): InteractiveAuthPort {
       return () => subscription.unsubscribe();
     },
 
-    async accountExists(userId: string) {
+    async accountExists(userId: PaltaUserId) {
       const { data, error } = await client
         .from('palta_account')
         .select('user_id')

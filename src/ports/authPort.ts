@@ -1,5 +1,14 @@
+import type {
+  AuthBrokerUserId,
+  PaltaUserId,
+} from '../auth/accountModel.js';
+import type { IdentityProvider } from '../auth/identityModel.js';
+
 export type AuthSession = {
-  userId: string;
+  /** Supabase auth.users.id. Never a raw Apple/Google provider subject. */
+  authUserId: AuthBrokerUserId;
+  /** Canonical Palta account id resolved through Core. */
+  paltaUserId: PaltaUserId;
   accessToken: string;
   expiresAt?: string;
 };
@@ -9,7 +18,7 @@ export type AuthState =
   | { status: 'signed_out' }
   | { status: 'signed_in'; session: AuthSession };
 
-export type AuthProvider = 'apple' | 'google';
+export type AuthProvider = Extract<IdentityProvider, 'apple' | 'google'>;
 
 export type EmailSignInResult = {
   status: 'link_sent';

@@ -1,3 +1,8 @@
+import { authBrokerUserId, type PaltaUserId } from '../../../src/auth/accountModel';
+import {
+  AccountResolutionError,
+  resolveCanonicalAccount,
+} from '../../../src/auth/accountResolver';
 import type {
   AuthProvider,
   AuthState,
@@ -12,6 +17,7 @@ export type ProviderSession =
       access_token: string;
       expires_at?: number;
       user: {
+        /** Supabase Auth broker user id; not an Apple/Google provider subject. */
         id: string;
         email?: string | null;
       };
@@ -22,7 +28,7 @@ export type SupabaseAuthBridge = {
   getSession(): Promise<ProviderSession>;
   signOut(): Promise<void>;
   subscribe(listener: (session: ProviderSession) => void): () => void;
-  accountExists(userId: string): Promise<boolean>;
+  accountExists(userId: PaltaUserId): Promise<boolean>;
   signInWithOAuth(provider: AuthProvider): Promise<void>;
   signInWithEmail(email: string): Promise<void>;
   handleRedirect(url: string): Promise<void>;
@@ -34,35 +40,47 @@ export class SupabaseAuthAdapter implements InteractiveAuthPort {
   private async resolveSession(session: ProviderSession): Promise<AuthState> {
     if (!session) return { status: 'signed_out' };
 
-    let accountExists = false;
     try {
-      accountExists = await this.bridge.accountExists(session.user.id);
+      const resolved = await resolveCanonicalAccount({
+        authBrokerUserId: authBrokerUserId(session.user.id),
+        accounts: {
+          accountExists: (paltaUserId) => this.bridge.accountExists(paltaUserId),
+        },
+      });
+
+      return {
+        status: 'signed_in',
+        session: {
+          authUserId: resolved.authBrokerUserId,
+          paltaUserId: resolved.paltaUserId,
+          accessToken: session.access_token,
+          ...(typeof session.expires_at === 'number'
+            ? { expiresAt: new Date(session.expires_at * 1000).toISOString() }
+            : {}),
+        },
+      };
     } catch (error) {
       if (error instanceof AuthPortError) throw error;
+      if (error instanceof AccountResolutionError && error.code === 'account_missing') {
+        throw new AuthPortError(
+          'account_bootstrap_missing',
+          '로그인은 되었지만 Palta 계정 생성이 완료되지 않았습니다. 다시 시도해 주세요.',
+          error,
+        );
+      }
+      if (error instanceof Error && error.message === 'auth_broker_user_id_required') {
+        throw new AuthPortError(
+          'provider_error',
+          '인증 사용자 식별자가 올바르지 않습니다.',
+          error,
+        );
+      }
       throw new AuthPortError(
         'account_lookup_failed',
         'Palta 계정을 확인하지 못했습니다. 다시 시도해 주세요.',
         error,
       );
     }
-
-    if (!accountExists) {
-      throw new AuthPortError(
-        'account_bootstrap_missing',
-        '로그인은 되었지만 Palta 계정 생성이 완료되지 않았습니다. 다시 시도해 주세요.',
-      );
-    }
-
-    return {
-      status: 'signed_in',
-      session: {
-        userId: session.user.id,
-        accessToken: session.access_token,
-        ...(typeof session.expires_at === 'number'
-          ? { expiresAt: new Date(session.expires_at * 1000).toISOString() }
-          : {}),
-      },
-    };
   }
 
   async getState(): Promise<AuthState> {
