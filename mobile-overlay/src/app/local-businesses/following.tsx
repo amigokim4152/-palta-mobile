@@ -9,6 +9,7 @@ import {
 import { ScreenFrame } from '../../components/ScreenFrame';
 import { useAsyncResource } from '../../hooks/useAsyncResource';
 import { mobileRuntime } from '../../services/paltaClient';
+import { paltaTheme } from '../../theme/paltaTheme';
 
 export default function FollowedBusinessesScreen() {
   const load = useCallback(async () => {
@@ -43,10 +44,18 @@ export default function FollowedBusinessesScreen() {
       title="Siguiendo"
       subtitle="Novedades y beneficios de negocios que elegiste seguir"
     >
-      <View style={{ gap: 12 }}>
-        <Text style={{ opacity: 0.64, lineHeight: 20 }}>
-          Aquí ves actualizaciones dentro de Palta. Seguir un negocio no activa por sí solo mensajes promocionales ni notificaciones fuera de esta pantalla.
-        </Text>
+      <View style={{ gap: paltaTheme.spacing.sm }}>
+        <View
+          style={{
+            padding: paltaTheme.spacing.md,
+            borderRadius: paltaTheme.radius.surface,
+            backgroundColor: paltaTheme.color.surfaceMuted,
+          }}
+        >
+          <Text style={{ color: paltaTheme.color.textSecondary, lineHeight: 20 }}>
+            Aquí ves actualizaciones dentro de Palta. Seguir un negocio no activa por sí solo mensajes promocionales ni notificaciones fuera de esta pantalla.
+          </Text>
+        </View>
 
         {items.length === 0 ? (
           <EmptyState
@@ -54,27 +63,111 @@ export default function FollowedBusinessesScreen() {
             body="Cuando elijas seguir un negocio, sus novedades y beneficios vigentes podrán aparecer aquí."
           />
         ) : (
-          items.map((item) => (
-            <Pressable
-              key={item.id}
-              onPress={() => router.push(`/business/${encodeURIComponent(item.business_id)}`)}
-              style={{ borderWidth: 1, borderRadius: 14, padding: 14, gap: 5 }}
-            >
-              <Text style={{ fontSize: 12, fontWeight: '800', opacity: 0.56 }}>
-                {item.kind === 'coupon' ? 'BENEFICIO' : 'NOVEDAD'} · {item.business_name}
-              </Text>
-              <Text style={{ fontSize: 17, fontWeight: '800' }}>{item.title}</Text>
-              {item.body ? <Text style={{ lineHeight: 20 }}>{item.body}</Text> : null}
-              <Text style={{ opacity: 0.52, fontSize: 12 }}>
-                {new Date(item.occurred_at).toLocaleString('es-CL')}
-              </Text>
-              {item.expires_at ? (
-                <Text style={{ opacity: 0.58, fontSize: 12 }}>
-                  Vigente hasta {new Date(item.expires_at).toLocaleDateString('es-CL')}
+          items.map((item) => {
+            const isBenefit = item.kind === 'coupon';
+            return (
+              <Pressable
+                key={item.id}
+                accessibilityRole="button"
+                accessibilityLabel={`${isBenefit ? 'Beneficio' : 'Novedad'} de ${item.business_name}: ${item.title}`}
+                onPress={() => router.push(`/business/${encodeURIComponent(item.business_id)}`)}
+                style={({ pressed }) => ({
+                  padding: paltaTheme.spacing.md,
+                  gap: paltaTheme.spacing.xs,
+                  borderWidth: 1,
+                  borderColor: isBenefit
+                    ? paltaTheme.color.brandFresh
+                    : paltaTheme.color.divider,
+                  borderRadius: paltaTheme.radius.surface,
+                  backgroundColor: pressed
+                    ? paltaTheme.color.surfaceMuted
+                    : isBenefit
+                      ? paltaTheme.color.avocadoCream
+                      : paltaTheme.color.surface,
+                })}
+              >
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: paltaTheme.spacing.xs,
+                  }}
+                >
+                  <View
+                    style={{
+                      alignSelf: 'flex-start',
+                      paddingHorizontal: paltaTheme.spacing.xs,
+                      paddingVertical: paltaTheme.spacing.xxs,
+                      borderRadius: paltaTheme.radius.pill,
+                      backgroundColor: isBenefit
+                        ? paltaTheme.color.brandSoft
+                        : paltaTheme.color.surfaceMuted,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontSize: 11,
+                        fontWeight: '800',
+                        color: isBenefit
+                          ? paltaTheme.color.brandPrimary
+                          : paltaTheme.color.textSecondary,
+                      }}
+                    >
+                      {isBenefit ? 'BENEFICIO' : 'NOVEDAD'}
+                    </Text>
+                  </View>
+                  <Text
+                    numberOfLines={1}
+                    style={{
+                      flex: 1,
+                      textAlign: 'right',
+                      fontSize: 12,
+                      fontWeight: '700',
+                      color: paltaTheme.color.textMuted,
+                    }}
+                  >
+                    {item.business_name}
+                  </Text>
+                </View>
+
+                <Text
+                  style={{
+                    fontSize: 17,
+                    lineHeight: 22,
+                    fontWeight: '800',
+                    color: paltaTheme.color.textPrimary,
+                  }}
+                >
+                  {item.title}
                 </Text>
-              ) : null}
-            </Pressable>
-          ))
+                {item.body ? (
+                  <Text style={{ lineHeight: 20, color: paltaTheme.color.textSecondary }}>
+                    {item.body}
+                  </Text>
+                ) : null}
+
+                <View style={{ gap: paltaTheme.spacing.xxs }}>
+                  <Text style={{ color: paltaTheme.color.textMuted, fontSize: 12 }}>
+                    {new Date(item.occurred_at).toLocaleString('es-CL')}
+                  </Text>
+                  {item.expires_at ? (
+                    <Text
+                      style={{
+                        color: isBenefit
+                          ? paltaTheme.color.warning
+                          : paltaTheme.color.textMuted,
+                        fontSize: 12,
+                        fontWeight: isBenefit ? '700' : '400',
+                      }}
+                    >
+                      Vigente hasta {new Date(item.expires_at).toLocaleDateString('es-CL')}
+                    </Text>
+                  ) : null}
+                </View>
+              </Pressable>
+            );
+          })
         )}
 
         {state.status === 'error' && state.data ? (
