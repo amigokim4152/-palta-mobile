@@ -113,15 +113,44 @@ export function createSupabaseAuthPort(): InteractiveAuthPort {
     });
   }
 
+  // ASWebAuthenticationSession and Expo Linking can observe the same custom-
+  // scheme callback. Exchange each one-time PKCE code at most once so a
+  // duplicate callback cannot turn a successful login into a provider error.
+  const exchangedCodes = new Set<string>();
+  const exchangeInFlight = new Map<string, Promise<void>>();
+  const rememberExchangedCode = (code: string) => {
+    exchangedCodes.add(code);
+    while (exchangedCodes.size > 8) {
+      const oldest = exchangedCodes.values().next().value as string | undefined;
+      if (!oldest) break;
+      exchangedCodes.delete(oldest);
+    }
+  };
+
   const exchangeRedirect = async (redirectUrl: string) => {
     const code = codeFromRedirect(redirectUrl);
-    const { error } = await client.auth.exchangeCodeForSession(code);
-    if (error) {
-      throw new AuthPortError(
-        'provider_error',
-        '로그인 세션을 완료하지 못했습니다.',
-        error,
-      );
+    if (exchangedCodes.has(code)) return;
+
+    const existing = exchangeInFlight.get(code);
+    if (existing) return existing;
+
+    const exchange = (async () => {
+      const { error } = await client.auth.exchangeCodeForSession(code);
+      if (error) {
+        throw new AuthPortError(
+          'provider_error',
+          '로그인 세션을 완료하지 못했습니다.',
+          error,
+        );
+      }
+      rememberExchangedCode(code);
+    })();
+
+    exchangeInFlight.set(code, exchange);
+    try {
+      await exchange;
+    } finally {
+      exchangeInFlight.delete(code);
     }
   };
 
