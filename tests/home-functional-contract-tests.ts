@@ -5,6 +5,20 @@ import {
   type HomeFunctionalItem,
   type HomeFunctionalPayload,
 } from '../src/home/homeFunctionalContract.js';
+import {
+  homeContextCreatesDurableLocationFact,
+  resolveHomeContext,
+} from '../src/home/homeContextResolver.js';
+import {
+  createHomeCorrectionIntent,
+  shouldSuppressImmediately,
+} from '../src/home/homeCorrection.js';
+import {
+  markNotificationRead,
+  summarizeNotificationInbox,
+  validateNotificationInboxItem,
+  type NotificationInboxItem,
+} from '../src/notification/inboxModel.js';
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
@@ -81,11 +95,11 @@ const payload: HomeFunctionalPayload = {
     locality: {
       id: 'vitacura',
       label: 'Vitacura',
-      changeTarget: '/location',
+      changeTarget: '/context/location',
     },
-    notificationsTarget: '/notifications',
+    notificationsTarget: '/context/notifications',
     unreadNotificationCount: 0,
-    profileTarget: '/profile',
+    profileTarget: '/context/profile',
   },
   glance: [
     {
@@ -113,5 +127,93 @@ assert(
   validateHomeFunctionalPayload(wrongSection).some((error) => error.includes('does not match now')),
   'An item must not silently appear in the wrong semantic Home section.',
 );
+
+// Home context must prefer a durable home area over incidental GPS when no explicit override exists.
+const resolvedHome = resolveHomeContext({
+  profile: { preferredName: 'Ana' },
+  locations: {
+    currentLocation: { id: 'gps-centro', label: 'Santiago Centro' },
+    homeArea: { id: 'home-vitacura', label: 'Vitacura', comuna: 'Vitacura' },
+    savedPlaces: [],
+  },
+  unreadNotificationCount: 3,
+});
+assert(resolvedHome.locality.label === 'Vitacura', 'Home area should be the default durable Home locality.');
+assert(resolvedHome.localitySource === 'home_area', 'Home context must expose why locality was selected.');
+assert(resolvedHome.unreadNotificationCount === 3, 'Home context must carry unread notification count.');
+assert(resolvedHome.profileLabel === 'Ana', 'Home context may use lightweight Core Profile presentation data.');
+assert(homeContextCreatesDurableLocationFact(resolvedHome), 'Confirmed home area is a durable location fact.');
+
+// Explicit current-location use is allowed for immediate relevance but must not become a durable life fact.
+const gpsContext = resolveHomeContext({
+  locations: {
+    currentLocation: { id: 'gps-centro', label: 'Santiago Centro' },
+    savedPlaces: [],
+  },
+  explicitLocalityId: 'gps-centro',
+});
+assert(gpsContext.localitySource === 'explicit', 'Explicit locality override should win for the active Home context.');
+assert(!homeContextCreatesDurableLocationFact(gpsContext), 'Explicit/current context must not silently become home data.');
+
+// Personalized correction actions are intents; destructive domain state is not fabricated in Home.
+const alreadyDone = createHomeCorrectionIntent({
+  item: validUpcoming,
+  reason: 'already_done',
+  now: new Date('2026-09-18T08:00:00.000Z'),
+  intentId: 'correction-1',
+});
+assert(alreadyDone.effect === 'reconcile_domain_completion', 'Already-done correction must reconcile with the owning domain.');
+assert(!shouldSuppressImmediately(alreadyDone), 'Already-done must not silently fabricate domain completion.');
+
+let disallowedCorrectionRejected = false;
+try {
+  createHomeCorrectionIntent({ item: validUpcoming, reason: 'hide_type' });
+} catch {
+  disallowedCorrectionRejected = true;
+}
+assert(disallowedCorrectionRejected, 'Home must reject correction reasons not offered by the item.');
+
+const hideable: HomeFunctionalItem = {
+  ...validUpcoming,
+  id: 'local-news-1',
+  surface: 'useful_today',
+  kind: 'content',
+  corrections: ['not_relevant', 'hide_type'],
+  source: { domain: 'news', mode: 'cached' },
+};
+const hideType = createHomeCorrectionIntent({
+  item: hideable,
+  reason: 'hide_type',
+  intentId: 'correction-2',
+});
+assert(shouldSuppressImmediately(hideType), 'Hide-type feedback may suppress presentation immediately.');
+
+// Notification inbox summary feeds Home without turning every Home item into a push.
+const notifications: NotificationInboxItem[] = [
+  {
+    id: 'n1',
+    title: 'Respuesta recibida',
+    sourceDomain: 'local',
+    createdAt: '2026-09-18T07:00:00.000Z',
+    importance: 'important',
+    target: '/care/care-1',
+  },
+  {
+    id: 'n2',
+    title: 'Alerta importante',
+    sourceDomain: 'public-life',
+    createdAt: '2026-09-18T08:00:00.000Z',
+    importance: 'urgent',
+    target: '/care/care-2',
+  },
+];
+assert(validateNotificationInboxItem(notifications[0]!).length === 0, 'Valid notification should pass validation.');
+const inbox = summarizeNotificationInbox(notifications);
+assert(inbox.unreadCount === 2, 'Home must receive total unread notification count.');
+assert(inbox.importantUnreadCount === 1 && inbox.urgentUnreadCount === 1, 'Inbox summary must retain urgency levels.');
+assert(inbox.latestUnreadAt === '2026-09-18T08:00:00.000Z', 'Inbox summary should expose latest unread timestamp.');
+const readFirst = markNotificationRead(notifications[0]!, '2026-09-18T08:10:00.000Z');
+const afterRead = summarizeNotificationInbox([readFirst, notifications[1]!]);
+assert(afterRead.unreadCount === 1, 'Reading a notification must update Home unread count deterministically.');
 
 console.log('PASS: Home functional contract tests');
