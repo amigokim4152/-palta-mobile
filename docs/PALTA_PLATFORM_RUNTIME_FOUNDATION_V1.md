@@ -6,7 +6,7 @@ Branch: integration/platform-runtime-foundation-v1
 
 ## 1. Purpose
 
-This contract turns the existing Palta domain modules and mobile overlay into one deployable product foundation.
+This contract turns the existing Palta domain modules and current native mobile runtime into one deployable product foundation.
 
 The immediate goal is not to add more feature logic. The goal is to freeze where the app runs, where APIs terminate, where each data class is stored, how secrets are isolated, and how DEV/STAGING/PRODUCTION differ.
 
@@ -53,7 +53,11 @@ Device-local SQLite
 ### Mobile application
 
 - Runtime: Expo Router native application.
-- The existing `mobile-overlay` is the source implementation staging for routes/components/adapters; it must be promoted into a real Expo project rather than duplicated.
+- A runnable Expo application already exists locally at `apps/mobile` and has been used by the iOS Simulator recovery/runtime workflow.
+- As of 2026-09-17, `apps/mobile` is **not committed to this Git repository**. The repository-side `mobile-overlay` is a version-controlled recovery/reference layer, not the desired long-term application Source of Truth.
+- Canonical target: sanitize and commit the existing `apps/mobile` source, package manifest/lockfile and safe configuration to GitHub. Do **not** create a second mobile app.
+- Until that promotion is complete, `mobile-overlay` remains the recovery/reference source for verified route/component fragments.
+- After promotion, feature work must target `apps/mobile`; `mobile-overlay` must not become a parallel application tree.
 - MapLibre React Native requires a native development build; Expo Go is not an acceptance environment.
 - Permanent primary navigation remains governed by `docs/APP_SHELL_ROUTE_CONTRACT.md`.
 
@@ -242,20 +246,26 @@ palta-<env>-fiscal-archive
 
 Existing public map/data R2 resources may remain separate when already operational; do not duplicate them solely for naming consistency.
 
-## 7. App promotion gate
+## 7. Mobile Source-of-Truth promotion gate
 
-The current `mobile-overlay` becomes the actual app only after these gates are satisfied:
+The local `apps/mobile` becomes the canonical version-controlled mobile runtime only after these gates are satisfied:
 
-1. fresh/real Expo Router project exists in repository without duplicating canonical domain modules;
-2. Expo dependency versions are installed and lockfile committed;
-3. native Development Build succeeds on iOS/Android target path;
-4. route contract renders and Back/return state works;
-5. Palta API client is the default business-data boundary;
-6. Supabase Auth uses publishable client credentials only;
-7. no provider/server secrets appear in mobile bundle/env;
-8. MapLibre native build is verified;
-9. offline cache/journal states are visibly distinguishable from server-confirmed state;
-10. crash/error telemetry redaction is verified before beta.
+1. verify the existing local `apps/mobile/package.json`, lockfile, Expo config and native app identifiers rather than creating a new project;
+2. inspect the candidate source tree for secrets/local-only files and keep `.env*`, provider credentials, signing material, `node_modules`, build output and machine-specific artifacts out of Git;
+3. commit the safe Expo application source/config/lockfile under `apps/mobile` on an integration branch;
+4. verify a fresh checkout can install dependencies without relying on untracked local source;
+5. verify the existing route contract renders and Back/return state works;
+6. verify an iOS native Development Build from the committed tree;
+7. verify an Android native Development Build from the committed tree before beta;
+8. make Palta API client the default business-data boundary;
+9. bind Supabase Auth using publishable client credentials only;
+10. verify no provider/server secret appears in the mobile bundle/env;
+11. verify MapLibre native build;
+12. make offline cache/journal states visibly distinguishable from server-confirmed state;
+13. verify crash/error telemetry redaction before beta;
+14. remove any normal startup dependency on an untracked local-only `apps/mobile` state.
+
+Until these gates pass, iOS Simulator success on the existing Mac proves the local runtime can execute, but it does **not** prove reproducible source-controlled application readiness.
 
 ## 8. API and database rule for concurrent feature branches
 
@@ -298,11 +308,11 @@ Unknown capability is never silently treated as supported.
 ## 10. Immediate execution order
 
 1. Keep this branch as platform runtime Source of Truth; do not merge to `main` yet.
-2. Create DEV Supabase project only after explicit organization + cost confirmation.
-3. Apply and verify foundation migrations against DEV Postgres; draft/not-applied migrations stay NOT VERIFIED until then.
-4. Create Cloudflare DEV runtime resources/bindings and record their IDs in runtime manifest.
-5. Promote mobile overlay into an actual Expo Router app and verify native build.
-6. Bind app authentication + Palta API base URL.
+2. Promote the existing local `apps/mobile` into GitHub safely; do not create another app.
+3. Create DEV Supabase project only after explicit organization + cost confirmation.
+4. Apply and verify foundation migrations against DEV Postgres; draft/not-applied migrations stay NOT VERIFIED until then.
+5. Create Cloudflare DEV runtime resources/bindings and record their IDs in runtime manifest.
+6. Bind the committed mobile app to Palta API + Supabase Auth.
 7. Connect one end-to-end non-money flow first to prove app/API/DB/storage boundaries.
 8. Connect Commerce/Payment sandbox after persistence and secret boundaries are live.
 9. Build STAGING only when DEV integration is repeatable.
