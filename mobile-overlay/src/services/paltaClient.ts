@@ -1,7 +1,7 @@
 import { parseRuntimeEnv } from '../../../src/config/runtimeEnv';
 import { createPaltaApiClient } from '../../../src/api/paltaApiFactory';
 import type { AuthPort } from '../../../src/ports/authPort';
-import { createSupabaseAuthPort } from '../adapters/createSupabaseAuthPort.native';
+import { createSupabaseAuthPort } from '../adapters/createSupabaseAuthPort';
 
 const SHARED_DEV_MAP_STYLE_URL =
   'https://palta-edge-preflight.kimeuisin.workers.dev/maps/style.json';
