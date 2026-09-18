@@ -1,0 +1,268 @@
+{
+  "dataset": "palta_food_observations_rm",
+  "observed_at": "2026-09-18",
+  "currency": "CLP",
+  "scope": "Región Metropolitana de Santiago",
+  "records": [
+    {
+      "outlet": {
+        "outlet_key": "review-providencia-mi-ceviche-orrego-luco-42",
+        "brand_name": "MI CEVICHE",
+        "address": "Pasaje Orrego Luco 42",
+        "comuna": "Providencia",
+        "region": "Región Metropolitana",
+        "postal_code": "7500000",
+        "identity_status": "possible_virtual_brand",
+        "identity_note": "Shares the same public address with the separately listed MI ENSALADA. Keep both platform listings separate until a physical outlet/brand relationship is corroborated."
+      },
+      "listing": {
+        "platform": "uber_eats",
+        "listing_id": "ud6J_GlnTKarppIGS1a7wg",
+        "listing_name": "MI CEVICHE",
+        "url": "https://www.ubereats.com/cl/store/mi-ceviche/ud6J_GlnTKarppIGS1a7wg",
+        "platform_categories": ["Latin American: Other"],
+        "delivery_supported": true,
+        "pickup_supported": true
+      },
+      "menu_snapshot": {
+        "sections": ["Artículos destacados", "MI AHORROS EXCLUSIVOS", "MI CEVICHE", "MI COMBOS", "MI GOHAN", "MI WRAPS", "MI SASHIMI", "MI ENSALADAS", "MI BEBIDAS"],
+        "sample_items": [
+          {"name": "Mi Ceviche de reineta", "price_clp": 13990},
+          {"name": "Ceviche mixto peruano XL + bebida", "price_clp": 23500},
+          {"name": "Mi Ceviche mixto peruano", "price_clp": 15990},
+          {"name": "Mi Ceviche de salmón", "price_clp": 15590},
+          {"name": "Mi Ceviche de camarón", "price_clp": 13590},
+          {"name": "Sashimi mixto", "price_clp": 11200},
+          {"name": "Ensalada de pollo salteado", "price_clp": 8990}
+        ]
+      },
+      "evidence": [
+        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/mi-ceviche/ud6J_GlnTKarppIGS1a7wg", "observed_at": "2026-09-18"}
+      ]
+    },
+    {
+      "outlet": {
+        "outlet_key": "cl-rm-providencia-batard-tobalaba-1771",
+        "brand_name": "Batârd",
+        "outlet_name": "Providencia",
+        "address": "Tobalaba 1771",
+        "comuna": "Providencia",
+        "region": "Región Metropolitana",
+        "public_contact": {
+          "whatsapp": "+56974300624",
+          "website": "https://www.batard.cl/local"
+        },
+        "identity_status": "verified"
+      },
+      "listing": {
+        "platform": "uber_eats",
+        "listing_id": "0NLp-o85Vj-zJbktKlSh8g",
+        "listing_name": "Batard (Providencia)",
+        "url": "https://www.ubereats.com/cl/store/batard-providencia/0NLp-o85Vj-zJbktKlSh8g",
+        "platform_categories": ["Cafeterías", "Panadería", "Pizza", "Specialty Foods", "Gourmet", "Cupcakes", "GourmetProducts", "Ambiente familiar", "Family Meals", "Café y té", "Tea & Coffee"],
+        "delivery_supported": true,
+        "pickup_supported": true,
+        "scheduled_orders_supported": true
+      },
+      "menu_snapshot": {
+        "sections": ["Panaderia"],
+        "sample_items": [
+          {"name": "Molde brioche", "price_clp": 4600},
+          {"name": "Batard semillas", "price_clp": 5200},
+          {"name": "Batard aceitunas", "price_clp": 5200},
+          {"name": "Trío batard", "price_clp": 13500},
+          {"name": "Batârd Incógnito", "price_clp": 4800}
+        ]
+      },
+      "evidence": [
+        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/batard-providencia/0NLp-o85Vj-zJbktKlSh8g", "observed_at": "2026-09-18"},
+        {"kind": "official_website", "url": "https://www.batard.cl/local", "observed_at": "2026-09-18"},
+        {"kind": "rappi", "url": "https://www.rappi.cl/restaurantes/900092088-batard", "observed_at": "2026-09-18"}
+      ]
+    },
+    {
+      "outlet": {
+        "outlet_key": "review-providencia-larrs-costanera",
+        "brand_name": "Heladería Lärrs",
+        "outlet_name": "Cenco Costanera",
+        "address": "Av. Andrés Bello 2447, Local 1529",
+        "comuna": "Providencia",
+        "region": "Región Metropolitana",
+        "public_contact": {
+          "phone": "+56229169226",
+          "website": "https://heladerialarrs.cl/"
+        },
+        "identity_status": "needs_review",
+        "identity_note": "Uber Eats exposes Av. Andrés Bello 2447 Local 1529 while official Cenco/brand sources expose Av. Andrés Bello 2425 for the same Costanera location. Preserve the source address until normalized mall addressing is resolved."
+      },
+      "listing": {
+        "platform": "uber_eats",
+        "listing_id": "wuADwD3oV7CyokqqV-vIgA",
+        "listing_name": "Heladería Lärrs - Costanera Center",
+        "url": "https://www.ubereats.com/cl/store/heladeria-larrs-costanera-center/wuADwD3oV7CyokqqV-vIgA",
+        "platform_categories": ["Ice Cream", "Helado y yogur helado", "Specialty Foods"],
+        "delivery_supported": true,
+        "pickup_supported": true,
+        "scheduled_orders_supported": true
+      },
+      "menu_snapshot": {
+        "sections": ["Artículos destacados"],
+        "sample_items": [
+          {"name": "Helado 500 gr", "price_clp": 12990},
+          {"name": "Helado 1LT", "price_clp": 20490},
+          {"name": "Promo Helado 1KG", "price_clp": 14343}
+        ]
+      },
+      "evidence": [
+        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/heladeria-larrs-costanera-center/wuADwD3oV7CyokqqV-vIgA", "observed_at": "2026-09-18"},
+        {"kind": "official_website", "url": "https://heladerialarrs.cl/pages/donde-estamos", "observed_at": "2026-09-18"},
+        {"kind": "other_public_source", "url": "https://www.cencomalls.cl/costanera/tiendas/heladeria-larrs", "observed_at": "2026-09-18"}
+      ]
+    },
+    {
+      "outlet": {
+        "outlet_key": "cl-rm-providencia-la-jungla-holley-2359",
+        "brand_name": "La Jungla",
+        "outlet_name": "Santiago",
+        "address": "Calle General Adolfo Holley 2359",
+        "comuna": "Providencia",
+        "region": "Región Metropolitana",
+        "postal_code": "7500000",
+        "identity_status": "platform_only"
+      },
+      "listing": {
+        "platform": "uber_eats",
+        "listing_id": "jOQYeSgiX2OhKzWUJJ3U4A",
+        "listing_name": "La Jungla (Santiago)",
+        "url": "https://www.ubereats.com/cl/store/la-jungla-santiago/jOQYeSgiX2OhKzWUJJ3U4A",
+        "platform_categories": ["Café y té", "Americana", "Desayuno y brunch"],
+        "delivery_supported": true,
+        "pickup_supported": true,
+        "scheduled_orders_supported": true
+      },
+      "menu_snapshot": {
+        "sections": ["Artículos destacados", "Cafetería"],
+        "sample_items": [
+          {"name": "Croissant con topping", "price_clp": 5500},
+          {"name": "Promo Brownie chips + Cappuccino", "price_clp": 5760},
+          {"name": "Espresso Tonic Frío", "price_clp": 5300},
+          {"name": "Latte", "price_clp": 4300},
+          {"name": "Latte Frío", "price_clp": 5000},
+          {"name": "Chocolate caliente", "price_clp": 4500}
+        ]
+      },
+      "evidence": [
+        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/la-jungla-santiago/jOQYeSgiX2OhKzWUJJ3U4A", "observed_at": "2026-09-18"}
+      ]
+    },
+    {
+      "outlet": {
+        "outlet_key": "cl-rm-providencia-dulcinea-bustamante-96",
+        "brand_name": "Dulcinea Cafetería",
+        "outlet_name": "Providencia",
+        "address": "Avenida General Bustamante 96",
+        "comuna": "Providencia",
+        "region": "Región Metropolitana",
+        "postal_code": "7500919",
+        "identity_status": "platform_only"
+      },
+      "listing": {
+        "platform": "uber_eats",
+        "listing_id": "o-RV08isUeOLPlGMQAZwgw",
+        "listing_name": "Dulcinea Cafetería (Providencia)",
+        "url": "https://www.ubereats.com/cl/store/dulcinea-cafeteria-providencia/o-RV08isUeOLPlGMQAZwgw",
+        "platform_categories": ["Café y té", "Americana", "Desayuno y brunch"],
+        "delivery_supported": true,
+        "pickup_supported": true,
+        "scheduled_orders_supported": true
+      },
+      "menu_snapshot": {
+        "sections": ["Artículos destacados", "Pastelería"],
+        "sample_items": [
+          {"name": "Carrot Cake", "price_clp": 6890},
+          {"name": "Choco Leche Asada", "price_clp": 6500},
+          {"name": "Waffles Dolce Nutella", "price_clp": 8990},
+          {"name": "Waffles Dubai", "price_clp": 10450},
+          {"name": "Waffle Dulcinea", "price_clp": 10450},
+          {"name": "Croissant’s Dulcinea", "price_clp": 6500},
+          {"name": "Rollo Canela", "price_clp": 4100}
+        ]
+      },
+      "evidence": [
+        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/dulcinea-cafeteria-providencia/o-RV08isUeOLPlGMQAZwgw", "observed_at": "2026-09-18"}
+      ]
+    },
+    {
+      "outlet": {
+        "outlet_key": "cl-rm-providencia-coppelia-providencia-2211",
+        "brand_name": "Coppelia",
+        "outlet_name": "Providencia",
+        "address": "Av. Providencia 2211",
+        "comuna": "Providencia",
+        "region": "Región Metropolitana",
+        "postal_code": "7500000",
+        "identity_status": "corroborated"
+      },
+      "listing": {
+        "platform": "uber_eats",
+        "listing_id": "i-oFJActTZyKfwJoFZPCTA",
+        "listing_name": "Coppelia Providencia - (Santiago)",
+        "url": "https://www.ubereats.com/cl/store/coppelia-providencia-santiago/i-oFJActTZyKfwJoFZPCTA",
+        "platform_categories": ["Desayuno y brunch", "Panadería", "Postres", "Repostería"],
+        "delivery_supported": true,
+        "pickup_supported": true,
+        "scheduled_orders_supported": true
+      },
+      "menu_snapshot": {
+        "sections": ["Ahorros exclusivos", "Promociones", "Pastelería y bollería", "Galletas y pastelitos cocktail", "Sándwiches y salados", "Tortas en porción", "Tortas familiares", "Pie, cheesecake y mousse", "Helados", "Brazos enteros", "Bebestibles"],
+        "sample_items": [
+          {"name": "Combo Ding Dong 2X1 a elección", "price_clp": 9990},
+          {"name": "Brownie de nuez con ganache", "price_clp": 4390},
+          {"name": "Muffins de chocolate", "price_clp": 4190},
+          {"name": "Muffins arandano", "price_clp": 4190}
+        ]
+      },
+      "evidence": [
+        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/coppelia-providencia-santiago/i-oFJActTZyKfwJoFZPCTA", "observed_at": "2026-09-18"},
+        {"kind": "other_public_source", "url": "https://www.megabeneficios.cl/", "observed_at": "2026-09-18"}
+      ]
+    },
+    {
+      "outlet": {
+        "outlet_key": "cl-rm-providencia-pasteleria-geno-barros-borgono-34a",
+        "brand_name": "Pasteleria Geno",
+        "outlet_name": "Providencia",
+        "address": "Dr. Manuel Barros Borgoño 34a",
+        "comuna": "Providencia",
+        "region": "Región Metropolitana",
+        "postal_code": "7500000",
+        "identity_status": "platform_only"
+      },
+      "listing": {
+        "platform": "uber_eats",
+        "listing_id": "dpWTaZXiW8e6-_RkxJaJ5Q",
+        "listing_name": "Pasteleria Geno Providencia",
+        "url": "https://www.ubereats.com/cl/store/pasteleria-geno-providencia/dpWTaZXiW8e6-_RkxJaJ5Q",
+        "platform_categories": ["Americana", "Desayuno y brunch", "Postres"],
+        "delivery_supported": true,
+        "pickup_supported": true,
+        "scheduled_orders_supported": true
+      },
+      "menu_snapshot": {
+        "sections": ["Artículos destacados"],
+        "sample_items": [
+          {"name": "Dulces Chilenos Cocktail 20 uds.", "price_clp": 11500},
+          {"name": "Sopaipillas Cóctel", "price_clp": 5600},
+          {"name": "Kuchen de Nuez", "price_clp": 2300},
+          {"name": "Rollito de Canela", "price_clp": 2200},
+          {"name": "Queso Hoja", "price_clp": 3100},
+          {"name": "Kuchen Manzana (Trozo)", "price_clp": 3700},
+          {"name": "Camarón Queso", "price_clp": 3400}
+        ]
+      },
+      "evidence": [
+        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/pasteleria-geno-providencia/dpWTaZXiW8e6-_RkxJaJ5Q", "observed_at": "2026-09-18"}
+      ]
+    }
+  ]
+}
