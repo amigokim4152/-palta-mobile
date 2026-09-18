@@ -1,0 +1,20 @@
+{
+  "name": "Somos Palta",
+  "short_name": "Palta",
+  "description": "Tu vida local en un solo lugar.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F7F7F2",
+  "theme_color": "#315C3B",
+  "lang": "es-CL",
+  "icons": [
+    {
+      "src": "./palta-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
