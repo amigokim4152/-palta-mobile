@@ -1,7 +1,22 @@
 import type { PropertyTransactionType, PropertyType } from './realEstateContracts';
 import type { RealEstateListingQuery } from './realEstateRepository';
 
-export type RealEstateQueryParams = Record<string, string | undefined>;
+export type RealEstateQueryParams = {
+  q?: string;
+  businessId?: string;
+  transaction?: string;
+  propertyType?: string;
+  publisher?: string;
+  minPriceClp?: string;
+  maxPriceClp?: string;
+  minPriceUf?: string;
+  maxPriceUf?: string;
+  minArea?: string;
+  maxArea?: string;
+  minBedrooms?: string;
+  minBathrooms?: string;
+  minParking?: string;
+};
 
 const TRANSACTIONS: readonly PropertyTransactionType[] = ['sale', 'rent', 'temporary_rent'];
 const PROPERTY_TYPES: readonly PropertyType[] = [
