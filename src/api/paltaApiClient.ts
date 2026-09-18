@@ -28,8 +28,10 @@ export type HomeApiResponse = { generated_at?: string; items: HomeApiItem[] };
 export type LocalSearchItem = {
   entity_id: string;
   entity_type: 'place' | 'business' | 'public_service' | 'event';
+  entity_type_label?: string;
   name: string;
   category_key?: string;
+  category_label?: string;
   distance_m?: number;
   verification_status?: string;
   operational_state?: BusinessOperationalState;
@@ -104,8 +106,10 @@ export type BusinessApiDetail = {
   id: string;
   name: string;
   category_key?: string;
+  category_label?: string;
   verification_status: 'unverified' | 'claimed' | 'verified' | 'suspended';
   opening_status?: string;
+  opening_status_label?: string;
   operational_state?: BusinessOperationalState;
   operational_confirmed_at?: string;
   next_open_at?: string;
