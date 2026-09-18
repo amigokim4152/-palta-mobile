@@ -2,6 +2,12 @@ import type {
   MarketMutationPort,
   MarketReadPort,
 } from '../../../../src/market/marketApiContract';
+import {
+  buildMarketInterestProfile,
+  retainMarketInterestSignals,
+  type MarketInterestProfile,
+  type MarketInterestSignal,
+} from '../../../../src/market/marketInterestSignal';
 import type { MarketMessagingPort } from '../../../../src/market/marketMessagingFlow';
 import type {
   MarketLocationSummary,
@@ -30,6 +36,14 @@ export type MarketRuntime = {
   messaging?: MarketMessagingPort;
   /** Shared Safety/Moderation boundary owns hide/report persistence and audit. */
   handleSafetyIntent?: (intent: MarketSafetyIntent) => Promise<void>;
+  /**
+   * Optional Personalization/Event boundary. It accepts only the intentionally
+   * coarse MarketInterestSignal contract: no raw search text, exact location,
+   * contact data or message contents.
+   */
+  recordInterestSignal?: (signal: MarketInterestSignal) => void | Promise<void>;
+  /** Read-only compact profile projection for personalized discovery surfaces. */
+  getInterestProfile?: () => MarketInterestProfile;
   resolveMediaAssetUrl: (mediaAssetId: string) => string | undefined;
   unavailableReason?: string;
 };
@@ -39,6 +53,7 @@ let developmentRuntime: MarketRuntime | undefined;
 
 const previewConversationByCounterparty = new Map<string, string>();
 const previewActiveTransactionByListing = new Map<string, MarketTransactionRecord>();
+let previewInterestSignals: MarketInterestSignal[] = [];
 
 function createComposedMarketDevelopmentRuntime(): MarketRuntime {
   const base = createMarketDevelopmentRuntime();
@@ -106,6 +121,15 @@ function createComposedMarketDevelopmentRuntime(): MarketRuntime {
     ...base,
     mutation,
     messaging,
+    recordInterestSignal(signal) {
+      previewInterestSignals = retainMarketInterestSignals([
+        signal,
+        ...previewInterestSignals,
+      ]);
+    },
+    getInterestProfile() {
+      return buildMarketInterestProfile(previewInterestSignals);
+    },
   };
 }
 
