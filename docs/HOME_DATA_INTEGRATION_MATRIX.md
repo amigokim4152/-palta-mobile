@@ -13,27 +13,39 @@ This file is the working checklist for making every Palta core visible through H
 4. Expired data is excluded unless the UI explicitly presents it as stale historical context.
 5. Personal/action cards outrank discovery content.
 6. News never exists merely to make Home look full.
-7. Municipal benefits require locality + validity + verification before Home admission.
-8. Home UI uses the shared Palta design system and adaptive accessibility behavior.
+7. Municipal benefits require locality + validity + verification before personalized admission.
+8. Undated municipal claims stay out unless the canonical record explicitly says the service is ongoing.
+9. Care `expected_at` means a process expectation, not an appointment; confirmed appointments/deadlines use `scheduled_at` and PRÓXIMO.
+10. Home UI uses the shared Palta design system and adaptive accessibility behavior.
+
+## Home surfaces
+
+- **Glance**: ambient context only — weather, relevant ETA, operational state.
+- **AHORA**: one highest-value action/alert.
+- **EN CURSO**: active Care/waiting/process states.
+- **PRÓXIMO**: confirmed future appointments, deadlines and events.
+- **PARA HOY**: verified useful local information and sparse discovery.
 
 ## Integration matrix
 
 | Source / Core | Home surface | Current state | Refresh / cache target | Failure rule | Next implementation action |
 |---|---|---|---|---|---|
-| Weather | Glance; exceptional change can become PARA HOY / alert | LIVE in development through Open-Meteo bridge | 15 min normal cache; shorter only for exceptional conditions if needed | Remove weather glance; report `unavailable`; never restore demo temperature as fallback | Replace development coordinates with resolved user/location context in production service |
-| Bus ETA | Glance; imminent relevant departure can become AHORA | Adapter DONE; simulator value DEMO | Near relevant departure only; short cache/refresh window | No ETA when realtime source is unavailable | Connect DTPM realtime credentials when available and bind saved/routine stop context |
-| Metro status | Glance; disruption can become AHORA | Adapter DONE; simulator value DEMO | Operational status cache; refresh faster during disruption | Hide status if freshness cannot be established | Bind verified Metro/DTPM operational source |
-| Care / Event | AHORA or EN CURSO | Visible with development Care track; core lifecycle already exists | Event-driven plus cached Home projection | Keep last confirmed state with freshness; do not invent completion | Bind production Care/Event persistence to Home candidate projection |
-| Municipal benefits / services | PARA HOY; deadline can become AHORA | Filtering adapter DONE; visible content still DEMO | Low-frequency scheduled refresh plus source verification | Exclude stale, conflict, rejected and needs-verification records | Connect normalized municipal/public-data registry and canonical record IDs |
-| Local news | PARA HOY / discovery only | Filtering adapter DONE; visible content still DEMO | Scheduled ingestion; current adapter defaults to 48h freshness window | No filler when feed is unavailable or weak | Connect local-news ingestion, summary, canonical source link and locality relevance |
-| School | AHORA / EN CURSO / PARA HOY | Contract slot exists; not runtime-connected | Event/calendar driven | No guessed child/school association | Bind verified school/class relationship and preparation/deadline events |
-| Community | EN CURSO / PARA HOY | Core work exists separately; not Home-connected | Event driven; quiet by default | No engagement filler | Emit only relevant joined-community events/actions through Home adapter |
-| Commerce / POS | EN CURSO / AHORA | Core work exists separately; not Home-connected | Event driven | User sees only transactions/actions they are authorized to see | Add payment/order/delivery candidate projection after Commerce contract stabilizes |
-| Delivery | EN CURSO / AHORA | Planned ecosystem path; not Home-connected | Event driven | External carrier failure keeps last confirmed state with explicit freshness | Define delivery event adapter shared by Business and Personal Home |
-| Health | AHORA / EN CURSO / PARA HOY | Domain planned; not Home-connected | Event/lifecycle driven | Never infer diagnosis; surface confirmed user care state only | Bind appointment/preparation/follow-up events through Care/Event Core |
-| Vehicle | AHORA / PRÓXIMO | Domain references exist | Lifecycle/date driven | No guessed vehicle ownership | Bind verified vehicle asset and inspection/maintenance lifecycle |
-| Pets | PRÓXIMO / PARA HOY | Planned | Lifecycle/date driven | No guessed pet ownership | Bind verified pet profile and legal/care lifecycle events |
-| Air quality | Glance only when locally meaningful | NOT CONNECTED; no current placeholder required | Moderate cache | Omit when unavailable | Select verified Chile source before implementation |
+| Weather | Glance; exceptional change can become PARA HOY / alert | LIVE in development through Open-Meteo bridge | 15 min normal cache | Remove weather glance; report `unavailable`; never restore demo temperature as fallback | Replace fixed development coordinates with resolved user/location context in production service |
+| Bus stop ETA | Glance; imminent relevant departure can become AHORA | Home adapter DONE; simulator ETA DEMO | Near relevant departure only; short refresh window | No ETA when realtime source is unavailable | Connect DTPM realtime credentials and saved/routine stop context when external access is available |
+| Journey route planning | AHORA / PARA HOY when an actual trip is relevant | Existing Journey contract imported unchanged; Home bridge DONE | Recompute around a relevant planned trip | Route duration must never be labelled as bus-arrival ETA | Bind Journey client results after Journey integration branch is reconciled |
+| Metro status | Glance; disruption can become AHORA | Adapter DONE; simulator value DEMO | Operational cache; faster during disruption | Hide status if freshness cannot be established | Bind verified Metro/DTPM operational source |
+| Care / Event | AHORA or EN CURSO | Care Home adapter DONE; development Care track visible | Event-driven plus cached Home projection | Do not invent completion/result; closed outcomes leave active Home | Bind production Care/Event persistence/event bus to adapter |
+| Confirmed schedules | PRÓXIMO; can promote to AHORA inside attention window | Generic scheduled-event adapter DONE; one explicit visual DEMO item | Event/calendar driven | Unconfirmed associations/events are excluded | Bind verified school/calendar/health/vehicle schedule sources one by one |
+| Municipal benefits / services | PARA HOY; deadline can become AHORA | Official Vitacura benefits source connected in development; verification adapter DONE | 20 min dev bridge; production low-frequency scheduled refresh | Official-source failure -> `unavailable`; no demo replacement | Normalize individual Vitacura programs with dates/ongoing status, then expand municipal registry comuna by comuna |
+| Local municipal news | PARA HOY / discovery only | Official Vitacura news source connected in development | 20 min source cache; articles filtered to recent window | Source failure -> `unavailable`; no filler | Move HTML bridge into production ingestion/cache and expand source registry beyond Vitacura |
+| School | PRÓXIMO / AHORA / PARA HOY | Schedule adapter READY; visible PRÓXIMO is explicitly DEMO | Event/calendar driven | No guessed child/school association | Bind verified school/class relationship, deadlines and preparation events |
+| Community | EN CURSO / PARA HOY | Core work exists separately; not Home-connected yet | Event driven; quiet by default | No engagement filler | Emit only relevant joined-community actions/events through Home adapter |
+| Commerce / POS | EN CURSO / AHORA | Core work exists separately; not Home-connected yet | Event driven | User sees only authorized transaction/order state | Add payment/order candidate projection after Commerce contract reconciliation |
+| Delivery | EN CURSO / AHORA | Planned ecosystem path; not Home-connected yet | Event driven | Last confirmed carrier state must carry freshness | Define delivery event adapter shared by Business and Personal Home |
+| Health | AHORA / EN CURSO / PRÓXIMO | Care + schedule primitives READY; health source not connected | Event/lifecycle driven | Never infer diagnosis; confirmed user care state only | Bind appointment/preparation/follow-up through Care/Event Core |
+| Vehicle | AHORA / PRÓXIMO | Schedule primitive READY; verified vehicle source not connected | Lifecycle/date driven | No guessed vehicle ownership | Bind verified vehicle asset and inspection/maintenance lifecycle |
+| Pets | PRÓXIMO / PARA HOY | Schedule primitive READY; pet source not connected | Lifecycle/date driven | No guessed pet ownership | Bind verified pet profile and legal/care lifecycle events |
+| Air quality | Glance only when locally meaningful | NOT CONNECTED; no placeholder required | Moderate cache | Omit when unavailable | Select verified Chile source before implementation |
 | FX | Optional Glance only when user context makes it useful | NOT DEFAULT | Moderate cache | Omit | Do not add as permanent Home slot |
 
 ## Visible rollout order
@@ -43,11 +55,16 @@ This file is the working checklist for making every Palta core visible through H
 3. Domain merge/admission contract — DONE
 4. Weather development live path — DONE
 5. Mobility adapter + no-fake-ETA rule — DONE
-6. DTPM realtime binding — PENDING EXTERNAL ACCESS
-7. Municipal normalized-data binding — NEXT DATA PIPELINE
-8. Local-news ingestion binding — NEXT DATA PIPELINE
-9. Care/Event production projection — NEXT CORE BINDING
-10. School/Community/Commerce/Delivery adapters — FOLLOWING DOMAIN INTEGRATION
+6. Journey contract reuse + Home bridge — DONE
+7. PRÓXIMO scheduled-event primitive — DONE
+8. Care lifecycle projection primitive — DONE
+9. Official Vitacura benefits development source — DONE
+10. Official Vitacura municipal-news development source — DONE
+11. DTPM stop realtime binding — PENDING EXTERNAL ACCESS
+12. Production Care/Event persistence binding — NEXT CORE BINDING
+13. Individual municipal-program normalization + multi-comuna registry — NEXT DATA PIPELINE
+14. Local-news production ingestion + multi-comuna source registry — NEXT DATA PIPELINE
+15. School/Community/Commerce/Delivery domain binding — FOLLOWING DOMAIN INTEGRATION
 
 ## Definition of done for any future domain
 
