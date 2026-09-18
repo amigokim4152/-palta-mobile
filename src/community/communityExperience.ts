@@ -77,13 +77,11 @@ export function schoolFlowProgress(items: readonly SchoolStructuredItem[]): {
   completed: number;
   pendingActionCount: number;
 } {
-  const actionable = items.filter((item) => item.status !== 'done' || item.actionRequired);
-  const completed = actionable.filter(
-    (item) => item.status === 'acknowledged' || item.status === 'done',
-  ).length;
   return {
-    total: actionable.length,
-    completed,
+    total: items.length,
+    completed: items.filter(
+      (item) => item.status === 'acknowledged' || item.status === 'done',
+    ).length,
     pendingActionCount: items.filter(
       (item) => item.actionRequired && item.status === 'pending',
     ).length,
