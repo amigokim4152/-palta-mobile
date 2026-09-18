@@ -4,7 +4,7 @@ import {
   VEHICLE_SALE_CARE_CHECKLIST,
   buildVehicleSaleCareTrack,
 } from '../../../../src/autos/autosSaleCare';
-import { estimateChileVehicleTransaction } from '../../../../src/autos/chileVehicleTransaction';
+import { buildVehicleSalePreparation } from '../../../../src/autos/autosSalePreparation';
 import { paltaTheme } from '../../theme/paltaTheme';
 import { findDemoAcquisitionRequest } from './autosAcquisitionDemoState';
 import {
@@ -38,10 +38,17 @@ export function AutosSaleCareScreen() {
     selectedOfferId: care.selectedOfferId,
     records: care.records,
   });
-  const transaction = estimateChileVehicleTransaction({
+
+  // Demo has no connected SII snapshot yet. Once the official adapter is connected,
+  // its verified vehicle snapshot is passed here without changing this screen flow.
+  const salePreparation = buildVehicleSalePreparation({
+    snapshots: [],
     salePriceClp: care.finalPriceClp,
     costBearer: 'buyer',
   });
+  const transaction = salePreparation.transactionEstimate;
+  const hasOfficialFiscalFloor = salePreparation.estimateConfidence === 'official_floor_applied';
+
   const completed = new Set(care.records.map((record) => record.milestone));
   const latest = care.records[care.records.length - 1];
   const done = latest?.milestone === 'vehicle_handed_over';
@@ -69,13 +76,26 @@ export function AutosSaleCareScreen() {
         </View>
 
         <View style={{ padding: paltaTheme.spacing.md, gap: 7, borderRadius: paltaTheme.radius.surface, borderWidth: 1, borderColor: paltaTheme.color.divider, backgroundColor: paltaTheme.color.surface }}>
-          <Text style={{ fontSize: 14, fontWeight: '900', color: paltaTheme.color.textPrimary }}>Costos estimados de transferencia</Text>
-          <Text style={{ fontSize: 12, color: paltaTheme.color.textSecondary }}>Impuesto estimado mínimo: {clp(transaction.transferTaxClp)}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: paltaTheme.spacing.sm }}>
+            <Text style={{ flex: 1, fontSize: 14, fontWeight: '900', color: paltaTheme.color.textPrimary }}>Costos estimados de transferencia</Text>
+            <View style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: paltaTheme.radius.pill, backgroundColor: hasOfficialFiscalFloor ? paltaTheme.color.brandSoft : paltaTheme.color.surfaceMuted }}>
+              <Text style={{ fontSize: 10, fontWeight: '900', color: hasOfficialFiscalFloor ? paltaTheme.color.brandPrimary : paltaTheme.color.textMuted }}>
+                {hasOfficialFiscalFloor ? 'SII verificado' : 'Estimación mínima'}
+              </Text>
+            </View>
+          </View>
+          <Text style={{ fontSize: 12, color: paltaTheme.color.textSecondary }}>
+            Impuesto estimado{hasOfficialFiscalFloor ? '' : ' mínimo'}: {clp(transaction.transferTaxClp)}
+          </Text>
           <Text style={{ fontSize: 12, color: paltaTheme.color.textSecondary }}>Registro: {clp(transaction.motorVehicleRegistryFeeClp)}</Text>
           <Text style={{ fontSize: 12, color: paltaTheme.color.textSecondary }}>Declaración ante oficial civil: {clp(transaction.civilOfficerProcedureFeeClp)}</Text>
-          <Text style={{ fontSize: 13, fontWeight: '900', color: paltaTheme.color.textPrimary }}>Total estimado mínimo: {clp(transaction.totalTransferCostsClp)}</Text>
+          <Text style={{ fontSize: 13, fontWeight: '900', color: paltaTheme.color.textPrimary }}>
+            Total estimado{hasOfficialFiscalFloor ? '' : ' mínimo'}: {clp(transaction.totalTransferCostsClp)}
+          </Text>
           <Text style={{ fontSize: 11, lineHeight: 17, color: paltaTheme.color.textMuted }}>
-            Falta incorporar la tasación SII real del vehículo. Si esa tasación supera el precio de venta, la base imponible puede aumentar. Esta demo asume además que la parte compradora cubre los costos.
+            {hasOfficialFiscalFloor
+              ? 'La estimación ya incorpora la tasación fiscal SII resuelta para el vehículo. Esta demo asume que la parte compradora cubre los costos.'
+              : 'Palta todavía no resolvió una tasación SII única para este vehículo. No te bloqueamos por eso: mostramos el mínimo conocido y lo afinaremos automáticamente cuando la fuente oficial esté conectada. Esta demo asume que la parte compradora cubre los costos.'}
           </Text>
         </View>
 
