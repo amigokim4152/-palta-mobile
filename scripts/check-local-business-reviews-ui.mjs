@@ -91,8 +91,11 @@ assert(
   'Review writer must explain ineligible and duplicate states.',
 );
 assert(
-  ownerHome.includes('/reviews') && ownerHome.includes('Opiniones verificadas') && ownerHome.includes('reviewCount > 0'),
-  'Mi negocio must surface review management only when verified reviews exist.',
+  ownerHome.includes('/reviews') &&
+  ownerHome.includes('reviewCount > 0') &&
+  ownerHome.includes('Atención verificada') &&
+  ownerHome.includes('Relación con clientes'),
+  'Mi negocio must surface review management only when real verified-use reviews exist.',
 );
 assert(
   ownerReviews.includes("business.verification_status !== 'verified'") &&
