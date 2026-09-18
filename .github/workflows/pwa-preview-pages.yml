@@ -67,6 +67,30 @@ jobs:
           mkdir -p apps/mobile/public
           cp -R mobile-overlay/public/. apps/mobile/public/
 
+      - name: Smoke palta-dev public API boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          API="$EXPO_PUBLIC_PALTA_API_BASE_URL"
+          TEST_ID="00000000-0000-4000-8000-000000000001"
+
+          curl -fsS "$API/health" >/tmp/palta-health.json
+
+          SEARCH_STATUS="$(curl -sS -o /tmp/palta-search.json -w '%{http_code}' \
+            -H "apikey: $EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY" \
+            "$API/v1/local/search?lat=-33.4372&lng=-70.6506&radius_m=1000")"
+          test "$SEARCH_STATUS" = "200"
+
+          DETAIL_STATUS="$(curl -sS -o /tmp/palta-detail.json -w '%{http_code}' \
+            -H "apikey: $EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY" \
+            "$API/v1/business/$TEST_ID")"
+          test "$DETAIL_STATUS" = "404"
+
+          CARE_STATUS="$(curl -sS -o /tmp/palta-care.json -w '%{http_code}' \
+            -H "apikey: $EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY" \
+            "$API/v1/care/$TEST_ID")"
+          test "$CARE_STATUS" = "401"
+
       - name: Setup Node
         uses: actions/setup-node@v7
         with:
