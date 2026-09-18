@@ -36,6 +36,38 @@ const apiItem = {
   total_area_m2: 74,
 };
 
+const contextPayload = {
+  property_id: 'property-1',
+  generated_at: '2026-09-18T12:00:00Z',
+  building: {
+    building_id: 'building-1',
+    name: 'Edificio Uno',
+    place_id: 'place-building-1',
+    year_built: 2018,
+    floors: 12,
+    unit_count: 48,
+    evidence: {
+      verification: 'corroborated' as const,
+      source_id: 'building-registry:1',
+    },
+  },
+  nearby: [
+    {
+      kind: 'transit' as const,
+      source_core: 'transport' as const,
+      entity_id: 'metro-1',
+      place_id: 'place-metro-1',
+      display_label: 'Metro cercano',
+      distance_meters: 420,
+      walking_minutes: 6,
+      evidence: {
+        verification: 'verified' as const,
+        source_id: 'transport-core',
+      },
+    },
+  ],
+};
+
 const client = new RealEstateApiClient({
   baseUrl: 'https://api.somospalta.cl/',
   getAccessToken: async () => 'token-real-estate',
@@ -51,6 +83,7 @@ const client = new RealEstateApiClient({
         if (url.includes('/v1/real-estate/listings?')) {
           return { generated_at: '2026-09-18T12:00:00Z', items: [apiItem] };
         }
+        if (url.includes('/v1/real-estate/properties/')) return contextPayload;
         return apiItem;
       },
     };
@@ -90,6 +123,21 @@ assert(
   'Real-estate detail must encode and call the canonical listing id route.',
 );
 
+const context = await client.getPropertyContext('property-1');
+assert(context.building?.building_id === 'building-1', 'Property context must validate canonical Building identity.');
+assert(
+  context.nearby[0]?.source_core === 'transport' && context.nearby[0]?.entity_id === 'metro-1',
+  'Property context must validate source-core nearby references.',
+);
+assert(
+  requests[2]?.url.endsWith('/v1/real-estate/properties/property-1/context') === true,
+  'Property context must use the canonical property context route.',
+);
+assert(
+  requests[2]?.headers?.Authorization === 'Bearer token-real-estate',
+  'Property context requests must use the same authenticated Palta client boundary.',
+);
+
 const missingClient = new RealEstateApiClient({
   baseUrl: 'https://api.somospalta.cl',
   fetch: async () => ({
@@ -122,4 +170,19 @@ try {
 }
 assert(invalidRejected, 'Malformed real-estate API payloads must be rejected instead of entering the UI model.');
 
-console.log('PASS: real-estate API client query, auth, validation and status contracts');
+let invalidContextRejected = false;
+try {
+  await new RealEstateApiClient({
+    baseUrl: 'https://api.somospalta.cl',
+    fetch: async () => ({
+      ok: true,
+      status: 200,
+      async json() { return { property_id: 'property-1', nearby: [{ entity_id: 'broken' }] }; },
+    }),
+  }).getPropertyContext('property-1');
+} catch {
+  invalidContextRejected = true;
+}
+assert(invalidContextRejected, 'Malformed property-context payloads must be rejected before entering the UI model.');
+
+console.log('PASS: real-estate API client query, auth, context, validation and status contracts');
