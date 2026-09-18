@@ -38,6 +38,39 @@ const categoryLabels = {
     en: 'Pharmacy',
     'zh-Hans': '药房',
   },
+  municipal_service: {
+    'es-CL': 'Servicio municipal',
+    ko: '구청 서비스',
+    en: 'Municipal service',
+    'zh-Hans': '市政服务',
+  },
+};
+
+const entityTypeLabels = {
+  place: {
+    'es-CL': 'Lugar',
+    ko: '장소',
+    en: 'Place',
+    'zh-Hans': '地点',
+  },
+  business: {
+    'es-CL': 'Negocio',
+    ko: '동네업체',
+    en: 'Business',
+    'zh-Hans': '商家',
+  },
+  public_service: {
+    'es-CL': 'Servicio público',
+    ko: '공공 서비스',
+    en: 'Public service',
+    'zh-Hans': '公共服务',
+  },
+  event: {
+    'es-CL': 'Evento',
+    ko: '행사',
+    en: 'Event',
+    'zh-Hans': '活动',
+  },
 };
 
 const openingStatusLabels = {
@@ -201,7 +234,7 @@ const server = http.createServer(async (req, res) => {
     const locale = normalizeLocale(url.searchParams.get('locale'));
 
     if (req.method === 'GET' && url.pathname === '/health') {
-      return json(res, 200, { ok: true, service: 'palta-mock-api', version: '0.2.0' });
+      return json(res, 200, { ok: true, service: 'palta-mock-api', version: '0.3.0' });
     }
 
     if (req.method === 'GET' && url.pathname === '/v1/home') {
@@ -218,22 +251,54 @@ const server = http.createServer(async (req, res) => {
       if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
         return json(res, 400, { error: 'lat_lng_required' });
       }
+
+      const businessItems = businesses.map((business, index) => ({
+        entity_id: business.id,
+        entity_type: 'business',
+        entity_type_label: localizedLabel(entityTypeLabels, 'business', locale),
+        name: business.name,
+        category_key: business.category_key,
+        category_label: localizedLabel(
+          categoryLabels,
+          business.category_key,
+          locale,
+        ),
+        verification_status: business.verification_status,
+        distance_m: index === 0 ? 1200 : 850,
+        location: business.location,
+      }));
+
+      const publicService = {
+        entity_id: 'public-service-demo-1',
+        entity_type: 'public_service',
+        entity_type_label: localizedLabel(
+          entityTypeLabels,
+          'public_service',
+          locale,
+        ),
+        name: 'Atención municipal ejemplo',
+        category_key: 'municipal_service',
+        category_label: localizedLabel(
+          categoryLabels,
+          'municipal_service',
+          locale,
+        ),
+        distance_m: 640,
+        location: { lat: -33.3921, lng: -70.5688 },
+      };
+
+      const event = {
+        entity_id: 'event-demo-1',
+        entity_type: 'event',
+        entity_type_label: localizedLabel(entityTypeLabels, 'event', locale),
+        name: 'Feria vecinal de ejemplo',
+        distance_m: 430,
+        location: { lat: -33.3895, lng: -70.5722 },
+      };
+
       return json(res, 200, {
         locale,
-        items: businesses.map((business, index) => ({
-          entity_id: business.id,
-          entity_type: 'business',
-          name: business.name,
-          category_key: business.category_key,
-          category_label: localizedLabel(
-            categoryLabels,
-            business.category_key,
-            locale,
-          ),
-          verification_status: business.verification_status,
-          distance_m: index === 0 ? 1200 : 850,
-          location: business.location,
-        })),
+        items: [...businessItems, publicService, event],
       });
     }
 
