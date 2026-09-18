@@ -3,71 +3,77 @@ set -euo pipefail
 
 TARGET_BRANCH="${PALTA_SIMULATOR_BRANCH:-integration/simulator-runtime-fix-v1}"
 MOCK_PORT="${PALTA_MOCK_PORT:-8787}"
-BACKUP_DIR=""
 fail() { echo "FAIL: $1" >&2; exit "${2:-1}"; }
 info() { echo "[Palta Simulator] $1"; }
 [ "$(uname -s)" = "Darwin" ] || fail "This launcher must run on macOS."
-for cmd in git node npm xcrun xcodebuild open lsof; do command -v "$cmd" >/dev/null 2>&1 || fail "Required command not found: $cmd"; done
-NODE_MAJOR="$(node -e "process.stdout.write(process.versions.node.split('.')[0])")"; [ "$NODE_MAJOR" -ge 22 ] || fail "Node 22+ required; found $(node -v)."
+for cmd in git node npm xcrun xcodebuild open lsof rsync; do command -v "$cmd" >/dev/null 2>&1 || fail "Required command not found: $cmd"; done
 ROOT="$(git rev-parse --show-toplevel 2>/dev/null || true)"; [ -n "$ROOT" ] || fail "Run this from inside the Palta git repository."; cd "$ROOT"
 APP_DIR="$ROOT/apps/mobile"
 CONFIG_SOURCE="$ROOT/mobile-overlay/app.config.v2.7.template.ts"
-CONFIG_DEST="$APP_DIR/app.config.ts"
-
-if [ ! -f "$APP_DIR/package.json" ]; then
-  if [ -d "$APP_DIR" ]; then
-    info "Partial local Expo runtime detected; preserving existing Palta runtime and restoring missing metadata..."
-    RUNTIME_BACKUP="/tmp/palta-partial-runtime-backup-$(date +%Y%m%d-%H%M%S)"; mkdir -p "$RUNTIME_BACKUP"
-    for item in .env.local expo-env.d.ts; do [ ! -f "$APP_DIR/$item" ] || cp "$APP_DIR/$item" "$RUNTIME_BACKUP/$item"; done
-    TMP_ROOT="$(mktemp -d /tmp/palta-expo-shell.XXXXXX)"; trap 'rm -rf "${TMP_ROOT:-}" "${TMP_SMOKE_DIR:-}"' EXIT
-    info "Creating a clean Expo metadata donor without touching the existing runtime..."
-    (cd "$TMP_ROOT" && npx create-expo-app@latest mobile --template blank-typescript --yes >/tmp/palta-expo-bootstrap.log 2>&1)
-    DONOR="$TMP_ROOT/mobile"; [ -f "$DONOR/package.json" ] || { cat /tmp/palta-expo-bootstrap.log >&2 2>/dev/null || true; fail "Temporary Expo metadata bootstrap failed."; }
-    for item in package.json package-lock.json tsconfig.json app.json; do [ ! -f "$DONOR/$item" ] || cp "$DONOR/$item" "$APP_DIR/$item"; done
-    info "Missing Expo root metadata restored. Existing src/ios/env/dependencies were preserved. Backup: $RUNTIME_BACKUP"
-  else
-    info "Local Expo runtime is absent; creating it from the canonical Palta overlay..."
-    chmod +x "$ROOT/scripts/bootstrap-mobile.sh"; "$ROOT/scripts/bootstrap-mobile.sh"
-    [ -f "$APP_DIR/package.json" ] || fail "Expo bootstrap did not create $APP_DIR/package.json."
-    mkdir -p "$APP_DIR/src"; cp -R "$ROOT/mobile-overlay/src/." "$APP_DIR/src/"
-  fi
-fi
-info "Using mobile runtime: $APP_DIR"
+STAMP="$(date +%Y%m%d-%H%M%S)"
+BACKUP_DIR="$ROOT/apps/mobile.backup-$STAMP"
+BUILD_DIR="$ROOT/apps/mobile.clean-$STAMP"
 
 [ -f "$CONFIG_SOURCE" ] || fail "Canonical Expo config missing: $CONFIG_SOURCE"
-mkdir -p "$APP_DIR"
-if [ ! -f "$CONFIG_DEST" ] || ! cmp -s "$CONFIG_SOURCE" "$CONFIG_DEST"; then
-  cp "$CONFIG_SOURCE" "$CONFIG_DEST"
-  info "Canonical Expo config synced before dependency reconciliation."
+if [ -d "$APP_DIR" ]; then
+  info "Preserving the complete existing mobile runtime at $BACKUP_DIR"
+  mv "$APP_DIR" "$BACKUP_DIR"
 fi
+restore_old_runtime() {
+  if [ ! -d "$APP_DIR" ] && [ -d "$BACKUP_DIR" ]; then mv "$BACKUP_DIR" "$APP_DIR"; fi
+}
+trap 'restore_old_runtime' ERR
 
-cd "$APP_DIR"
+info "Creating a clean Expo runtime; stale node_modules and ios artifacts will not be reused..."
+mkdir -p "$ROOT/apps"
+(cd "$ROOT/apps" && npx create-expo-app@latest "$(basename "$BUILD_DIR")" --template blank-typescript --yes >/tmp/palta-clean-expo.log 2>&1) || { cat /tmp/palta-clean-expo.log >&2; fail "Clean Expo shell creation failed."; }
+[ -f "$BUILD_DIR/package.json" ] || fail "Clean Expo shell did not produce package.json."
+
+# Restore only intentional local environment state, never stale native/build artifacts.
+if [ -f "$BACKUP_DIR/.env.local" ]; then cp "$BACKUP_DIR/.env.local" "$BUILD_DIR/.env.local"; fi
+cp "$CONFIG_SOURCE" "$BUILD_DIR/app.config.ts"
+rm -f "$BUILD_DIR/app.json"
+mkdir -p "$BUILD_DIR/src"
+rsync -a --delete "$ROOT/mobile-overlay/src/" "$BUILD_DIR/src/"
+
+cd "$BUILD_DIR"
 export npm_config_legacy_peer_deps=true
-# app.config.ts declares MapLibre, so it must exist before any Expo command
-# evaluates the dynamic config and resolves config plugins.
-npm install --save @maplibre/maplibre-react-native --legacy-peer-deps >/tmp/palta-expo-install.log 2>&1 || { cat /tmp/palta-expo-install.log >&2; fail "MapLibre dependency reconciliation failed."; }
-npx expo install expo-router expo-location expo-sqlite expo-secure-store expo-notifications expo-haptics expo-speech >>/tmp/palta-expo-install.log 2>&1 || { cat /tmp/palta-expo-install.log >&2; fail "Expo dependency reconciliation failed."; }
+info "Installing Palta native dependencies into the clean runtime..."
+npm install --save @maplibre/maplibre-react-native --legacy-peer-deps >/tmp/palta-clean-install.log 2>&1 || { cat /tmp/palta-clean-install.log >&2; fail "MapLibre install failed in clean runtime."; }
+npx expo install expo-router expo-location expo-sqlite expo-secure-store expo-notifications expo-haptics expo-speech >>/tmp/palta-clean-install.log 2>&1 || { cat /tmp/palta-clean-install.log >&2; fail "Expo dependency install failed in clean runtime."; }
 unset npm_config_legacy_peer_deps
+node -e "require.resolve('@maplibre/maplibre-react-native/package.json'); require.resolve('expo-router/package.json'); require.resolve('expo-sqlite/package.json'); require.resolve('expo-secure-store/package.json'); console.log('Palta dependency resolution passed.')" || fail "Required package resolution failed."
+npx expo config --type public >/tmp/palta-expo-config.log 2>&1 || { cat /tmp/palta-expo-config.log >&2; fail "Expo config/plugin resolution failed in clean runtime."; }
 cd "$ROOT"
-info "Fetching simulator recovery branch without switching your current branch..."
+
+info "Fetching verified simulator recovery files without switching branch..."
 git fetch origin "$TARGET_BRANCH:refs/remotes/origin/$TARGET_BRANCH" >/dev/null
-REF="origin/$TARGET_BRANCH"; git rev-parse --verify "$REF" >/dev/null 2>&1 || fail "Cannot resolve $REF after fetch."
-ensure_backup_dir() { if [ -z "$BACKUP_DIR" ]; then BACKUP_DIR="/tmp/palta-simulator-backup-$(date +%Y%m%d-%H%M%S)"; mkdir -p "$BACKUP_DIR"; fi; }
-restore_ref_file() { SOURCE_PATH="$1"; DEST_PATH="$2"; LABEL="$3"; git cat-file -e "$REF:$SOURCE_PATH" 2>/dev/null || fail "Recovery source missing: $SOURCE_PATH"; TMP_SOURCE="$(mktemp /tmp/palta-restore.XXXXXX)"; git show "$REF:$SOURCE_PATH" > "$TMP_SOURCE"; mkdir -p "$(dirname "$DEST_PATH")"; if [ -f "$DEST_PATH" ] && ! cmp -s "$TMP_SOURCE" "$DEST_PATH"; then ensure_backup_dir; SAFE_NAME="$(printf '%s' "$SOURCE_PATH" | tr '/' '_')"; cp "$DEST_PATH" "$BACKUP_DIR/$SAFE_NAME"; fi; if [ ! -f "$DEST_PATH" ] || ! cmp -s "$TMP_SOURCE" "$DEST_PATH"; then cp "$TMP_SOURCE" "$DEST_PATH"; info "Restored verified $LABEL."; fi; rm -f "$TMP_SOURCE"; }
-restore_ref_file "mobile-overlay/src/hooks/useAsyncResource.ts" "$APP_DIR/src/hooks/useAsyncResource.ts" "async-resource loop fix"
-restore_ref_file "mobile-overlay/src/components/map/NeighborhoodMap.tsx" "$APP_DIR/src/components/map/NeighborhoodMap.tsx" "last working MapLibre component"
-restore_ref_file "mobile-overlay/src/features/neighborhood/NeighborhoodScreen.tsx" "$APP_DIR/src/features/neighborhood/NeighborhoodScreen.tsx" "last working Barrio screen"
+REF="origin/$TARGET_BRANCH"; git rev-parse --verify "$REF" >/dev/null 2>&1 || fail "Cannot resolve $REF."
+restore_ref_file() { SOURCE_PATH="$1"; DEST_PATH="$2"; git cat-file -e "$REF:$SOURCE_PATH" 2>/dev/null || fail "Recovery source missing: $SOURCE_PATH"; mkdir -p "$(dirname "$DEST_PATH")"; git show "$REF:$SOURCE_PATH" > "$DEST_PATH"; }
+restore_ref_file "mobile-overlay/src/hooks/useAsyncResource.ts" "$BUILD_DIR/src/hooks/useAsyncResource.ts"
+restore_ref_file "mobile-overlay/src/components/map/NeighborhoodMap.tsx" "$BUILD_DIR/src/components/map/NeighborhoodMap.tsx"
+restore_ref_file "mobile-overlay/src/features/neighborhood/NeighborhoodScreen.tsx" "$BUILD_DIR/src/features/neighborhood/NeighborhoodScreen.tsx"
+
+# Promote only after package/config validation succeeded.
+mv "$BUILD_DIR" "$APP_DIR"
+trap - ERR
+info "Clean runtime promoted to apps/mobile. Previous runtime preserved at $BACKUP_DIR"
+
 for script in ensure-mobile-router-runtime.sh sync-mobile-home-overlay.sh; do [ -f "$ROOT/scripts/$script" ] || fail "Required runtime script missing: scripts/$script"; chmod +x "$ROOT/scripts/$script"; done
 "$ROOT/scripts/ensure-mobile-router-runtime.sh"
 "$ROOT/scripts/sync-mobile-home-overlay.sh"
-EXPERIMENTAL_STYLE="$APP_DIR/src/components/map/paltaDevelopmentMapStyle.ts"; if [ -f "$EXPERIMENTAL_STYLE" ]; then ensure_backup_dir; cp "$EXPERIMENTAL_STYLE" "$BACKUP_DIR/paltaDevelopmentMapStyle.ts"; rm -f "$EXPERIMENTAL_STYLE"; fi
+
 SMOKE_PATH="dev/mock-api/smoke.mjs"; git cat-file -e "$REF:$SMOKE_PATH" 2>/dev/null || fail "Recovery smoke test missing: $SMOKE_PATH"
-TMP_SMOKE_DIR="$(mktemp -d /tmp/palta-smoke.XXXXXX)"; TMP_SMOKE="$TMP_SMOKE_DIR/smoke.mjs"; git show "$REF:$SMOKE_PATH" > "$TMP_SMOKE"
-trap 'rm -rf "${TMP_ROOT:-}" "${TMP_SMOKE_DIR:-}"' EXIT
+TMP_SMOKE_DIR="$(mktemp -d /tmp/palta-smoke.XXXXXX)"; TMP_SMOKE="$TMP_SMOKE_DIR/smoke.mjs"; git show "$REF:$SMOKE_PATH" > "$TMP_SMOKE"; trap 'rm -rf "${TMP_SMOKE_DIR:-}"' EXIT
 export EXPO_PUBLIC_PALTA_API_BASE_URL="http://127.0.0.1:${MOCK_PORT}" EXPO_PUBLIC_ENV="development" PALTA_MOCK_BASE_URL="http://127.0.0.1:${MOCK_PORT}"
 if lsof -nP -iTCP:"$MOCK_PORT" -sTCP:LISTEN -t >/dev/null 2>&1; then info "Reusing mock API on port $MOCK_PORT."; else PALTA_MOCK_PORT="$MOCK_PORT" nohup node "$ROOT/dev/mock-api/server.mjs" >/tmp/palta-mock-api.log 2>&1 & echo $! >/tmp/palta-mock-api.pid; sleep 1; fi
-node "$TMP_SMOKE" || { tail -80 /tmp/palta-mock-api.log 2>/dev/null || true; fail "Mock API smoke test failed."; }; info "Mock API smoke test passed."
+node "$TMP_SMOKE" || { tail -80 /tmp/palta-mock-api.log 2>/dev/null || true; fail "Mock API smoke test failed."; }
+info "Mock API smoke test passed."
+
 DEVELOPER_DIR="$(xcode-select -p 2>/dev/null || true)"; SIMULATOR_APP="${DEVELOPER_DIR}/Applications/Simulator.app"; [ ! -d "$SIMULATOR_APP" ] || open "$SIMULATOR_APP" >/dev/null 2>&1 || true
-BOOTED_UDID="$(xcrun simctl list devices booted | awk -F '[()]' '/iPhone/ && /Booted/ {print $2; exit}')"; if [ -n "$BOOTED_UDID" ]; then UDID="$BOOTED_UDID"; else DEVICE_LINE="$(xcrun simctl list devices available | awk '/iPhone 18 Pro/ {print; exit}')"; [ -n "$DEVICE_LINE" ] || DEVICE_LINE="$(xcrun simctl list devices available | awk '/iPhone/ {print; exit}')"; [ -n "$DEVICE_LINE" ] || fail "No available iPhone Simulator device found in Xcode."; UDID="$(printf '%s\n' "$DEVICE_LINE" | sed -E 's/.*\(([0-9A-Fa-f-]{36})\).*/\1/')"; xcrun simctl boot "$UDID" 2>/dev/null || true; fi
+BOOTED_UDID="$(xcrun simctl list devices booted | awk -F '[()]' '/iPhone/ && /Booted/ {print $2; exit}')"
+if [ -n "$BOOTED_UDID" ]; then UDID="$BOOTED_UDID"; else DEVICE_LINE="$(xcrun simctl list devices available | awk '/iPhone 18 Pro/ {print; exit}')"; [ -n "$DEVICE_LINE" ] || DEVICE_LINE="$(xcrun simctl list devices available | awk '/iPhone/ {print; exit}')"; [ -n "$DEVICE_LINE" ] || fail "No available iPhone Simulator device found."; UDID="$(printf '%s\n' "$DEVICE_LINE" | sed -E 's/.*\(([0-9A-Fa-f-]{36})\).*/\1/')"; xcrun simctl boot "$UDID" 2>/dev/null || true; fi
 xcrun simctl bootstatus "$UDID" -b
-cd "$APP_DIR"; info "Building, installing, and launching the canonical Palta runtime..."; npx expo run:ios --device "$UDID"
+cd "$APP_DIR"
+info "Building, installing, and launching clean Palta runtime..."
+npx expo run:ios --device "$UDID"
