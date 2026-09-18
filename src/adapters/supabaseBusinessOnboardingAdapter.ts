@@ -92,14 +92,15 @@ function normalizePromotionResult(payload: unknown): BusinessPromotionResult {
   }
   const row = record(payload[0]);
   const status = text(row?.result_status);
-  if (!status || typeof row?.created !== 'boolean') {
+  const created = row?.created;
+  if (!status || typeof created !== 'boolean') {
     throw new Error('business_promotion_invalid_payload');
   }
-  const businessId = text(row.business_id);
+  const businessId = text(row?.business_id);
   return {
     ...(businessId ? { businessId } : {}),
     status,
-    created: row.created,
+    created,
   };
 }
 
