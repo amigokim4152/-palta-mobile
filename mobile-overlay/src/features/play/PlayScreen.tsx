@@ -22,6 +22,7 @@ const themeOptions: ReadonlyArray<{ key: PlayThemeKey; label: string }> = [
   { key: 'today', label: 'Hoy' },
   { key: 'weekend', label: 'Este finde' },
   { key: 'family', label: 'Con niños' },
+  { key: 'couple', label: 'En pareja' },
   { key: 'free', label: 'Gratis' },
   { key: 'outdoor', label: 'Aire libre' },
   { key: 'birthday', label: 'Cumpleaños' },
@@ -50,6 +51,10 @@ const sectionCopy: Record<PlayThemeKey, { title: string; subtitle: string }> = {
   family: {
     title: 'Para hacer en familia',
     subtitle: 'Actividades y lugares que funcionan bien con niños.',
+  },
+  couple: {
+    title: 'Para salir en pareja',
+    subtitle: 'Cine, cultura, comida y otros panoramas para compartir de a dos.',
   },
   free: {
     title: 'Gratis cerca de ti',
@@ -89,403 +94,228 @@ function businessIdFor(item: PlayDiscoveryItem): string | undefined {
   return item.businessProjection?.businessId ?? item.businessId;
 }
 
-function ExperienceTags({ item }: { item: PlayDiscoveryItem }) {
-  if (!item.experienceTags?.length) return null;
-  return (
-    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-      {item.experienceTags.slice(0, 3).map((tag) => (
-        <View
-          key={tag}
-          style={{
-            paddingHorizontal: 8,
-            paddingVertical: 5,
-            borderRadius: paltaTheme.radius.pill,
-            backgroundColor: paltaTheme.color.surfaceMuted,
-          }}
-        >
-          <Text allowFontScaling style={{ fontSize: 11, fontWeight: '700' }}>
-            {tag}
-          </Text>
-        </View>
-      ))}
-    </View>
-  );
+function actionLabel(item: PlayDiscoveryItem): string {
+  const action = item.primaryAction;
+  if (!action) return 'Ver detalles';
+  if (action.label?.trim()) return action.label.trim();
+  if (action.kind === 'registration') return 'Inscribirme';
+  if (action.kind === 'ticket') return 'Ver entradas';
+  if (action.kind === 'reservation') return 'Reservar';
+  return 'Ver información';
 }
 
-function HeroDiscoveryCard({ item, onPress }: { item: PlayDiscoveryItem; onPress: () => void }) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      onPress={onPress}
-      style={{
-        overflow: 'hidden',
-        borderRadius: paltaTheme.radius.prominent,
-        backgroundColor: paltaTheme.color.surface,
-        borderWidth: 1,
-        borderColor: paltaTheme.color.border,
-      }}
-    >
-      {item.imageUrl ? (
-        <Image
-          source={{ uri: item.imageUrl }}
-          resizeMode="cover"
-          style={{ width: '100%', height: 190, backgroundColor: paltaTheme.color.surfaceMuted }}
-        />
-      ) : (
-        <View style={{ height: 150, backgroundColor: paltaTheme.color.avocadoCream }} />
-      )}
-
-      <View style={{ padding: paltaTheme.spacing.md, gap: paltaTheme.spacing.sm }}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 8 }}>
-          <Text allowFontScaling style={{ fontSize: 12, fontWeight: '800', color: paltaTheme.color.brandPrimary }}>
-            {sourceLabel(item)} · {playContentDefinition(item.contentKind).labelEs}
-          </Text>
-          <Text allowFontScaling style={{ fontSize: 12, fontWeight: '800', color: paltaTheme.color.brandPrimary }}>
-            {item.isFree ? 'Gratis' : item.priceLabel ?? item.distanceLabel ?? ''}
-          </Text>
-        </View>
-
-        <Text allowFontScaling style={{ fontSize: 22, fontWeight: '800', color: paltaTheme.color.textPrimary }}>
-          {item.title}
-        </Text>
-        <Text allowFontScaling style={{ fontSize: 14, color: paltaTheme.color.textSecondary }}>
-          {item.comuna}{item.venue ? ` · ${item.venue}` : ''}{item.distanceLabel ? ` · ${item.distanceLabel}` : ''}
-        </Text>
-        <Text allowFontScaling style={{ fontSize: 14, fontWeight: '800', color: paltaTheme.color.textPrimary }}>
-          {item.scheduleLabel}
-        </Text>
-        <ExperienceTags item={item} />
-        <Text allowFontScaling numberOfLines={1} style={{ fontSize: 11, color: paltaTheme.color.textMuted }}>
-          {item.source.authority}
-        </Text>
-      </View>
-    </Pressable>
-  );
+function openExternal(url?: string) {
+  if (!url) return;
+  void Linking.openURL(url);
 }
 
-function DiscoveryCard({ item, onPress }: { item: PlayDiscoveryItem; onPress: () => void }) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      onPress={onPress}
-      style={{
-        width: 278,
-        overflow: 'hidden',
-        borderRadius: paltaTheme.radius.prominent,
-        backgroundColor: paltaTheme.color.surface,
-        borderWidth: 1,
-        borderColor: paltaTheme.color.border,
-      }}
-    >
-      {item.imageUrl ? (
-        <Image
-          source={{ uri: item.imageUrl }}
-          resizeMode="cover"
-          style={{ width: '100%', height: 142, backgroundColor: paltaTheme.color.surfaceMuted }}
-        />
-      ) : (
-        <View style={{ height: 110, backgroundColor: paltaTheme.color.avocadoCream }} />
-      )}
-      <View style={{ padding: paltaTheme.spacing.md, gap: 8, minHeight: 180 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-          <Text allowFontScaling style={{ fontSize: 12, fontWeight: '800', color: paltaTheme.color.brandPrimary }}>
-            {sourceLabel(item)} · {playContentDefinition(item.contentKind).labelEs}
-          </Text>
-          {item.isFree || item.priceLabel ? (
-            <Text allowFontScaling style={{ fontSize: 12, fontWeight: '800', color: paltaTheme.color.brandPrimary }}>
-              {item.isFree ? 'Gratis' : item.priceLabel}
-            </Text>
-          ) : null}
-        </View>
-        <Text allowFontScaling numberOfLines={2} style={{ fontSize: 18, fontWeight: '800', color: paltaTheme.color.textPrimary }}>
-          {item.title}
-        </Text>
-        <Text allowFontScaling style={{ fontSize: 13, color: paltaTheme.color.textSecondary }}>
-          {item.comuna}{item.distanceLabel ? ` · ${item.distanceLabel}` : ''}
-        </Text>
-        <Text allowFontScaling style={{ fontSize: 13, fontWeight: '700', color: paltaTheme.color.textPrimary }}>
-          {item.scheduleLabel}
-        </Text>
-        {item.audienceLabel ? (
-          <Text allowFontScaling numberOfLines={1} style={{ fontSize: 12, color: paltaTheme.color.textSecondary }}>
-            {item.audienceLabel}{item.registrationRequired ? ' · Requiere inscripción' : ''}
-          </Text>
-        ) : null}
-        <ExperienceTags item={item} />
-      </View>
-    </Pressable>
-  );
+function itemSubtitle(item: PlayDiscoveryItem): string {
+  return [
+    item.scheduleLabel,
+    item.venue,
+    item.comuna,
+    item.distanceLabel,
+  ]
+    .filter(Boolean)
+    .join(' · ');
 }
 
-function DiscoveryDetail({ item, onClose }: { item: PlayDiscoveryItem | null; onClose: () => void }) {
-  const sourceUrl = item?.source.sourceUrl;
-  const primaryAction = item?.primaryAction;
-  return (
-    <Modal visible={Boolean(item)} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.28)' }}>
-        <View
-          style={{
-            maxHeight: '86%',
-            borderTopLeftRadius: 28,
-            borderTopRightRadius: 28,
-            backgroundColor: paltaTheme.color.surface,
-            overflow: 'hidden',
-          }}
-        >
-          {item ? (
-            <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
-              {item.imageUrl ? (
-                <Image source={{ uri: item.imageUrl }} resizeMode="cover" style={{ width: '100%', height: 220 }} />
-              ) : null}
-              <View style={{ padding: paltaTheme.spacing.lg, gap: 14 }}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-                  <Text allowFontScaling style={{ fontSize: 12, fontWeight: '800', color: paltaTheme.color.brandPrimary }}>
-                    {sourceLabel(item)} · {playContentDefinition(item.contentKind).labelEs}{item.isFree ? ' · Gratis' : ''}
-                  </Text>
-                  <Pressable accessibilityRole="button" onPress={onClose} style={{ minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' }}>
-                    <Text allowFontScaling style={{ fontSize: 20 }}>×</Text>
-                  </Pressable>
-                </View>
-
-                <Text allowFontScaling style={{ fontSize: 24, fontWeight: '800', color: paltaTheme.color.textPrimary }}>
-                  {item.title}
-                </Text>
-                <Text allowFontScaling style={{ fontSize: 15, fontWeight: '800', color: paltaTheme.color.textPrimary }}>
-                  {item.scheduleLabel}
-                </Text>
-                <Text allowFontScaling style={{ fontSize: 14, color: paltaTheme.color.textSecondary }}>
-                  {item.comuna}{item.venue ? ` · ${item.venue}` : ''}{item.distanceLabel ? ` · ${item.distanceLabel}` : ''}
-                </Text>
-                {item.audienceLabel ? (
-                  <Text allowFontScaling style={{ fontSize: 14, color: paltaTheme.color.textSecondary }}>
-                    {item.audienceLabel}
-                  </Text>
-                ) : null}
-                {item.registrationRequired ? (
-                  <View style={{ padding: 12, borderRadius: paltaTheme.radius.surface, backgroundColor: paltaTheme.color.surfaceMuted }}>
-                    <Text allowFontScaling style={{ fontSize: 13, fontWeight: '700' }}>
-                      Requiere inscripción. Revisa la fuente oficial antes de ir.
-                    </Text>
-                  </View>
-                ) : null}
-                <ExperienceTags item={item} />
-
-                <View style={{ paddingTop: 6, gap: 4 }}>
-                  <Text allowFontScaling style={{ fontSize: 12, color: paltaTheme.color.textMuted }}>Fuente</Text>
-                  <Text allowFontScaling style={{ fontSize: 13, fontWeight: '700', color: paltaTheme.color.textPrimary }}>
-                    {item.source.authority}
-                  </Text>
-                  {item.source.verifiedAt ? (
-                    <Text allowFontScaling style={{ fontSize: 11, color: paltaTheme.color.textMuted }}>
-                      Verificado: {item.source.verifiedAt}
-                    </Text>
-                  ) : null}
-                </View>
-
-                {primaryAction ? (
-                  <PaltaButton
-                    label={primaryAction.label ?? (primaryAction.kind === 'ticket' ? 'Ver entradas' : primaryAction.kind === 'registration' ? 'Inscribirme' : 'Reservar')}
-                    onPress={() => void Linking.openURL(primaryAction.url)}
-                  />
-                ) : null}
-                <PaltaButton label="Ver en mapa" variant="secondary" onPress={() => { onClose(); router.push('/map'); }} />
-                {sourceUrl && sourceUrl !== primaryAction?.url ? (
-                  <PaltaButton label="Ver fuente oficial" variant={primaryAction ? 'secondary' : 'primary'} onPress={() => void Linking.openURL(sourceUrl)} />
-                ) : null}
-              </View>
-            </ScrollView>
-          ) : null}
-        </View>
-      </View>
-    </Modal>
-  );
+function itemMeta(item: PlayDiscoveryItem): string {
+  return [
+    item.isFree ? 'Gratis' : item.priceLabel,
+    item.audienceLabel,
+    sourceLabel(item),
+  ]
+    .filter(Boolean)
+    .join(' · ');
 }
 
-function CardSection({
-  theme,
-  items,
-  onOpenItem,
-  showMapAction = false,
-}: {
-  theme: PlayThemeKey;
-  items: readonly PlayDiscoveryItem[];
-  onOpenItem: (item: PlayDiscoveryItem) => void;
-  showMapAction?: boolean;
-}) {
-  const copy = sectionCopy[theme];
-  const heroItem = items[0];
-  const remainingItems = items.slice(1);
-  return (
-    <View style={{ gap: paltaTheme.spacing.md }}>
-      <SectionHeading title={copy.title} subtitle={copy.subtitle} />
-      {heroItem ? (
-        <HeroDiscoveryCard item={heroItem} onPress={() => onOpenItem(heroItem)} />
-      ) : (
-        <View style={{ padding: paltaTheme.spacing.lg, borderRadius: paltaTheme.radius.surface, borderWidth: 1, borderColor: paltaTheme.color.border, gap: 6 }}>
-          <Text allowFontScaling style={{ fontWeight: '800' }}>Estamos conectando más panoramas de tu zona.</Text>
-          <Text allowFontScaling style={{ color: paltaTheme.color.textSecondary }}>
-            Mostraremos horario, comuna, costo, imagen y fuente cuando estén disponibles.
-          </Text>
-        </View>
-      )}
-      {remainingItems.length > 0 ? (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingRight: 18 }}>
-          {remainingItems.map((item) => <DiscoveryCard key={item.id} item={item} onPress={() => onOpenItem(item)} />)}
-        </ScrollView>
-      ) : null}
-      {showMapAction ? <PaltaButton label="Ver cerca de mí en el mapa" variant="secondary" onPress={() => router.push('/map')} /> : null}
-    </View>
-  );
-}
-
-function ContentKindSection({ kind, items, onOpenItem }: { kind: PlayContentKind; items: readonly PlayDiscoveryItem[]; onOpenItem: (item: PlayDiscoveryItem) => void }) {
-  const definition = playContentDefinition(kind);
-  const heroItem = items[0];
-  const remainingItems = items.slice(1);
-  return (
-    <View style={{ gap: paltaTheme.spacing.md }}>
-      <SectionHeading
-        title={definition.labelEs}
-        subtitle={kindSubtitle[kind] ?? 'Opciones cercanas ordenadas por zona, distancia y momento.'}
-      />
-      {heroItem ? <HeroDiscoveryCard item={heroItem} onPress={() => onOpenItem(heroItem)} /> : (
-        <View style={{ padding: paltaTheme.spacing.lg, borderRadius: paltaTheme.radius.surface, borderWidth: 1, borderColor: paltaTheme.color.border, gap: 6 }}>
-          <Text allowFontScaling style={{ fontWeight: '800' }}>Estamos conectando esta categoría en tu zona.</Text>
-          <Text allowFontScaling style={{ color: paltaTheme.color.textSecondary }}>
-            Cuando haya datos, verás horarios, distancia, precio y forma de reservar o comprar.
-          </Text>
-        </View>
-      )}
-      {remainingItems.length > 0 ? (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingRight: 18 }}>
-          {remainingItems.map((item) => <DiscoveryCard key={item.id} item={item} onPress={() => onOpenItem(item)} />)}
-        </ScrollView>
-      ) : null}
-    </View>
-  );
-}
-
-function BirthdaySection({ items, onExplore, onOpenItem }: { items: readonly PlayDiscoveryItem[]; onExplore: () => void; onOpenItem: (item: PlayDiscoveryItem) => void }) {
-  return (
-    <View style={{ gap: paltaTheme.spacing.md }}>
-      <SectionHeading title="Cumpleaños" subtitle="Piscina, indoor, aire libre y experiencias especiales cerca de ti." />
-      <View style={{ padding: paltaTheme.spacing.md, borderRadius: paltaTheme.radius.prominent, backgroundColor: paltaTheme.color.avocadoCream, gap: 12 }}>
-        <Text allowFontScaling style={{ fontSize: 20, fontWeight: '800', color: paltaTheme.color.textPrimary }}>¿Preparando un cumpleaños?</Text>
-        <Text allowFontScaling style={{ fontSize: 14, color: paltaTheme.color.textSecondary }}>
-          Edad, invitados, distancia, piscina, comida y tipo de experiencia en un solo lugar.
-        </Text>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-          {['Piscina', 'Indoor', 'Aire libre', 'Karting', 'Granja'].map((label) => (
-            <View key={label} style={{ paddingHorizontal: 10, paddingVertical: 7, borderRadius: paltaTheme.radius.pill, backgroundColor: paltaTheme.color.surface }}>
-              <Text allowFontScaling style={{ fontSize: 12, fontWeight: '700' }}>{label}</Text>
-            </View>
-          ))}
-        </View>
-        <PaltaButton label="Explorar cumpleaños" onPress={onExplore} />
-      </View>
-      {items.length > 0 ? (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingRight: 18 }}>
-          {items.slice(0, 6).map((item) => <DiscoveryCard key={item.id} item={item} onPress={() => onOpenItem(item)} />)}
-        </ScrollView>
-      ) : null}
-    </View>
-  );
+function contentKindLabel(kind: PlayContentKind): string {
+  return playContentDefinition(kind).labelEs;
 }
 
 export function PlayScreen() {
   const [selectedTheme, setSelectedTheme] = useState<PlayThemeKey>('today');
-  const [selectedKind, setSelectedKind] = useState<PlayContentKind | null>(null);
-  const [selectedDiscoveryItem, setSelectedDiscoveryItem] = useState<PlayDiscoveryItem | null>(null);
-  const locality = __DEV__ ? 'Vitacura' : undefined;
-  const sourceItems = __DEV__ ? playPreviewItems : [];
+  const [selectedContentKind, setSelectedContentKind] = useState<PlayContentKind | null>(null);
+  const [selectedItem, setSelectedItem] = useState<PlayDiscoveryItem | null>(null);
 
   const feed = useMemo(
-    () => composePlayFeed({ items: sourceItems, ...(locality ? { locality } : {}), selectedTheme }),
-    [locality, selectedTheme, sourceItems],
+    () => composePlayFeed(playPreviewItems, { locality: 'Vitacura', selectedTheme }),
+    [selectedTheme],
   );
 
-  const selectedKindItems = useMemo(() => {
-    if (!selectedKind) return [];
-    return selectPlayDiscoveryItems(
-      sourceItems.filter((item) => item.contentKind === selectedKind),
-      locality ? { locality } : {},
-    ).slice(0, 12);
-  }, [locality, selectedKind, sourceItems]);
+  const visibleItems = useMemo(() => {
+    const selected = selectPlayDiscoveryItems(feed.items, {
+      locality: 'Vitacura',
+      selectedTheme,
+    });
+    return selectedContentKind
+      ? selected.filter((item) => item.contentKind === selectedContentKind)
+      : selected;
+  }, [feed.items, selectedContentKind, selectedTheme]);
 
-  function chooseTheme(theme: PlayThemeKey) {
-    setSelectedKind(null);
-    setSelectedTheme(theme);
-  }
-
-  function chooseKind(kind: PlayContentKind) {
-    setSelectedKind((current) => current === kind ? null : kind);
-  }
-
-  function openItem(item: PlayDiscoveryItem) {
-    const businessId = businessIdFor(item);
-    if (businessId) {
-      router.push(`/business/${encodeURIComponent(businessId)}`);
-      return;
-    }
-    setSelectedDiscoveryItem(item);
-  }
+  const selectedSection = sectionCopy[selectedTheme];
 
   return (
-    <ScreenFrame
-      title="Panoramas"
-      subtitle="Qué hacer hoy, cerca de ti"
-      action={
-        <Pressable accessibilityRole="button" onPress={() => router.push('/map')} style={{ minHeight: paltaTheme.touch.minimum, paddingHorizontal: 12, justifyContent: 'center', borderRadius: paltaTheme.radius.control, borderWidth: 1, borderColor: paltaTheme.color.border }}>
-          <Text allowFontScaling style={{ fontWeight: '800' }}>Mapa</Text>
-        </Pressable>
-      }
-    >
-      <View style={{ gap: 30, paddingBottom: paltaTheme.spacing.xxl }}>
-        <Pressable accessibilityRole="button" onPress={() => router.push('/search')} style={{ minHeight: 58, paddingHorizontal: paltaTheme.spacing.md, paddingVertical: paltaTheme.spacing.sm, borderRadius: paltaTheme.radius.prominent, backgroundColor: paltaTheme.color.surfaceMuted, justifyContent: 'center', gap: 3 }}>
-          <Text allowFontScaling style={{ fontSize: 12, color: paltaTheme.color.textSecondary }}>{locality ? `${locality} · Santiago` : 'Tu zona'}</Text>
-          <Text allowFontScaling style={{ fontSize: 17, fontWeight: '800', color: paltaTheme.color.textPrimary }}>¿Qué quieres hacer hoy?</Text>
-        </Pressable>
+    <ScreenFrame>
+      <ScrollView contentContainerStyle={{ paddingBottom: paltaTheme.spacing.xxl }}>
+        <View style={{ gap: paltaTheme.spacing.xs, marginBottom: paltaTheme.spacing.lg }}>
+          <Text style={{ fontSize: 28, fontWeight: '800', color: paltaTheme.colors.textPrimary }}>
+            Panoramas
+          </Text>
+          <Text style={{ fontSize: 15, lineHeight: 21, color: paltaTheme.colors.textSecondary }}>
+            Qué hacer cerca de ti, empezando por lo público y útil.
+          </Text>
+        </View>
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingRight: 18 }}>
-          {themeOptions.map((option) => <FilterChip key={option.key} label={option.label} selected={!selectedKind && selectedTheme === option.key} onPress={() => chooseTheme(option.key)} />)}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ gap: paltaTheme.spacing.sm, paddingBottom: paltaTheme.spacing.md }}
+        >
+          {themeOptions.map((option) => (
+            <FilterChip
+              key={option.key}
+              label={option.label}
+              selected={selectedTheme === option.key}
+              onPress={() => setSelectedTheme(option.key)}
+            />
+          ))}
         </ScrollView>
 
-        {__DEV__ ? <Text allowFontScaling style={{ fontSize: 11, color: paltaTheme.color.textMuted }}>Vista previa visual · los datos marcados como ejemplo no se publican en producción.</Text> : null}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ gap: paltaTheme.spacing.sm, paddingBottom: paltaTheme.spacing.lg }}
+        >
+          <FilterChip
+            label="Todo"
+            selected={selectedContentKind === null}
+            onPress={() => setSelectedContentKind(null)}
+          />
+          {contentOptions.map((option) => (
+            <FilterChip
+              key={option.key}
+              label={option.label}
+              selected={selectedContentKind === option.key}
+              onPress={() => setSelectedContentKind(option.key)}
+            />
+          ))}
+        </ScrollView>
 
-        <CardSection theme="today" items={feed.todayPublic.items} onOpenItem={openItem} showMapAction />
-
-        <View style={{ gap: paltaTheme.spacing.sm }}>
-          <SectionHeading title="¿Qué te gustaría hacer?" subtitle="Elige el tipo de panorama; siempre priorizamos tu zona y utilidad, no la comisión." />
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingRight: 18 }}>
-            {contentOptions.map((option) => (
-              <FilterChip
-                key={option.key}
-                label={option.label}
-                selected={selectedKind === option.key}
-                onPress={() => chooseKind(option.key)}
-              />
-            ))}
-          </ScrollView>
-        </View>
-
-        {selectedKind ? <ContentKindSection kind={selectedKind} items={selectedKindItems} onOpenItem={openItem} /> : null}
-
-        {!selectedKind && selectedTheme === 'birthday' ? (
-          <BirthdaySection items={feed.birthday.items} onExplore={() => chooseTheme('birthday')} onOpenItem={openItem} />
-        ) : !selectedKind && feed.selectedTheme ? (
-          <CardSection theme={feed.selectedTheme.theme} items={feed.selectedTheme.items} onOpenItem={openItem} />
-        ) : null}
-
-        {selectedTheme !== 'birthday' ? <BirthdaySection items={feed.birthday.items} onExplore={() => chooseTheme('birthday')} onOpenItem={openItem} /> : null}
-        {selectedTheme !== 'weekend' && feed.weekendPublic.items.length > 0 ? <CardSection theme="weekend" items={feed.weekendPublic.items} onOpenItem={openItem} /> : null}
+        <SectionHeading title={selectedSection.title} subtitle={selectedSection.subtitle} />
 
         <View style={{ gap: paltaTheme.spacing.md }}>
-          <SectionHeading title="Más panoramas" subtitle="Museos, ferias, naturaleza, granjas, tours, estadías y más se incorporan con la misma lógica local." />
-          <PaltaButton label="Ver todo" variant="secondary" onPress={() => router.push('/search')} />
+          {visibleItems.map((item) => (
+            <Pressable
+              key={item.id}
+              onPress={() => setSelectedItem(item)}
+              style={{
+                borderRadius: paltaTheme.radius.lg,
+                backgroundColor: paltaTheme.colors.surface,
+                overflow: 'hidden',
+                borderWidth: 1,
+                borderColor: paltaTheme.colors.border,
+              }}
+            >
+              {item.imageUrl ? (
+                <Image
+                  source={{ uri: item.imageUrl }}
+                  style={{ width: '100%', height: 160, backgroundColor: paltaTheme.colors.surfaceMuted }}
+                  resizeMode="cover"
+                />
+              ) : null}
+              <View style={{ padding: paltaTheme.spacing.md, gap: paltaTheme.spacing.xs }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: paltaTheme.spacing.sm }}>
+                  <Text
+                    style={{ flex: 1, fontSize: 18, fontWeight: '750', color: paltaTheme.colors.textPrimary }}
+                  >
+                    {item.title}
+                  </Text>
+                  <Text style={{ fontSize: 12, fontWeight: '700', color: paltaTheme.colors.brand }}>
+                    {contentKindLabel(item.contentKind)}
+                  </Text>
+                </View>
+                <Text style={{ fontSize: 14, color: paltaTheme.colors.textSecondary }}>
+                  {itemSubtitle(item)}
+                </Text>
+                <Text style={{ fontSize: 13, color: paltaTheme.colors.textSecondary }}>
+                  {itemMeta(item)}
+                </Text>
+                {item.experienceTags?.length ? (
+                  <Text style={{ fontSize: 13, color: paltaTheme.colors.textSecondary }}>
+                    {item.experienceTags.slice(0, 3).join(' · ')}
+                  </Text>
+                ) : null}
+              </View>
+            </Pressable>
+          ))}
         </View>
-      </View>
+      </ScrollView>
 
-      <DiscoveryDetail item={selectedDiscoveryItem} onClose={() => setSelectedDiscoveryItem(null)} />
+      <Modal
+        transparent
+        visible={Boolean(selectedItem)}
+        animationType="slide"
+        onRequestClose={() => setSelectedItem(null)}
+      >
+        <Pressable
+          onPress={() => setSelectedItem(null)}
+          style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.22)' }}
+        >
+          <Pressable
+            onPress={() => undefined}
+            style={{
+              borderTopLeftRadius: paltaTheme.radius.xl,
+              borderTopRightRadius: paltaTheme.radius.xl,
+              backgroundColor: paltaTheme.colors.surface,
+              padding: paltaTheme.spacing.lg,
+              gap: paltaTheme.spacing.md,
+            }}
+          >
+            {selectedItem ? (
+              <>
+                <View style={{ gap: paltaTheme.spacing.xs }}>
+                  <Text style={{ fontSize: 12, fontWeight: '700', color: paltaTheme.colors.brand }}>
+                    {contentKindLabel(selectedItem.contentKind)}
+                  </Text>
+                  <Text style={{ fontSize: 22, fontWeight: '800', color: paltaTheme.colors.textPrimary }}>
+                    {selectedItem.title}
+                  </Text>
+                  <Text style={{ fontSize: 14, lineHeight: 20, color: paltaTheme.colors.textSecondary }}>
+                    {itemSubtitle(selectedItem)}
+                  </Text>
+                  <Text style={{ fontSize: 13, color: paltaTheme.colors.textSecondary }}>
+                    {itemMeta(selectedItem)}
+                  </Text>
+                </View>
+
+                {selectedItem.primaryAction ? (
+                  <PaltaButton
+                    label={actionLabel(selectedItem)}
+                    onPress={() => openExternal(selectedItem.primaryAction?.url)}
+                  />
+                ) : null}
+
+                {businessIdFor(selectedItem) ? (
+                  <PaltaButton
+                    label="Ver negocio"
+                    variant="secondary"
+                    onPress={() => {
+                      const businessId = businessIdFor(selectedItem);
+                      if (!businessId) return;
+                      setSelectedItem(null);
+                      router.push(`/business/${encodeURIComponent(businessId)}`);
+                    }}
+                  />
+                ) : null}
+
+                <PaltaButton label="Cerrar" variant="ghost" onPress={() => setSelectedItem(null)} />
+              </>
+            ) : null}
+          </Pressable>
+        </Pressable>
+      </Modal>
     </ScreenFrame>
   );
 }
