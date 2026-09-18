@@ -2,6 +2,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { DiscoverMarketListingsQuery } from '../../../../src/market/marketApiContract';
+import { marketPriceBand } from '../../../../src/market/marketInterestSignal';
 import type { MarketListingStatus } from '../../../../src/market/marketLifecycle';
 import {
   marketListingVerticalOf,
@@ -13,7 +14,10 @@ import {
 } from '../../../../src/market/marketRecommendation';
 import { paltaTheme } from '../../theme/paltaTheme';
 import { ListingDetailRuntimeScreen } from './ListingDetailRuntimeScreen';
-import { marketPreviewRecommendations } from './marketPreviewData';
+import {
+  marketPreviewListings,
+  marketPreviewRecommendations,
+} from './marketPreviewData';
 import { getMarketRuntime } from './marketRuntime';
 
 function formatPrice(priceClp: number | undefined, tradeMode: string) {
@@ -78,7 +82,8 @@ function toLiveRecommendationCandidate(listing: MarketPublicListing) {
  * Preview fixtures can provide a product-family key, so smartphone browsing is
  * narrowed to smartphones. Live listings fall back to same-category + price +
  * distance until the server-side taxonomy/classifier supplies product family.
- * No raw coordinates or exact seller address are needed by this ranking path.
+ * The optional interest signal is deliberately coarse and bounded by the shared
+ * runtime; no exact location, raw search text or message contents are recorded.
  */
 export function MarketListingDetailPreviewRoute() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -92,6 +97,19 @@ export function MarketListingDetailPreviewRoute() {
     }
 
     if (runtime.mode === 'development_preview') {
+      const current = marketPreviewListings.find((item) => item.id === id);
+      if (current) {
+        void runtime.recordInterestSignal?.({
+          action: 'view',
+          occurredAt: new Date().toISOString(),
+          vertical: current.vertical,
+          category: current.category,
+          productFamilyKey: current.recommendationGroup,
+          listingId: current.id,
+          priceBand: marketPriceBand(current.priceClp),
+        });
+      }
+
       setRelated(
         marketPreviewRecommendations(id, 2).map(({ listing, reasons }) => ({
           id: listing.id,
@@ -120,6 +138,16 @@ export function MarketListingDetailPreviewRoute() {
       .getPublicListing(id)
       .then(async (seed) => {
         if (!seed || !active) return;
+
+        void runtime.recordInterestSignal?.({
+          action: 'view',
+          occurredAt: new Date().toISOString(),
+          vertical: marketListingVerticalOf(seed),
+          category: seed.category,
+          listingId: seed.id,
+          priceBand: marketPriceBand(seed.priceClp),
+        });
+
         const query: DiscoverMarketListingsQuery = {
           vertical: marketListingVerticalOf(seed),
           category: seed.category,
