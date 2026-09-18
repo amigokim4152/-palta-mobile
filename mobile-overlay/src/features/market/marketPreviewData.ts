@@ -3,6 +3,10 @@ import type {
   MarketTradeMode,
 } from '../../../../src/market/marketCatalog';
 import type { MarketListingStatus } from '../../../../src/market/marketLifecycle';
+import {
+  rankMarketRecommendations,
+  type MarketRecommendationReason,
+} from '../../../../src/market/marketRecommendation';
 
 export type MarketPreviewVertical =
   | 'secondhand'
@@ -30,6 +34,12 @@ export type MarketPreviewListing = {
   imageUrl: string;
   sellerName: string;
   description: string;
+};
+
+export type MarketPreviewRecommendation = {
+  listing: MarketPreviewListing;
+  score: number;
+  reasons: MarketRecommendationReason[];
 };
 
 /**
@@ -183,39 +193,42 @@ export const marketPreviewListings: MarketPreviewListing[] = [
   },
 ];
 
+function toRecommendationCandidate(listing: MarketPreviewListing) {
+  return {
+    listingId: listing.id,
+    vertical: listing.vertical,
+    category: listing.category,
+    tradeMode: listing.tradeMode,
+    status: listing.status,
+    productFamilyKey: listing.recommendationGroup,
+    priceClp: listing.priceClp,
+    distanceKm: listing.distanceKm,
+  };
+}
+
+export function marketPreviewRecommendations(
+  listingId: string,
+  limit = 3,
+): MarketPreviewRecommendation[] {
+  const current = marketPreviewListings.find((item) => item.id === listingId);
+  if (!current) return [];
+
+  const ranked = rankMarketRecommendations({
+    seed: toRecommendationCandidate(current),
+    candidates: marketPreviewListings.map(toRecommendationCandidate),
+    limit,
+  });
+  const byId = new Map(marketPreviewListings.map((item) => [item.id, item]));
+
+  return ranked.flatMap((item) => {
+    const listing = byId.get(item.listingId);
+    return listing ? [{ listing, score: item.score, reasons: item.reasons }] : [];
+  });
+}
+
 export function marketPreviewRecommendationIds(
   listingId: string,
   limit = 3,
 ): string[] {
-  const current = marketPreviewListings.find((item) => item.id === listingId);
-  if (!current) return [];
-
-  return marketPreviewListings
-    .filter(
-      (item) =>
-        item.id !== current.id &&
-        item.vertical === current.vertical &&
-        item.category === current.category,
-    )
-    .sort((a, b) => {
-      const aFamily =
-        a.recommendationGroup && a.recommendationGroup === current.recommendationGroup
-          ? 0
-          : 1;
-      const bFamily =
-        b.recommendationGroup && b.recommendationGroup === current.recommendationGroup
-          ? 0
-          : 1;
-      if (aFamily !== bFamily) return aFamily - bFamily;
-
-      const currentPrice = current.priceClp;
-      if (typeof currentPrice === 'number') {
-        const aGap = Math.abs((a.priceClp ?? currentPrice * 3) - currentPrice);
-        const bGap = Math.abs((b.priceClp ?? currentPrice * 3) - currentPrice);
-        if (aGap !== bGap) return aGap - bGap;
-      }
-      return a.distanceKm - b.distanceKm;
-    })
-    .slice(0, limit)
-    .map((item) => item.id);
+  return marketPreviewRecommendations(listingId, limit).map((item) => item.listing.id);
 }
