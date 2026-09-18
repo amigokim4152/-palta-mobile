@@ -44,6 +44,24 @@
         "mobile-overlay/src/app/(tabs)/businesses.tsx",
         "mobile-overlay/src/app/business",
         "mobile-overlay/src/app/local-businesses"
+      ],
+      "branch_owned_paths": [
+        "mobile-overlay/src/features/business",
+        "mobile-overlay/src/components/business",
+        "mobile-overlay/src/components/LocalResultCard.tsx",
+        "mobile-overlay/src/components/map/NeighborhoodMap.tsx",
+        "mobile-overlay/src/components/neighborhood/MapResultSheet.tsx",
+        "mobile-overlay/src/app/(tabs)/businesses.tsx",
+        "mobile-overlay/src/app/business",
+        "mobile-overlay/src/app/local-businesses",
+        "src/business",
+        "tests/local-business-discovery-preview-tests.ts",
+        "scripts/check-local-business-experience-shell.mjs",
+        "scripts/check-local-business-screen-reference.mjs",
+        "scripts/check-mobile-runtime-shell.mjs"
+      ],
+      "reviewed_contract_paths": [
+        "src/business/localBusinessDiscoveryPreview.ts"
       ]
     },
     {
