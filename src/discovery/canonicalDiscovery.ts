@@ -9,6 +9,8 @@ export type DiscoveryVerificationStatus =
   | 'rejected'
   | 'expired';
 
+export type DiscoveryAudienceContext = 'family' | 'couple' | 'solo' | 'group' | 'adult' | 'teen';
+
 export type VenueType =
   | 'theatre_small'
   | 'theatre'
@@ -36,9 +38,7 @@ export type VenueType =
 
 export type Venue = Readonly<{
   venueId: string;
-  /** Reuse canonical Business identity whenever this venue is an operating business. */
   canonicalBusinessId?: string;
-  /** Reuse an existing canonical place record when one exists upstream. */
   canonicalPlaceId?: string;
   name: string;
   venueType: VenueType;
@@ -113,12 +113,12 @@ export type CanonicalEvent = Readonly<{
   price: DiscoveryPrice;
   ageMin?: number;
   familyFriendly?: boolean;
+  audienceContexts?: readonly DiscoveryAudienceContext[];
   bookingRequired?: boolean;
   imageUrl?: string;
   sourceEvidenceIds: readonly string[];
   verificationStatus: DiscoveryVerificationStatus;
   publishedAt?: string;
-  /** Explicit source/publication expiry; temporal expiry is also derived from endAt/startAt. */
   expiresAt?: string;
   updatedAt?: string;
 }>;
@@ -144,6 +144,7 @@ export type CanonicalOffering = Readonly<{
   durationMinutes?: number;
   ageMin?: number;
   familyFriendly?: boolean;
+  audienceContexts?: readonly DiscoveryAudienceContext[];
   bookingRequired?: boolean;
   bookingUrl?: string;
   imageUrl?: string;
