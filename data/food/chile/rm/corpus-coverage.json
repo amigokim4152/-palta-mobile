@@ -7,6 +7,9 @@
     "preserve_merchant_menu_sections": true,
     "preserve_source_item_names": true,
     "collect_public_outlet_contact_when_available": true,
+    "collect_images": false,
+    "collect_factual_fields_before_merchant_outreach": true,
+    "merchant_outreach_after_record_organization": true,
     "separate_brand_outlet_listing": true,
     "do_not_auto_merge_shared_addresses": true,
     "do_not_surface_stale_prices_without_freshness": true
