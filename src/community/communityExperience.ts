@@ -22,6 +22,7 @@ export type SchoolStructuredItem = {
   actionRequired: boolean;
   sensitive: boolean;
   dueLabel?: string;
+  dueAt?: string;
 };
 
 export const SCHOOL_FLOW_ORDER: readonly SchoolFlowStage[] = [
@@ -35,7 +36,9 @@ const SCHOOL_FLOW_RANK = new Map(
   SCHOOL_FLOW_ORDER.map((stage, index) => [stage, index] as const),
 );
 
-export function defaultTrustScopeForCommunityKind(kind: CommunityExperienceKind): CommunityTrustScope {
+export function defaultTrustScopeForCommunityKind(
+  kind: CommunityExperienceKind,
+): CommunityTrustScope {
   switch (kind) {
     case 'school':
     case 'church':
@@ -49,7 +52,9 @@ export function defaultTrustScopeForCommunityKind(kind: CommunityExperienceKind)
   }
 }
 
-export function orderSchoolFlowItems(items: readonly SchoolStructuredItem[]): SchoolStructuredItem[] {
+export function orderSchoolFlowItems(
+  items: readonly SchoolStructuredItem[],
+): SchoolStructuredItem[] {
   return [...items].sort((left, right) => {
     const leftRank = SCHOOL_FLOW_RANK.get(left.stage) ?? Number.MAX_SAFE_INTEGER;
     const rightRank = SCHOOL_FLOW_RANK.get(right.stage) ?? Number.MAX_SAFE_INTEGER;
@@ -57,7 +62,10 @@ export function orderSchoolFlowItems(items: readonly SchoolStructuredItem[]): Sc
   });
 }
 
-export function acknowledgeSchoolFlowItem(items: readonly SchoolStructuredItem[], postId: string): SchoolStructuredItem[] {
+export function acknowledgeSchoolFlowItem(
+  items: readonly SchoolStructuredItem[],
+  postId: string,
+): SchoolStructuredItem[] {
   return items.map((item) =>
     item.postId === postId && item.status === 'pending'
       ? { ...item, status: 'acknowledged' as const, actionRequired: false }
@@ -72,8 +80,12 @@ export function schoolFlowProgress(items: readonly SchoolStructuredItem[]): {
 } {
   return {
     total: items.length,
-    completed: items.filter((item) => item.status === 'acknowledged' || item.status === 'done').length,
-    pendingActionCount: items.filter((item) => item.actionRequired && item.status === 'pending').length,
+    completed: items.filter(
+      (item) => item.status === 'acknowledged' || item.status === 'done',
+    ).length,
+    pendingActionCount: items.filter(
+      (item) => item.actionRequired && item.status === 'pending',
+    ).length,
   };
 }
 
@@ -87,6 +99,7 @@ export function shouldDeliverCommunityNotification(input: {
   if (input.membershipState !== 'active') return false;
   if (!input.relationshipActive || !input.notificationsEnabled) return false;
   if (!input.effectiveTo) return true;
+
   const effectiveTo = new Date(input.effectiveTo);
   if (Number.isNaN(effectiveTo.getTime())) return false;
   return effectiveTo.getTime() > input.now.getTime();
@@ -98,8 +111,12 @@ export function safeCommunityAuthorLabel(input: {
   scope: CommunityTrustScope;
   viewerIsMember: boolean;
 }): string {
-  if (input.viewerIsMember && (input.scope === 'member_group' || input.scope === 'private_relation')) {
+  if (
+    input.viewerIsMember &&
+    (input.scope === 'member_group' || input.scope === 'private_relation')
+  ) {
     return input.displayName;
   }
+
   return input.groupRoleLabel?.trim() || 'Miembro de la comunidad';
 }

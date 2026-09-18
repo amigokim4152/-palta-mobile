@@ -7,12 +7,13 @@ import { FilterChip } from '../../components/common/FilterChip';
 import { PaltaButton } from '../../components/common/PaltaButton';
 import { useAsyncResource } from '../../hooks/useAsyncResource';
 import { SchoolRelationshipPanel } from '../../features/community/SchoolRelationshipPanel';
+import { communitySchoolRuntime } from '../../features/community/communitySchoolRuntime';
 import {
   communityRuntime,
   type CommunityPostPurpose,
   type SchoolFlowStage,
 } from '../../features/community/communityRuntime';
-import { schoolFlowProgress } from '../../../../src/community/communityExperience';
+import { schoolFlowProgress, type SchoolStructuredItem } from '../../../../src/community/communityExperience';
 import { paltaTheme } from '../../theme/paltaTheme';
 
 const stageLabel: Record<SchoolFlowStage, string> = {
@@ -30,14 +31,30 @@ function privacyCopy(scope: string | undefined): string | null {
   return null;
 }
 
+function schoolItemDueLabel(item: SchoolStructuredItem): string | null {
+  if (item.dueLabel) return item.dueLabel;
+  if (!item.dueAt) return null;
+  const dueAt = new Date(item.dueAt);
+  if (Number.isNaN(dueAt.getTime())) return null;
+  return dueAt.toLocaleString('es-CL', {
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
 export default function CommunitySpaceScreen() {
   const { communitySpaceId } = useLocalSearchParams<{ communitySpaceId: string }>();
   const [joining, setJoining] = useState(false);
   const [acknowledging, setAcknowledging] = useState<string | null>(null);
   const [postFilter, setPostFilter] = useState<PostFilter>('all');
-  const load = useCallback(() => {
+  const load = useCallback(async () => {
     if (!communitySpaceId) throw new Error('Community space ID missing');
-    return communityRuntime.loadSpace(communitySpaceId);
+    const space = await communityRuntime.loadSpace(communitySpaceId);
+    if (space.membershipState !== 'active' || space.kind !== 'school') return space;
+    const persistedItems = await communitySchoolRuntime.loadItems(communitySpaceId);
+    return persistedItems.length > 0 ? { ...space, schoolItems: persistedItems } : space;
   }, [communitySpaceId]);
   const { state, refresh } = useAsyncResource(load);
 
@@ -114,29 +131,32 @@ export default function CommunitySpaceScreen() {
               <Text style={{ fontSize: 13, fontWeight: '700', color: progress.pendingActionCount > 0 ? paltaTheme.color.brandPrimary : paltaTheme.color.textMuted }}>{progress.completed}/{progress.total}</Text>
             </View>
 
-            {schoolItems.map((item) => (
-              <View key={item.id} style={{ paddingVertical: paltaTheme.spacing.sm, borderBottomWidth: 1, borderBottomColor: paltaTheme.color.divider }}>
-                <Pressable accessibilityRole="button" accessibilityLabel={`Abrir ${item.title}`} onPress={() => router.push(`/community/${space.id}/post/${item.postId}`)} style={({ pressed }) => ({ opacity: pressed ? 0.72 : 1 })}>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: paltaTheme.spacing.sm }}>
-                    <View style={{ flex: 1 }}>
-                      <View style={{ flexDirection: 'row', gap: 7, flexWrap: 'wrap', alignItems: 'center' }}>
-                        <Text style={{ fontSize: 12, fontWeight: '700', color: paltaTheme.color.brandPrimary }}>{stageLabel[item.stage]}</Text>
-                        {item.sensitive ? <Text style={{ fontSize: 12, color: paltaTheme.color.textMuted }}>Solo tú</Text> : null}
-                        {item.dueLabel ? <Text style={{ fontSize: 12, color: paltaTheme.color.textMuted }}>{item.dueLabel}</Text> : null}
+            {schoolItems.map((item) => {
+              const dueLabel = schoolItemDueLabel(item);
+              return (
+                <View key={item.id} style={{ paddingVertical: paltaTheme.spacing.sm, borderBottomWidth: 1, borderBottomColor: paltaTheme.color.divider }}>
+                  <Pressable accessibilityRole="button" accessibilityLabel={`Abrir ${item.title}`} onPress={() => router.push(`/community/${space.id}/post/${item.postId}`)} style={({ pressed }) => ({ opacity: pressed ? 0.72 : 1 })}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: paltaTheme.spacing.sm }}>
+                      <View style={{ flex: 1 }}>
+                        <View style={{ flexDirection: 'row', gap: 7, flexWrap: 'wrap', alignItems: 'center' }}>
+                          <Text style={{ fontSize: 12, fontWeight: '700', color: paltaTheme.color.brandPrimary }}>{stageLabel[item.stage]}</Text>
+                          {item.sensitive ? <Text style={{ fontSize: 12, color: paltaTheme.color.textMuted }}>Solo tú</Text> : null}
+                          {dueLabel ? <Text style={{ fontSize: 12, color: paltaTheme.color.textMuted }}>{dueLabel}</Text> : null}
+                        </View>
+                        <Text style={{ marginTop: 4, fontSize: 15, fontWeight: '700', color: paltaTheme.color.textPrimary }}>{item.title}</Text>
+                        <Text style={{ marginTop: 3, fontSize: 13, lineHeight: 18, color: paltaTheme.color.textSecondary }}>{item.detail}</Text>
                       </View>
-                      <Text style={{ marginTop: 4, fontSize: 15, fontWeight: '700', color: paltaTheme.color.textPrimary }}>{item.title}</Text>
-                      <Text style={{ marginTop: 3, fontSize: 13, lineHeight: 18, color: paltaTheme.color.textSecondary }}>{item.detail}</Text>
+                      {item.status !== 'pending' ? <Text style={{ fontSize: 12, color: paltaTheme.color.textMuted }}>Confirmado</Text> : null}
                     </View>
-                    {item.status !== 'pending' ? <Text style={{ fontSize: 12, color: paltaTheme.color.textMuted }}>Confirmado</Text> : null}
-                  </View>
-                </Pressable>
-                {item.actionRequired && item.status === 'pending' ? (
-                  <Pressable accessibilityRole="button" accessibilityLabel={`Confirmar ${item.title}`} disabled={acknowledging === item.postId} onPress={() => void acknowledge(item.postId)} style={({ pressed }) => ({ alignSelf: 'flex-start', minHeight: paltaTheme.touch.minimum, marginTop: 6, justifyContent: 'center', paddingHorizontal: paltaTheme.spacing.md, borderRadius: paltaTheme.radius.pill, backgroundColor: paltaTheme.color.brandSoft, opacity: pressed ? 0.72 : 1 })}>
-                    <Text style={{ color: paltaTheme.color.brandPrimary, fontWeight: '700' }}>{acknowledging === item.postId ? 'Confirmando…' : 'Confirmar'}</Text>
                   </Pressable>
-                ) : null}
-              </View>
-            ))}
+                  {item.actionRequired && item.status === 'pending' ? (
+                    <Pressable accessibilityRole="button" accessibilityLabel={`Confirmar ${item.title}`} disabled={acknowledging === item.postId} onPress={() => void acknowledge(item.postId)} style={({ pressed }) => ({ alignSelf: 'flex-start', minHeight: paltaTheme.touch.minimum, marginTop: 6, justifyContent: 'center', paddingHorizontal: paltaTheme.spacing.md, borderRadius: paltaTheme.radius.pill, backgroundColor: paltaTheme.color.brandSoft, opacity: pressed ? 0.72 : 1 })}>
+                      <Text style={{ color: paltaTheme.color.brandPrimary, fontWeight: '700' }}>{acknowledging === item.postId ? 'Confirmando…' : 'Confirmar'}</Text>
+                    </Pressable>
+                  ) : null}
+                </View>
+              );
+            })}
             <View style={{ paddingTop: 2 }}><Text style={{ fontSize: 12, lineHeight: 18, color: paltaTheme.color.textMuted }}>WhatsApp sigue siendo útil para conversar rápido. Palta organiza aquí avisos, fechas y pendientes que conviene volver a encontrar.</Text></View>
           </View>
         ) : null}

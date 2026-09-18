@@ -94,14 +94,17 @@ jobs:
         run: |
           test -f 'apps/mobile/src/features/community/communityRuntime.ts'
           test -f 'apps/mobile/src/features/community/communityMembershipRuntime.ts'
+          test -f 'apps/mobile/src/features/community/communitySchoolRuntime.ts'
           test -f 'apps/mobile/src/app/community/[communitySpaceId].tsx'
           test -f 'apps/mobile/src/app/community/[communitySpaceId]/memberships.tsx'
           test -f 'apps/mobile/src/app/community/[communitySpaceId]/post/[postId].tsx'
           grep -q 'acknowledgePost' 'apps/mobile/src/features/community/communityRuntime.ts'
           grep -q 'getCommunityMembershipManagement' 'src/api/paltaApiClient.ts'
+          grep -q 'getCommunitySchoolItems' 'src/api/paltaApiClient.ts'
+          grep -q 'communitySchoolRuntime.loadItems' 'apps/mobile/src/app/community/[communitySpaceId].tsx'
           grep -q 'Solicitudes y miembros' 'apps/mobile/src/app/community/[communitySpaceId].tsx'
           grep -q 'Finalizar vínculo' 'apps/mobile/src/app/community/[communitySpaceId]/memberships.tsx'
-          echo 'PASS: Community routes, acknowledgement, and membership management are present in composed runtime'
+          echo 'PASS: Community membership and persisted school flow are present in composed runtime'
 
       - name: Bundle composed iOS simulator runtime diagnostic
         working-directory: apps/mobile
