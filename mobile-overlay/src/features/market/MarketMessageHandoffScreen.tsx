@@ -12,6 +12,7 @@ import {
   marketMessagePresetText,
   type MarketMessagePreset,
 } from '../../../../src/market/marketMessageIntent';
+import { openMarketMessagingFlow } from '../../../../src/market/marketMessagingFlow';
 import type { MarketPublicListing } from '../../../../src/market/marketPersistenceContract';
 import { paltaTheme } from '../../theme/paltaTheme';
 import { getMarketRuntime } from './marketRuntime';
@@ -65,14 +66,23 @@ export function MarketMessageHandoffScreen() {
     if (!intent || opening) return;
     setHandoffError(undefined);
 
-    if (!runtime.openMessageIntent) {
-      setPrepared(true);
+    if (!runtime.mutation || !runtime.messaging) {
+      if (runtime.mode === 'development_preview') {
+        setPrepared(true);
+        return;
+      }
+      setHandoffError('Mensajes no está disponible en este momento.');
       return;
     }
 
     setOpening(true);
     try {
-      await runtime.openMessageIntent(intent);
+      await openMarketMessagingFlow({
+        intent,
+        market: runtime.mutation,
+        messaging: runtime.messaging,
+      });
+      if (runtime.mode === 'development_preview') setPrepared(true);
     } catch {
       setHandoffError('No pudimos abrir la conversación. Intenta nuevamente.');
     } finally {
@@ -157,9 +167,9 @@ export function MarketMessageHandoffScreen() {
         </View>
 
         <View style={styles.contextHintBox}>
-          <Text style={styles.contextHintTitle}>Conversación vinculada al artículo</Text>
+          <Text style={styles.contextHintTitle}>Una conversación continua</Text>
           <Text style={styles.contextHintBody}>
-            El mensaje conservará esta publicación como contexto para que comprador y vendedor sepan de qué están hablando.
+            Palta mantiene la conversación con esta persona y conserva esta compra como contexto, aunque después hablen de otra publicación.
           </Text>
         </View>
 
