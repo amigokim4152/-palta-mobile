@@ -11,7 +11,7 @@ async function json(path) {
 }
 
 const providenciaRent = await json(
-  '/v1/real-estate/listings?q=Providencia&transaction=rent&propertyType=apartment&publisherType=owner_direct&maxPriceClp=800000&minBedrooms=2&minBathrooms=2&minParkingSpaces=1',
+  '/v1/real-estate/listings?q=Providencia&transaction=rent&propertyType=apartment&publisher=owner_direct&maxPriceClp=800000&minBedrooms=2&minBathrooms=2&minParking=1',
 );
 assert(providenciaRent.response.ok, 'real-estate filtered search failed');
 assert(providenciaRent.body.items.length === 1, 'filtered search should return exactly one active listing');
