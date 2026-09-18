@@ -15,6 +15,10 @@ import {
   HOME_ENTRY_CAPABILITIES,
   requiredHomeEntryCapabilityKeys,
 } from '../src/home/homeEntryCapabilityParity.js';
+import {
+  HOME_CAPABILITY_SOURCE_BINDINGS,
+  homeCapabilitySourceBinding,
+} from '../src/home/homeCapabilitySourceBindings.js';
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
@@ -111,6 +115,26 @@ for (const key of legacyCapabilityKeys) {
     homeCapability(key),
     `Legacy Base44 life-card capability missing from current Home registry: ${key}`,
   );
+  assert(
+    homeCapabilitySourceBinding(key),
+    `Legacy Base44 life-card capability has no migration/source binding: ${key}`,
+  );
+}
+
+const sourceBindingKeys = HOME_CAPABILITY_SOURCE_BINDINGS.map((binding) => binding.capabilityKey);
+assert(
+  new Set(sourceBindingKeys).size === sourceBindingKeys.length,
+  'Home capability source-binding keys must be unique',
+);
+for (const key of [
+  'today.palta_notice',
+  'today.nearby_food_available',
+  'today.interest_personalization',
+  'today.seasonal_fruit',
+  'today.seasonal_vegetable',
+  'today.seasonal_seafood',
+]) {
+  assert(homeCapabilitySourceBinding(key), `Important Home capability has no migration/source binding: ${key}`);
 }
 
 const demoKeys = requiredDemoCapabilityKeys();
@@ -197,5 +221,5 @@ assert(borderMountainKeys.has('now.snow_ice'), 'Foothill locality should allow s
 assert(!borderMountainKeys.has('today.marine_alert'), 'Inland border locality must not surface marine alerts');
 
 console.log(
-  `PASS: Home capability registry (${keys.length} capabilities; ${legacyCapabilityKeys.length} legacy life-card capabilities; ${entryKeys.length} entry capabilities preserved)`,
+  `PASS: Home capability registry (${keys.length} capabilities; ${legacyCapabilityKeys.length} legacy life-card capabilities; ${entryKeys.length} entry capabilities; ${sourceBindingKeys.length} migration bindings)`,
 );
