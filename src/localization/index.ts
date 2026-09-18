@@ -31,7 +31,9 @@ export {
 
 export {
   CARE_ES,
+  careIntentLabel,
   careT,
+  careWaitingForLabel,
   type CareCopyKey,
   type CareInterpolation,
 } from './careCatalog.js';
@@ -43,7 +45,10 @@ export {
   type SurfaceKey,
 } from './surfaceCatalog.js';
 
-export { businessVerificationLabel } from './businessCatalog.js';
+export {
+  businessCapabilityLabel,
+  businessVerificationLabel,
+} from './businessCatalog.js';
 
 export {
   hasTranslation,
