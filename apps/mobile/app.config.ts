@@ -7,6 +7,15 @@ const config: ExpoConfig = {
   plugins: [
     'expo-router',
     [
+      'expo-image-picker',
+      {
+        photosPermission:
+          'Permite que Somos Palta acceda a las fotos que elijas para publicar una propiedad.',
+        cameraPermission: false,
+        microphonePermission: false,
+      },
+    ],
+    [
       'expo-location',
       {
         locationWhenInUsePermission:
