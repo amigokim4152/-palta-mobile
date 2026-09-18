@@ -88,9 +88,12 @@ const labels: Record<PaltaLocale, Record<CareState, string>> = {
   },
 };
 
+type CareLocaleInput = PaltaLocale | 'ko-KR';
+
 export function careStateLabel(
   state: CareState,
-  locale: PaltaLocale = 'es-CL',
+  locale: CareLocaleInput = 'es-CL',
 ): string {
-  return labels[locale][state];
+  const normalizedLocale: PaltaLocale = locale === 'ko-KR' ? 'ko' : locale;
+  return labels[normalizedLocale][state];
 }
