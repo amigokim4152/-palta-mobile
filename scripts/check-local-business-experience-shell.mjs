@@ -87,6 +87,13 @@ assert(
   discovery.includes('BusinessDiscoveryShell') && discovery.includes('SearchBar'),
   'Negocios must use the polished map-led discovery shell instead of the generic developer ScreenFrame.',
 );
+assert(
+  discovery.includes('CATEGORY_SERVICE_LABELS') &&
+  discovery.includes("'Negocio verificado'") &&
+  discovery.includes('selectedBusiness.category_key') &&
+  discovery.includes('item.category_key'),
+  'Live discovery cards must remain informative even before richer search-card projection fields arrive from the API.',
+);
 
 assert(
   cache.includes('MAX_ENTRIES = 12') && cache.includes('MAX_AGE_MS = 2 * 60 * 1000'),
@@ -125,6 +132,12 @@ assert(
 assert(
   sheet.includes('<Animated.View') && sheet.includes('Animated.timing'),
   'Result sheet snap changes must animate instead of jumping between fixed heights.',
+);
+assert(
+  sheet.includes('PanResponder.create') &&
+  sheet.includes('onPanResponderMove') &&
+  sheet.includes('nearestSnap'),
+  'Result sheet must be directly draggable instead of depending on arrow buttons for normal navigation.',
 );
 assert(
   sheet.includes('<ScrollView') && sheet.includes('useWindowDimensions'),
