@@ -44,10 +44,10 @@ const homeIndex = layout.indexOf('name="home"');
 const businessIndex = layout.indexOf('name="businesses"');
 assert(homeIndex >= 0, 'Primary tab layout must include Inicio/home.');
 assert(businessIndex > homeIndex, 'Negocios must be placed immediately after Inicio in the primary tab declaration.');
-
-const afterBusiness = layout.slice(businessIndex + 'name="businesses"'.length);
-const nextTabMatch = afterBusiness.match(/name="([^"]+)"/);
-assert(nextTabMatch?.[1] === 'neighborhood', 'Negocios must remain directly beside Inicio, before Barrio.');
+assert(
+  layout.includes('name="neighborhood" options={{ href: null }}'),
+  'Legacy neighborhood route may remain addressable, but Barrio must not occupy a primary bottom-tab slot.',
+);
 
 for (const [label, source] of [
   ['primary tab', route],
@@ -73,16 +73,18 @@ assert(
 assert(
   discovery.includes('NeighborhoodMap') &&
     discovery.includes('MapResultSheet') &&
-    discovery.includes('Buscar en esta zona'),
-  'Canonical Negocios experience must preserve the shared map/list/search interaction shell.',
+    discovery.includes('Buscar en esta zona') &&
+    discovery.includes("position: 'absolute', top: 0, right: 0, bottom: 0, left: 0"),
+  'Canonical Negocios experience must be map-first with search/results layered over a stable full map.',
 );
 
 const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
 const tabKeys = manifest.bottom_tabs?.map((item) => item.key) ?? [];
 assert(tabKeys[0] === 'home' && tabKeys[1] === 'businesses', 'Route manifest must place businesses directly after home.');
+assert(!tabKeys.includes('neighborhood'), 'Barrio/neighborhood must not remain in the visible bottom-tab manifest.');
 assert(
   manifest.compatibility_aliases?.['/local-businesses'] === '/(tabs)/businesses',
   'Legacy Local Business route must resolve to the primary Negocios tab.',
 );
 
-console.log('PASS: Local Business primary tab source check');
+console.log('PASS: Local Business primary map-first tab source check');
