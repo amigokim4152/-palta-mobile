@@ -4,7 +4,7 @@ import ts from 'typescript';
 
 const root = process.cwd();
 const files = [
-  'mobile-overlay/src/app/business/[businessId].tsx',
+  'mobile-overlay/src/features/business/BusinessProfileExperience.tsx',
   'mobile-overlay/src/app/business/[businessId]/review.tsx',
   'mobile-overlay/src/app/business/manage/[businessId].tsx',
   'mobile-overlay/src/app/business/manage/[businessId]/reviews.tsx',
@@ -67,11 +67,15 @@ const ownerReviews = readChecked(files[3]);
 
 assert(
   detail.includes('getMyReviewEligibility') && detail.includes('Escribir opinión verificada'),
-  'Business detail must expose review writing only through server eligibility.',
+  'Polished Business Profile must expose review writing only through server eligibility.',
 );
 assert(
   detail.includes('reviewEligibility = undefined') && detail.includes('try {'),
   'Review eligibility failure must not make the public Business Profile unavailable.',
+);
+assert(
+  detail.includes('review.evidence_label') && detail.includes('review.business_reply'),
+  'Polished Business Profile must keep verified-use provenance and business replies visible.',
 );
 assert(
   write.includes('getMyReviewEligibility') &&
