@@ -50,8 +50,13 @@ for (const contractPath of [
   }
 }
 
-if (!tabLayout.includes('<Tabs.Screen name="market" options={{ title: \'Mercado\' }} />')) {
-  fail('Shared tab layout must expose the Mercado primary tab.');
+const exposesMarketTab =
+  tabLayout.includes('name="market"') &&
+  (tabLayout.includes("title: t('nav.market')") ||
+    tabLayout.includes("title: 'Mercado'"));
+
+if (!exposesMarketTab) {
+  fail('Shared tab layout must expose the localized Mercado primary tab.');
 }
 
 console.log(
