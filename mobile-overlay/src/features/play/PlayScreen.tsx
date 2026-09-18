@@ -1,12 +1,8 @@
 import { useMemo, useState } from 'react';
 import { router } from 'expo-router';
 import { Image, Pressable, ScrollView, Text, View } from 'react-native';
-import {
-  isPublicPlayItem,
-  selectPlayDiscoveryItems,
-  type PlayDiscoveryItem,
-  type PlayThemeKey,
-} from '../../../../src/play/playDiscovery';
+import { composePlayFeed } from '../../../../src/play/playFeedComposer';
+import type { PlayDiscoveryItem, PlayThemeKey } from '../../../../src/play/playDiscovery';
 import { ScreenFrame } from '../../components/ScreenFrame';
 import { FilterChip } from '../../components/common/FilterChip';
 import { PaltaButton } from '../../components/common/PaltaButton';
@@ -211,12 +207,54 @@ function DiscoveryCard({ item }: { item: PlayDiscoveryItem }) {
   );
 }
 
+function CardSection({
+  theme,
+  items,
+  showMapAction = false,
+}: {
+  theme: PlayThemeKey;
+  items: readonly PlayDiscoveryItem[];
+  showMapAction?: boolean;
+}) {
+  const copy = sectionCopy[theme];
+  const heroItem = items[0];
+  const remainingItems = items.slice(1);
+
+  return (
+    <View style={{ gap: paltaTheme.spacing.md }}>
+      <SectionHeading title={copy.title} subtitle={copy.subtitle} />
+      {heroItem ? (
+        <HeroDiscoveryCard item={heroItem} />
+      ) : (
+        <View style={{ padding: paltaTheme.spacing.lg, borderRadius: paltaTheme.radius.surface, borderWidth: 1, borderColor: paltaTheme.color.border, gap: 6 }}>
+          <Text allowFontScaling style={{ fontWeight: '800' }}>
+            Estamos conectando más panoramas de tu zona.
+          </Text>
+          <Text allowFontScaling style={{ color: paltaTheme.color.textSecondary }}>
+            Mostraremos horario, comuna, costo, imagen y fuente cuando estén disponibles.
+          </Text>
+        </View>
+      )}
+
+      {remainingItems.length > 0 ? (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingRight: 18 }}>
+          {remainingItems.map((item) => <DiscoveryCard key={item.id} item={item} />)}
+        </ScrollView>
+      ) : null}
+
+      {showMapAction ? (
+        <PaltaButton label="Ver cerca de mí en el mapa" variant="secondary" onPress={() => router.push('/map')} />
+      ) : null}
+    </View>
+  );
+}
+
 function BirthdaySection({ items, onExplore }: { items: readonly PlayDiscoveryItem[]; onExplore: () => void }) {
   return (
     <View style={{ gap: paltaTheme.spacing.md }}>
       <SectionHeading
         title="Cumpleaños"
-        subtitle="Piscina, indoor, aire libre y experiencias especiales. El negocio sigue siendo uno solo en Palta."
+        subtitle="Piscina, indoor, aire libre y experiencias especiales cerca de ti."
       />
 
       <View
@@ -257,25 +295,10 @@ export function PlayScreen() {
   const locality = __DEV__ ? 'Vitacura' : undefined;
   const sourceItems = __DEV__ ? playPreviewItems : [];
 
-  const visibleItems = useMemo(
-    () => selectPlayDiscoveryItems(sourceItems, { locality, selectedTheme }),
+  const feed = useMemo(
+    () => composePlayFeed({ items: sourceItems, locality, selectedTheme }),
     [locality, selectedTheme, sourceItems],
   );
-
-  const publicItems = useMemo(() => visibleItems.filter(isPublicPlayItem), [visibleItems]);
-  const birthdayItems = useMemo(
-    () => selectPlayDiscoveryItems(sourceItems, { locality, selectedTheme: 'birthday' }),
-    [locality, sourceItems],
-  );
-
-  const displayedItems = selectedTheme === 'birthday'
-    ? visibleItems
-    : publicItems.length > 0
-      ? publicItems
-      : visibleItems;
-  const copy = sectionCopy[selectedTheme];
-  const heroItem = displayedItems[0];
-  const remainingItems = displayedItems.slice(1);
 
   return (
     <ScreenFrame
@@ -320,48 +343,38 @@ export function PlayScreen() {
           </Text>
         </Pressable>
 
-        <View style={{ gap: 10 }}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingRight: 18 }}>
-            {themeOptions.map((option) => (
-              <FilterChip
-                key={option.key}
-                label={option.label}
-                selected={selectedTheme === option.key}
-                onPress={() => setSelectedTheme(option.key)}
-              />
-            ))}
-          </ScrollView>
-        </View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingRight: 18 }}>
+          {themeOptions.map((option) => (
+            <FilterChip
+              key={option.key}
+              label={option.label}
+              selected={selectedTheme === option.key}
+              onPress={() => setSelectedTheme(option.key)}
+            />
+          ))}
+        </ScrollView>
 
-        <View style={{ gap: paltaTheme.spacing.md }}>
-          <View style={{ gap: 6 }}>
-            <SectionHeading title={copy.title} subtitle={copy.subtitle} />
-            {__DEV__ ? (
-              <Text allowFontScaling style={{ fontSize: 11, color: paltaTheme.color.textMuted }}>
-                Vista previa visual · los datos marcados como ejemplo no se publican en producción.
-              </Text>
-            ) : null}
-          </View>
+        {__DEV__ ? (
+          <Text allowFontScaling style={{ fontSize: 11, color: paltaTheme.color.textMuted }}>
+            Vista previa visual · los datos marcados como ejemplo no se publican en producción.
+          </Text>
+        ) : null}
 
-          {heroItem ? <HeroDiscoveryCard item={heroItem} /> : (
-            <View style={{ padding: paltaTheme.spacing.lg, borderRadius: paltaTheme.radius.surface, borderWidth: 1, borderColor: paltaTheme.color.border, gap: 6 }}>
-              <Text allowFontScaling style={{ fontWeight: '800' }}>Estamos conectando las agendas oficiales de tu zona.</Text>
-              <Text allowFontScaling style={{ color: paltaTheme.color.textSecondary }}>
-                Aquí aparecerán actividades vigentes con horario, comuna, costo, imagen y fuente oficial.
-              </Text>
-            </View>
-          )}
+        <CardSection theme="today" items={feed.todayPublic.items} showMapAction />
 
-          {remainingItems.length > 0 ? (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingRight: 18 }}>
-              {remainingItems.map((item) => <DiscoveryCard key={item.id} item={item} />)}
-            </ScrollView>
-          ) : null}
+        {selectedTheme === 'birthday' ? (
+          <BirthdaySection items={feed.birthday.items} onExplore={() => setSelectedTheme('birthday')} />
+        ) : feed.selectedTheme ? (
+          <CardSection theme={feed.selectedTheme.theme} items={feed.selectedTheme.items} />
+        ) : null}
 
-          <PaltaButton label="Ver cerca de mí en el mapa" variant="secondary" onPress={() => router.push('/map')} />
-        </View>
+        {selectedTheme !== 'birthday' ? (
+          <BirthdaySection items={feed.birthday.items} onExplore={() => setSelectedTheme('birthday')} />
+        ) : null}
 
-        <BirthdaySection items={birthdayItems} onExplore={() => setSelectedTheme('birthday')} />
+        {selectedTheme !== 'weekend' && feed.weekendPublic.items.length > 0 ? (
+          <CardSection theme="weekend" items={feed.weekendPublic.items} />
+        ) : null}
 
         <View style={{ gap: paltaTheme.spacing.md }}>
           <SectionHeading title="Explora más" subtitle="Más formas de salir sin llenar la primera pantalla de categorías." />
