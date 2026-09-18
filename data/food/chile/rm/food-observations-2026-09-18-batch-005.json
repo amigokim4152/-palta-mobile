@@ -1,0 +1,247 @@
+{
+  "dataset": "palta_food_observations_rm",
+  "observed_at": "2026-09-18",
+  "currency": "CLP",
+  "scope": "Región Metropolitana de Santiago",
+  "records": [
+    {
+      "outlet": {
+        "outlet_key": "cl-rm-providencia-la-bestia-tacos-providencia-2033",
+        "brand_name": "La Bestia Tacos",
+        "outlet_name": "Providencia",
+        "address": "Avenida Providencia 2033",
+        "comuna": "Providencia",
+        "region": "Región Metropolitana",
+        "postal_code": "7510148",
+        "identity_status": "platform_only"
+      },
+      "listing": {
+        "platform": "uber_eats",
+        "listing_id": "t-ZF3mK1UraX1C7_tSEaKw",
+        "listing_name": "La Bestia Tacos (Providencia)",
+        "url": "https://www.ubereats.com/cl/store/la-bestia-tacos-providencia/t-ZF3mK1UraX1C7_tSEaKw",
+        "platform_categories": ["Mexicana", "Tacos", "Burritos", "Comida rápida", "Comida económica", "Comida Patria", "Bebidas", "Exclusivo de Uber Eats"],
+        "delivery_supported": true
+      },
+      "menu_snapshot": {
+        "sections": ["Artículos destacados"],
+        "sample_items": [
+          {"name": "Nacho Guacamole", "price_clp": 6000},
+          {"name": "Burrito al Pastor", "price_clp": 9000}
+        ]
+      },
+      "evidence": [
+        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/la-bestia-tacos-providencia/t-ZF3mK1UraX1C7_tSEaKw", "observed_at": "2026-09-18"}
+      ]
+    },
+    {
+      "outlet": {
+        "outlet_key": "cl-rm-vitacura-carnitas-partenon-1727",
+        "brand_name": "Carnitas",
+        "outlet_name": "Vitacura",
+        "address": "Partenón 1727",
+        "comuna": "Vitacura",
+        "region": "Región Metropolitana",
+        "postal_code": "7630000",
+        "identity_status": "platform_only"
+      },
+      "listing": {
+        "platform": "uber_eats",
+        "listing_id": "BLIfJcAaVwWCar2jbFIKWA",
+        "listing_name": "Carnitas (Vitacura)",
+        "url": "https://www.ubereats.com/cl/store/carnitas-vitacura/BLIfJcAaVwWCar2jbFIKWA",
+        "platform_categories": ["Mexicana", "Latinoamericana"],
+        "delivery_supported": true,
+        "pickup_supported": true,
+        "scheduled_orders_supported": true
+      },
+      "menu_snapshot": {
+        "sections": ["Promociones", "Menú para compartir", "Combos"],
+        "sample_items": [
+          {"name": "2 Burritos Padrísimos - imbatible", "price_clp": 22400},
+          {"name": "Menú Familia Chida", "price_clp": 28000},
+          {"name": "Combo Burrito Chingón", "price_clp": 16400},
+          {"name": "Combo Burrito Padrísimo", "price_clp": 16000},
+          {"name": "Combo Burrito Carnitas", "price_clp": 15000},
+          {"name": "Combo Burrito Veggie", "price_clp": 16000}
+        ]
+      },
+      "evidence": [
+        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/carnitas-vitacura/BLIfJcAaVwWCar2jbFIKWA", "observed_at": "2026-09-18"}
+      ]
+    },
+    {
+      "outlet": {
+        "outlet_key": "cl-rm-nunoa-shawarmas-los-alerces-2958",
+        "brand_name": "Shawarmas",
+        "outlet_name": "Santiago",
+        "address": "Calle Los Alerces 2958",
+        "comuna": "Ñuñoa",
+        "region": "Región Metropolitana",
+        "postal_code": "7750000",
+        "identity_status": "platform_only"
+      },
+      "listing": {
+        "platform": "uber_eats",
+        "listing_id": "g9dLhJXFXASNBaIUc6oOfg",
+        "listing_name": "Shawarmas (Santiago)",
+        "url": "https://www.ubereats.com/cl/store/shawarmas-santiago/g9dLhJXFXASNBaIUc6oOfg",
+        "platform_categories": ["Asiática", "Asiática fusión", "Coreana", "Comida rápida", "Hamburguesas", "Sándwich", "Opciones veganas", "Saludable", "Poke", "Alitas", "Americana", "Griega", "Kebab", "Árabe"],
+        "delivery_supported": true,
+        "pickup_supported": true
+      },
+      "menu_snapshot": {
+        "sections": ["Shawarmas Tradicional"],
+        "sample_items": [
+          {"name": "Shawarma Mixto", "price_clp": 8990},
+          {"name": "Shawarma Pollo", "price_clp": 8990},
+          {"name": "Shawarma Vacuno", "price_clp": 8990},
+          {"name": "Shawarma Falafel", "price_clp": 8990},
+          {"name": "Shawarma Vegano", "price_clp": 8990},
+          {"name": "Shawarma Pollo-Falafel", "price_clp": 13990},
+          {"name": "Shawarma Vacuno-Falafel", "price_clp": 13990}
+        ]
+      },
+      "evidence": [
+        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/shawarmas-santiago/g9dLhJXFXASNBaIUc6oOfg", "observed_at": "2026-09-18"}
+      ]
+    },
+    {
+      "outlet": {
+        "outlet_key": "cl-rm-providencia-aljazeera-guardia-vieja-189",
+        "brand_name": "Aljazeera",
+        "outlet_name": "Providencia",
+        "address": "Guardia Vieja 189",
+        "comuna": "Providencia",
+        "region": "Región Metropolitana",
+        "identity_status": "platform_only"
+      },
+      "listing": {
+        "platform": "uber_eats",
+        "listing_id": "XHGOwXYfSEeoyzRQjyACZw",
+        "listing_name": "Aljazeera - Providencia",
+        "url": "https://www.ubereats.com/cl/store/aljazeera-providencia/XHGOwXYfSEeoyzRQjyACZw",
+        "platform_categories": ["Árabe"],
+        "delivery_supported": true,
+        "pickup_supported": true,
+        "scheduled_orders_supported": true
+      },
+      "menu_snapshot": {
+        "sections": ["Ahorros exclusivos", "Entradas"],
+        "sample_items": [
+          {"name": "Shawerma pollo + papas fritas", "price_clp": 8500},
+          {"name": "Porción de Falafel", "price_clp": 6990},
+          {"name": "Kubbe", "price_clp": 9990},
+          {"name": "Kubbe Frito", "price_clp": 9990},
+          {"name": "Babaganoush", "price_clp": 6990},
+          {"name": "Kubbe Relleno Porcion", "price_clp": 10990}
+        ]
+      },
+      "evidence": [
+        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/aljazeera-providencia/XHGOwXYfSEeoyzRQjyACZw", "observed_at": "2026-09-18"}
+      ]
+    },
+    {
+      "outlet": {
+        "outlet_key": "cl-rm-providencia-rishtedar-holanda-160",
+        "brand_name": "Rishtedar",
+        "outlet_name": "Providencia",
+        "address": "Holanda 160",
+        "comuna": "Providencia",
+        "region": "Región Metropolitana",
+        "postal_code": "7500000",
+        "identity_status": "platform_only"
+      },
+      "listing": {
+        "platform": "uber_eats",
+        "listing_id": "8x-vQtpCVdmxCpXNTJch2A",
+        "listing_name": "Rishtedar (Providencia)",
+        "url": "https://www.ubereats.com/cl/store/rishtedar-providencia/8x-vQtpCVdmxCpXNTJch2A",
+        "platform_categories": ["India", "Vegetariana", "Asiática"],
+        "delivery_supported": true,
+        "scheduled_orders_supported": true
+      },
+      "menu_snapshot": {
+        "sections": ["Ahorros exclusivos", "Sugerencias"],
+        "sample_items": [
+          {"name": "Arroz Basmati", "price_clp": 4900},
+          {"name": "Murgh Curry", "price_clp": 14560},
+          {"name": "India Para 2", "price_clp": 56200},
+          {"name": "Spicy Para 4", "price_clp": 111600},
+          {"name": "Menu Vegano", "price_clp": 47900}
+        ]
+      },
+      "evidence": [
+        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/rishtedar-providencia/8x-vQtpCVdmxCpXNTJch2A", "observed_at": "2026-09-18"}
+      ]
+    },
+    {
+      "outlet": {
+        "outlet_key": "cl-rm-providencia-picando-arepas-cirujano-guzman-89",
+        "brand_name": "Picando Arepas",
+        "outlet_name": "Gluten Free",
+        "address": "Calle Cirujano Guzmán 89",
+        "comuna": "Providencia",
+        "region": "Región Metropolitana",
+        "postal_code": "7500000",
+        "identity_status": "platform_only"
+      },
+      "listing": {
+        "platform": "uber_eats",
+        "listing_id": "xQOY1Ky7QQC7l3V3OA5GgA",
+        "listing_name": "Picando Arepas - Gluten Free",
+        "url": "https://www.ubereats.com/cl/store/picando-arepas-gluten-free/xQOY1Ky7QQC7l3V3OA5GgA",
+        "platform_categories": ["Venezolana", "Arepas", "Comida rápida", "Saludable", "Sin gluten", "Caribeña", "Comida callejera"],
+        "delivery_supported": true,
+        "pickup_supported": true,
+        "scheduled_orders_supported": true
+      },
+      "menu_snapshot": {
+        "sections": ["Ahorros exclusivos", "PROMO"],
+        "sample_items": [
+          {"name": "Arepa Perico", "price_clp": 5994},
+          {"name": "Arepa con Queso", "price_clp": 5394},
+          {"name": "Arepa de Jamon y Queso", "price_clp": 5000},
+          {"name": "Arepa Tajadas con Queso", "price_clp": 6000},
+          {"name": "Arepa Dominó", "price_clp": 4000},
+          {"name": "Arepa Reina Pelúa", "price_clp": 11990}
+        ]
+      },
+      "evidence": [
+        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/picando-arepas-gluten-free/xQOY1Ky7QQC7l3V3OA5GgA", "observed_at": "2026-09-18"}
+      ]
+    },
+    {
+      "outlet": {
+        "outlet_key": "cl-rm-nunoa-rincon-venezolano-salvador-2203",
+        "brand_name": "Rincon Venezolano",
+        "outlet_name": "Ñuñoa",
+        "address": "Avenida Salvador 2203",
+        "comuna": "Ñuñoa",
+        "region": "Región Metropolitana",
+        "identity_status": "platform_only"
+      },
+      "listing": {
+        "platform": "uber_eats",
+        "listing_id": "iDa8FYXHRF6iZbhLNANlrA",
+        "listing_name": "Rincon Venezolano Ñuñoa (Santiago)",
+        "url": "https://www.ubereats.com/cl/store/rincon-venezolano-nunoa-santiago/iDa8FYXHRF6iZbhLNANlrA",
+        "platform_categories": ["Venezolana", "Comfort Food", "Comida rápida"],
+        "delivery_supported": true,
+        "pickup_supported": true,
+        "scheduled_orders_supported": true
+      },
+      "menu_snapshot": {
+        "sections": ["Especiales del Fin de Semana"],
+        "sample_items": [
+          {"name": "Parrilla Tradicional (2 personas)", "price_clp": 23990},
+          {"name": "Parrilla Especial (2 personas)", "price_clp": 28990},
+          {"name": "Sopa de Costillas (Vacuno)", "price_clp": 10990}
+        ]
+      },
+      "evidence": [
+        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/rincon-venezolano-nunoa-santiago/iDa8FYXHRF6iZbhLNANlrA", "observed_at": "2026-09-18"}
+      ]
+    }
+  ]
+}
