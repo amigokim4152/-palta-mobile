@@ -6,6 +6,7 @@ export type ResolvedBusinessPlayExposure = Readonly<{
   comuna: string;
   venue?: string;
   imageUrl?: string;
+  distanceM?: number;
   distanceLabel?: string;
   priceLabel?: string;
   audienceLabel?: string;
@@ -34,6 +35,7 @@ export function projectBusinessExposureToPlay(
     ...(exposure.venue ? { venue: exposure.venue } : {}),
     scheduleLabel: exposure.scheduleLabel ?? 'Consulta disponibilidad',
     ...(exposure.imageUrl ? { imageUrl: exposure.imageUrl } : {}),
+    ...(exposure.distanceM !== undefined ? { distanceM: exposure.distanceM } : {}),
     ...(exposure.distanceLabel ? { distanceLabel: exposure.distanceLabel } : {}),
     ...(exposure.priceLabel ? { priceLabel: exposure.priceLabel } : {}),
     ...(exposure.audienceLabel ? { audienceLabel: exposure.audienceLabel } : {}),
