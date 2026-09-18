@@ -1,6 +1,6 @@
 # Golden User 001 — Gate 01 Auth Runtime Handoff
 
-Status: `RUNTIME_CONNECTED` — Auth Core, mobile runtime, canonical account bootstrap, RLS boundary, and public configuration validation are connected and automated. Live provider/device E2E is still `NOT VERIFIED`.
+Status: `RUNTIME_CONNECTED` — Auth Core, mobile runtime, canonical account bootstrap, RLS boundary, live Auth capability discovery, and public configuration validation are connected. Live simulator/device E2E is still `NOT VERIFIED`.
 
 Gate 01 must **not** be changed to `E2E_VERIFIED` until the real mobile login → terminate/relaunch → logout → login-again cycle is executed against `palta-dev`.
 
@@ -47,9 +47,12 @@ Source of Truth remains `mobile-overlay/src`; generated runtime is materialized 
 Implemented controls and states:
 
 - startup persisted-session check
-- Apple OAuth button
-- Google OAuth button
-- email passwordless link flow
+- live Supabase Auth capability discovery via `/auth/v1/settings`
+- Apple OAuth action when Apple is enabled server-side
+- Google OAuth action when Google is enabled server-side
+- email passwordless link flow when email is enabled server-side
+- unavailable providers are not shown as dead buttons
+- adapter re-checks provider availability before beginning sign-in
 - PKCE callback handling (`palta://auth/callback`)
 - callback-code single-flight/deduplication so WebBrowser + Linking cannot exchange the same one-time PKCE code twice
 - SecureStore session persistence
@@ -59,6 +62,19 @@ Implemented controls and states:
 - retry
 - logout
 - signed-in app gate
+
+### Live `palta-dev` Auth capability state — 2026-09-18
+
+Public Auth settings were checked against the real development project.
+
+- Auth settings endpoint: reachable
+- Email Auth: **enabled** and required by CI
+- Apple OAuth: **disabled at the Supabase project level**
+- Google OAuth: **disabled at the Supabase project level**
+
+Therefore the selected executable Golden User path is currently **email passwordless**. The mobile UI now reflects the server state dynamically, so Apple/Google buttons are hidden while those providers are disabled. When valid Apple/Google provider credentials are configured in `palta-dev`, the buttons can appear without another UI code change.
+
+Apple/Google are not enabled here by inventing placeholder credentials. Their Supabase provider setup requires the real provider client identifiers/secrets (and Apple-specific credentials) from the relevant provider accounts.
 
 ### Configuration hardening
 
@@ -122,41 +138,46 @@ This verifies the server bootstrap invariant and negative owner-RLS boundary wit
 
 ## Latest automated verification evidence
 
-Latest Auth runtime hardening baseline: `159eaa041547c9aba349195314c13dc0c9e689c7` (`fix: deduplicate mobile PKCE callback exchange`).
+Latest capability-aware Auth baseline: `5795418135bae8945e7dc3a0597e309eacd224c7` (`ci: require usable email Auth and observe social providers`).
 
 Successful GitHub Actions on that baseline:
 
-- Palta Core Check run `35336379487`
+- Palta Core Check run `35337118230`
   - TypeScript typecheck: PASS
-  - Core tests, including canonical Auth/account resolution: PASS
-- Palta Core CI run `35336379489`
+  - Core tests: PASS
+- Palta Core CI run `35337118176`
   - `npm ci`: PASS
   - `npm run verify`: PASS
-  - canonical `.env.example` validation: PASS as part of `verify`
-  - mobile Auth secret/environment-binding guard: PASS as part of `verify`
+  - canonical `.env.example` validation: PASS
+  - mobile Auth credential/environment-binding guard: PASS
   - PostgreSQL migration preflight and migration/RLS invariants: PASS
-- Palta Mobile Runtime Shell run `35336379458`
+- Palta Mobile Runtime Shell run `35337118087`
   - launcher shell syntax: PASS
   - mobile Auth credential boundary: PASS
+  - live `palta-dev` Auth settings endpoint: PASS
+  - required email Auth readiness: PASS
+  - Apple/Google readiness observed without making disabled optional providers fail the build
   - mobile overlay materialization: PASS
   - mobile dependency install: PASS
   - generated Expo runtime typecheck: PASS
   - canonical Expo public config resolution: PASS
+
+A preceding strict provider-readiness run `35336804289` proved the Auth settings endpoint was reachable while both Apple and Google provider checks failed, establishing that those two providers are currently disabled rather than the endpoint being unavailable.
 
 ## Definition of Done status
 
 | # | Gate 01 requirement | Status | Evidence / remaining work |
 |---|---|---|---|
 | 1 | Fresh install opens Auth when no valid session exists | `NOT VERIFIED` | Runtime logic exists; must execute on simulator/device |
-| 2 | Golden User login works against `palta-dev` | `NOT VERIFIED` | Apple/Google/email live provider cycle not executed |
+| 2 | Golden User login works against `palta-dev` | `NOT VERIFIED` | Email is enabled and selected; actual email login interaction still requires simulator/device E2E |
 | 3 | Successful auth resolves exactly one canonical Palta account | `PARTIALLY VERIFIED` | Real DB trigger/idempotency verified; provider-driven login still requires E2E |
 | 4 | Kill/relaunch restores same session/account | `NOT VERIFIED` | SecureStore/persistSession implemented and typechecked; device relaunch not executed |
 | 5 | Sign out clears local session and returns to Auth | `NOT VERIFIED` | UI/runtime path implemented; device interaction not executed |
-| 6 | Sign in again resolves same account | `NOT VERIFIED` | Requires live provider/device cycle |
+| 6 | Sign in again resolves same account | `NOT VERIFIED` | Requires live email/device cycle |
 | 7 | User A cannot read user B account | `VERIFIED` | Real `palta-dev` two-user transaction/RLS negative test |
-| 8 | Missing/invalid config and account resolution fail visibly/safely | `PARTIALLY VERIFIED` | fail-closed config + explicit subscription error channel + error UI typechecked; live failure interaction not executed |
+| 8 | Missing/invalid config and account resolution fail visibly/safely | `PARTIALLY VERIFIED` | fail-closed config + explicit subscription error channel + capability-aware error UI typechecked; live failure interaction not executed |
 | 9 | No private/admin key bundled in mobile | `VERIFIED` | publishable-only contract + mobile credential/environment-binding CI guard |
-| 10 | Applicable TypeScript/tests/migrations pass | `VERIFIED` | runs `35336379487`, `35336379489`, `35336379458` |
+| 10 | Applicable TypeScript/tests/migrations pass | `VERIFIED` | runs `35337118230`, `35337118176`, `35337118087` |
 | 11 | Runbook changes to E2E_VERIFIED only with runtime evidence | `VERIFIED` | remains `RUNTIME_CONNECTED` |
 
 ## Current Supabase advisor findings outside Gate 01
@@ -178,17 +199,17 @@ The rule is: fix with a tested database/PostGIS migration plan, not an ad-hoc Ga
 
 ## Remaining Gate 01 execution
 
-Do not build Gate 02 yet. Remaining work is runtime evidence only:
+Do not build Gate 02 yet. Remaining work is runtime evidence, using the currently enabled email path:
 
 1. on the development Mac, check out `integration/golden-user-001-v1`
 2. run `./scripts/run-ios-mobile.sh`
-3. confirm signed-out Auth surface
-4. complete at least one Golden User login path against `palta-dev`
+3. confirm the signed-out Auth surface shows only currently enabled login methods
+4. complete Golden User email passwordless login against `palta-dev`
 5. record the resulting `PaltaUserId`
 6. terminate the app and relaunch; confirm the same session/account
 7. logout; confirm Auth surface
-8. login again; confirm the same `PaltaUserId`
-9. exercise remaining configured providers and confirm they do not create unintended duplicate Palta accounts
+8. email login again; confirm the same `PaltaUserId`
+9. when Apple/Google are later configured, verify those identities do not create unintended duplicate Palta accounts before treating them as production-ready login choices
 10. only then change Gate 01 to `E2E_VERIFIED`
 
-If a live provider fails, record the exact provider/configuration/deep-link failure and fix that blocker only. Do not advance to later product domains from this work package.
+If the live email flow fails, record the exact email-template/redirect/deep-link/runtime failure and fix that Gate 01 blocker only. Do not advance to later product domains from this work package.
