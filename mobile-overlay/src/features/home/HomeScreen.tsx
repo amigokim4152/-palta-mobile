@@ -26,6 +26,22 @@ const DETAILED_SEASONAL_FOOD_KEYS = new Set([
   'today.seasonal_seafood',
 ]);
 
+const COMPACT_ECONOMY_KEYS = new Set([
+  'today.exchange_rate',
+  'today.uf',
+]);
+
+const COMPACT_LIFE_INFO_KEYS = new Set([
+  ...DETAILED_SEASONAL_FOOD_KEYS,
+  ...COMPACT_ECONOMY_KEYS,
+]);
+
+const SEASONAL_SHORT_LABEL: Record<string, string> = {
+  'today.seasonal_fruit': 'Fruta',
+  'today.seasonal_vegetable': 'Verdura',
+  'today.seasonal_seafood': 'Mar',
+};
+
 function demoSeasonalFoodItems(): HomeApiItem[] {
   return [
     {
@@ -146,7 +162,10 @@ function scheduledMeta(value: string | undefined): string | undefined {
 }
 
 function itemContextMeta(item: HomeApiItem): string {
-  const domain = domainLabel(item.source_domain);
+  const domain =
+    item.capability_key === 'today.municipal_benefit'
+      ? 'Beneficio local'
+      : domainLabel(item.source_domain);
   const subject = item.subject?.label?.trim();
   return subject ? `${domain} · ${subject}` : domain;
 }
@@ -156,6 +175,15 @@ function upcomingMeta(item: HomeApiItem): string | undefined {
   const schedule = scheduledMeta(item.scheduled_at);
   if (!schedule) return context;
   return `${context} · ${schedule}`;
+}
+
+function compactBody(item: HomeApiItem): string {
+  const body = item.body?.replace(/^Ejemplo:\s*/i, '').trim();
+  return body || item.title;
+}
+
+function firstCompactValue(item: HomeApiItem): string {
+  return compactBody(item).split('·')[0]?.trim() || item.title;
 }
 
 async function openTarget(
@@ -182,6 +210,109 @@ function glancePress(item: HomeApiGlanceItem): (() => void) | undefined {
   return () => {
     void openTarget(item.action_target, item.action_kind);
   };
+}
+
+function firstGroupPress(items: readonly HomeApiItem[]): (() => void) | undefined {
+  const actionable = items.find((item) => Boolean(item.action_target));
+  return actionable ? itemPress(actionable) : undefined;
+}
+
+function CompactLifeSummary({ items }: { items: readonly HomeApiItem[] }) {
+  const economy = items.filter((item) =>
+    item.capability_key ? COMPACT_ECONOMY_KEYS.has(item.capability_key) : false,
+  );
+  const seasonal = items.filter((item) =>
+    item.capability_key ? DETAILED_SEASONAL_FOOD_KEYS.has(item.capability_key) : false,
+  );
+
+  const rows: Array<{
+    id: string;
+    label: string;
+    value: string;
+    onPress?: () => void;
+  }> = [];
+
+  if (economy.length > 0) {
+    rows.push({
+      id: 'compact-economy',
+      label: 'Economía',
+      value: economy.map((item) => compactBody(item)).join(' · '),
+      ...(firstGroupPress(economy) ? { onPress: firstGroupPress(economy) } : {}),
+    });
+  }
+
+  if (seasonal.length > 0) {
+    rows.push({
+      id: 'compact-seasonal-food',
+      label: 'De temporada',
+      value: seasonal
+        .map((item) => {
+          const label = item.capability_key
+            ? SEASONAL_SHORT_LABEL[item.capability_key] ?? 'Temporada'
+            : 'Temporada';
+          return `${label}: ${firstCompactValue(item)}`;
+        })
+        .join(' · '),
+      ...(firstGroupPress(seasonal) ? { onPress: firstGroupPress(seasonal) } : {}),
+    });
+  }
+
+  if (rows.length === 0) return null;
+
+  return (
+    <View
+      accessibilityLabel="Datos útiles de hoy"
+      style={{
+        borderTopWidth: 1,
+        borderBottomWidth: 1,
+        borderColor: paltaTheme.color.divider,
+      }}
+    >
+      {rows.map((row, index) => (
+        <Pressable
+          key={row.id}
+          accessibilityRole={row.onPress ? 'button' : undefined}
+          disabled={!row.onPress}
+          onPress={row.onPress}
+          style={{
+            minHeight: paltaTheme.touch.minimum,
+            paddingVertical: 7,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 10,
+            borderBottomWidth: index < rows.length - 1 ? 1 : 0,
+            borderColor: paltaTheme.color.divider,
+          }}
+        >
+          <Text
+            allowFontScaling
+            style={{
+              width: 82,
+              fontSize: 12,
+              lineHeight: 17,
+              fontWeight: '700',
+              color: paltaTheme.color.textSecondary,
+            }}
+          >
+            {row.label}
+          </Text>
+          <Text
+            allowFontScaling
+            numberOfLines={1}
+            ellipsizeMode="tail"
+            style={{
+              flex: 1,
+              fontSize: 13,
+              lineHeight: 18,
+              color: paltaTheme.color.textPrimary,
+            }}
+          >
+            {row.value}
+          </Text>
+        </Pressable>
+      ))}
+    </View>
+  );
 }
 
 function ContextAction({
@@ -293,7 +424,7 @@ export function HomeScreen() {
       DETAILED_SEASONAL_FOOD_KEYS.has(item.capability_key),
   );
 
-  const usefulTodayItems =
+  const preparedUsefulTodayItems =
     demoMode && !hasDetailedSeasonalFood
       ? [
           ...rawUsefulTodayItems.filter(
@@ -302,6 +433,24 @@ export function HomeScreen() {
           ...demoSeasonalFoodItems(),
         ]
       : rawUsefulTodayItems;
+
+  const compactLifeItems =
+    adaptive.textScaleClass === 'accessibility'
+      ? []
+      : preparedUsefulTodayItems.filter(
+          (item) =>
+            typeof item.capability_key === 'string' &&
+            COMPACT_LIFE_INFO_KEYS.has(item.capability_key),
+        );
+
+  const usefulTodayItems =
+    compactLifeItems.length === 0
+      ? preparedUsefulTodayItems
+      : preparedUsefulTodayItems.filter(
+          (item) =>
+            !item.capability_key ||
+            !COMPACT_LIFE_INFO_KEYS.has(item.capability_key),
+        );
 
   const glanceItems: GlanceItem[] = (data.glance ?? []).map((item) => ({
     id: item.id,
@@ -316,7 +465,8 @@ export function HomeScreen() {
     nowItems.length === 0 &&
     inProgressItems.length === 0 &&
     upcomingItems.length === 0 &&
-    usefulTodayItems.length === 0;
+    usefulTodayItems.length === 0 &&
+    compactLifeItems.length === 0;
 
   return (
     <ScreenFrame title="Palta">
@@ -461,9 +611,12 @@ export function HomeScreen() {
           </View>
         ) : null}
 
-        {usefulTodayItems.length > 0 ? (
-          <View>
+        {compactLifeItems.length > 0 || usefulTodayItems.length > 0 ? (
+          <View style={{ gap: compactLifeItems.length > 0 ? 6 : 0 }}>
             <SectionLabel>PARA HOY</SectionLabel>
+            {compactLifeItems.length > 0 ? (
+              <CompactLifeSummary items={compactLifeItems} />
+            ) : null}
             {usefulTodayItems.map((item) => (
               <SummaryListRow
                 key={item.id}
