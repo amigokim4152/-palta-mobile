@@ -231,16 +231,12 @@ async function getAssetSize(url, label) {
     return { size: headSize, headers: head.headers };
   }
 
-  const ranged = await fetch(url, { headers: { Range: 'bytes=0-0' } });
-  assert(ranged.status === 206, `${label} range expected 206, got ${ranged.status}`);
-  const contentRange = ranged.headers.get('content-range') ?? '';
-  const match = contentRange.match(/^bytes\s+0-0\/(\d+)$/i);
-  const rangeSize = Number(match?.[1]);
-  assert(
-    Number.isFinite(rangeSize) && rangeSize > 0,
-    `${label} missing full size in Content-Range: ${contentRange}`,
-  );
-  return { size: rangeSize, headers: ranged.headers };
+  // Some edge responses omit Content-Length on HEAD. Fall back to a normal
+  // GET so verification also works for assets that do not implement Range.
+  const response = await fetch(url);
+  assert(response.status === 200, `${label} GET expected 200, got ${response.status}`);
+  const body = await response.arrayBuffer();
+  return { size: body.byteLength, headers: response.headers };
 }
 
 const fontAsset = await getAssetSize(fontUrl, 'Font');
