@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "locale": "es-CL",
+  "generatedAt": "2026-09-18T07:00:00-03:00",
+  "publicationGate": "closed",
+  "geography": {
+    "countryCode": "CL",
+    "regionName": "Región Metropolitana de Santiago",
+    "comunaName": "Vitacura",
+    "precision": "comuna"
+  },
+  "heading": "Cambios y temas que afectan la vida local",
+  "current": [
+    {
+      "storyId": "demo-road-001",
+      "slug": "demo-trabajos-viales-tramo-local",
+      "section": "local",
+      "title": "Trabajos en una vía local durante la mañana",
+      "summary": "Ejemplo breve de un cambio vial. El mapa solo se habilita cuando la ubicación está verificada.",
+      "contentClass": "external_summary",
+      "publishedAt": "2026-09-18T09:20:00-03:00",
+      "geography": {"countryCode": "CL", "regionName": "Región Metropolitana de Santiago", "comunaName": "Vitacura", "precision": "comuna"},
+      "topic": "movilidad",
+      "source": {"label": "Fuente local de demostración", "attribution": "Contenido ficticio de interfaz.", "sourceType": "local_media"},
+      "actions": [{"kind": "map", "label": "Ver en mapa", "target": "palta://map?context=demo-road-001"}]
+    }
+  ],
+  "briefs": [],
+  "trackedTopics": [
+    {"topicId": "demo-mobility-watch", "label": "Movilidad y obras", "status": "watching", "evidenceCount": 3, "deepDiveSlug": "demo-cuando-un-problema-se-repite"}
+  ],
+  "crossModuleLinks": [
+    {"module": "events", "label": "Ver eventos de Vitacura", "target": "palta://events?comuna=vitacura", "reason": "La agenda completa vive en Eventos."},
+    {"module": "procedures", "label": "Ver trámites y servicios", "target": "palta://procedures?comuna=vitacura", "reason": "El detalle operativo vive en su módulo canónico."},
+    {"module": "community", "label": "Abrir Comunidad", "target": "palta://community?comuna=vitacura", "reason": "Las conversaciones no se duplican dentro de News."}
+  ],
+  "voices": [
+    {
+      "storyId": "demo-voice-essay-001",
+      "slug": "demo-ensayo-plaza",
+      "section": "voices",
+      "title": "Lo que aprendí caminando siempre por la misma plaza",
+      "summary": "Reflexión ficticia sobre convivencia y espacio público.",
+      "contentClass": "local_voice",
+      "publishedAt": "2026-09-17T17:00:00-03:00",
+      "geography": {"countryCode": "CL", "regionName": "Región Metropolitana de Santiago", "comunaName": "Vitacura", "precision": "comuna"},
+      "topic": "vida_barrial",
+      "source": {"label": "Colaborador de demostración", "attribution": "Contenido ficticio.", "sourceType": "contributor"},
+      "actions": [],
+      "voiceType": "essay",
+      "contributorLabel": "Vecino · demostración",
+      "perspectiveDisclosure": "Experiencia personal; no constituye un hecho noticioso verificado ni la posición de Palta.",
+      "mediaRights": "none_required"
+    }
+  ]
+}
