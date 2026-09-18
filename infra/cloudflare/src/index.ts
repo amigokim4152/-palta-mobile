@@ -33,13 +33,18 @@ type Env = {
   NEWS_PUBLIC_ENABLED?: string;
 };
 
+type PublicNewsErrorReason =
+  | 'public_news_disabled'
+  | 'public_news_storage_not_bound'
+  | 'public_news_object_not_found';
+
 function corsHeaders(): Headers {
   return new Headers({
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
     'Access-Control-Allow-Headers': 'Range, If-None-Match, If-Modified-Since',
     'Access-Control-Expose-Headers':
-      'Accept-Ranges, Content-Length, Content-Range, ETag, Last-Modified',
+      'Accept-Ranges, Content-Length, Content-Range, ETag, Last-Modified, X-Palta-News-Reason',
   });
 }
 
@@ -49,6 +54,20 @@ function jsonHeaders(): Headers {
   headers.set('X-Content-Type-Options', 'nosniff');
   headers.set('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=60');
   return headers;
+}
+
+function publicNewsError(
+  request: Request,
+  status: 404 | 503,
+  reason: PublicNewsErrorReason,
+  state: 'BLOCKED' | 'UNAVAILABLE',
+  headers = jsonHeaders(),
+): Response {
+  headers.set('X-Palta-News-Reason', reason);
+  if (request.method === 'HEAD') {
+    return new Response(null, { status, headers });
+  }
+  return Response.json({ status: state, reason }, { status, headers });
 }
 
 function applyObjectHeaders(
@@ -141,16 +160,10 @@ async function servePublicNewsObject(
 
   // Independent edge gate: stale R2 objects cannot become public merely because they exist.
   if (env.NEWS_PUBLIC_ENABLED !== 'true') {
-    return Response.json(
-      { status: 'BLOCKED', reason: 'public_news_disabled' },
-      { status: 404, headers },
-    );
+    return publicNewsError(request, 404, 'public_news_disabled', 'BLOCKED', headers);
   }
   if (!env.NEWS_PUBLIC) {
-    return Response.json(
-      { status: 'UNAVAILABLE', reason: 'public_news_storage_not_bound' },
-      { status: 503, headers },
-    );
+    return publicNewsError(request, 503, 'public_news_storage_not_bound', 'UNAVAILABLE', headers);
   }
   if (request.method !== 'GET' && request.method !== 'HEAD') {
     headers.set('Allow', 'GET, HEAD, OPTIONS');
@@ -158,7 +171,9 @@ async function servePublicNewsObject(
   }
 
   const metadata = await env.NEWS_PUBLIC.head(objectKey);
-  if (!metadata) return new Response(null, { status: 404, headers });
+  if (!metadata) {
+    return publicNewsError(request, 404, 'public_news_object_not_found', 'UNAVAILABLE', headers);
+  }
   headers.set('ETag', metadata.httpEtag);
   headers.set('Content-Length', String(metadata.size));
 
@@ -171,7 +186,10 @@ async function servePublicNewsObject(
   }
 
   const object = await env.NEWS_PUBLIC.get(objectKey);
-  if (!object || !('body' in object)) return new Response(null, { status: 404, headers });
+  if (!object || !('body' in object)) {
+    headers.delete('Content-Length');
+    return publicNewsError(request, 404, 'public_news_object_not_found', 'UNAVAILABLE', headers);
+  }
   return new Response(object.body, { status: 200, headers });
 }
 
