@@ -7,13 +7,17 @@ import {
   Text,
   View,
 } from 'react-native';
+import { marketPriceBand } from '../../../../src/market/marketInterestSignal';
 import {
   buildMarketMessageIntent,
   marketMessagePresetText,
   type MarketMessagePreset,
 } from '../../../../src/market/marketMessageIntent';
 import { openMarketMessagingFlow } from '../../../../src/market/marketMessagingFlow';
-import type { MarketPublicListing } from '../../../../src/market/marketPersistenceContract';
+import {
+  marketListingVerticalOf,
+  type MarketPublicListing,
+} from '../../../../src/market/marketPersistenceContract';
 import { paltaTheme } from '../../theme/paltaTheme';
 import { getMarketRuntime } from './marketRuntime';
 
@@ -62,12 +66,26 @@ export function MarketMessageHandoffScreen() {
     });
   }, [listing, preset]);
 
+  function recordMessageInterest() {
+    if (!listing) return;
+    const priceBand = marketPriceBand(listing.priceClp);
+    void runtime.recordInterestSignal?.({
+      action: 'message',
+      occurredAt: new Date().toISOString(),
+      vertical: marketListingVerticalOf(listing),
+      category: listing.category,
+      listingId: listing.id,
+      ...(priceBand ? { priceBand } : {}),
+    });
+  }
+
   async function continueToMessages() {
     if (!intent || opening) return;
     setHandoffError(undefined);
 
     if (!runtime.mutation || !runtime.messaging) {
       if (runtime.mode === 'development_preview') {
+        recordMessageInterest();
         setPrepared(true);
         return;
       }
@@ -82,6 +100,7 @@ export function MarketMessageHandoffScreen() {
         market: runtime.mutation,
         messaging: runtime.messaging,
       });
+      recordMessageInterest();
       if (runtime.mode === 'development_preview') setPrepared(true);
     } catch {
       setHandoffError('No pudimos abrir la conversación. Intenta nuevamente.');
