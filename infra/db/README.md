@@ -9,8 +9,8 @@ Primary v1 development provider remains **Supabase managed PostgreSQL**. Neon re
 - connected Supabase organization: available;
 - Supabase projects: **0**;
 - development database: **NOT PROVISIONED**;
-- migrations `0001` through `0019`: present in repository, **NOT APPLIED to a verified DEV database**;
-- payment card-funding/installment evidence persistence migration expected after the current model changes: **NOT YET PRESENT as `0020`**;
+- migrations `0001` through `0019`: present on this foundation branch, **NOT APPLIED to a verified DEV database**;
+- payment card-funding/installment persistence migration `0020_payment_card_evidence.sql`: prepared on `integration/commercial-core-v1` at/through commit `98ac65a9e12d2b47e3e245900857735f13edb858`, **NOT YET INTEGRATED into this foundation branch and NOT APPLIED to DEV**;
 - production database: **NOT PROVISIONED**.
 
 `NOT APPLIED` and `NOT VERIFIED` must never be reported as PASS.
@@ -44,17 +44,18 @@ Do not apply the migration sequence until:
 2. the Supabase DEV project is deliberately created after organization/current-cost confirmation;
 3. Auth/RLS and server-role boundaries are reviewed;
 4. public canonical data vs private user/business data boundaries are explicit;
-5. the missing payment card-evidence persistence gap is resolved;
+5. commercial-core `0020` card-evidence persistence is integrated into the chosen DEV migration sequence;
 6. an application/rollback/test order is documented for the full migration set.
 
 After DEV project creation:
 
 1. inspect current Supabase changelog/docs before DB/security implementation;
-2. apply/iterate schema in DEV using the approved Supabase workflow;
-3. run security + performance advisors;
-4. run repository DB smoke/RLS/role tests;
-5. verify payment credential envelope encrypt/read/rotate/tamper behavior against real runtime;
-6. only then mark migrations verified and prepare a clean migration history.
+2. integrate/review the current commercial-core migration head before applying DB changes;
+3. apply/iterate schema in DEV using the approved Supabase workflow;
+4. run security + performance advisors;
+5. run repository DB smoke/RLS/role tests including card-evidence persistence;
+6. verify payment credential envelope encrypt/read/rotate/tamper behavior against real runtime;
+7. only then mark migrations verified and prepare a clean migration history.
 
 ## Portability rule
 
