@@ -23,7 +23,10 @@ export type MarketApiErrorCode =
   | 'ALREADY_FAVORITED'
   | 'NOT_FAVORITED'
   | 'REVIEW_NOT_ALLOWED'
-  | 'RATE_LIMITED';
+  | 'RATE_LIMITED'
+  | 'NETWORK_ERROR'
+  | 'SERVICE_UNAVAILABLE'
+  | 'INVALID_RESPONSE';
 
 export type MarketApiError = {
   code: MarketApiErrorCode;
