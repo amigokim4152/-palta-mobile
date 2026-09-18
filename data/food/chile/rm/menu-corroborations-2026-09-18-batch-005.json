@@ -1,0 +1,28 @@
+{
+  "dataset": "palta_food_menu_corroborations_rm",
+  "observed_at": "2026-09-18",
+  "policy": {
+    "factual_fields_only": true,
+    "collect_images": false,
+    "collect_reviews": false,
+    "collect_ratings": false,
+    "collect_long_descriptions": false
+  },
+  "records": [
+    {
+      "brand_name": "Fuente Mardoqueo",
+      "menu_scope": "official_brand_menu_names_no_current_price_requires_outlet_binding_and_merchant_authorization",
+      "source": {
+        "kind": "official_website",
+        "url": "https://fuentemardoqueo.cl/",
+        "observed_at": "2026-09-18"
+      },
+      "items": [
+        {"name": "Lomito Bávaro"},
+        {"name": "Hamburguesa especial Mardoqueo"},
+        {"name": "Churrasco"},
+        {"name": "Beyond Meat"}
+      ]
+    }
+  ]
+}
