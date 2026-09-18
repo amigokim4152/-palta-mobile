@@ -22,11 +22,25 @@ assert(
   home.body.source_state.every((item) => typeof item.source_domain === 'string' && typeof item.data_mode === 'string'),
   'home source state contract failed',
 );
-const weatherState = home.body.source_state.find((item) => item.source_domain === 'weather');
+
+const source = (domain) => home.body.source_state.find((item) => item.source_domain === domain);
+const weatherState = source('weather');
+const publicLifeState = source('public-life');
+const newsState = source('news');
+
 assert(
   weatherState && (weatherState.data_mode === 'live' || weatherState.data_mode === 'unavailable'),
   'weather must be live or explicitly unavailable',
 );
+assert(
+  publicLifeState && (publicLifeState.data_mode === 'scheduled' || publicLifeState.data_mode === 'unavailable'),
+  'public-life must use the official scheduled source or be explicitly unavailable',
+);
+assert(
+  newsState && (newsState.data_mode === 'scheduled' || newsState.data_mode === 'unavailable'),
+  'news must use the official scheduled source or be explicitly unavailable',
+);
+
 const weatherGlance = home.body.glance.find((item) => item.source_domain === 'weather');
 if (weatherGlance) {
   assert(weatherGlance.data_mode === 'live', 'weather glance must never masquerade as live data');
@@ -36,6 +50,10 @@ assert(
     .filter((item) => item.source_domain === 'mobility')
     .every((item) => item.data_mode === 'demo'),
   'development mobility values must remain marked demo until realtime integration',
+);
+assert(
+  !home.body.items.some((item) => item.id === 'home-benefit-demo-1' || item.id === 'home-news-demo-1'),
+  'retired municipal/news demo cards must never reappear',
 );
 
 const local = await json('/v1/local/search?lat=-33.39&lng=-70.57&radius_m=5000');
@@ -88,6 +106,8 @@ console.log(JSON.stringify({
   glanceItems: home.body.glance.length,
   homeSources: home.body.source_state.length,
   weatherMode: weatherState.data_mode,
+  publicLifeMode: publicLifeState.data_mode,
+  newsMode: newsState.data_mode,
   localItems: local.body.items.length,
   businessId,
   careId: care.body.id,
