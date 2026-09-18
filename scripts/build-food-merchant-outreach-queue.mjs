@@ -36,6 +36,13 @@ const queue = observations.map((record) => {
   const phone = contact.phone ?? null;
   const website = contact.website ?? null;
   const hasContact = Boolean(whatsapp || phone || website);
+  const identityStatus = overlay.identity_status ?? outlet.identity_status ?? 'platform_only';
+  const needsIdentityConfirmation = identityStatus === 'needs_review' || identityStatus === 'possible_virtual_brand';
+  const status = !hasContact
+    ? 'needs_public_contact'
+    : needsIdentityConfirmation
+      ? 'ready_for_identity_confirmation'
+      : 'ready_to_contact';
 
   return {
     outletKey: outlet.outlet_key,
@@ -43,10 +50,13 @@ const queue = observations.map((record) => {
     outletName: outlet.outlet_name ?? null,
     comuna: overlay.comuna ?? outlet.comuna ?? null,
     address: overlay.address ?? outlet.address ?? null,
+    sourceAddress: outlet.address ?? null,
+    identityStatus,
+    identityNote: overlay.identity_note ?? outlet.identity_note ?? null,
     whatsapp,
     phone,
     website,
-    status: hasContact ? 'ready_to_contact' : 'needs_public_contact',
+    status,
     requestedScope: [
       'business_identity',
       'outlet_address',
@@ -57,19 +67,28 @@ const queue = observations.map((record) => {
       'delivery_pickup_facts',
     ],
     collectImages: false,
-    note: 'Photos/assets are intentionally excluded. Outreach asks only for factual business/menu authorization.',
+    note: needsIdentityConfirmation
+      ? 'Resolve outlet identity/address conflict before asking for publication authorization.'
+      : 'Photos/assets are intentionally excluded. Outreach asks only for factual business/menu authorization.',
   };
 });
 
+const priority = {
+  ready_for_identity_confirmation: 0,
+  ready_to_contact: 1,
+  needs_public_contact: 2,
+};
+
 queue.sort((a, b) => {
-  const readyDelta = Number(b.status === 'ready_to_contact') - Number(a.status === 'ready_to_contact');
-  if (readyDelta !== 0) return readyDelta;
+  const statusDelta = (priority[a.status] ?? 9) - (priority[b.status] ?? 9);
+  if (statusDelta !== 0) return statusDelta;
   return String(a.comuna ?? '').localeCompare(String(b.comuna ?? ''), 'es') ||
     String(a.brandName ?? '').localeCompare(String(b.brandName ?? ''), 'es');
 });
 
+const identityConfirmation = queue.filter((item) => item.status === 'ready_for_identity_confirmation');
 const ready = queue.filter((item) => item.status === 'ready_to_contact');
-const missing = queue.filter((item) => item.status !== 'ready_to_contact');
+const missing = queue.filter((item) => item.status === 'needs_public_contact');
 
 console.log(JSON.stringify({
   dataset: 'palta_food_merchant_outreach_queue_rm',
@@ -79,12 +98,15 @@ console.log(JSON.stringify({
     factualFieldsOnly: true,
     sendActionOwnedBy: 'shared_messaging_core',
     authorizationRequiredBeforeCanonicalMerchantUse: true,
+    identityConflictMustBeResolvedBeforeAuthorization: true,
   },
   counts: {
     totalOutlets: queue.length,
+    readyForIdentityConfirmation: identityConfirmation.length,
     readyToContact: ready.length,
     needsPublicContact: missing.length,
   },
+  readyForIdentityConfirmation: identityConfirmation,
   readyToContact: ready,
   needsPublicContact: missing,
 }, null, 2));
