@@ -76,22 +76,7 @@ function minuteRangeLabel(
     : `${range.min} min`;
 }
 
-export function FoodFulfillmentSummary({
-  business,
-  distanceM,
-}: {
-  business: BusinessApiDetail;
-  distanceM?: number;
-}) {
-  const profile = resolveFoodFulfillmentProfile(business);
-  if (!profile) return null;
-
-  const projection = projectFoodFulfillment(profile, distanceM);
-  const deliveryTime = minuteRangeLabel(profile.delivery_minutes);
-  const deliveryFee = moneyLabel(profile.delivery_fee);
-  const minimumOrder = moneyLabel(profile.minimum_order);
-  const outsideRadius = projection.distance_eligibility === 'outside_radius';
-
+function FulfillmentShell({ children }: { children: React.ReactNode }) {
   return (
     <View
       style={{
@@ -103,6 +88,42 @@ export function FoodFulfillmentSummary({
         borderColor: paltaTheme.color.divider,
       }}
     >
+      {children}
+    </View>
+  );
+}
+
+export function FoodFulfillmentSummary({
+  business,
+  distanceM,
+}: {
+  business: BusinessApiDetail;
+  distanceM?: number;
+}) {
+  const profile = resolveFoodFulfillmentProfile(business);
+  if (!profile) {
+    return (
+      <FulfillmentShell>
+        <View style={{ gap: 3 }}>
+          <Text style={{ fontSize: 18, fontWeight: '800', color: paltaTheme.color.textPrimary }}>
+            Entrega y retiro
+          </Text>
+          <Text style={{ lineHeight: 19, color: paltaTheme.color.textSecondary }}>
+            Por confirmar con el local.
+          </Text>
+        </View>
+      </FulfillmentShell>
+    );
+  }
+
+  const projection = projectFoodFulfillment(profile, distanceM);
+  const deliveryTime = minuteRangeLabel(profile.delivery_minutes);
+  const deliveryFee = moneyLabel(profile.delivery_fee);
+  const minimumOrder = moneyLabel(profile.minimum_order);
+  const outsideRadius = projection.distance_eligibility === 'outside_radius';
+
+  return (
+    <FulfillmentShell>
       <View style={{ gap: 3 }}>
         <Text style={{ fontSize: 18, fontWeight: '800', color: paltaTheme.color.textPrimary }}>
           Entrega y retiro
@@ -168,6 +189,6 @@ export function FoodFulfillmentSummary({
           El valor de despacho fue observado en una fuente oficial y puede ser temporal o promocional.
         </Text>
       ) : null}
-    </View>
+    </FulfillmentShell>
   );
 }
