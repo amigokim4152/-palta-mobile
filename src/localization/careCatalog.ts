@@ -12,6 +12,9 @@ export const CARE_ES = {
   'care.id': 'Care ID: {id}',
   'care.refresh': 'Actualizar estado',
   'care.backHome': 'Volver a Inicio',
+  'care.timeline.done': 'Completado',
+  'care.timeline.current': 'Actual',
+  'care.timeline.upcoming': 'Próximo',
 } as const;
 
 export type CareCopyKey = keyof typeof CARE_ES;
@@ -30,6 +33,9 @@ const KO: CareCatalog = {
   'care.id': 'Care ID: {id}',
   'care.refresh': '상태 새로고침',
   'care.backHome': '홈으로 돌아가기',
+  'care.timeline.done': '완료됨',
+  'care.timeline.current': '현재 단계',
+  'care.timeline.upcoming': '다음 단계',
 };
 
 const EN: CareCatalog = {
@@ -44,6 +50,9 @@ const EN: CareCatalog = {
   'care.id': 'Care ID: {id}',
   'care.refresh': 'Refresh status',
   'care.backHome': 'Back to Home',
+  'care.timeline.done': 'Completed',
+  'care.timeline.current': 'Current',
+  'care.timeline.upcoming': 'Upcoming',
 };
 
 const ZH_HANS: CareCatalog = {
@@ -58,6 +67,9 @@ const ZH_HANS: CareCatalog = {
   'care.id': 'Care ID：{id}',
   'care.refresh': '刷新状态',
   'care.backHome': '返回首页',
+  'care.timeline.done': '已完成',
+  'care.timeline.current': '当前阶段',
+  'care.timeline.upcoming': '下一阶段',
 };
 
 const CATALOGS: Record<PaltaLocale, CareCatalog> = {
