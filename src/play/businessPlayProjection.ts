@@ -1,4 +1,8 @@
 import type { PlayDiscoveryItem, PlayThemeKey } from './playDiscovery.js';
+import {
+  inferPlayContentKind,
+  type PlayContentKind,
+} from './playContentTaxonomy.js';
 
 export type ResolvedBusinessPlayExposure = Readonly<{
   businessId: string;
@@ -6,6 +10,7 @@ export type ResolvedBusinessPlayExposure = Readonly<{
   comuna: string;
   venue?: string;
   imageUrl?: string;
+  /** Resolved by shared location/map infrastructure; Play does not calculate it. */
   distanceM?: number;
   distanceLabel?: string;
   priceLabel?: string;
@@ -15,6 +20,7 @@ export type ResolvedBusinessPlayExposure = Readonly<{
   exposureReason: string;
   ownerManaged: boolean;
   playTags: readonly PlayThemeKey[];
+  contentKind?: PlayContentKind;
   experienceTags?: readonly string[];
   sourceAuthority?: string;
 }>;
@@ -30,6 +36,12 @@ export function projectBusinessExposureToPlay(
   return {
     id: `business:${exposure.businessId}:${exposure.offeringId ?? exposure.exposureReason}`,
     sourceKind: 'business',
+    contentKind: exposure.contentKind ?? inferPlayContentKind({
+      category: exposure.exposureReason,
+      title: exposure.title,
+      ...(exposure.venue ? { venue: exposure.venue } : {}),
+      ...(exposure.experienceTags ? { tags: exposure.experienceTags } : {}),
+    }),
     title: exposure.title,
     comuna: exposure.comuna,
     ...(exposure.venue ? { venue: exposure.venue } : {}),
