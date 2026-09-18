@@ -68,9 +68,12 @@ assert(
 );
 
 assert(
-  discovery.includes('Explorar Santiago') &&
-    discovery.includes('Buscar cerca de mí'),
-  'Local Business must support both device location and non-GPS exploration.',
+  discovery.includes('SANTIAGO_EXPLORATION_ORIGIN') &&
+    discovery.includes('neighborhood.effectiveLocation ??') &&
+    discovery.includes('Cerca de mí') &&
+    discovery.includes('useMyLocation') &&
+    !discovery.includes('if (!neighborhood.effectiveLocation)'),
+  'Local Business must open directly on a Santiago map without GPS while keeping device location as an optional action.',
 );
 assert(
   discovery.includes("router.push('/local-businesses/following')") &&
@@ -94,4 +97,4 @@ assert(
   'Legacy Local Business route must resolve to the primary Negocios tab.',
 );
 
-console.log('PASS: Local Business primary map-first tab source check with specialized food entry');
+console.log('PASS: Local Business primary map-first tab source check with optional GPS and specialized food entry');
