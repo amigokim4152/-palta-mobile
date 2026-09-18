@@ -12,6 +12,13 @@ on:
       - 'scripts/probe-legacy-local-places.mjs'
       - 'mobile-overlay/src/app/map/**'
       - 'mobile-overlay/src/components/map/**'
+      - 'mobile-overlay/src/features/neighborhood/**'
+      - 'apps/mobile/src/components/map/**'
+      - 'apps/mobile/src/features/neighborhood/**'
+      - 'apps/mobile/package.json'
+      - 'apps/mobile/package-lock.json'
+      - 'src/adapters/mapCore.ts'
+      - 'src/map/mapFeatureCollection.ts'
       - 'mobile-overlay/.env.example'
       - '.github/workflows/map-production-check.yml'
   push:
@@ -27,6 +34,13 @@ on:
       - 'scripts/probe-legacy-local-places.mjs'
       - 'mobile-overlay/src/app/map/**'
       - 'mobile-overlay/src/components/map/**'
+      - 'mobile-overlay/src/features/neighborhood/**'
+      - 'apps/mobile/src/components/map/**'
+      - 'apps/mobile/src/features/neighborhood/**'
+      - 'apps/mobile/package.json'
+      - 'apps/mobile/package-lock.json'
+      - 'src/adapters/mapCore.ts'
+      - 'src/map/mapFeatureCollection.ts'
       - 'mobile-overlay/.env.example'
       - '.github/workflows/map-production-check.yml'
 
@@ -46,6 +60,11 @@ jobs:
           bash -n scripts/inspect-local-place-summary.sh
           node --check scripts/inspect-local-place-data.mjs
           node --check scripts/probe-legacy-local-places.mjs
+      - name: Mobile typecheck
+        working-directory: apps/mobile
+        run: |
+          npm ci
+          npx tsc --noEmit
       - name: Production Worker dry-run
         run: npx --yes wrangler@4.133.0 deploy --dry-run --config infra/cloudflare/wrangler.map-production.jsonc
       - name: Multipart uploader dry-run
