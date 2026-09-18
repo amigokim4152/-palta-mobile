@@ -3,17 +3,12 @@ import { Linking, Text, TextInput, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import type { BusinessApiDetail } from '../../../../src/api/paltaApiClient';
 import { createClientMutationId } from '../../../../src/api/retryPolicy';
-import {
-  buildBusinessMessagingConversationSeed,
-  type BusinessMessagingIntent,
-} from '../../../../src/business/businessMessagingIntent';
+import { buildBusinessMessagingConversationSeed } from '../../../../src/business/businessMessagingIntent';
 import { ErrorState, LoadingState } from '../../components/AsyncStateBlock';
 import { ScreenFrame } from '../../components/ScreenFrame';
 import { PaltaButton } from '../../components/common/PaltaButton';
 import { useAsyncResource } from '../../hooks/useAsyncResource';
 import { mobileRuntime } from '../../services/paltaClient';
-
-export type BusinessContactIntentMode = 'inquiry' | 'reservation';
 
 type PreparedReservation = {
   requestedForIso: string;
@@ -65,13 +60,9 @@ function reservationInitialText(
     .join('\n');
 }
 
-export function BusinessContactIntentExperience({
-  mode,
-}: {
-  mode: BusinessContactIntentMode;
-}) {
+export function BusinessReservationExperience() {
   const { businessId } = useLocalSearchParams<{ businessId: string }>();
-  const [text, setText] = useState('');
+  const [note, setNote] = useState('');
   const [requestedFor, setRequestedFor] = useState('');
   const [openingChannel, setOpeningChannel] = useState(false);
   const [creatingCare, setCreatingCare] = useState(false);
@@ -98,9 +89,9 @@ export function BusinessContactIntentExperience({
     setMessage(null);
   }
 
-  function updateText(value: string) {
-    setText(value);
-    if (mode === 'reservation') resetPreparedReservation();
+  function updateNote(value: string) {
+    setNote(value);
+    resetPreparedReservation();
   }
 
   function updateRequestedFor(value: string) {
@@ -115,59 +106,48 @@ export function BusinessContactIntentExperience({
       return;
     }
 
-    const cleanText = text.trim();
-    let intent: BusinessMessagingIntent = 'general_inquiry';
-    let initialText = cleanText;
-    let requestedForIso: string | undefined;
-
-    if (mode === 'inquiry') {
-      if (cleanText.length < 2) {
-        setMessage('Escribe brevemente qué quieres consultar.');
-        return;
-      }
-    } else {
-      const requestedForValue = requestedFor.trim();
-      if (!requestedForValue) {
-        setMessage('Indica una fecha y hora preferida para solicitar la reserva.');
-        return;
-      }
-      const parsed = Date.parse(requestedForValue);
-      if (!Number.isFinite(parsed)) {
-        setMessage('La fecha no se pudo entender. Usa un formato como 2026-09-20 15:00.');
-        return;
-      }
-      if (parsed <= Date.now()) {
-        setMessage('La fecha y hora de la reserva debe estar en el futuro.');
-        return;
-      }
-      requestedForIso = new Date(parsed).toISOString();
-      intent = 'reservation_question';
-      initialText = reservationInitialText(business.name, requestedForValue, cleanText);
+    const requestedForValue = requestedFor.trim();
+    if (!requestedForValue) {
+      setMessage('Indica una fecha y hora preferida para solicitar la reserva.');
+      return;
     }
 
+    const parsed = Date.parse(requestedForValue);
+    if (!Number.isFinite(parsed)) {
+      setMessage('La fecha no se pudo entender. Usa un formato como 2026-09-20 15:00.');
+      return;
+    }
+    if (parsed <= Date.now()) {
+      setMessage('La fecha y hora de la reserva debe estar en el futuro.');
+      return;
+    }
+
+    const requestedForIso = new Date(parsed).toISOString();
+    const initialText = reservationInitialText(business.name, requestedForValue, note.trim());
     const seed = buildBusinessMessagingConversationSeed({
       businessId,
       businessName: business.name,
-      intent,
+      intent: 'reservation_question',
       initialText,
     });
+
+    if (seed.contextType !== 'booking') {
+      setMessage('No pudimos preparar el contexto de reserva.');
+      return;
+    }
 
     setOpeningChannel(true);
     setMessage(null);
     try {
       await Linking.openURL(appendWhatsappText(whatsappBaseUrl, seed.initialText ?? initialText));
-      if (mode === 'reservation' && requestedForIso && seed.contextType === 'booking') {
-        setPreparedReservation({
-          requestedForIso,
-          contextType: seed.contextType,
-          purposeKey: seed.purposeKey,
-        });
-        setMessage(
-          'Cuando vuelvas de WhatsApp, confirma aquí sólo si realmente enviaste la solicitud. La reserva aún depende de la confirmación del negocio.',
-        );
-      } else {
-        setMessage('Abrimos WhatsApp con tu consulta preparada.');
-      }
+      setPreparedReservation({
+        requestedForIso,
+        contextType: seed.contextType,
+        purposeKey: seed.purposeKey,
+      });
+      setMessage(
+        'Cuando vuelvas de WhatsApp, confirma aquí sólo si realmente enviaste la solicitud. La reserva aún depende de la confirmación del negocio.',
+      );
     } catch (error) {
       setMessage(
         error instanceof Error
@@ -211,11 +191,9 @@ export function BusinessContactIntentExperience({
     }
   }
 
-  const title = mode === 'reservation' ? 'Solicitar reserva' : 'Consultar';
-
   if (state.status === 'loading' && !state.data) {
     return (
-      <ScreenFrame title={title}>
+      <ScreenFrame title="Solicitar reserva">
         <LoadingState label="Cargando negocio…" />
       </ScreenFrame>
     );
@@ -223,7 +201,7 @@ export function BusinessContactIntentExperience({
 
   if (state.status === 'error' && !state.data) {
     return (
-      <ScreenFrame title={title}>
+      <ScreenFrame title="Solicitar reserva">
         <ErrorState message={state.message} onRetry={() => void refresh()} />
       </ScreenFrame>
     );
@@ -232,70 +210,56 @@ export function BusinessContactIntentExperience({
   if (!business) return null;
 
   return (
-    <ScreenFrame title={title} subtitle={business.name}>
+    <ScreenFrame title="Solicitar reserva" subtitle={business.name}>
       <View style={{ gap: 16 }}>
-        {mode === 'reservation' ? (
-          <View style={{ gap: 7 }}>
-            <Text style={{ fontWeight: '800' }}>Fecha y hora preferida</Text>
-            <TextInput
-              value={requestedFor}
-              onChangeText={updateRequestedFor}
-              placeholder="Ej.: 2026-09-20 15:00"
-              style={{ borderWidth: 1, borderRadius: 12, padding: 12 }}
-            />
-            <Text style={{ fontSize: 12, opacity: 0.58 }}>
-              Esto es una solicitud. El negocio debe confirmar la reserva.
-            </Text>
-          </View>
-        ) : null}
+        <View style={{ gap: 7 }}>
+          <Text style={{ fontWeight: '800' }}>Fecha y hora preferida</Text>
+          <TextInput
+            value={requestedFor}
+            onChangeText={updateRequestedFor}
+            placeholder="Ej.: 2026-09-20 15:00"
+            style={{ borderWidth: 1, borderRadius: 12, padding: 12 }}
+          />
+          <Text style={{ fontSize: 12, opacity: 0.58 }}>
+            Esto es una solicitud. El negocio debe confirmar la reserva.
+          </Text>
+        </View>
 
         <View style={{ gap: 7 }}>
-          <Text style={{ fontWeight: '800' }}>
-            {mode === 'reservation' ? 'Detalle (opcional)' : '¿Qué quieres consultar?'}
-          </Text>
+          <Text style={{ fontWeight: '800' }}>Detalle (opcional)</Text>
           <TextInput
-            value={text}
-            onChangeText={updateText}
+            value={note}
+            onChangeText={updateNote}
             multiline
             maxLength={2000}
-            placeholder={
-              mode === 'reservation'
-                ? 'Ej.: somos 4 personas y necesitamos una mesa interior'
-                : 'Ej.: ¿Atienden este sábado en la tarde?'
-            }
+            placeholder="Ej.: somos 4 personas y necesitamos una mesa interior"
             style={{
-              minHeight: mode === 'reservation' ? 96 : 130,
+              minHeight: 96,
               borderWidth: 1,
               borderRadius: 12,
               padding: 12,
               textAlignVertical: 'top',
             }}
           />
-          <Text style={{ fontSize: 12, opacity: 0.55 }}>{text.length}/2000</Text>
+          <Text style={{ fontSize: 12, opacity: 0.55 }}>{note.length}/2000</Text>
         </View>
 
         <View style={{ borderWidth: 1, borderRadius: 14, padding: 13, gap: 5 }}>
           <Text style={{ fontWeight: '800' }}>Canal actual</Text>
           <Text style={{ opacity: 0.64, lineHeight: 20 }}>
             {whatsappBaseUrl
-              ? 'Palta prepara el mensaje y abre el WhatsApp público de este negocio. No creamos un segundo perfil ni copiamos la conversación.'
+              ? 'Palta prepara la solicitud y abre el WhatsApp público de este negocio. No copiamos la conversación ni creamos un segundo perfil.'
               : 'Este negocio todavía no tiene WhatsApp público conectado. No inventaremos un canal alternativo.'}
           </Text>
         </View>
 
         <PaltaButton
-          label={
-            openingChannel
-              ? 'Abriendo WhatsApp…'
-              : mode === 'reservation'
-                ? 'Abrir WhatsApp para solicitar'
-                : 'Abrir WhatsApp'
-          }
+          label={openingChannel ? 'Abriendo WhatsApp…' : 'Abrir WhatsApp para solicitar'}
           disabled={openingChannel || creatingCare || !whatsappBaseUrl}
           onPress={() => void openWhatsapp()}
         />
 
-        {mode === 'reservation' && preparedReservation ? (
+        {preparedReservation ? (
           <View style={{ gap: 10 }}>
             <PaltaButton
               label={creatingCare ? 'Iniciando seguimiento…' : 'Ya envié la solicitud'}

@@ -45,12 +45,12 @@ export function BusinessActionBar({
   });
 
   const runAction = (capability: BusinessCapability) => {
-    if (businessId && (capability === 'inquiry' || capability === 'reservation')) {
-      router.push(
-        `/business/${encodeURIComponent(businessId)}/${
-          capability === 'reservation' ? 'reservation' : 'inquiry'
-        }`,
-      );
+    if (capability === 'inquiry' && businessId) {
+      router.push(`/messages/business/${encodeURIComponent(businessId)}`);
+      return;
+    }
+    if (capability === 'reservation' && businessId) {
+      router.push(`/business/${encodeURIComponent(businessId)}/reservation`);
       return;
     }
     onAction(capability);

@@ -1,5 +1,5 @@
-import { BusinessContactIntentExperience } from '../../../features/business/BusinessContactIntentExperience';
+import { BusinessReservationExperience } from '../../../features/business/BusinessReservationExperience';
 
 export default function BusinessReservationScreen() {
-  return <BusinessContactIntentExperience mode="reservation" />;
+  return <BusinessReservationExperience />;
 }
