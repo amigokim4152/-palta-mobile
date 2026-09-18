@@ -69,6 +69,20 @@ restore_ref_file() {
   rm -f "$TMP_SOURCE"
 }
 
+# Overlay files live one directory shallower than apps/mobile. After copying
+# them into apps/mobile, imports that target the repository-level src/ folder
+# must go up one additional directory.
+adjust_repo_root_imports_for_mobile() {
+  FILE_PATH="$1"
+  node - "$FILE_PATH" <<'NODE'
+const fs = require('fs');
+const path = process.argv[2];
+const before = fs.readFileSync(path, 'utf8');
+const after = before.replaceAll('../../../../src/', '../../../../../src/');
+if (after !== before) fs.writeFileSync(path, after);
+NODE
+}
+
 restore_ref_file \
   "mobile-overlay/src/hooks/useAsyncResource.ts" \
   "$APP_DIR/src/hooks/useAsyncResource.ts" \
@@ -78,11 +92,22 @@ restore_ref_file \
   "mobile-overlay/src/components/map/NeighborhoodMap.tsx" \
   "$APP_DIR/src/components/map/NeighborhoodMap.tsx" \
   "last working MapLibre component"
+adjust_repo_root_imports_for_mobile "$APP_DIR/src/components/map/NeighborhoodMap.tsx"
 
 restore_ref_file \
   "mobile-overlay/src/features/neighborhood/NeighborhoodScreen.tsx" \
   "$APP_DIR/src/features/neighborhood/NeighborhoodScreen.tsx" \
   "last working Barrio screen"
+adjust_repo_root_imports_for_mobile "$APP_DIR/src/features/neighborhood/NeighborhoodScreen.tsx"
+
+# Fail early if the copied runtime files still contain the overlay-relative path.
+if grep -q "../../../../src/" "$APP_DIR/src/components/map/NeighborhoodMap.tsx"; then
+  fail "NeighborhoodMap still has an overlay-relative repository import."
+fi
+if grep -q "../../../../src/" "$APP_DIR/src/features/neighborhood/NeighborhoodScreen.tsx"; then
+  fail "NeighborhoodScreen still has an overlay-relative repository import."
+fi
+info "Verified mobile repository imports are adjusted for apps/mobile depth."
 
 EXPERIMENTAL_STYLE="$APP_DIR/src/components/map/paltaDevelopmentMapStyle.ts"
 if [ -f "$EXPERIMENTAL_STYLE" ]; then
@@ -124,7 +149,8 @@ if [ -d "$SIMULATOR_APP" ]; then
   info "Opening Simulator from Xcode developer directory..."
   open "$SIMULATOR_APP" >/dev/null 2>&1 || true
 else
-  info "Simulator.app not found by path; continuing with simctl boot."
+  info "Simulator.app not present in this Xcode; opening DeviceHub instead when available..."
+  open -a DeviceHub >/dev/null 2>&1 || true
 fi
 
 BOOTED_UDID="$(xcrun simctl list devices booted | awk -F '[()]' '/iPhone/ && /Booted/ {print $2; exit}')"
