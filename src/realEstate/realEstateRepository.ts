@@ -4,7 +4,7 @@ import type {
   PropertyListing,
   PropertyTransactionType,
   PropertyType,
-} from './realEstateContracts';
+} from './realEstateContracts.js';
 
 export type RealEstateListingSearchItem = {
   listing: PropertyListing;
