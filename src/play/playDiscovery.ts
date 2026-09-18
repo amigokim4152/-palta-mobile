@@ -47,14 +47,16 @@ export type PlayBusinessProjectionRef = Readonly<{
 
 export type PlayDiscoveryItem = {
   id: string;
-  /**
-   * Stable cross-source identity when an upstream adapter can provide it.
-   * When absent, Play canonicalization derives a conservative fingerprint.
-   */
+  /** Stable cross-source identity when an upstream matcher can provide it. */
   canonicalKey?: string;
   sourceKind: PlaySourceKind;
   /** What the user can do, independent of the upstream provider/category vocabulary. */
   contentKind: PlayContentKind;
+  /** Canonical entity references remain separate from presentation/provenance. */
+  eventId?: string;
+  venueId?: string;
+  offeringId?: string;
+  organizerIds?: readonly string[];
   title: string;
   comuna: string;
   venue?: string;
@@ -67,8 +69,9 @@ export type PlayDiscoveryItem = {
   themeTags: PlayThemeKey[];
   imageUrl?: string;
   priceLabel?: string;
-  /** Distance is resolved upstream from shared location/map infrastructure. */
+  /** Distance/travel time are resolved upstream from shared Map/Location infrastructure. */
   distanceM?: number;
+  travelTimeMinutes?: number;
   distanceLabel?: string;
   experienceTags?: readonly string[];
   primaryAction?: PlayDiscoveryAction;
@@ -120,6 +123,9 @@ export function validatePlayDiscoveryItem(item: PlayDiscoveryItem): readonly str
   if (item.distanceM !== undefined && (!Number.isFinite(item.distanceM) || item.distanceM < 0)) {
     issues.push('distance_m_invalid');
   }
+  if (item.travelTimeMinutes !== undefined && (!Number.isFinite(item.travelTimeMinutes) || item.travelTimeMinutes < 0)) {
+    issues.push('travel_time_invalid');
+  }
   if (item.primaryAction && !isHttpUrl(item.primaryAction.url)) {
     issues.push('primary_action_url_invalid');
   }
@@ -137,6 +143,15 @@ export function validatePlayDiscoveryItem(item: PlayDiscoveryItem): readonly str
     issues.push('business_projection_identity_mismatch');
   }
   return [...new Set(issues)];
+}
+
+function compareTravelTime(left: PlayDiscoveryItem, right: PlayDiscoveryItem): number {
+  if (left.travelTimeMinutes !== undefined && right.travelTimeMinutes !== undefined) {
+    return left.travelTimeMinutes - right.travelTimeMinutes;
+  }
+  if (left.travelTimeMinutes !== undefined) return -1;
+  if (right.travelTimeMinutes !== undefined) return 1;
+  return 0;
 }
 
 function compareDistance(left: PlayDiscoveryItem, right: PlayDiscoveryItem): number {
@@ -159,9 +174,6 @@ function compareStartTime(left: PlayDiscoveryItem, right: PlayDiscoveryItem): nu
  * Organic discovery ordering. Deliberately accepts no commercial capability,
  * commission or partner payout input. Monetization is joined only after this
  * selection step.
- *
- * Public/municipal supply is guaranteed by dedicated feed sections, not by
- * pushing a farther public item above a more useful nearby result.
  */
 export function selectPlayDiscoveryItems(
   items: readonly PlayDiscoveryItem[],
@@ -173,10 +185,12 @@ export function selectPlayDiscoveryItems(
     : [...validItems];
 
   return filtered.sort((left, right) => {
+    const travelTimeOrder = compareTravelTime(left, right);
+    if (travelTimeOrder !== 0) return travelTimeOrder;
+
     const distanceOrder = compareDistance(left, right);
     if (distanceOrder !== 0) return distanceOrder;
 
-    // Comuna is a fallback proximity signal when precise distance is unavailable.
     const leftLocal = context.locality && left.comuna === context.locality ? 0 : 1;
     const rightLocal = context.locality && right.comuna === context.locality ? 0 : 1;
     if (leftLocal !== rightLocal) return leftLocal - rightLocal;
@@ -184,7 +198,6 @@ export function selectPlayDiscoveryItems(
     const timeOrder = compareStartTime(left, right);
     if (timeOrder !== 0) return timeOrder;
 
-    // Public provenance is only a deterministic tie-breaker in organic discovery.
     const leftPublic = isPublicPlayItem(left) ? 0 : 1;
     const rightPublic = isPublicPlayItem(right) ? 0 : 1;
     if (leftPublic !== rightPublic) return leftPublic - rightPublic;
