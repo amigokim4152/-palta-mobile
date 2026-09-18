@@ -12,7 +12,8 @@
     "check:independence": "node scripts/check-core-independence.mjs",
     "check:naming": "node scripts/check-repository-naming.mjs",
     "check:auth-secrets": "node scripts/check-mobile-auth-secrets.mjs",
-    "verify": "npm run typecheck && npm test && npm run check:independence && npm run check:naming && npm run check:auth-secrets",
+    "check:env-example": "node --env-file=.env.example scripts/preflight-env.mjs",
+    "verify": "npm run typecheck && npm test && npm run check:independence && npm run check:naming && npm run check:auth-secrets && npm run check:env-example",
     "preflight:env": "node scripts/preflight-env.mjs",
     "preflight:local": "bash scripts/preflight-local.sh",
     "check:machine": "bash scripts/machine-readiness-check.sh"
