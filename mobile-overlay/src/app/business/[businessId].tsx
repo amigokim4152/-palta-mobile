@@ -7,7 +7,10 @@ import {
   createClientMutationId,
   isRetryableMutationError,
 } from '../../../../src/api/retryPolicy';
-import { businessVerificationLabel } from '../../../../src/localization/index';
+import {
+  businessCapabilityLabel,
+  businessVerificationLabel,
+} from '../../../../src/localization/index';
 import {
   ErrorState,
   LoadingState,
@@ -42,7 +45,7 @@ export default function BusinessDetailScreen() {
     setSubmitting(true);
     setSubmitMessage(null);
 
-    const description = 'Solicitud iniciada desde el detalle del negocio.';
+    const sourceContext = 'business_detail' as const;
     const mutationId = createClientMutationId(Date.now(), Math.random());
 
     try {
@@ -50,7 +53,7 @@ export default function BusinessDetailScreen() {
         intentKey: 'local_business_quote',
         subjectEntityId: businessId,
         actionType: 'quote_request',
-        payload: { description },
+        payload: { source_context: sourceContext },
         idempotencyKey: mutationId,
       });
       router.push(`/care/${encodeURIComponent(care.id)}`);
@@ -62,7 +65,7 @@ export default function BusinessDetailScreen() {
             kind: 'business_quote_request',
             payload: {
               businessId,
-              description,
+              sourceContext,
             },
             now: new Date().toISOString(),
           }),
@@ -90,7 +93,9 @@ export default function BusinessDetailScreen() {
       case 'coupon':
       case 'pricing':
         setSubmitMessage(
-          t('business.adapterPending', { capability }),
+          t('business.adapterPending', {
+            capability: businessCapabilityLabel(capability, locale),
+          }),
         );
         return;
     }
