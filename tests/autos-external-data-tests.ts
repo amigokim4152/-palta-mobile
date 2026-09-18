@@ -57,7 +57,7 @@ const siiSnapshot: SiiTasacionSnapshot = {
 const snapshotValidation = validateSiiTasacionSnapshot(siiSnapshot, { allowPartialForTests: true });
 assert(snapshotValidation.valid, 'A structurally valid partial SII snapshot should pass test validation.');
 
-const siiAdapter = createSiiTasacionSnapshotAdapter(siiSnapshot);
+const siiAdapter = createSiiTasacionSnapshotAdapter(siiSnapshot, { allowPartialForTests: true });
 const byCode = await siiAdapter.lookup({ siiCode: 'toy-rav4-xle', manufactureYear: 2021 });
 assert(byCode?.fiscalValueClp?.value === 15_000_000, 'SII code + year should resolve an exact fiscal value.');
 assert(byCode?.fiscalValueClp?.source === 'sii_tasacion', 'Fiscal value should preserve official-source provenance.');
