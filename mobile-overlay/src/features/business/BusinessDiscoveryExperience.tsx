@@ -266,11 +266,61 @@ function EmptyLocationStart({
   );
 }
 
+function ViewModeSwitch({
+  value,
+  onChange,
+}: {
+  value: 'list' | 'map';
+  onChange: (next: 'list' | 'map') => void;
+}) {
+  return (
+    <View
+      style={{
+        flexDirection: 'row',
+        padding: 3,
+        borderRadius: paltaTheme.radius.pill,
+        backgroundColor: paltaTheme.color.surfaceMuted,
+      }}
+    >
+      {(['list', 'map'] as const).map((mode) => {
+        const selected = value === mode;
+        return (
+          <Pressable
+            key={mode}
+            accessibilityRole="button"
+            accessibilityState={{ selected }}
+            onPress={() => onChange(mode)}
+            style={{
+              minWidth: 78,
+              minHeight: 38,
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: paltaTheme.radius.pill,
+              backgroundColor: selected ? paltaTheme.color.surface : 'transparent',
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 13,
+                fontWeight: '800',
+                color: selected ? paltaTheme.color.textPrimary : paltaTheme.color.textMuted,
+              }}
+            >
+              {mode === 'list' ? 'Lista' : 'Mapa'}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
 export function BusinessDiscoveryExperience() {
   const { state: neighborhood, dispatch } = useNeighborhoodState();
   const [draftQuery, setDraftQuery] = useState(neighborhood.query);
   const [locationBusy, setLocationBusy] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
 
   const verifiedOnly = neighborhood.activeFilters.includes(FILTER_VERIFIED);
   const openNowOnly = neighborhood.activeFilters.includes(FILTER_OPEN_NOW);
@@ -405,6 +455,27 @@ export function BusinessDiscoveryExperience() {
     dispatch({ type: 'set_effective_location', location: SANTIAGO_EXPLORATION_ORIGIN });
   }
 
+  function renderBusinessCard(item: (typeof businesses)[number], selected = false) {
+    const visual = discoveryVisual(item);
+    return (
+      <LocalResultCard
+        key={item.entity_id}
+        selected={selected}
+        name={item.name}
+        meta={[
+          formatOperationalState(item.operational_state, item.next_open_at),
+          item.category_key,
+          item.verification_status === 'verified' ? 'Verificado' : undefined,
+        ].filter(Boolean).join(' · ')}
+        distance={item.location ? formatDistance(item.distance_m) : 'Zona de atención'}
+        imageUrl={visual.imageUrl}
+        serviceLabels={visual.serviceLabels}
+        highlight={visual.highlight}
+        onPress={() => openBusiness(item.entity_id)}
+      />
+    );
+  }
+
   if (!neighborhood.effectiveLocation) {
     return (
       <BusinessDiscoveryShell
@@ -421,6 +492,25 @@ export function BusinessDiscoveryExperience() {
       </BusinessDiscoveryShell>
     );
   }
+
+  const resultHeader = (
+    <View
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: paltaTheme.spacing.sm,
+        paddingBottom: paltaTheme.spacing.sm,
+      }}
+    >
+      <Text style={{ fontSize: 16, fontWeight: '800', color: paltaTheme.color.textPrimary }}>
+        {neighborhood.query ? 'Resultados' : 'Cerca de aquí'}
+      </Text>
+      <Text style={{ fontSize: 12, color: paltaTheme.color.textMuted }}>
+        {businesses.length} {businesses.length === 1 ? 'negocio' : 'negocios'}
+      </Text>
+    </View>
+  );
 
   const resultsContent = (
     <>
@@ -453,22 +543,7 @@ export function BusinessDiscoveryExperience() {
         </View>
       ) : null}
 
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: paltaTheme.spacing.sm,
-          paddingBottom: paltaTheme.spacing.sm,
-        }}
-      >
-        <Text style={{ fontSize: 15, fontWeight: '800', color: paltaTheme.color.textPrimary }}>
-          {neighborhood.query ? 'Resultados' : 'Cerca de aquí'}
-        </Text>
-        <Text style={{ fontSize: 12, color: paltaTheme.color.textMuted }}>
-          {businesses.length} {businesses.length === 1 ? 'negocio' : 'negocios'}
-        </Text>
-      </View>
+      {resultHeader}
 
       {state.status === 'loading' && !state.data ? <LoadingState label="Buscando negocios…" /> : null}
       {state.status === 'error' && !state.data ? (
@@ -485,25 +560,7 @@ export function BusinessDiscoveryExperience() {
 
       {businesses
         .filter((item) => item.entity_id !== selectedBusiness?.entity_id)
-        .map((item) => {
-          const visual = discoveryVisual(item);
-          return (
-            <LocalResultCard
-              key={item.entity_id}
-              name={item.name}
-              meta={[
-                formatOperationalState(item.operational_state, item.next_open_at),
-                item.category_key,
-                item.verification_status === 'verified' ? 'Verificado' : undefined,
-              ].filter(Boolean).join(' · ')}
-              distance={item.location ? formatDistance(item.distance_m) : 'Zona de atención'}
-              imageUrl={visual.imageUrl}
-              serviceLabels={visual.serviceLabels}
-              highlight={visual.highlight}
-              onPress={() => openBusiness(item.entity_id)}
-            />
-          );
-        })}
+        .map((item) => renderBusinessCard(item))}
 
       {state.status === 'error' && state.data ? (
         <ErrorState message={state.message} onRetry={() => void refresh()} />
@@ -513,6 +570,7 @@ export function BusinessDiscoveryExperience() {
 
   return (
     <BusinessDiscoveryShell
+      subtitle="Negocios útiles cerca de ti"
       leftAction={
         <BusinessHeaderAction label="Siguiendo" onPress={() => router.push('/local-businesses/following')} />
       }
@@ -550,96 +608,134 @@ export function BusinessDiscoveryExperience() {
 
         <View
           style={{
-            flex: 1,
-            minHeight: 420,
-            position: 'relative',
-            overflow: 'hidden',
-            borderRadius: paltaTheme.radius.sheet,
-            backgroundColor: paltaTheme.color.surfaceMuted,
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: paltaTheme.spacing.sm,
+            marginBottom: paltaTheme.spacing.sm,
           }}
         >
-          <View style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}>
-            {mobileRuntime.status === 'ready' && mobileRuntime.mapStyleUrl ? (
-              <NeighborhoodMap
-                mapStyle={mobileRuntime.mapStyleUrl}
-                features={mapFeatures}
-                initialCenter={neighborhood.camera?.center ?? neighborhood.effectiveLocation}
-                initialZoom={neighborhood.camera?.zoom ?? 14}
-                onSelectEntity={selectBusinessFromMap}
-                onViewportChanged={(center, zoom, userInteraction) =>
-                  dispatch({ type: 'set_viewport_center', center, zoom, userInteraction })
-                }
-              />
-            ) : (
-              <View
-                style={{
-                  flex: 1,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: paltaTheme.spacing.xl,
-                  backgroundColor: paltaTheme.color.surfaceMuted,
-                }}
-              >
-                <Text
-                  style={{
-                    textAlign: 'center',
-                    fontSize: 17,
-                    fontWeight: '800',
-                    color: paltaTheme.color.textPrimary,
-                  }}
-                >
-                  El mapa no está disponible en este momento
-                </Text>
-                <Text
-                  style={{
-                    marginTop: paltaTheme.spacing.xs,
-                    textAlign: 'center',
-                    lineHeight: 20,
-                    color: paltaTheme.color.textSecondary,
-                  }}
-                >
-                  Puedes seguir usando la lista de negocios.
-                </Text>
-              </View>
-            )}
-          </View>
-
-          {neighborhood.mapMovedSinceSearch ? (
-            <Pressable
-              onPress={() =>
-                dispatch({
-                  type: 'search_current_viewport',
-                  resultIds: businesses.map((item) => item.entity_id),
-                })
-              }
-              style={({ pressed }) => ({
-                position: 'absolute',
-                alignSelf: 'center',
-                top: paltaTheme.spacing.sm,
-                minHeight: paltaTheme.touch.minimum,
-                justifyContent: 'center',
-                paddingHorizontal: paltaTheme.spacing.md,
-                borderRadius: paltaTheme.radius.pill,
-                backgroundColor: pressed ? paltaTheme.color.surfaceMuted : paltaTheme.color.surface,
-                borderWidth: 1,
-                borderColor: paltaTheme.color.divider,
-              })}
-            >
-              <Text style={{ fontWeight: '800', color: paltaTheme.color.textPrimary }}>
-                Buscar en esta zona
-              </Text>
-            </Pressable>
-          ) : null}
-
-          <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0 }}>
-            <MapResultSheet
-              snap={neighborhood.sheetSnap}
-              onSnapChange={(snap) => dispatch({ type: 'set_sheet_snap', snap })}
-            >
-              {resultsContent}
-            </MapResultSheet>
-          </View>
+          <Text style={{ fontSize: 14, fontWeight: '700', color: paltaTheme.color.textSecondary }}>
+            {neighborhood.query ? `“${neighborhood.query}”` : 'Explora tu zona'}
+          </Text>
+          <ViewModeSwitch value={viewMode} onChange={setViewMode} />
         </View>
+
+        {viewMode === 'list' ? (
+          <ScrollView
+            style={{ flex: 1 }}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ paddingBottom: 40 }}
+          >
+            {resultsContent}
+          </ScrollView>
+        ) : (
+          <View
+            style={{
+              flex: 1,
+              minHeight: 420,
+              position: 'relative',
+              overflow: 'hidden',
+              borderRadius: paltaTheme.radius.sheet,
+              backgroundColor: paltaTheme.color.surfaceMuted,
+            }}
+          >
+            <View style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}>
+              {mobileRuntime.status === 'ready' && mobileRuntime.mapStyleUrl ? (
+                <NeighborhoodMap
+                  mapStyle={mobileRuntime.mapStyleUrl}
+                  features={mapFeatures}
+                  initialCenter={neighborhood.camera?.center ?? neighborhood.effectiveLocation}
+                  initialZoom={neighborhood.camera?.zoom ?? 14}
+                  onSelectEntity={selectBusinessFromMap}
+                  onViewportChanged={(center, zoom, userInteraction) =>
+                    dispatch({ type: 'set_viewport_center', center, zoom, userInteraction })
+                  }
+                />
+              ) : (
+                <View
+                  style={{
+                    flex: 1,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: paltaTheme.spacing.xl,
+                    backgroundColor: paltaTheme.color.surfaceMuted,
+                  }}
+                >
+                  <Text
+                    style={{
+                      textAlign: 'center',
+                      fontSize: 17,
+                      fontWeight: '800',
+                      color: paltaTheme.color.textPrimary,
+                    }}
+                  >
+                    El mapa no está disponible en este momento
+                  </Text>
+                  <Text
+                    style={{
+                      marginTop: paltaTheme.spacing.xs,
+                      textAlign: 'center',
+                      lineHeight: 20,
+                      color: paltaTheme.color.textSecondary,
+                    }}
+                  >
+                    Puedes seguir usando la lista de negocios.
+                  </Text>
+                  <Pressable
+                    onPress={() => setViewMode('list')}
+                    style={{
+                      marginTop: paltaTheme.spacing.md,
+                      minHeight: paltaTheme.touch.minimum,
+                      justifyContent: 'center',
+                      paddingHorizontal: paltaTheme.spacing.md,
+                      borderRadius: paltaTheme.radius.control,
+                      backgroundColor: paltaTheme.color.surface,
+                    }}
+                  >
+                    <Text style={{ fontWeight: '800', color: paltaTheme.color.textPrimary }}>Ver lista</Text>
+                  </Pressable>
+                </View>
+              )}
+            </View>
+
+            {neighborhood.mapMovedSinceSearch ? (
+              <Pressable
+                onPress={() =>
+                  dispatch({
+                    type: 'search_current_viewport',
+                    resultIds: businesses.map((item) => item.entity_id),
+                  })
+                }
+                style={({ pressed }) => ({
+                  position: 'absolute',
+                  alignSelf: 'center',
+                  top: paltaTheme.spacing.sm,
+                  minHeight: paltaTheme.touch.minimum,
+                  justifyContent: 'center',
+                  paddingHorizontal: paltaTheme.spacing.md,
+                  borderRadius: paltaTheme.radius.pill,
+                  backgroundColor: pressed ? paltaTheme.color.surfaceMuted : paltaTheme.color.surface,
+                  borderWidth: 1,
+                  borderColor: paltaTheme.color.divider,
+                })}
+              >
+                <Text style={{ fontWeight: '800', color: paltaTheme.color.textPrimary }}>
+                  Buscar en esta zona
+                </Text>
+              </Pressable>
+            ) : null}
+
+            <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0 }}>
+              <MapResultSheet
+                snap={neighborhood.sheetSnap}
+                onSnapChange={(snap) => dispatch({ type: 'set_sheet_snap', snap })}
+              >
+                {resultsContent}
+              </MapResultSheet>
+            </View>
+          </View>
+        )}
       </View>
     </BusinessDiscoveryShell>
   );
