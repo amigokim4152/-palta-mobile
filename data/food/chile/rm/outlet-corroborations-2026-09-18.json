@@ -136,6 +136,16 @@
         {"kind": "waze", "url": "https://www.waze.com/es/live-map/directions/pasteleria-geno-santos-dumont-recoleta?to=place.w.189662650.1896298818.17360507", "observed_at": "2026-09-18"},
         {"kind": "other_public_source", "url": "https://orion-genopasteleria-stio.cluster2.hgsitebuilder.com/home", "observed_at": "2026-09-18"}
       ]
+    },
+    {
+      "outlet_key": "cl-rm-maipu-cafeteria-latte-corazon-hugo-bravo-20",
+      "identity_status": "verified",
+      "address": "Arquitecto Hugo Bravo 20",
+      "comuna": "Maipú",
+      "public_contact": {"phone": "+56945295051", "website": "https://lattecorazon.cl/"},
+      "evidence": [
+        {"kind": "official_website", "url": "https://lattecorazon.cl/", "observed_at": "2026-09-18"}
+      ]
     }
   ]
 }
