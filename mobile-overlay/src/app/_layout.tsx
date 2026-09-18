@@ -7,18 +7,31 @@ import { MutationSyncBootstrap } from '../providers/MutationSyncBootstrap';
 import { PaltaSQLiteProvider } from '../providers/PaltaSQLiteProvider';
 import { NeighborhoodStateProvider } from '../state/NeighborhoodStateProvider';
 
+function PaltaAppRuntime() {
+  return (
+    <PaltaSQLiteProvider>
+      <MutationSyncBootstrap />
+      <MarketRuntimeBootstrap />
+      <PreviewBuildWatcher />
+      <NeighborhoodStateProvider>
+        <Stack screenOptions={{ headerShown: false }} />
+      </NeighborhoodStateProvider>
+    </PaltaSQLiteProvider>
+  );
+}
+
 export default function RootLayout() {
+  const previewMode =
+    __DEV__ && process.env.EXPO_PUBLIC_PALTA_PREVIEW === '1';
+
+  if (previewMode) {
+    return <PaltaAppRuntime />;
+  }
+
   return (
     <AuthRuntimeProvider>
       <AuthGate>
-        <PaltaSQLiteProvider>
-          <MutationSyncBootstrap />
-          <MarketRuntimeBootstrap />
-          <PreviewBuildWatcher />
-          <NeighborhoodStateProvider>
-            <Stack screenOptions={{ headerShown: false }} />
-          </NeighborhoodStateProvider>
-        </PaltaSQLiteProvider>
+        <PaltaAppRuntime />
       </AuthGate>
     </AuthRuntimeProvider>
   );
