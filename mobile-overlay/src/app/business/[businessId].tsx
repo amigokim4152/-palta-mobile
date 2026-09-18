@@ -7,6 +7,7 @@ import {
   createClientMutationId,
   isRetryableMutationError,
 } from '../../../../src/api/retryPolicy';
+import { businessVerificationLabel } from '../../../../src/localization/index';
 import {
   ErrorState,
   LoadingState,
@@ -22,7 +23,7 @@ import { useMutationQueueStore } from '../../services/useMutationQueueStore';
 export default function BusinessDetailScreen() {
   const { businessId } = useLocalSearchParams<{ businessId: string }>();
   const queueStore = useMutationQueueStore();
-  const { t } = useLocalization();
+  const { locale, t } = useLocalization();
   const [submitting, setSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState<string | null>(null);
 
@@ -130,7 +131,10 @@ export default function BusinessDetailScreen() {
       <View style={{ gap: 14 }}>
         <Text>
           {t('business.verificationNote', {
-            status: business.verification_status,
+            status: businessVerificationLabel(
+              business.verification_status,
+              locale,
+            ),
           })}
         </Text>
 
