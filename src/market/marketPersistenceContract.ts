@@ -72,12 +72,28 @@ export type MarketTransactionStatus =
   | 'completed'
   | 'cancelled';
 
+/**
+ * Immutable user-facing listing context copied when a transaction starts.
+ * This keeps transaction/review history understandable after the public listing
+ * is sold, withdrawn or later edited, without exposing private seller fields.
+ */
+export type MarketTransactionListingSnapshot = {
+  listingId: MarketId;
+  title: string;
+  category: Exclude<MarketCategoryKey, 'all'>;
+  tradeMode: MarketTradeMode;
+  priceClp?: number;
+  comunaName: string;
+  mediaAssetId?: string;
+};
+
 export type MarketTransactionRecord = {
   id: MarketId;
   listingId: MarketId;
   sellerUserId: PaltaUserId;
   buyerUserId: PaltaUserId;
   status: MarketTransactionStatus;
+  listingSnapshot: MarketTransactionListingSnapshot;
   /** Optional reference owned by Message Core, never a copied conversation. */
   conversationId?: string;
   createdAt: IsoDateTime;
