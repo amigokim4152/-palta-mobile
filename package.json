@@ -6,7 +6,7 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "build": "tsc",
-    "test": "npm run build && node dist/tests/run-tests.js && node dist/tests/auth-profile-core-tests.js && node dist/tests/auth-profile-persistence-tests.js && node dist/tests/home-functional-contract-tests.js && node dist/tests/care-home-functional-tests.js && node dist/tests/home-cache-policy-tests.js && node dist/tests/scheduled-home-functional-tests.js && node dist/tests/weather-home-functional-tests.js && node dist/tests/public-life-news-functional-tests.js && node dist/tests/mobility-home-functional-tests.js && node dist/tests/commerce-order-home-functional-tests.js && node dist/tests/functional-home-composer-tests.js",
+    "test": "npm run build && node dist/tests/run-tests.js && node dist/tests/auth-profile-core-tests.js && node dist/tests/auth-profile-persistence-tests.js && node dist/tests/home-functional-contract-tests.js && node dist/tests/care-home-functional-tests.js && node dist/tests/home-cache-policy-tests.js && node dist/tests/scheduled-home-functional-tests.js && node dist/tests/weather-home-functional-tests.js && node dist/tests/public-life-news-functional-tests.js && node dist/tests/mobility-home-functional-tests.js && node dist/tests/commerce-order-home-functional-tests.js && node dist/tests/functional-home-composer-tests.js && node dist/tests/home-functional-api-projection-tests.js",
     "mock:api": "node dev/mock-api/server.mjs",
     "mock:smoke": "node dev/mock-api/smoke.mjs",
     "check:independence": "node scripts/check-core-independence.mjs",
