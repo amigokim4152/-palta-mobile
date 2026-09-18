@@ -100,6 +100,11 @@ sync_ref_file \
   "Home source adapter contract"
 
 sync_ref_file \
+  "src/home/homeApiProjection.ts" \
+  "$ROOT/src/home/homeApiProjection.ts" \
+  "Home API candidate projection"
+
+sync_ref_file \
   "src/home/mergeHomeSources.ts" \
   "$ROOT/src/home/mergeHomeSources.ts" \
   "Home source merger"
@@ -113,6 +118,16 @@ sync_ref_file \
   "src/home/adapters/mobilityHomeAdapter.ts" \
   "$ROOT/src/home/adapters/mobilityHomeAdapter.ts" \
   "Mobility Home adapter"
+
+sync_ref_file \
+  "src/journey/journeyContract.ts" \
+  "$ROOT/src/journey/journeyContract.ts" \
+  "Journey contract snapshot"
+
+sync_ref_file \
+  "src/home/adapters/journeyHomeBridge.ts" \
+  "$ROOT/src/home/adapters/journeyHomeBridge.ts" \
+  "Journey to Home bridge"
 
 sync_ref_file \
   "src/home/adapters/publicLifeNewsHomeAdapters.ts" \
