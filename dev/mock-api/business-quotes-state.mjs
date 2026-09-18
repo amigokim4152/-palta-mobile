@@ -42,6 +42,32 @@ function projectQuote(quote, businesses) {
   };
 }
 
+function projectBusinessQuoteInboxItem(quote, businessId) {
+  const ownResponse = (quote.responses ?? []).find((item) => item.business_id === businessId);
+  const closed = quote.status === 'selected' || quote.status === 'completed' || quote.status === 'cancelled';
+  return {
+    id: quote.id,
+    care_track_id: quote.care_track_id,
+    description: quote.description,
+    status: quote.status,
+    created_at: quote.created_at,
+    ...(quote.requested_for ? { requested_for: quote.requested_for } : {}),
+    ...(ownResponse
+      ? {
+          response: {
+            id: ownResponse.id,
+            ...(Number.isInteger(ownResponse.amount_clp) ? { amount_clp: ownResponse.amount_clp } : {}),
+            ...(ownResponse.note ? { note: ownResponse.note } : {}),
+            ...(ownResponse.available_at ? { available_at: ownResponse.available_at } : {}),
+            ...(ownResponse.valid_until ? { valid_until: ownResponse.valid_until } : {}),
+          },
+        }
+      : {}),
+    selected: quote.selected_business_id === businessId,
+    can_respond: !closed,
+  };
+}
+
 export async function handleBusinessQuotesRequest({ req, res, url, businesses, json, readJson }) {
   // This is only dev-mock composition. Production keeps one Shared Care Core;
   // the mock exposes the same /v1/care/{id} contract for quote-created tracks.
@@ -55,6 +81,23 @@ export async function handleBusinessQuotesRequest({ req, res, url, businesses, j
       json(res, 200, care);
       return true;
     }
+  }
+
+  const businessInboxMatch = req.method === 'GET'
+    ? url.pathname.match(/^\/v1\/business\/([^/]+)\/quote-requests$/)
+    : null;
+  if (businessInboxMatch) {
+    const businessId = decodeURIComponent(businessInboxMatch[1]);
+    if (!businesses.some((business) => business.id === businessId)) {
+      json(res, 404, { error: 'business_not_found' });
+      return true;
+    }
+    const items = [...quoteRequests.values()]
+      .filter((quote) => quote.recipient_business_ids.includes(businessId))
+      .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))
+      .map((quote) => projectBusinessQuoteInboxItem(quote, businessId));
+    json(res, 200, { business_id: businessId, items });
+    return true;
   }
 
   if (req.method === 'POST' && url.pathname === '/v1/local-business/quotes') {
