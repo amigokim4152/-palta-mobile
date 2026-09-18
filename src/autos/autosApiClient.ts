@@ -82,6 +82,45 @@ export type AutosAcquisitionOffersApiResponse = {
   items: AutosDealerOfferApiItem[];
 };
 
+export type AutosOfferSelectionApiResponse = {
+  request_id: string;
+  status: 'offer_selected';
+  selected_offer_id: string;
+  selected_business_id: string;
+  contact_shared: false;
+  exact_location_shared: false;
+};
+
+export type AutosCoordinationUpdateInput = {
+  contactConsent: 'private' | 'share_selected_dealer';
+  phone?: string;
+  locationConsent: 'private' | 'share_selected_dealer';
+  exactLocation?: {
+    latitude: number;
+    longitude: number;
+    label?: string;
+  };
+};
+
+export type AutosCoordinationUpdateResponse = {
+  request_id: string;
+  selected_business_id: string;
+  contact_shared: boolean;
+  exact_location_shared: boolean;
+};
+
+export type AutosDealerCoordinationResponse = {
+  request_id: string;
+  business_id: string;
+  selected: true;
+  phone?: string;
+  exact_location?: {
+    latitude: number;
+    longitude: number;
+    label?: string;
+  };
+};
+
 export type AutosDealerAcquisitionQueueItem = {
   request_id: string;
   make: string;
@@ -218,6 +257,64 @@ export class AutosApiClient {
     return payload as unknown as AutosAcquisitionOffersApiResponse;
   }
 
+  async selectAcquisitionOffer(
+    requestId: string,
+    offerId: string,
+  ): Promise<AutosOfferSelectionApiResponse> {
+    const payload = expectObject(
+      await this.request(`/v1/autos/acquisition-requests/${encodeURIComponent(requestId)}/selection`, {
+        method: 'POST',
+        body: { offer_id: offerId },
+      }),
+      'POST /v1/autos/acquisition-requests/{id}/selection',
+    );
+    if (
+      payload.request_id !== requestId ||
+      payload.selected_offer_id !== offerId ||
+      typeof payload.selected_business_id !== 'string' ||
+      payload.contact_shared !== false ||
+      payload.exact_location_shared !== false
+    ) {
+      throw new Error('POST Autos offer selection returned invalid privacy projection');
+    }
+    return payload as unknown as AutosOfferSelectionApiResponse;
+  }
+
+  async updateAcquisitionCoordination(
+    requestId: string,
+    input: AutosCoordinationUpdateInput,
+  ): Promise<AutosCoordinationUpdateResponse> {
+    const payload = expectObject(
+      await this.request(`/v1/autos/acquisition-requests/${encodeURIComponent(requestId)}/coordination`, {
+        method: 'POST',
+        body: {
+          contact_consent: input.contactConsent,
+          ...(input.phone ? { phone: input.phone } : {}),
+          location_consent: input.locationConsent,
+          ...(input.exactLocation
+            ? {
+                exact_location: {
+                  latitude: input.exactLocation.latitude,
+                  longitude: input.exactLocation.longitude,
+                  ...(input.exactLocation.label ? { label: input.exactLocation.label } : {}),
+                },
+              }
+            : {}),
+        },
+      }),
+      'POST /v1/autos/acquisition-requests/{id}/coordination',
+    );
+    if (
+      payload.request_id !== requestId ||
+      typeof payload.selected_business_id !== 'string' ||
+      typeof payload.contact_shared !== 'boolean' ||
+      typeof payload.exact_location_shared !== 'boolean'
+    ) {
+      throw new Error('POST Autos coordination returned invalid payload');
+    }
+    return payload as unknown as AutosCoordinationUpdateResponse;
+  }
+
   async getDealerAcquisitionQueue(businessId: string): Promise<AutosDealerAcquisitionQueueResponse> {
     const payload = expectObject(
       await this.request(`/v1/business/${encodeURIComponent(businessId)}/autos/acquisition-requests`),
@@ -227,6 +324,22 @@ export class AutosApiClient {
       throw new Error('GET /v1/business/{id}/autos/acquisition-requests returned invalid payload');
     }
     return payload as unknown as AutosDealerAcquisitionQueueResponse;
+  }
+
+  async getDealerCoordination(
+    businessId: string,
+    requestId: string,
+  ): Promise<AutosDealerCoordinationResponse> {
+    const payload = expectObject(
+      await this.request(
+        `/v1/business/${encodeURIComponent(businessId)}/autos/acquisition-requests/${encodeURIComponent(requestId)}/coordination`,
+      ),
+      'GET dealer Autos coordination',
+    );
+    if (payload.request_id !== requestId || payload.business_id !== businessId || payload.selected !== true) {
+      throw new Error('GET dealer Autos coordination returned invalid payload');
+    }
+    return payload as unknown as AutosDealerCoordinationResponse;
   }
 
   async submitDealerOffer(
