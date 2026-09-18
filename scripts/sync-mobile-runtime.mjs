@@ -36,23 +36,32 @@ function rewriteSpecifier(specifier, sourceFile, destinationFile) {
 }
 
 function rewriteRepositoryCoreImports(content, sourceFile, destinationFile) {
-  const patterns = [
-    /(\bfrom\s+)(['"])([^'"]+)(\2)/g,
-    /(\bimport\s*\(\s*)(['"])([^'"]+)(\2)(\s*\))/g,
-    /(\brequire\s*\(\s*)(['"])([^'"]+)(\2)(\s*\))/g,
-  ];
-
   let output = content;
-  for (const pattern of patterns) {
-    output = output.replace(pattern, (...match) => {
-      const prefix = match[1];
-      const quote = match[2];
-      const specifier = match[3];
-      const suffix = match[5] ?? '';
+
+  output = output.replace(
+    /(\bfrom\s+)(['"])([^'"]+)\2/g,
+    (_full, prefix, quote, specifier) => {
+      const nextSpecifier = rewriteSpecifier(specifier, sourceFile, destinationFile);
+      return `${prefix}${quote}${nextSpecifier}${quote}`;
+    }
+  );
+
+  output = output.replace(
+    /(\bimport\s*\(\s*)(['"])([^'"]+)\2(\s*\))/g,
+    (_full, prefix, quote, specifier, suffix) => {
       const nextSpecifier = rewriteSpecifier(specifier, sourceFile, destinationFile);
       return `${prefix}${quote}${nextSpecifier}${quote}${suffix}`;
-    });
-  }
+    }
+  );
+
+  output = output.replace(
+    /(\brequire\s*\(\s*)(['"])([^'"]+)\2(\s*\))/g,
+    (_full, prefix, quote, specifier, suffix) => {
+      const nextSpecifier = rewriteSpecifier(specifier, sourceFile, destinationFile);
+      return `${prefix}${quote}${nextSpecifier}${quote}${suffix}`;
+    }
+  );
+
   return output;
 }
 
