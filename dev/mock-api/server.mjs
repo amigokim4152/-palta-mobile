@@ -4,24 +4,40 @@ import { randomUUID } from 'node:crypto';
 const host = process.env.PALTA_MOCK_HOST ?? '127.0.0.1';
 const port = Number(process.env.PALTA_MOCK_PORT ?? '8787');
 
+// Mock fixtures must never be confused with collected Santiago production data.
+// Any production runtime must source canonical businesses from the production dataset instead.
 const businesses = [
   {
-    id: 'biz-taller-1',
+    id: 'sample-biz-taller-1',
+    record_class: 'sample',
     name: 'Taller ejemplo',
     category_key: 'auto_repair',
     verification_status: 'unverified',
+    owner_verification_status: 'unverified',
+    fact_verification_status: 'sample_only',
+    public_listing_status: 'sample',
     opening_status: 'open',
+    address: 'Dirección ficticia para desarrollo',
+    commune: 'Vitacura',
     location: { lat: -33.3908, lng: -70.5707 },
     contact: { whatsapp: '+56000000000' },
+    evidence: { source_type: 'mock_fixture', fact_verification_status: 'sample_only' },
   },
   {
-    id: 'biz-farmacia-1',
+    id: 'sample-biz-farmacia-1',
+    record_class: 'sample',
     name: 'Farmacia ejemplo',
     category_key: 'pharmacy',
-    verification_status: 'verified',
+    verification_status: 'unverified',
+    owner_verification_status: 'unverified',
+    fact_verification_status: 'sample_only',
+    public_listing_status: 'sample',
     opening_status: 'open',
+    address: 'Dirección ficticia para desarrollo',
+    commune: 'Vitacura',
     location: { lat: -33.3942, lng: -70.5752 },
     contact: { phone: '+56000000001' },
+    evidence: { source_type: 'mock_fixture', fact_verification_status: 'sample_only' },
   },
 ];
 
@@ -65,11 +81,17 @@ const server = http.createServer(async (req, res) => {
     const url = new URL(req.url, `http://${req.headers.host ?? `${host}:${port}`}`);
 
     if (req.method === 'GET' && url.pathname === '/health') {
-      return json(res, 200, { ok: true, service: 'palta-mock-api', version: '0.1.0' });
+      return json(res, 200, {
+        ok: true,
+        service: 'palta-mock-api',
+        version: '0.1.0',
+        dataset_class: 'sample',
+      });
     }
 
     if (req.method === 'GET' && url.pathname === '/v1/home') {
       return json(res, 200, {
+        dataset_class: 'sample',
         generated_at: new Date().toISOString(),
         items: [
           {
@@ -100,12 +122,18 @@ const server = http.createServer(async (req, res) => {
         return json(res, 400, { error: 'lat_lng_required' });
       }
       return json(res, 200, {
+        dataset_class: 'sample',
         items: businesses.map((business, index) => ({
           entity_id: business.id,
           entity_type: 'business',
+          record_class: business.record_class,
           name: business.name,
           category_key: business.category_key,
           verification_status: business.verification_status,
+          owner_verification_status: business.owner_verification_status,
+          fact_verification_status: business.fact_verification_status,
+          address: business.address,
+          commune: business.commune,
           distance_m: index === 0 ? 1200 : 850,
           location: business.location,
         })),
@@ -168,7 +196,7 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(port, host, () => {
-  console.log(`Palta mock API listening on http://${host}:${port}`);
+  console.log(`Palta mock API listening on http://${host}:${port} (sample dataset only)`);
 });
 
 function shutdown() {
