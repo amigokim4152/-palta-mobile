@@ -4,6 +4,7 @@ import {
   DEFAULT_REGION,
   DEFAULT_TIMEZONE,
   createLanguageContext,
+  discoveryT,
   resolveLocalizedContent,
   resolvePreferredLocale,
   t,
@@ -52,6 +53,15 @@ assert(
 assert(
   t('home.showMore', 'es-CL', { count: 3 }) === 'Ver 3 más',
   'Spanish UI interpolation should resolve runtime values.',
+);
+assert(
+  discoveryT('market.vertical.property', 'ko') === '부동산',
+  'Market vertical labels should resolve through the feature catalog.',
+);
+assert(
+  discoveryT('market.publishIn', 'en', { category: 'Vehicles' }) ===
+    'Post in Vehicles',
+  'Feature copy should support runtime interpolation.',
 );
 
 const content = {
