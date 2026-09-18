@@ -1,6 +1,8 @@
 import { ScrollViewStyleReset } from 'expo-router/html';
 import type { PropsWithChildren } from 'react';
 
+const baseUrl = process.env.EXPO_BASE_URL ?? '';
+
 export default function Root({ children }: PropsWithChildren) {
   return (
     <html lang="es-CL">
@@ -15,9 +17,9 @@ export default function Root({ children }: PropsWithChildren) {
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="Palta" />
         <meta name="mobile-web-app-capable" content="yes" />
-        <link rel="manifest" href="/manifest.json" />
-        <link rel="icon" href="/palta-icon.svg" type="image/svg+xml" />
-        <link rel="apple-touch-icon" href="/palta-icon.svg" />
+        <link rel="manifest" href={`${baseUrl}/manifest.json`} />
+        <link rel="icon" href={`${baseUrl}/palta-icon.svg`} type="image/svg+xml" />
+        <link rel="apple-touch-icon" href={`${baseUrl}/palta-icon.svg`} />
         <ScrollViewStyleReset />
         <style dangerouslySetInnerHTML={{ __html: `
           html, body, #root { min-height: 100%; }
