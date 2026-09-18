@@ -53,7 +53,7 @@ export default function TabLayout() {
     >
       <Tabs.Screen name="index" options={{ href: null }} />
       <Tabs.Screen name="home" options={{ title: 'Inicio' }} />
-      <Tabs.Screen name="neighborhood" options={{ title: 'Barrio' }} />
+      <Tabs.Screen name="neighborhood" options={{ title: 'Negocios' }} />
       <Tabs.Screen name="community" options={{ title: 'Comunidad' }} />
       <Tabs.Screen name="market" options={{ title: 'Mercado' }} />
       <Tabs.Screen name="play" options={{ title: 'Panoramas' }} />
