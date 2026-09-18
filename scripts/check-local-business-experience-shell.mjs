@@ -57,10 +57,10 @@ assert(
   'Open-now and verified filters must live in shared discovery state rather than screen-local state.',
 );
 assert(
-  discovery.includes("useState<'list' | 'map'>('list')") &&
-  discovery.includes('<ViewModeSwitch value={viewMode}') &&
-  discovery.includes("viewMode === 'list'"),
-  'Negocios must open list-first and keep map as a peer view of the same discovery session.',
+  !discovery.includes("useState<'list' | 'map'>") &&
+  !discovery.includes('<ViewModeSwitch') &&
+  discovery.includes('<NeighborhoodMap'),
+  'Negocios must open directly on the map; results belong in the connected bottom sheet rather than a separate list-first screen.',
 );
 assert(
   discovery.includes('initialCenter={neighborhood.camera?.center ?? neighborhood.effectiveLocation}') &&
@@ -69,14 +69,14 @@ assert(
 );
 assert(
   discovery.includes('selectedBusiness') &&
-  discovery.includes('En el mapa') &&
-  discovery.includes("dispatch({ type: 'set_sheet_snap', snap: 'peek' })"),
-  'Map pin selection must open an in-context business preview before navigating away.',
+  discovery.includes('Seleccionado') &&
+  discovery.includes("dispatch({ type: 'set_sheet_snap', snap: 'half' })"),
+  'Map pin selection must open a useful full-width in-context business preview before navigating away.',
 );
 assert(
   discovery.includes(".filter((item) => item.location !== undefined)") &&
   discovery.includes("'Zona de atención'"),
-  'Area-only businesses must remain list-discoverable without fabricating a precise map pin.',
+  'Area-only businesses must remain discoverable without fabricating a precise map pin.',
 );
 assert(
   discovery.includes('readLocalBusinessDiscoveryCache') &&
@@ -85,13 +85,14 @@ assert(
   'Returning from detail must reuse a short-lived discovery cache while refreshing in the background.',
 );
 assert(
-  discovery.includes("position: 'absolute', left: 0, right: 0, bottom: 0") &&
+  discovery.includes("position: 'absolute', left: 0, right: 0, bottom: 0, width: '100%'") &&
+  discovery.includes("position: 'absolute', top: 0, right: 0, bottom: 0, left: 0") &&
   discovery.includes('resultsContent'),
-  'Result sheet must overlay a stable map surface rather than resize the map whenever its snap changes.',
+  'Result sheet must be edge-to-edge over a stable full map instead of sitting inside an inset card container.',
 );
 assert(
-  discovery.includes('BusinessDiscoveryShell') && discovery.includes('SearchBar'),
-  'Negocios must use the polished discovery shell instead of the generic developer ScreenFrame.',
+  discovery.includes('SearchBar') && discovery.includes('SafeAreaView'),
+  'Negocios must keep usable search controls layered over the map without restoring the old inset discovery frame.',
 );
 assert(
   discovery.includes('CATEGORY_SERVICE_LABELS') &&
@@ -146,8 +147,16 @@ assert(
   'Result sheet must be directly draggable instead of depending on arrow buttons for normal navigation.',
 );
 assert(
-  sheet.includes('<ScrollView') && sheet.includes('useWindowDimensions'),
-  'Result sheet must scroll long result sets and adapt its snap heights to the device.',
+  sheet.includes('<ScrollView') &&
+  sheet.includes('useWindowDimensions') &&
+  sheet.includes("width: '100%'") &&
+  sheet.includes('paddingHorizontal: 0'),
+  'Result sheet must scroll, adapt to the device and remain full-width without outer side gaps.',
+);
+assert(
+  resultCard.includes("width: '100%'") &&
+  !resultCard.includes('borderRadius: selected ? paltaTheme.radius.surface : 0'),
+  'Business result rows must fill the sheet instead of becoming floating cards with empty side space.',
 );
 assert(
   detail.includes('useNeighborhoodState') &&
@@ -160,4 +169,4 @@ assert(
   'Polished Business profile must keep visual identity and primary actions above long-form sections.',
 );
 
-console.log('PASS: Local Business connected list-first/map-connected experience shell');
+console.log('PASS: Local Business edge-to-edge map-first experience shell');
