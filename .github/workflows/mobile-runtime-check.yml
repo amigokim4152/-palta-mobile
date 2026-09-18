@@ -42,3 +42,6 @@ jobs:
 
       - name: Bundle iOS JavaScript
         run: npm run bundle:ios
+
+      - name: Bundle installable web/PWA JavaScript
+        run: npm run bundle:web
