@@ -3,6 +3,7 @@ import {
   type CareApiTrack,
   type HomeApiResponse,
   type LocalSearchItem,
+  type PlaceApiDetail,
 } from '../../../../src/api/paltaApiClient';
 import { parseRuntimeEnv } from '../../../../src/config/runtimeEnv';
 import { createPaltaApiClient } from '../../../../src/api/paltaApiFactory';
@@ -17,6 +18,7 @@ export type MobilePaltaClient = {
     query?: string;
   }): Promise<LocalSearchItem[]>;
   getBusiness(id: string): Promise<BusinessApiDetail>;
+  getPlace(id: string): Promise<PlaceApiDetail>;
   getCare(id: string): Promise<CareApiTrack>;
   createCare(input: {
     intentKey: string;
