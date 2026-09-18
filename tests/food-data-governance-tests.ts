@@ -4,6 +4,7 @@ import {
   type FoodOutletIdentity,
 } from '../src/foodCatalog/foodCatalogModel.js';
 import {
+  canPromoteOutletIdentity,
   canPublishCurrentMenuPrice,
   decideFoodFactPromotion,
 } from '../src/foodCatalog/foodDataGovernance.js';
@@ -37,6 +38,30 @@ assert(
   'Platform-only identity must stay outside canonical production.',
 );
 
+const deliveryMarketplaceOnlyOutlet: FoodOutletIdentity = {
+  outletKey: 'cl-rm-test-food-marketplaces-only',
+  brandName: 'Marketplace Only',
+  address: 'Av. Test 456',
+  comuna: 'Providencia',
+  identityStatus: 'corroborated',
+  evidence: [
+    {
+      kind: 'uber_eats',
+      url: 'https://www.ubereats.com/cl/store/test/marketplace-only',
+      observedAt: '2026-09-18',
+    },
+    {
+      kind: 'rappi',
+      url: 'https://www.rappi.cl/restaurantes/test-marketplace-only',
+      observedAt: '2026-09-18',
+    },
+  ],
+};
+assert(
+  !canPromoteOutletIdentity(deliveryMarketplaceOnlyOutlet),
+  'Agreement between delivery marketplaces must not by itself create a Palta production outlet.',
+);
+
 const corroboration: FoodOutletCorroboration = {
   outletKey: uberOnlyOutlet.outletKey,
   identityStatus: 'verified',
@@ -59,6 +84,10 @@ assert(effectiveOutlet.identityStatus === 'verified', 'Independent evidence shou
 assert(effectiveOutlet.publicContact?.phone === '+56223456789', 'Verified public phone should overlay research data.');
 assert(effectiveOutlet.address === 'Av. Test 123', 'Verified address should remain available.');
 assert(effectiveOutlet.evidence.length === 2, 'Research and independent provenance must both remain auditable.');
+assert(
+  canPromoteOutletIdentity(effectiveOutlet),
+  'Verified outlet with an official independent source should enter the canonical-candidate lane.',
+);
 
 const stillBlockedUberOnlyMenu = decideFoodFactPromotion(effectiveOutlet, {
   fact: 'menu_item_name',
