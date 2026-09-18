@@ -27,6 +27,16 @@ Mercado discovery must support list and map projections without owning another m
 
 Canonical Mercado policy is language-neutral. Display strings belong in localization/UI code, not policy definitions.
 
+## Canonical vertical ownership
+
+Vehicle and property facts already have dedicated Sources of Truth and must not be recreated inside Mercado:
+
+- `integration/autos-v1` owns `src/autos` including `VehicleIdentity` and `VehicleListing`.
+- `integration/propiedades-v1` owns `src/realEstate` including stable `Property` identity and `PropertyListing` publication state.
+- `src/market/marketDomainListingLink.ts` is the Mercado-side typed identifier link to those canonical listings/subjects. It intentionally contains ids only, not copied vehicle/property/Business objects.
+
+When the runtime composition promotes these vertical integrations, review `src/market/marketDomainListingLink.ts` together with `src/market/marketVerticalPolicy.ts`. Vehicle facts such as make/model/year/mileage and property facts such as bedrooms/bathrooms/area must be projected from their owning domain rather than persisted as a second Mercado source of truth.
+
 ## Rules
 
 - Inspect existing implementation before changing it; do not recreate parallel Mercado screens.
