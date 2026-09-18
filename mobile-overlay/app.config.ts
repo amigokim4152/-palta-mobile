@@ -1,5 +1,7 @@
 import type { ExpoConfig } from 'expo/config';
 
+const webBaseUrl = process.env.PALTA_WEB_BASE_URL?.trim();
+
 const config: ExpoConfig = {
   name: 'Somos Palta',
   slug: 'somos-palta',
@@ -36,6 +38,7 @@ const config: ExpoConfig = {
   },
   experiments: {
     typedRoutes: true,
+    ...(webBaseUrl ? { baseUrl: webBaseUrl } : {}),
   },
 };
 
