@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useMemo, useRef } from 'react';
 import {
   Camera,
   GeoJSONSource,
@@ -45,6 +45,25 @@ export function NeighborhoodMap({
   const cameraRef = useRef<CameraRef>(null);
   const sourceRef = useRef<GeoJSONSourceRef>(null);
   const data = toPointFeatureCollection(features);
+  const activeLocationData = useMemo(
+    () => ({
+      type: 'FeatureCollection' as const,
+      features: [
+        {
+          type: 'Feature' as const,
+          geometry: {
+            type: 'Point' as const,
+            coordinates: [initialCenter.longitude, initialCenter.latitude] as [
+              number,
+              number,
+            ],
+          },
+          properties: {},
+        },
+      ],
+    }),
+    [initialCenter.latitude, initialCenter.longitude],
+  );
 
   return (
     <Map
@@ -66,6 +85,30 @@ export function NeighborhoodMap({
           zoom: initialZoom,
         }}
       />
+
+      <GeoJSONSource id="palta-active-location" data={activeLocationData}>
+        <Layer
+          id="palta-active-location-halo"
+          type="circle"
+          paint={{
+            'circle-color': '#FFFFFF',
+            'circle-radius': 11,
+            'circle-opacity': 0.98,
+            'circle-stroke-color': '#D8E5F2',
+            'circle-stroke-width': 1,
+          }}
+        />
+        <Layer
+          id="palta-active-location-dot"
+          type="circle"
+          paint={{
+            'circle-color': '#2F7DD1',
+            'circle-radius': 6,
+            'circle-stroke-color': '#FFFFFF',
+            'circle-stroke-width': 1.5,
+          }}
+        />
+      </GeoJSONSource>
 
       <GeoJSONSource
         ref={sourceRef}
