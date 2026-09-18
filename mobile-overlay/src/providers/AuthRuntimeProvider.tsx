@@ -14,7 +14,6 @@ import type {
   AuthProvider,
   AuthSession,
   AuthState,
-  InteractiveAuthPort,
 } from '../../../src/ports/authPort';
 import { AuthPortError } from '../../../src/ports/authPort';
 import { createSupabaseAuthPort } from '../adapters/createSupabaseAuthPort.native';
@@ -30,8 +29,10 @@ type AuthRuntimeContextValue = {
   state: RuntimeState;
   capabilities: AuthCapabilities | null;
   busy: boolean;
+  goldenUserEnabled: boolean;
   signInWithOAuth(provider: AuthProvider): Promise<void>;
   signInWithEmail(email: string): Promise<void>;
+  signInAsGoldenUser(): Promise<void>;
   signOut(): Promise<void>;
   retry(): Promise<void>;
 };
@@ -77,10 +78,12 @@ export function AuthRuntimeProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const goldenUserEnabled = portResult.port?.isGoldenUserAuthEnabled() ?? false;
+
   const loadCapabilities = useCallback(async () => {
     if (!portResult.port) throw portResult.error;
     const next = await portResult.port.getCapabilities();
-    if (!hasAnyLoginMethod(next)) {
+    if (!hasAnyLoginMethod(next) && !portResult.port.isGoldenUserAuthEnabled()) {
       throw new AuthPortError(
         'provider_unavailable',
         '현재 사용할 수 있는 로그인 방식이 없습니다.',
@@ -203,6 +206,22 @@ export function AuthRuntimeProvider({ children }: { children: ReactNode }) {
     [portResult],
   );
 
+  const signInAsGoldenUser = useCallback(async () => {
+    if (!portResult.port) {
+      setState(visibleError(portResult.error));
+      return;
+    }
+    setBusy(true);
+    try {
+      const authState = await portResult.port.signInAsGoldenUser();
+      setState(toRuntimeState(authState));
+    } catch (error) {
+      setState(visibleError(error));
+    } finally {
+      setBusy(false);
+    }
+  }, [portResult]);
+
   const signOut = useCallback(async () => {
     if (!portResult.port) {
       setState(visibleError(portResult.error));
@@ -225,15 +244,19 @@ export function AuthRuntimeProvider({ children }: { children: ReactNode }) {
       state,
       capabilities,
       busy,
+      goldenUserEnabled,
       signInWithOAuth,
       signInWithEmail,
+      signInAsGoldenUser,
       signOut,
       retry: restore,
     }),
     [
       busy,
       capabilities,
+      goldenUserEnabled,
       restore,
+      signInAsGoldenUser,
       signInWithEmail,
       signInWithOAuth,
       signOut,
