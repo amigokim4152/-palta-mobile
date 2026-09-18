@@ -32,8 +32,8 @@ export default function BusinessDetailScreen() {
     if (mobileRuntime.status !== 'ready') {
       throw new Error(mobileRuntime.message);
     }
-    return mobileRuntime.client.getBusiness(businessId);
-  }, [businessId]);
+    return mobileRuntime.client.getBusiness(businessId, locale);
+  }, [businessId, locale]);
 
   const { state, refresh } = useAsyncResource(loadBusiness);
 
@@ -124,7 +124,10 @@ export default function BusinessDetailScreen() {
   return (
     <ScreenFrame
       title={business.name}
-      subtitle={[business.category_key, business.opening_status]
+      subtitle={[
+        business.category_label ?? business.category_key,
+        business.opening_status_label ?? business.opening_status,
+      ]
         .filter(Boolean)
         .join(' · ')}
     >
