@@ -22,9 +22,20 @@ assert(
   home.body.source_state.every((item) => typeof item.source_domain === 'string' && typeof item.data_mode === 'string'),
   'home source state contract failed',
 );
+const weatherState = home.body.source_state.find((item) => item.source_domain === 'weather');
 assert(
-  home.body.glance.every((item) => item.data_mode === 'demo'),
-  'development glance values must be marked demo',
+  weatherState && (weatherState.data_mode === 'live' || weatherState.data_mode === 'unavailable'),
+  'weather must be live or explicitly unavailable',
+);
+const weatherGlance = home.body.glance.find((item) => item.source_domain === 'weather');
+if (weatherGlance) {
+  assert(weatherGlance.data_mode === 'live', 'weather glance must never masquerade as live data');
+}
+assert(
+  home.body.glance
+    .filter((item) => item.source_domain === 'mobility')
+    .every((item) => item.data_mode === 'demo'),
+  'development mobility values must remain marked demo until realtime integration',
 );
 
 const local = await json('/v1/local/search?lat=-33.39&lng=-70.57&radius_m=5000');
@@ -34,9 +45,6 @@ const businessId = local.body.items[0].entity_id;
 const business = await json(`/v1/business/${encodeURIComponent(businessId)}`);
 assert(business.response.ok && business.body.id === businessId, 'business detail failed');
 
-// Use a unique idempotency key per smoke run so the same long-lived mock API
-// process can be verified repeatedly. The second POST in this run still
-// proves idempotency by reusing this exact key and expecting the same Care ID.
 const idempotencyKey = `smoke-quote-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 const care = await json('/v1/care', {
   method: 'POST',
@@ -79,6 +87,7 @@ console.log(JSON.stringify({
   homeItems: home.body.items.length,
   glanceItems: home.body.glance.length,
   homeSources: home.body.source_state.length,
+  weatherMode: weatherState.data_mode,
   localItems: local.body.items.length,
   businessId,
   careId: care.body.id,
