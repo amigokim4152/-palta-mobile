@@ -1,9 +1,9 @@
 import type { PlayDiscoveryItem } from '../../../../src/play/playDiscovery';
 
 /**
- * Development-only fixtures used to review the Play information hierarchy before
- * the municipal/public event adapter is connected. Production must not present
- * these records as real events.
+ * Development-only fixtures used to review Play information hierarchy before
+ * official municipal/public adapters and canonical Business projections are connected.
+ * Production must never present these records as real events or businesses.
  */
 export const playPreviewItems: readonly PlayDiscoveryItem[] = [
   {
@@ -17,6 +17,9 @@ export const playPreviewItems: readonly PlayDiscoveryItem[] = [
     isFree: true,
     registrationRequired: true,
     audienceLabel: 'Familias',
+    distanceLabel: 'Cerca de ti',
+    experienceTags: ['Familia', 'Taller', 'Gratis'],
+    imageUrl: 'https://picsum.photos/seed/palta-family-workshop/900/600',
     themeTags: ['today', 'family', 'free'],
     source: { authority: 'Municipalidad · ejemplo' },
   },
@@ -30,6 +33,9 @@ export const playPreviewItems: readonly PlayDiscoveryItem[] = [
     startAt: '2026-09-18T17:30:00-03:00',
     isFree: true,
     audienceLabel: 'Niños y familias',
+    distanceLabel: '18 min',
+    experienceTags: ['Niños', 'Parque', 'Aire libre'],
+    imageUrl: 'https://picsum.photos/seed/palta-outdoor-kids/900/600',
     themeTags: ['today', 'family', 'free', 'outdoor'],
     source: { authority: 'Municipalidad · ejemplo' },
   },
@@ -43,6 +49,9 @@ export const playPreviewItems: readonly PlayDiscoveryItem[] = [
     startAt: '2026-09-18T19:00:00-03:00',
     isFree: true,
     audienceLabel: 'Todo público',
+    distanceLabel: '22 min',
+    experienceTags: ['Música', 'Cultura', 'Gratis'],
+    imageUrl: 'https://picsum.photos/seed/palta-music-public/900/600',
     themeTags: ['today', 'free', 'outdoor'],
     source: { authority: 'Agenda pública · ejemplo' },
   },
@@ -56,6 +65,9 @@ export const playPreviewItems: readonly PlayDiscoveryItem[] = [
     startAt: '2026-09-19T11:00:00-03:00',
     isFree: true,
     audienceLabel: 'Todo público',
+    distanceLabel: '28 min',
+    experienceTags: ['Feria', 'Familia', 'Gratis'],
+    imageUrl: 'https://picsum.photos/seed/palta-weekend-fair/900/600',
     themeTags: ['weekend', 'family', 'free', 'outdoor'],
     source: { authority: 'Municipalidad · ejemplo' },
   },
@@ -63,20 +75,42 @@ export const playPreviewItems: readonly PlayDiscoveryItem[] = [
     id: 'preview-birthday-pool',
     sourceKind: 'business',
     title: 'Cumpleaños con piscina',
-    comuna: 'Santiago',
+    comuna: 'Chicureo',
     scheduleLabel: 'Reserva previa',
-    audienceLabel: 'Cumpleaños infantiles',
+    audienceLabel: '5–12 años · 15–30 personas',
+    priceLabel: 'Desde $300.000',
+    distanceLabel: '32 min',
+    experienceTags: ['Piscina', 'Aire libre', 'Cumpleaños'],
+    imageUrl: 'https://picsum.photos/seed/palta-birthday-pool/900/600',
     themeTags: ['birthday', 'family', 'outdoor'],
+    businessId: 'preview-business-birthday-pool',
+    businessProjection: {
+      businessId: 'preview-business-birthday-pool',
+      offeringId: 'preview-offering-birthday-pool',
+      exposureReason: 'birthday_pool',
+      ownerManaged: false,
+    },
     source: { authority: 'Negocio · ejemplo' },
   },
   {
     id: 'preview-birthday-indoor',
     sourceKind: 'business',
     title: 'Cumpleaños indoor y juegos',
-    comuna: 'Santiago',
+    comuna: 'Las Condes',
     scheduleLabel: 'Reserva previa',
-    audienceLabel: 'Cumpleaños infantiles',
+    audienceLabel: '4–10 años · hasta 20 personas',
+    priceLabel: 'Paquetes disponibles',
+    distanceLabel: '15 min',
+    experienceTags: ['Indoor', 'Juegos', 'Cumpleaños'],
+    imageUrl: 'https://picsum.photos/seed/palta-birthday-indoor/900/600',
     themeTags: ['birthday', 'family'],
+    businessId: 'preview-business-birthday-indoor',
+    businessProjection: {
+      businessId: 'preview-business-birthday-indoor',
+      offeringId: 'preview-offering-birthday-indoor',
+      exposureReason: 'birthday_indoor',
+      ownerManaged: false,
+    },
     source: { authority: 'Negocio · ejemplo' },
   },
 ];
