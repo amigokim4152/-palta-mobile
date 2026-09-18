@@ -23,7 +23,7 @@ jobs:
       - run: npm run verify
       - name: Mock API HTTP smoke
         run: |
-          npm run mock:api > /tmp/palta-mock-api.log 2>&1 &
+          node dev/mock-api/gateway.mjs > /tmp/palta-mock-api.log 2>&1 &
           MOCK_PID=$!
           trap 'kill "$MOCK_PID" 2>/dev/null || true' EXIT
           READY=0
@@ -44,7 +44,7 @@ jobs:
           PALTA_MOCK_PORT: '8795'
           PALTA_MOCK_BASE_URL: 'http://127.0.0.1:8795'
         run: |
-          npm run mock:api > /tmp/palta-real-estate-mock-api.log 2>&1 &
+          node dev/mock-api/gateway.mjs > /tmp/palta-real-estate-mock-api.log 2>&1 &
           MOCK_PID=$!
           trap 'kill "$MOCK_PID" 2>/dev/null || true' EXIT
           READY=0
@@ -65,7 +65,7 @@ jobs:
           PALTA_MOCK_PORT: '8788'
           PALTA_MOCK_BASE_URL: 'http://127.0.0.1:8788'
         run: |
-          npm run mock:api > /tmp/palta-following-mock-api.log 2>&1 &
+          node dev/mock-api/gateway.mjs > /tmp/palta-following-mock-api.log 2>&1 &
           MOCK_PID=$!
           trap 'kill "$MOCK_PID" 2>/dev/null || true' EXIT
           READY=0
@@ -86,7 +86,7 @@ jobs:
           PALTA_MOCK_PORT: '8789'
           PALTA_MOCK_BASE_URL: 'http://127.0.0.1:8789'
         run: |
-          npm run mock:api > /tmp/palta-operating-rules-mock-api.log 2>&1 &
+          node dev/mock-api/gateway.mjs > /tmp/palta-operating-rules-mock-api.log 2>&1 &
           MOCK_PID=$!
           trap 'kill "$MOCK_PID" 2>/dev/null || true' EXIT
           READY=0
@@ -107,7 +107,7 @@ jobs:
           PALTA_MOCK_PORT: '8790'
           PALTA_MOCK_BASE_URL: 'http://127.0.0.1:8790'
         run: |
-          npm run mock:api > /tmp/palta-trust-mock-api.log 2>&1 &
+          node dev/mock-api/gateway.mjs > /tmp/palta-trust-mock-api.log 2>&1 &
           MOCK_PID=$!
           trap 'kill "$MOCK_PID" 2>/dev/null || true' EXIT
           READY=0
@@ -128,7 +128,7 @@ jobs:
           PALTA_MOCK_PORT: '8791'
           PALTA_MOCK_BASE_URL: 'http://127.0.0.1:8791'
         run: |
-          npm run mock:api > /tmp/palta-review-write-mock-api.log 2>&1 &
+          node dev/mock-api/gateway.mjs > /tmp/palta-review-write-mock-api.log 2>&1 &
           MOCK_PID=$!
           trap 'kill "$MOCK_PID" 2>/dev/null || true' EXIT
           READY=0
@@ -149,7 +149,7 @@ jobs:
           PALTA_MOCK_PORT: '8792'
           PALTA_MOCK_BASE_URL: 'http://127.0.0.1:8792'
         run: |
-          npm run mock:api > /tmp/palta-quote-mock-api.log 2>&1 &
+          node dev/mock-api/gateway.mjs > /tmp/palta-quote-mock-api.log 2>&1 &
           MOCK_PID=$!
           trap 'kill "$MOCK_PID" 2>/dev/null || true' EXIT
           READY=0
@@ -170,7 +170,7 @@ jobs:
           PALTA_MOCK_PORT: '8793'
           PALTA_MOCK_BASE_URL: 'http://127.0.0.1:8793'
         run: |
-          npm run mock:api > /tmp/palta-location-mock-api.log 2>&1 &
+          node dev/mock-api/gateway.mjs > /tmp/palta-location-mock-api.log 2>&1 &
           MOCK_PID=$!
           trap 'kill "$MOCK_PID" 2>/dev/null || true' EXIT
           READY=0
@@ -191,7 +191,7 @@ jobs:
           PALTA_MOCK_PORT: '8794'
           PALTA_MOCK_BASE_URL: 'http://127.0.0.1:8794'
         run: |
-          npm run mock:api > /tmp/palta-discovery-preview-mock-api.log 2>&1 &
+          node dev/mock-api/gateway.mjs > /tmp/palta-discovery-preview-mock-api.log 2>&1 &
           MOCK_PID=$!
           trap 'kill "$MOCK_PID" 2>/dev/null || true' EXIT
           READY=0
