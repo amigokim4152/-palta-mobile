@@ -1,4 +1,9 @@
-import { useCallback, useMemo, useState } from 'react';
+import {
+  useCallback,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import {
   Image,
@@ -7,6 +12,7 @@ import {
   SafeAreaView,
   ScrollView,
   Text,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import {
@@ -44,7 +50,7 @@ function buildPhoneUrl(business: BusinessApiDetail): string | undefined {
   return dialable ? `tel:${dialable}` : undefined;
 }
 
-function SurfaceCard({ children }: { children: React.ReactNode }) {
+function SurfaceCard({ children }: { children: ReactNode }) {
   return (
     <View
       style={{
@@ -148,7 +154,9 @@ function ProfileHero({
   business: BusinessApiDetail;
   onBack: () => void;
 }) {
-  const photo = business.photo_urls?.[0];
+  const { width } = useWindowDimensions();
+  const [activePhotoIndex, setActivePhotoIndex] = useState(0);
+  const photos = (business.photo_urls ?? []).filter(Boolean).slice(0, 6);
   const serviceLine = business.service_labels?.slice(0, 2).join(' · ');
   const areaLine = business.service_area_labels?.slice(0, 2).join(' · ');
 
@@ -162,13 +170,27 @@ function ProfileHero({
           overflow: 'hidden',
         }}
       >
-        {photo ? (
-          <Image
-            source={{ uri: photo }}
-            accessibilityLabel={`Foto principal de ${business.name}`}
-            resizeMode="cover"
-            style={{ width: '100%', height: '100%' }}
-          />
+        {photos.length ? (
+          <ScrollView
+            horizontal
+            pagingEnabled
+            bounces={false}
+            showsHorizontalScrollIndicator={false}
+            onMomentumScrollEnd={(event) => {
+              const next = Math.round(event.nativeEvent.contentOffset.x / Math.max(width, 1));
+              setActivePhotoIndex(Math.max(0, Math.min(photos.length - 1, next)));
+            }}
+          >
+            {photos.map((photo, index) => (
+              <Image
+                key={`${photo}:${index}`}
+                source={{ uri: photo }}
+                accessibilityLabel={`Foto ${index + 1} de ${business.name}`}
+                resizeMode="cover"
+                style={{ width, height: 245 }}
+              />
+            ))}
+          </ScrollView>
         ) : (
           <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
             <Text
@@ -207,6 +229,24 @@ function ProfileHero({
             Volver
           </Text>
         </Pressable>
+
+        {photos.length > 1 ? (
+          <View
+            style={{
+              position: 'absolute',
+              right: paltaTheme.spacing.md,
+              bottom: paltaTheme.spacing.sm,
+              paddingHorizontal: 10,
+              paddingVertical: 6,
+              borderRadius: paltaTheme.radius.pill,
+              backgroundColor: 'rgba(17,17,17,0.68)',
+            }}
+          >
+            <Text style={{ color: '#FFFFFF', fontSize: 12, fontWeight: '800' }}>
+              {activePhotoIndex + 1}/{photos.length}
+            </Text>
+          </View>
+        ) : null}
       </View>
 
       <View
