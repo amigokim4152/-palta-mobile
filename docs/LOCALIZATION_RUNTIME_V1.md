@@ -62,9 +62,27 @@ UI chrome and canonical enum labels are translated locally.
 
 Server/user content must not be silently machine-translated in the UI layer. Use structured translations when the data contract provides them; otherwise show the canonical Spanish original. `contentResolver.ts` implements this fallback rule.
 
-Home already sends the selected locale to `/v1/home?locale=...`, allowing the server to return localized content where available.
+Home sends the selected locale to `/v1/home?locale=...`, allowing the server to return localized content where available.
 
-Taxonomy labels, business category labels, municipal/public content, events, news, and other data-driven content should expose localized display fields in their own data contracts rather than hard-coding translations into screens.
+Local search and business detail also receive the selected locale. Their public display contract is additive: canonical keys remain stable for routing, filtering, analytics, and storage, while localized fields are used only for presentation.
+
+Current localized public-data fields include:
+
+- `entity_type` + `entity_type_label`
+- `category_key` + `category_label`
+- `opening_status` + `opening_status_label`
+
+This applies to the current local-search contract for `business`, `place`, `public_service`, and `event` entities. A missing localized field must not alter the canonical key and must not make the result disappear.
+
+Proper names such as business names, venue names, event names, organization names, and user-entered text remain in their source form unless a domain later provides an explicit translated-name workflow.
+
+Taxonomy labels, municipal/public content, events, news, and other data-driven content should continue to expose localized display fields or translation objects in their own data contracts rather than hard-coding translations into screens.
+
+## Market contract
+
+Market policy is language-neutral. `src/market/marketVerticalPolicy.ts` stores stable vertical keys and behavior only; it does not store Spanish or other display titles.
+
+Market vertical display names resolve through `discoveryCatalog.ts` from the active Palta locale. Feature branches must not add `title`, `label`, or other language-specific presentation fields back into the canonical Market policy object.
 
 ## Mobile integration
 
@@ -80,13 +98,21 @@ const more = t('home.showMore', { count: 3 });
 
 For feature catalogs use the same `locale` with the feature resolver (`discoveryT`, `careT`, `surfaceT`, etc.). There must be one active locale state for the app.
 
+Neighborhood search should prefer localized server metadata in this order where applicable:
+
+1. `category_label`
+2. `entity_type_label`
+3. canonical fallback such as `category_key`
+
+The canonical fields remain available even when a localized display field is present.
+
 ## Current connected surfaces
 
 - authentication / sign-up
 - bottom navigation
 - language settings
 - Home
-- Neighborhood / map chrome
+- Neighborhood / map chrome and local-search result metadata
 - Community
 - Business detail and business actions
 - Market and market vertical entry
@@ -105,13 +131,22 @@ For feature catalogs use the same `locale` with the feature resolver (`discovery
 - Do not create a second locale provider inside a feature.
 - Do not store `ko-KR`, `en-US`, or `zh-CN` as canonical Palta locale values.
 - Do not infer region, currency, eligibility, or policy jurisdiction from display language.
-- Do not translate user-entered text in the UI layer without an explicit translation workflow.
-- Do not duplicate the canonical business, place, Care, or content object per language.
-- Do not use a missing translation as a reason to show an empty UI; fall back to the Spanish original.
+- Do not translate user-entered text or proper names in the UI layer without an explicit translation workflow.
+- Do not duplicate the canonical business, place, Care, Market policy, or content object per language.
+- Do not replace canonical taxonomy/status keys with translated text.
+- Do not use a missing translation as a reason to show an empty UI; fall back to the canonical/source value or Spanish original according to the data contract.
 
 ## Remaining data-contract work
 
-The runtime localization foundation is separate from data localization. The remaining cross-domain work is to add localized display fields or translation objects to canonical data contracts for categories, opening-status labels, public benefits/services, events, news, market listings where appropriate, and other content supplied by the backend.
+The runtime localization foundation and the first public-data display contract are implemented. Remaining cross-domain work is intentionally domain-specific rather than another localization runtime:
+
+- detailed municipal/public benefit and service content beyond current local-search metadata
+- event detail content beyond current local-search metadata
+- news/article content
+- Market listing content where translated structured fields are appropriate
+- future domain-specific taxonomies not yet represented by the current API contracts
+
+Do not create speculative event/public-service detail models solely for localization. Add translated fields when those canonical domain contracts actually exist.
 
 ## Verification
 
@@ -119,7 +154,10 @@ Changes to this contract must keep these checks green:
 
 - root TypeScript/Core check
 - `tests/localization-runtime-tests.ts`
+- `npm run mock:verify` — starts the mock API and runs real HTTP localization smoke checks
 - mobile overlay materialization
 - generated Expo mobile TypeScript check
 - Expo public config resolution
 - DB migration/preflight checks when locale persistence changes
+
+The mock HTTP smoke currently verifies locale propagation and localized metadata for Home, local businesses, public services, events, business detail, proper-name preservation, and Care idempotency.
