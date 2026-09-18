@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import {
+  Alert,
   FlatList,
   Image,
   Pressable,
@@ -40,6 +41,7 @@ type VerticalUiDefinition = {
   searchPlaceholder: string;
   createLabel: string;
   mapUseful: boolean;
+  comparisonUseful: boolean;
 };
 
 const VERTICAL_UI: Record<MarketRouteVertical, VerticalUiDefinition> = {
@@ -49,6 +51,7 @@ const VERTICAL_UI: Record<MarketRouteVertical, VerticalUiDefinition> = {
     searchPlaceholder: 'Buscar artículos usados',
     createLabel: 'Publicar artículo',
     mapUseful: false,
+    comparisonUseful: true,
   },
   vehicles: {
     title: 'Vehículos',
@@ -56,6 +59,7 @@ const VERTICAL_UI: Record<MarketRouteVertical, VerticalUiDefinition> = {
     searchPlaceholder: 'Marca, modelo o palabra clave',
     createLabel: 'Publicar vehículo',
     mapUseful: true,
+    comparisonUseful: true,
   },
   property: {
     title: 'Propiedades',
@@ -63,6 +67,7 @@ const VERTICAL_UI: Record<MarketRouteVertical, VerticalUiDefinition> = {
     searchPlaceholder: 'Comuna, sector o característica',
     createLabel: 'Publicar propiedad',
     mapUseful: true,
+    comparisonUseful: true,
   },
   local_produce: {
     title: 'Productos locales',
@@ -70,6 +75,7 @@ const VERTICAL_UI: Record<MarketRouteVertical, VerticalUiDefinition> = {
     searchPlaceholder: 'Buscar productos locales',
     createLabel: 'Publicar producto',
     mapUseful: true,
+    comparisonUseful: false,
   },
 };
 
@@ -87,6 +93,10 @@ const SORTS: Array<{ label: string; value: MarketSort }> = [
   { label: 'Menor precio', value: 'price_asc' },
   { label: 'Mayor precio', value: 'price_desc' },
 ];
+
+// Mirrors the canonical Mercado comparison contract while the reviewed runtime
+// baseline still carries an older src/market snapshot. Selection stores ids only.
+const MAX_COMPARE_ITEMS = 4;
 
 function tradeModeOf(listing: MarketPublicListing): string {
   return String(listing.tradeMode);
@@ -115,10 +125,16 @@ function VerticalListingCard({
   vertical,
   listing,
   resolveMediaAssetUrl,
+  comparisonEnabled,
+  selectedForCompare,
+  onToggleCompare,
 }: {
   vertical: MarketRouteVertical;
   listing: MarketPublicListing;
   resolveMediaAssetUrl: (mediaAssetId: string) => string | undefined;
+  comparisonEnabled: boolean;
+  selectedForCompare: boolean;
+  onToggleCompare: () => void;
 }) {
   const firstMedia = listing.media[0];
   const imageUrl = firstMedia
@@ -127,42 +143,67 @@ function VerticalListingCard({
   const label = operationLabel(vertical, listing);
 
   return (
-    <Pressable
-      accessibilityRole="button"
-      onPress={() => router.push(`/market/listing/${listing.id}`)}
-      style={({ pressed }) => [styles.card, pressed && styles.pressed]}
-    >
-      {imageUrl ? (
-        <Image source={{ uri: imageUrl }} style={styles.cardImage} />
-      ) : (
-        <View style={[styles.cardImage, styles.imagePlaceholder]}>
-          <Text style={styles.placeholderText}>Sin foto</Text>
-        </View>
-      )}
-      <View style={styles.cardBody}>
-        <View style={styles.cardTitleLine}>
-          <Text numberOfLines={2} style={styles.cardTitle}>
-            {listing.title}
+    <View style={styles.card}>
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => router.push(`/market/listing/${listing.id}`)}
+        style={({ pressed }) => [styles.cardMain, pressed && styles.pressed]}
+      >
+        {imageUrl ? (
+          <Image source={{ uri: imageUrl }} style={styles.cardImage} />
+        ) : (
+          <View style={[styles.cardImage, styles.imagePlaceholder]}>
+            <Text style={styles.placeholderText}>Sin foto</Text>
+          </View>
+        )}
+        <View style={styles.cardBody}>
+          <View style={styles.cardTitleLine}>
+            <Text numberOfLines={2} style={styles.cardTitle}>
+              {listing.title}
+            </Text>
+            {label ? (
+              <View style={styles.verticalBadge}>
+                <Text style={styles.verticalBadgeText}>{label}</Text>
+              </View>
+            ) : null}
+          </View>
+          <Text style={styles.cardMeta}>
+            {listing.location.comunaName}
+            {typeof listing.distanceKm === 'number'
+              ? ` · ${listing.distanceKm.toFixed(1).replace('.', ',')} km`
+              : ''}
           </Text>
-          {label ? (
-            <View style={styles.verticalBadge}>
-              <Text style={styles.verticalBadgeText}>{label}</Text>
-            </View>
-          ) : null}
+          <Text style={styles.price}>{formatPrice(listing)}</Text>
+          <View style={styles.cardFooter}>
+            <Text style={styles.sellerText}>{listing.seller.displayName}</Text>
+            <Text style={styles.interestText}>♡ {listing.favoriteCount}</Text>
+          </View>
         </View>
-        <Text style={styles.cardMeta}>
-          {listing.location.comunaName}
-          {typeof listing.distanceKm === 'number'
-            ? ` · ${listing.distanceKm.toFixed(1).replace('.', ',')} km`
-            : ''}
-        </Text>
-        <Text style={styles.price}>{formatPrice(listing)}</Text>
-        <View style={styles.cardFooter}>
-          <Text style={styles.sellerText}>{listing.seller.displayName}</Text>
-          <Text style={styles.interestText}>♡ {listing.favoriteCount}</Text>
+      </Pressable>
+
+      {comparisonEnabled ? (
+        <View style={styles.cardActionRow}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ selected: selectedForCompare }}
+            onPress={onToggleCompare}
+            style={[
+              styles.compareChip,
+              selectedForCompare && styles.compareChipSelected,
+            ]}
+          >
+            <Text
+              style={[
+                styles.compareChipText,
+                selectedForCompare && styles.compareChipTextSelected,
+              ]}
+            >
+              {selectedForCompare ? '✓ En comparación' : '＋ Comparar'}
+            </Text>
+          </Pressable>
         </View>
-      </View>
-    </Pressable>
+      ) : null}
+    </View>
   );
 }
 
@@ -180,6 +221,7 @@ export function MarketVerticalBrowseScreen({
   const [sort, setSort] = useState<MarketSort>('recent');
   const [propertyOperation, setPropertyOperation] = useState<PropertyOperation>('all');
   const [listings, setListings] = useState<MarketPublicListing[]>([]);
+  const [compareIds, setCompareIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(Boolean(runtime.read));
   const [error, setError] = useState<string | undefined>(
     runtime.read ? undefined : 'Mercado no está disponible en este momento.',
@@ -221,6 +263,30 @@ export function MarketVerticalBrowseScreen({
       active = false;
     };
   }, [distanceKm, propertyOperation, query, runtime, sort, vertical]);
+
+  function toggleCompare(listingId: string) {
+    setCompareIds((current) => {
+      if (current.includes(listingId)) {
+        return current.filter((id) => id !== listingId);
+      }
+      if (current.length >= MAX_COMPARE_ITEMS) {
+        Alert.alert(
+          'Comparar publicaciones',
+          `Puedes comparar hasta ${MAX_COMPARE_ITEMS} publicaciones a la vez.`,
+        );
+        return current;
+      }
+      return [...current, listingId];
+    });
+  }
+
+  function openComparison() {
+    if (compareIds.length < 2) return;
+    router.push({
+      pathname: '/market/compare',
+      params: { vertical, ids: compareIds.join(',') },
+    });
+  }
 
   const header = (
     <View>
@@ -375,6 +441,9 @@ export function MarketVerticalBrowseScreen({
             vertical={vertical}
             listing={item}
             resolveMediaAssetUrl={runtime.resolveMediaAssetUrl}
+            comparisonEnabled={definition.comparisonUseful}
+            selectedForCompare={compareIds.includes(item.id)}
+            onToggleCompare={() => toggleCompare(item.id)}
           />
         )}
         ListHeaderComponent={header}
@@ -382,6 +451,31 @@ export function MarketVerticalBrowseScreen({
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       />
+
+      {definition.comparisonUseful && compareIds.length > 0 ? (
+        <View style={styles.compareTray}>
+          <View style={styles.compareTrayCopy}>
+            <Text style={styles.compareTrayTitle}>
+              {compareIds.length} {compareIds.length === 1 ? 'seleccionado' : 'seleccionados'}
+            </Text>
+            <Text style={styles.compareTrayHint}>
+              {compareIds.length < 2
+                ? 'Selecciona una publicación más.'
+                : `Compara hasta ${MAX_COMPARE_ITEMS} lado a lado.`}
+            </Text>
+          </View>
+          <Pressable
+            disabled={compareIds.length < 2}
+            onPress={openComparison}
+            style={[
+              styles.compareTrayButton,
+              compareIds.length < 2 && styles.compareTrayButtonDisabled,
+            ]}
+          >
+            <Text style={styles.compareTrayButtonText}>Comparar</Text>
+          </Pressable>
+        </View>
+      ) : null}
 
       <Pressable
         accessibilityRole="button"
@@ -398,7 +492,7 @@ export function MarketVerticalBrowseScreen({
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: paltaTheme.color.canvas },
-  content: { paddingHorizontal: 18, paddingBottom: 108 },
+  content: { paddingHorizontal: 18, paddingBottom: 176 },
   topBar: {
     paddingTop: 10,
     flexDirection: 'row',
@@ -502,11 +596,13 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   card: {
-    flexDirection: 'row',
-    gap: 13,
-    paddingVertical: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: paltaTheme.color.divider,
+  },
+  cardMain: {
+    flexDirection: 'row',
+    gap: 13,
+    paddingTop: 14,
   },
   pressed: { opacity: 0.76 },
   cardImage: {
@@ -564,6 +660,29 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   interestText: { color: paltaTheme.color.textMuted, fontSize: 12 },
+  cardActionRow: {
+    minHeight: 45,
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+  },
+  compareChip: {
+    minHeight: 32,
+    justifyContent: 'center',
+    borderRadius: paltaTheme.radius.pill,
+    borderWidth: 1,
+    borderColor: paltaTheme.color.border,
+    paddingHorizontal: 11,
+  },
+  compareChipSelected: {
+    borderColor: paltaTheme.color.brandPrimary,
+    backgroundColor: paltaTheme.color.brandSoft,
+  },
+  compareChipText: {
+    color: paltaTheme.color.textSecondary,
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  compareChipTextSelected: { color: paltaTheme.color.brandPrimary },
   emptyState: {
     paddingVertical: 52,
     paddingHorizontal: 24,
@@ -581,6 +700,46 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     textAlign: 'center',
   },
+  compareTray: {
+    position: 'absolute',
+    left: 18,
+    right: 18,
+    bottom: 78,
+    minHeight: 66,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: paltaTheme.color.border,
+    backgroundColor: paltaTheme.color.surface,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    shadowColor: '#000000',
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 3,
+  },
+  compareTrayCopy: { flex: 1, paddingRight: 10 },
+  compareTrayTitle: {
+    color: paltaTheme.color.textPrimary,
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  compareTrayHint: {
+    marginTop: 3,
+    color: paltaTheme.color.textMuted,
+    fontSize: 11,
+  },
+  compareTrayButton: {
+    minHeight: 40,
+    borderRadius: paltaTheme.radius.pill,
+    backgroundColor: paltaTheme.color.brandPrimary,
+    justifyContent: 'center',
+    paddingHorizontal: 15,
+  },
+  compareTrayButtonDisabled: { opacity: 0.4 },
+  compareTrayButtonText: { color: '#FFFFFF', fontSize: 12, fontWeight: '800' },
   createButton: {
     position: 'absolute',
     right: 18,
