@@ -101,6 +101,8 @@ jobs:
           done
       - name: Verify commerce/payment migration and RLS invariants
         run: psql -v ON_ERROR_STOP=1 -f infra/db/tests/commerce_migration_smoke.sql
+      - name: Verify business operational grant RLS invariants
+        run: psql -v ON_ERROR_STOP=1 -f infra/db/tests/business_operational_grant_smoke.sql
       - name: Verify split payment commerce state
         run: psql -v ON_ERROR_STOP=1 -f infra/db/tests/split_payment_state_smoke.sql
       - name: Verify provider-confirmed processed payment amount
