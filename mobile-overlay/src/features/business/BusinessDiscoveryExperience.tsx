@@ -170,76 +170,6 @@ function OverlayAction({ label, onPress }: { label: string; onPress: () => void 
   );
 }
 
-function EmptyLocationStart({
-  locationBusy,
-  locationError,
-  onUseMyLocation,
-  onExploreSantiago,
-}: {
-  locationBusy: boolean;
-  locationError: string | null;
-  onUseMyLocation: () => void;
-  onExploreSantiago: () => void;
-}) {
-  return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: paltaTheme.color.canvas }}>
-      <View
-        style={{
-          flex: 1,
-          justifyContent: 'center',
-          paddingHorizontal: paltaTheme.spacing.lg,
-          gap: paltaTheme.spacing.md,
-        }}
-      >
-        <Text
-          style={{
-            fontSize: 28,
-            lineHeight: 34,
-            fontWeight: '800',
-            letterSpacing: -0.6,
-            color: paltaTheme.color.textPrimary,
-          }}
-        >
-          Encuentra negocios y servicios cerca de ti.
-        </Text>
-        <Pressable
-          disabled={locationBusy}
-          onPress={onUseMyLocation}
-          style={({ pressed }) => ({
-            minHeight: 58,
-            justifyContent: 'center',
-            paddingHorizontal: paltaTheme.spacing.md,
-            borderRadius: paltaTheme.radius.surface,
-            backgroundColor: pressed ? paltaTheme.color.brandMid : paltaTheme.color.brandPrimary,
-            opacity: locationBusy ? 0.6 : 1,
-          })}
-        >
-          <Text style={{ color: paltaTheme.color.surface, fontSize: 16, fontWeight: '800' }}>
-            {locationBusy ? 'Buscando…' : 'Buscar cerca de mí'}
-          </Text>
-        </Pressable>
-        <Pressable
-          onPress={onExploreSantiago}
-          style={({ pressed }) => ({
-            minHeight: 58,
-            justifyContent: 'center',
-            paddingHorizontal: paltaTheme.spacing.md,
-            borderRadius: paltaTheme.radius.surface,
-            backgroundColor: pressed ? paltaTheme.color.surfaceMuted : paltaTheme.color.surface,
-          })}
-        >
-          <Text style={{ fontSize: 16, fontWeight: '800', color: paltaTheme.color.textPrimary }}>
-            Explorar Santiago
-          </Text>
-        </Pressable>
-        {locationError ? (
-          <Text style={{ color: paltaTheme.color.textSecondary }}>{locationError}</Text>
-        ) : null}
-      </View>
-    </SafeAreaView>
-  );
-}
-
 export function BusinessDiscoveryExperience() {
   const { state: neighborhood, dispatch } = useNeighborhoodState();
   const [draftQuery, setDraftQuery] = useState(neighborhood.query);
@@ -248,39 +178,39 @@ export function BusinessDiscoveryExperience() {
 
   const verifiedOnly = neighborhood.activeFilters.includes(FILTER_VERIFIED);
   const openNowOnly = neighborhood.activeFilters.includes(FILTER_OPEN_NOW);
-  const searchPoint = neighborhood.searchOrigin ?? neighborhood.effectiveLocation;
+  const searchPoint =
+    neighborhood.searchOrigin ??
+    neighborhood.effectiveLocation ??
+    SANTIAGO_EXPLORATION_ORIGIN;
 
   const discoveryCacheKey = useMemo(
     () =>
-      searchPoint
-        ? localBusinessDiscoveryCacheKey({
-            latitude: searchPoint.latitude,
-            longitude: searchPoint.longitude,
-            ...(neighborhood.query ? { query: neighborhood.query } : {}),
-          })
-        : null,
-    [searchPoint?.latitude, searchPoint?.longitude, neighborhood.query],
+      localBusinessDiscoveryCacheKey({
+        latitude: searchPoint.latitude,
+        longitude: searchPoint.longitude,
+        ...(neighborhood.query ? { query: neighborhood.query } : {}),
+      }),
+    [searchPoint.latitude, searchPoint.longitude, neighborhood.query],
   );
 
   const cachedResults = useMemo(
-    () => (discoveryCacheKey ? readLocalBusinessDiscoveryCache(discoveryCacheKey) : undefined),
+    () => readLocalBusinessDiscoveryCache(discoveryCacheKey),
     [discoveryCacheKey],
   );
 
   const loadResults = useCallback(async () => {
-    if (!searchPoint) return [];
     if (mobileRuntime.status !== 'ready') throw new Error(mobileRuntime.message);
     const items = await mobileRuntime.client.searchLocal({
       latitude: searchPoint.latitude,
       longitude: searchPoint.longitude,
       ...(neighborhood.query ? { query: neighborhood.query } : {}),
     });
-    if (discoveryCacheKey) writeLocalBusinessDiscoveryCache(discoveryCacheKey, items);
+    writeLocalBusinessDiscoveryCache(discoveryCacheKey, items);
     return items;
-  }, [searchPoint?.latitude, searchPoint?.longitude, neighborhood.query, discoveryCacheKey]);
+  }, [searchPoint.latitude, searchPoint.longitude, neighborhood.query, discoveryCacheKey]);
 
   const { state, refresh } = useAsyncResource(loadResults, {
-    enabled: searchPoint !== null,
+    enabled: true,
     isEmpty: isEmptyResults,
     ...(cachedResults ? { initialData: cachedResults } : {}),
   });
@@ -365,7 +295,7 @@ export function BusinessDiscoveryExperience() {
         permission = await expoLocationAdapter.requestForegroundPermission();
       }
       if (permission !== 'granted_foreground') {
-        setLocationError('Puedes seguir explorando sin compartir tu ubicación exacta.');
+        setLocationError('Puedes seguir explorando Santiago sin compartir tu ubicación.');
         return;
       }
       const point = await expoLocationAdapter.getCurrentPosition();
@@ -375,11 +305,6 @@ export function BusinessDiscoveryExperience() {
     } finally {
       setLocationBusy(false);
     }
-  }
-
-  function exploreSantiago() {
-    setLocationError(null);
-    dispatch({ type: 'set_effective_location', location: SANTIAGO_EXPLORATION_ORIGIN });
   }
 
   function renderBusinessCard(item: (typeof businesses)[number], selected = false) {
@@ -404,17 +329,6 @@ export function BusinessDiscoveryExperience() {
         serviceLabels={serviceLabels}
         highlight={item.preview.highlight?.label}
         onPress={() => openBusiness(item.entity_id)}
-      />
-    );
-  }
-
-  if (!neighborhood.effectiveLocation) {
-    return (
-      <EmptyLocationStart
-        locationBusy={locationBusy}
-        locationError={locationError}
-        onUseMyLocation={() => void useMyLocation()}
-        onExploreSantiago={exploreSantiago}
       />
     );
   }
@@ -501,7 +415,11 @@ export function BusinessDiscoveryExperience() {
             <NeighborhoodMap
               mapStyle={mobileRuntime.mapStyleUrl}
               features={mapFeatures}
-              initialCenter={neighborhood.camera?.center ?? neighborhood.effectiveLocation}
+              initialCenter={
+                neighborhood.camera?.center ??
+                neighborhood.effectiveLocation ??
+                SANTIAGO_EXPLORATION_ORIGIN
+              }
               initialZoom={neighborhood.camera?.zoom ?? 14}
               onSelectEntity={selectBusinessFromMap}
               onViewportChanged={(center, zoom, userInteraction) =>
@@ -583,9 +501,36 @@ export function BusinessDiscoveryExperience() {
               paddingHorizontal: paltaTheme.spacing.sm,
             }}
           >
+            <OverlayAction
+              label={locationBusy ? 'Buscando…' : neighborhood.effectiveLocation ? 'Mi ubicación' : 'Cerca de mí'}
+              onPress={() => {
+                if (!locationBusy) void useMyLocation();
+              }}
+            />
             <OverlayAction label="Siguiendo" onPress={() => router.push('/local-businesses/following')} />
             <OverlayAction label="Mi negocio" onPress={() => router.push('/business/register')} />
           </View>
+
+          {locationError ? (
+            <View
+              style={{
+                alignSelf: 'flex-end',
+                marginTop: paltaTheme.spacing.xs,
+                marginHorizontal: paltaTheme.spacing.sm,
+                maxWidth: 280,
+                paddingHorizontal: paltaTheme.spacing.sm,
+                paddingVertical: 7,
+                borderRadius: paltaTheme.radius.control,
+                backgroundColor: paltaTheme.color.surface,
+                borderWidth: 1,
+                borderColor: paltaTheme.color.divider,
+              }}
+            >
+              <Text style={{ fontSize: 12, lineHeight: 16, color: paltaTheme.color.textSecondary }}>
+                {locationError}
+              </Text>
+            </View>
+          ) : null}
         </View>
 
         {neighborhood.mapMovedSinceSearch ? (
