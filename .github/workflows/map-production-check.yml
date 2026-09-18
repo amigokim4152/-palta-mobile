@@ -45,7 +45,8 @@ on:
       - '.github/workflows/map-production-check.yml'
 
 jobs:
-  map-production:
+  cloudflare-production:
+    name: Cloudflare production edge
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -60,11 +61,6 @@ jobs:
           bash -n scripts/inspect-local-place-summary.sh
           node --check scripts/inspect-local-place-data.mjs
           node --check scripts/probe-legacy-local-places.mjs
-      - name: Mobile typecheck
-        working-directory: apps/mobile
-        run: |
-          npm ci
-          npx tsc --noEmit
       - name: Production Worker dry-run
         run: npx --yes wrangler@4.133.0 deploy --dry-run --config infra/cloudflare/wrangler.map-production.jsonc
       - name: Multipart uploader dry-run
@@ -93,3 +89,18 @@ jobs:
             vector_layers: vectorLayers,
           }, null, 2));
           NODE
+
+  mobile-map-typecheck:
+    name: Mobile map typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install mobile dependencies
+        working-directory: apps/mobile
+        run: npm ci
+      - name: Typecheck mobile map runtime
+        working-directory: apps/mobile
+        run: npx tsc --noEmit
