@@ -57,6 +57,136 @@ async function readJson(req) {
   return JSON.parse(Buffer.concat(chunks).toString('utf8'));
 }
 
+function isoAfter(ms) {
+  return new Date(Date.now() + ms).toISOString();
+}
+
+function buildFunctionalHomeMock() {
+  const observedAt = new Date().toISOString();
+  const weatherExpiresAt = isoAfter(30 * 60 * 1000);
+  const mobilityExpiresAt = isoAfter(2 * 60 * 1000);
+  const tomorrowMorning = new Date(Date.now() + 24 * 60 * 60 * 1000);
+  tomorrowMorning.setHours(10, 30, 0, 0);
+
+  return {
+    contract_version: 'functional-home-v1',
+    generated_at: observedAt,
+    locality_label: 'Vitacura',
+    context: {
+      locality: {
+        id: 'vitacura',
+        label: 'Vitacura',
+        change_target: '/context/location',
+      },
+      notifications_target: '/activity/notifications',
+      unread_notification_count: 2,
+      profile_target: '/context/profile',
+    },
+    glance: [
+      {
+        id: 'weather-vitacura',
+        label: 'CLIMA',
+        value: '18°',
+        detail: 'Despejado',
+        source_domain: 'weather',
+        data_mode: 'demo',
+        observed_at: observedAt,
+        expires_at: weatherExpiresAt,
+        relevance: 0.72,
+      },
+      {
+        id: 'metro-l1',
+        label: 'METRO L1',
+        value: 'Normal',
+        source_domain: 'mobility',
+        data_mode: 'demo',
+        observed_at: observedAt,
+        expires_at: mobilityExpiresAt,
+        relevance: 0.74,
+      },
+      {
+        id: 'bus-405',
+        label: 'BUS 405',
+        value: '6 min',
+        detail: 'Parada habitual',
+        source_domain: 'mobility',
+        data_mode: 'demo',
+        observed_at: observedAt,
+        expires_at: mobilityExpiresAt,
+        relevance: 0.82,
+      },
+    ],
+    items: [
+      {
+        id: 'home-bus-demo-1',
+        kind: 'alert',
+        title: 'Tu bus 405 está por llegar',
+        body: 'Llegada estimada en 6 min en tu parada habitual.',
+        source_domain: 'mobility',
+        delivery: 'home',
+        surface: 'now',
+        data_mode: 'demo',
+        observed_at: observedAt,
+        expires_at: mobilityExpiresAt,
+        dedupe_key: 'mobility:bus:405:habitual-stop',
+        urgency: 2,
+        importance: 2,
+        relevance: 0.9,
+      },
+      {
+        id: 'home-care-demo-1',
+        kind: 'status',
+        title: 'Esperando respuesta del taller',
+        body: 'Tu solicitud sigue en curso.',
+        source_domain: 'care',
+        delivery: 'home',
+        care_track_id: 'care-demo-1',
+        surface: 'in_progress',
+        data_mode: 'demo',
+        observed_at: observedAt,
+        action_label: 'Ver seguimiento',
+        action_target: '/care/care-demo-1',
+        action_kind: 'internal',
+        dedupe_key: 'care:care-demo-1',
+        urgency: 1,
+        importance: 3,
+        relevance: 0.95,
+      },
+      {
+        id: 'home-health-demo-1',
+        kind: 'status',
+        title: 'Consulta médica',
+        body: 'Revisa los documentos que debes llevar.',
+        source_domain: 'health',
+        delivery: 'home',
+        surface: 'upcoming',
+        data_mode: 'demo',
+        scheduled_at: tomorrowMorning.toISOString(),
+        observed_at: observedAt,
+        dedupe_key: 'health:appointment:demo-1',
+        urgency: 1,
+        importance: 3,
+        relevance: 0.8,
+      },
+      {
+        id: 'home-public-demo-1',
+        kind: 'useful_today',
+        title: 'Información municipal relevante',
+        body: 'Una novedad local verificada puede aparecer aquí cuando corresponda a tu situación.',
+        source_domain: 'public-life',
+        delivery: 'home',
+        surface: 'useful_today',
+        data_mode: 'demo',
+        observed_at: observedAt,
+        dedupe_key: 'public-life:demo-1',
+        urgency: 0,
+        importance: 2,
+        relevance: 0.68,
+      },
+    ],
+  };
+}
+
 const server = http.createServer(async (req, res) => {
   try {
     if (!req.url || !req.method) return json(res, 400, { error: 'bad_request' });
@@ -65,32 +195,11 @@ const server = http.createServer(async (req, res) => {
     const url = new URL(req.url, `http://${req.headers.host ?? `${host}:${port}`}`);
 
     if (req.method === 'GET' && url.pathname === '/health') {
-      return json(res, 200, { ok: true, service: 'palta-mock-api', version: '0.1.0' });
+      return json(res, 200, { ok: true, service: 'palta-mock-api', version: '0.2.0' });
     }
 
     if (req.method === 'GET' && url.pathname === '/v1/home') {
-      return json(res, 200, {
-        generated_at: new Date().toISOString(),
-        items: [
-          {
-            id: 'home-care-demo-1',
-            kind: 'status',
-            title: 'Esperando respuesta del taller',
-            body: 'Tu solicitud sigue en curso.',
-            source_domain: 'local_business',
-            delivery: 'home',
-            care_track_id: 'care-demo-1',
-          },
-          {
-            id: 'home-content-demo-1',
-            kind: 'content',
-            title: 'Información útil para hoy',
-            body: 'Este contenido aparece porque Home está poco cargado.',
-            source_domain: 'news',
-            delivery: 'home',
-          },
-        ],
-      });
+      return json(res, 200, buildFunctionalHomeMock());
     }
 
     if (req.method === 'GET' && url.pathname === '/v1/local/search') {
