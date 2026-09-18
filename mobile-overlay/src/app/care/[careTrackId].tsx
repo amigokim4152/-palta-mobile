@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Pressable, Text, View } from 'react-native';
+import type { BusinessReservationApiDetail } from '../../../../../src/api/businessReservationsApiClient';
 import {
   ErrorState,
   LoadingState,
@@ -9,8 +10,30 @@ import { ScreenFrame } from '../../components/ScreenFrame';
 import { CareTimeline } from '../../components/care/CareTimeline';
 import { PaltaButton } from '../../components/common/PaltaButton';
 import { SectionHeading } from '../../components/common/SectionHeading';
+import { getBusinessAuthenticatedRuntime } from '../../features/business/authenticatedBusinessRuntime';
 import { useAsyncResource } from '../../hooks/useAsyncResource';
-import { mobileRuntime } from '../../services/paltaClient';
+
+function reservationTitle(reservation: BusinessReservationApiDetail): string {
+  switch (reservation.status) {
+    case 'confirmed': return 'Reserva confirmada';
+    case 'declined': return 'No hay disponibilidad';
+    case 'cancelled': return 'Solicitud cancelada';
+    default: return 'Esperando confirmación del negocio';
+  }
+}
+
+function reservationBody(reservation: BusinessReservationApiDetail): string {
+  switch (reservation.status) {
+    case 'confirmed':
+      return 'El negocio confirmó esta reserva. Palta conserva la misma solicitud y el mismo seguimiento.';
+    case 'declined':
+      return 'El negocio indicó que no puede confirmar esta solicitud. Puedes volver al perfil para buscar otra alternativa.';
+    case 'cancelled':
+      return 'Esta solicitud ya no está activa.';
+    default:
+      return 'La solicitud fue enviada, pero todavía no es una reserva confirmada. Falta la respuesta real del negocio.';
+  }
+}
 
 export default function CareTrackScreen() {
   const { careTrackId } = useLocalSearchParams<{ careTrackId: string }>();
@@ -19,24 +42,37 @@ export default function CareTrackScreen() {
 
   const loadCare = useCallback(async () => {
     if (!careTrackId) throw new Error('Care ID missing');
-    if (mobileRuntime.status !== 'ready') {
-      throw new Error(mobileRuntime.message);
+    const authenticatedRuntime = getBusinessAuthenticatedRuntime();
+    if (authenticatedRuntime.status !== 'ready') {
+      throw new Error(authenticatedRuntime.message);
     }
-    const [care, quote] = await Promise.all([
-      mobileRuntime.client.getCare(careTrackId),
-      mobileRuntime.client.quotes.getQuoteByCareTrack(careTrackId),
+
+    const [care, reservation] = await Promise.all([
+      authenticatedRuntime.client.getCare(careTrackId),
+      authenticatedRuntime.client.reservations.getByCareTrack(careTrackId),
     ]);
-    return { care, quote };
+
+    // A Care track belongs to one concrete workflow. Do not make reservation
+    // tracking depend on quote routes, and do not create a second Care object.
+    const quote = reservation
+      ? null
+      : await authenticatedRuntime.client.quotes.getQuoteByCareTrack(careTrackId);
+
+    return { care, quote, reservation };
   }, [careTrackId]);
 
   const { state, refresh } = useAsyncResource(loadCare);
 
   async function selectBusiness(quoteId: string, businessId: string) {
-    if (mobileRuntime.status !== 'ready') return;
+    const authenticatedRuntime = getBusinessAuthenticatedRuntime();
+    if (authenticatedRuntime.status !== 'ready') {
+      setSelectionError(authenticatedRuntime.message);
+      return;
+    }
     setSelectingBusinessId(businessId);
     setSelectionError(null);
     try {
-      await mobileRuntime.client.quotes.selectBusiness(quoteId, businessId);
+      await authenticatedRuntime.client.quotes.selectBusiness(quoteId, businessId);
       await refresh();
     } catch (error) {
       setSelectionError(
@@ -65,6 +101,7 @@ export default function CareTrackScreen() {
 
   const care = state.data?.care;
   const quote = state.data?.quote;
+  const reservation = state.data?.reservation;
   if (!care) {
     return (
       <ScreenFrame title="Seguimiento">
@@ -85,6 +122,31 @@ export default function CareTrackScreen() {
         {care.waiting_for ? <Text>Esperando: {care.waiting_for}</Text> : null}
         {care.expected_at ? (
           <Text>Fecha estimada: {new Date(care.expected_at).toLocaleString('es-CL')}</Text>
+        ) : null}
+
+        {reservation ? (
+          <View style={{ gap: 10, borderWidth: 1, borderRadius: 14, padding: 14 }}>
+            <SectionHeading
+              eyebrow="RESERVA"
+              title={reservationTitle(reservation)}
+              subtitle={reservationBody(reservation)}
+            />
+            <Text style={{ fontWeight: '800' }}>
+              Solicitada para: {new Date(reservation.requested_for).toLocaleString('es-CL')}
+            </Text>
+            {reservation.note ? <Text style={{ lineHeight: 20 }}>{reservation.note}</Text> : null}
+            {reservation.owner_note ? (
+              <View style={{ gap: 4 }}>
+                <Text style={{ fontSize: 12, fontWeight: '800', opacity: 0.58 }}>RESPUESTA DEL NEGOCIO</Text>
+                <Text style={{ lineHeight: 20 }}>{reservation.owner_note}</Text>
+              </View>
+            ) : null}
+            {reservation.responded_at ? (
+              <Text style={{ fontSize: 12, opacity: 0.58 }}>
+                Respondido: {new Date(reservation.responded_at).toLocaleString('es-CL')}
+              </Text>
+            ) : null}
+          </View>
         ) : null}
 
         {quote ? (

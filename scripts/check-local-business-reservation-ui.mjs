@@ -7,6 +7,7 @@ const reservationPath = path.join(root, 'mobile-overlay/src/features/business/Bu
 const authRuntimePath = path.join(root, 'mobile-overlay/src/features/business/authenticatedBusinessRuntime.ts');
 const ownerInboxPath = path.join(root, 'mobile-overlay/src/app/business/manage/[businessId]/reservations.tsx');
 const ownerHomePath = path.join(root, 'mobile-overlay/src/app/business/manage/[businessId].tsx');
+const carePath = path.join(root, 'mobile-overlay/src/app/care/[careTrackId].tsx');
 const factoryPath = path.join(root, 'src/api/paltaApiFactory.ts');
 
 function assert(condition, message) {
@@ -19,6 +20,7 @@ for (const file of [
   authRuntimePath,
   ownerInboxPath,
   ownerHomePath,
+  carePath,
   factoryPath,
 ]) {
   assert(fs.existsSync(file), `Missing reservation source: ${path.relative(root, file)}`);
@@ -29,6 +31,7 @@ const reservation = fs.readFileSync(reservationPath, 'utf8');
 const authRuntime = fs.readFileSync(authRuntimePath, 'utf8');
 const ownerInbox = fs.readFileSync(ownerInboxPath, 'utf8');
 const ownerHome = fs.readFileSync(ownerHomePath, 'utf8');
+const care = fs.readFileSync(carePath, 'utf8');
 const factory = fs.readFileSync(factoryPath, 'utf8');
 
 assert(
@@ -78,8 +81,17 @@ assert(
   'Verified owner home must load protected reservation work through authenticated runtime.',
 );
 assert(
+  care.includes('getBusinessAuthenticatedRuntime') &&
+    care.includes('authenticatedRuntime.client.getCare(careTrackId)') &&
+    care.includes('authenticatedRuntime.client.reservations.getByCareTrack(careTrackId)') &&
+    care.includes('reservationTitle(reservation)') &&
+    care.includes('La solicitud fue enviada, pero todavía no es una reserva confirmada') &&
+    !care.includes('mobileRuntime.client.getCare'),
+  'Shared Care must read the authenticated canonical Care and reservation projection without creating a second workflow.',
+);
+assert(
   factory.includes('BusinessReservationsApiClient') && factory.includes('client.reservations ='),
   'Reservation API must be composed through the shared Palta client factory.',
 );
 
-console.log('PASS: Local Business authenticated reservation + verified owner response + Shared Care UI contract');
+console.log('PASS: Local Business authenticated reservation + verified owner response + Shared Care projection contract');
