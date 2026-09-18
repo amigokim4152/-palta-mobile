@@ -36,6 +36,7 @@ function transaction(input: {
   listingId?: string;
   name?: string;
 }): MarketTransactionView {
+  const firstMedia = listing.media[0];
   return {
     id: input.id,
     listingId: input.listingId ?? listing.id,
@@ -47,9 +48,9 @@ function transaction(input: {
       title: listing.title,
       category: listing.category,
       tradeMode: listing.tradeMode,
-      priceClp: listing.priceClp,
+      ...(typeof listing.priceClp === 'number' ? { priceClp: listing.priceClp } : {}),
       comunaName: listing.location.comunaName,
-      mediaAssetId: listing.media[0]?.mediaAssetId,
+      ...(firstMedia ? { mediaAssetId: firstMedia.mediaAssetId } : {}),
     },
     conversationId: `conversation-${input.buyerUserId}`,
     createdAt: '2026-09-18T12:10:00Z',
