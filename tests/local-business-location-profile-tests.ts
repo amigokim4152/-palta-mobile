@@ -20,6 +20,18 @@ assert(validateBusinessLocationProfile(storefront, ['storefront']).length === 0,
 const publicStorefront = projectPublicBusinessLocation({ profile: storefront, presenceModes: ['storefront'] });
 assert(publicStorefront.point?.latitude === -33.39, 'exact storefront projection may include its public point');
 
+const mixedStorefront: BusinessLocationProfile = {
+  ...storefront,
+  businessId: 'biz-mixed',
+  serviceAreaLabels: ['Vitacura', 'Las Condes'],
+};
+assert(
+  validateBusinessLocationProfile(mixedStorefront, ['mixed']).length === 0,
+  'mixed presence includes a real storefront and may expose its confirmed public point',
+);
+const publicMixed = projectPublicBusinessLocation({ profile: mixedStorefront, presenceModes: ['mixed'] });
+assert(publicMixed.point?.longitude === -70.57, 'mixed storefront projection must preserve the public map point');
+
 const homeBased: BusinessLocationProfile = {
   businessId: 'biz-home',
   addressLabel: 'Vitacura',
