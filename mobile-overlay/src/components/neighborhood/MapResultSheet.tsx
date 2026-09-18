@@ -40,9 +40,9 @@ export function MapResultSheet({
   const { height: windowHeight } = useWindowDimensions();
   const heights = useMemo<Record<ResultSheetSnap, number>>(
     () => ({
-      peek: clamp(windowHeight * 0.20, 150, 190),
-      half: clamp(windowHeight * 0.38, 260, 350),
-      full: clamp(windowHeight * 0.62, 390, 580),
+      peek: clamp(windowHeight * 0.22, 170, 210),
+      half: clamp(windowHeight * 0.44, 310, 410),
+      full: clamp(windowHeight * 0.72, 500, 680),
     }),
     [windowHeight],
   );
@@ -110,28 +110,26 @@ export function MapResultSheet({
     <Animated.View
       accessibilityLabel="Resultados del mapa"
       style={{
+        width: '100%',
         height: animatedHeight,
         borderTopWidth: 1,
         borderColor: paltaTheme.color.border,
         borderTopLeftRadius: paltaTheme.radius.sheet,
         borderTopRightRadius: paltaTheme.radius.sheet,
-        paddingHorizontal: paltaTheme.spacing.sm,
+        paddingHorizontal: 0,
         paddingTop: paltaTheme.spacing.xxs,
         backgroundColor: paltaTheme.color.surface,
+        overflow: 'hidden',
       }}
     >
       <Pressable
         {...panResponder.panHandlers}
         accessibilityRole="button"
-        accessibilityLabel={
-          snap === 'full'
-            ? 'Mostrar más mapa'
-            : 'Mostrar más resultados'
-        }
+        accessibilityLabel={snap === 'full' ? 'Mostrar más mapa' : 'Mostrar más resultados'}
         onPress={toggleSnap}
         hitSlop={8}
         style={{
-          minHeight: 36,
+          minHeight: 34,
           alignItems: 'center',
           justifyContent: 'center',
         }}
@@ -148,7 +146,7 @@ export function MapResultSheet({
       </Pressable>
 
       <ScrollView
-        style={{ flex: 1 }}
+        style={{ flex: 1, width: '100%' }}
         contentContainerStyle={{ paddingBottom: paltaTheme.spacing.lg }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
