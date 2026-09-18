@@ -6,7 +6,7 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "build": "tsc",
-    "test": "npm run build && node dist/tests/run-tests.js && node dist/tests/home-runtime-tests.js && node dist/tests/auth-profile-core-tests.js && node dist/tests/auth-profile-persistence-tests.js",
+    "test": "npm run build && node dist/tests/run-tests.js && node dist/tests/home-runtime-tests.js && node dist/tests/home-care-schedule-tests.js && node dist/tests/auth-profile-core-tests.js && node dist/tests/auth-profile-persistence-tests.js",
     "mock:api": "node dev/mock-api/server.mjs",
     "mock:smoke": "node dev/mock-api/smoke.mjs",
     "check:mock-syntax": "node --check dev/mock-api/server.mjs && node --check dev/mock-api/live-weather.mjs && node --check dev/mock-api/live-vitacura.mjs && node --check dev/mock-api/smoke.mjs",
