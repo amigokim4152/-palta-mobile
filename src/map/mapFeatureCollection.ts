@@ -16,6 +16,7 @@ export type PaltaPointFeatureCollection = {
       categoryKey?: string;
       verificationStatus?: string;
       operationalState?: string;
+      markerTier?: MapFeature['markerTier'];
       selected: boolean;
     };
   }>;
@@ -47,6 +48,7 @@ export function toPointFeatureCollection(
         ...(feature.operationalState
           ? { operationalState: feature.operationalState }
           : {}),
+        ...(feature.markerTier ? { markerTier: feature.markerTier } : {}),
         selected: feature.selected === true,
       },
     })),
