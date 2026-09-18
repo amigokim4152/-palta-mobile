@@ -1,4 +1,8 @@
 import {
+  projectVehicleCoordinationForDealer,
+  validateVehicleCoordinationSelection,
+} from '../src/autos/autosAcquisitionCoordination.js';
+import {
   evaluateDealerForAcquisition,
   routeEligibleDealers,
   type AutosDealerRegistryEntry,
@@ -134,4 +138,51 @@ const invalidCare = validateVehicleSaleMilestones([
 ]);
 assert(!invalidCare.valid, 'Out-of-order vehicle sale milestones must fail validation.');
 
-console.log('PASS: Autos dealer routing, Chile data merge, and Shared Care projection');
+const coordinationSelection = {
+  acquisitionRequestId: 'request-001',
+  selectedOfferId: 'offer-001',
+  selectedBusinessId: 'biz-a',
+  selectedAt: '2026-09-18T12:30:00.000Z',
+  contactConsent: 'share_selected_dealer' as const,
+  locationConsent: 'share_selected_dealer' as const,
+};
+const privateCoordination = {
+  phone: '+56911112222',
+  exactLocation: {
+    latitude: -33.401,
+    longitude: -70.58,
+    label: 'Lugar acordado',
+  },
+};
+assert(
+  validateVehicleCoordinationSelection(coordinationSelection, privateCoordination).valid,
+  'Explicit selected-dealer contact and location sharing should validate when the private facts exist.',
+);
+const selectedDealerProjection = projectVehicleCoordinationForDealer(
+  coordinationSelection,
+  privateCoordination,
+  'biz-a',
+);
+assert(
+  selectedDealerProjection.phone === '+56911112222' && Boolean(selectedDealerProjection.exactLocation),
+  'Only the selected dealer may receive explicitly shared coordination details.',
+);
+const losingDealerProjection = projectVehicleCoordinationForDealer(
+  coordinationSelection,
+  privateCoordination,
+  'biz-e',
+);
+assert(
+  losingDealerProjection.selected === false && !losingDealerProjection.phone && !losingDealerProjection.exactLocation,
+  'Losing bidders must never receive phone or exact location.',
+);
+
+const privateSelection = {
+  ...coordinationSelection,
+  contactConsent: 'private' as const,
+  locationConsent: 'private' as const,
+};
+const stillPrivate = projectVehicleCoordinationForDealer(privateSelection, privateCoordination, 'biz-a');
+assert(!stillPrivate.phone && !stillPrivate.exactLocation, 'Selecting a dealer must not automatically reveal private coordination facts.');
+
+console.log('PASS: Autos dealer routing, Chile data merge, Shared Care and selected-dealer privacy projection');
