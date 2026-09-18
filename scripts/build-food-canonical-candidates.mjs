@@ -17,14 +17,11 @@ const load = (prefix) => fs.readdirSync(root)
 
 const observations = load('food-observations-');
 const corroborations = load('outlet-corroborations-');
+const independentDiscoveries = load('independent-outlet-discoveries-');
 const menus = load('menu-corroborations-');
 
-const observationByOutlet = new Map(
-  observations
-    .filter((record) => record.outlet?.outlet_key)
-    .map((record) => [record.outlet.outlet_key, record]),
-);
-const corroborationByOutlet = new Map(corroborations.map((record) => [record.outlet_key, record]));
+const observationByOutlet = new Map(observations.filter((record) => record.outlet?.outlet_key).map((record) => [record.outlet.outlet_key, record]));
+const independentByOutlet = new Map(independentDiscoveries.map((record) => [record.outlet_key, record]));
 const menusByOutlet = new Map();
 for (const menu of menus) {
   if (!menu.outlet_key) continue;
@@ -36,7 +33,9 @@ for (const menu of menus) {
 function isIndependent(record) {
   return (record.evidence ?? []).some((item) => independentKinds.has(item.kind));
 }
-
+function identityReady(record) {
+  return record.identity_status === 'verified' || record.identity_status === 'corroborated';
+}
 function sanitizedMenu(menu) {
   return {
     menuScope: menu.menu_scope,
@@ -51,62 +50,71 @@ function sanitizedMenu(menu) {
     })),
   };
 }
-
-const candidates = [];
-const blocked = [];
-
-for (const [outletKey, corroboration] of corroborationByOutlet) {
-  const research = observationByOutlet.get(outletKey);
-  const identityReady = corroboration.identity_status === 'verified' || corroboration.identity_status === 'corroborated';
-  const independent = isIndependent(corroboration);
-
-  if (!identityReady || !independent) {
-    blocked.push({ outletKey, reason: !identityReady ? 'identity_not_ready' : 'independent_source_missing' });
-    continue;
-  }
-
-  const contact = corroboration.public_contact ?? {};
-  const hasDirectContact = Boolean(contact.whatsapp || contact.phone);
-  const outletMenus = menusByOutlet.get(outletKey) ?? [];
-
-  candidates.push({
-    outletKey,
-    brandName: research?.outlet?.brand_name ?? null,
-    outletName: research?.outlet?.outlet_name ?? null,
-    address: corroboration.address ?? research?.outlet?.address ?? null,
-    comuna: corroboration.comuna ?? research?.outlet?.comuna ?? null,
+function candidateFrom(record, research, discoveryLane) {
+  const contact = record.public_contact ?? {};
+  const outletMenus = menusByOutlet.get(record.outlet_key) ?? [];
+  return {
+    outletKey: record.outlet_key,
+    brandName: record.brand_name ?? research?.outlet?.brand_name ?? null,
+    outletName: record.outlet_name ?? research?.outlet?.outlet_name ?? null,
+    address: record.address ?? research?.outlet?.address ?? null,
+    comuna: record.comuna ?? research?.outlet?.comuna ?? null,
     publicContact: {
       phone: contact.phone ?? null,
       whatsapp: contact.whatsapp ?? null,
       website: contact.website ?? null,
     },
-    identityStatus: corroboration.identity_status,
-    operationalStatus: hasDirectContact ? 'ready_for_merchant_outreach' : 'needs_direct_public_contact',
+    identityStatus: record.identity_status,
+    discoveryLane,
+    operationalStatus: contact.whatsapp || contact.phone ? 'ready_for_merchant_outreach' : 'needs_direct_public_contact',
     merchantAuthorizationStatus: 'pending',
     livePublishAllowed: false,
     collectImages: false,
-    independentEvidence: corroboration.evidence ?? [],
+    independentEvidence: record.evidence ?? [],
     independentlyObservedMenus: outletMenus.map(sanitizedMenu),
     menuStatus: outletMenus.length ? 'independent_menu_evidence_available' : 'needs_independent_menu_evidence',
-  });
+  };
 }
 
-candidates.sort((a, b) => {
-  const statusDelta = Number(b.operationalStatus === 'ready_for_merchant_outreach') -
-    Number(a.operationalStatus === 'ready_for_merchant_outreach');
-  if (statusDelta !== 0) return statusDelta;
-  return String(a.comuna ?? '').localeCompare(String(b.comuna ?? ''), 'es') ||
-    String(a.brandName ?? '').localeCompare(String(b.brandName ?? ''), 'es');
-});
+const candidates = [];
+const blocked = [];
+const candidateKeys = new Set();
 
-const brandLevelMenus = menus
-  .filter((menu) => !menu.outlet_key && menu.brand_name)
-  .map((menu) => ({
-    brandName: menu.brand_name,
-    status: 'requires_outlet_binding_before_publish',
-    collectImages: false,
-    menu: sanitizedMenu(menu),
-  }));
+for (const record of independentDiscoveries) {
+  if (!identityReady(record) || !isIndependent(record)) {
+    blocked.push({ outletKey: record.outlet_key, discoveryLane: 'independent_source_first', reason: !identityReady(record) ? 'identity_not_ready' : 'independent_source_missing' });
+    continue;
+  }
+  candidates.push(candidateFrom(record, observationByOutlet.get(record.outlet_key), 'independent_source_first'));
+  candidateKeys.add(record.outlet_key);
+}
+
+for (const corroboration of corroborations) {
+  const outletKey = corroboration.outlet_key;
+  if (candidateKeys.has(outletKey)) continue;
+  if (!identityReady(corroboration) || !isIndependent(corroboration)) {
+    blocked.push({ outletKey, discoveryLane: 'research_then_corroboration', reason: !identityReady(corroboration) ? 'identity_not_ready' : 'independent_source_missing' });
+    continue;
+  }
+  const research = observationByOutlet.get(outletKey);
+  const normalized = {
+    ...corroboration,
+    brand_name: research?.outlet?.brand_name,
+    outlet_name: research?.outlet?.outlet_name,
+  };
+  candidates.push(candidateFrom(normalized, research, 'research_then_corroboration'));
+  candidateKeys.add(outletKey);
+}
+
+candidates.sort((a, b) => Number(b.operationalStatus === 'ready_for_merchant_outreach') - Number(a.operationalStatus === 'ready_for_merchant_outreach') ||
+  String(a.comuna ?? '').localeCompare(String(b.comuna ?? ''), 'es') || String(a.brandName ?? '').localeCompare(String(b.brandName ?? ''), 'es'));
+
+const brandLevelMenus = menus.filter((menu) => !menu.outlet_key && menu.brand_name).map((menu) => ({
+  brandName: menu.brand_name,
+  status: 'requires_outlet_binding_before_publish',
+  collectImages: false,
+  menu: sanitizedMenu(menu),
+}));
 
 console.log(JSON.stringify({
   dataset: 'palta_food_pre_contact_canonical_candidates_rm',
@@ -119,6 +127,7 @@ console.log(JSON.stringify({
   },
   counts: {
     candidates: candidates.length,
+    independentSourceFirst: candidates.filter((item) => item.discoveryLane === 'independent_source_first').length,
     readyForMerchantOutreach: candidates.filter((item) => item.operationalStatus === 'ready_for_merchant_outreach').length,
     withIndependentMenuEvidence: candidates.filter((item) => item.independentlyObservedMenus.length > 0).length,
     blocked: blocked.length,
