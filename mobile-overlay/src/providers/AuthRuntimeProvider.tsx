@@ -114,9 +114,15 @@ export function AuthRuntimeProvider({ children }: { children: ReactNode }) {
       else await restore();
     });
 
-    const unsubscribeAuth = portResult.port.subscribe((authState) => {
-      setState(toRuntimeState(authState));
-    });
+    const unsubscribeAuth = portResult.port.subscribe(
+      (authState) => {
+        setState(toRuntimeState(authState));
+      },
+      (error) => {
+        setBusy(false);
+        setState(visibleError(error));
+      },
+    );
     const linkingSubscription = Linking.addEventListener('url', ({ url }) => {
       void handleIncomingUrl(url);
     });
