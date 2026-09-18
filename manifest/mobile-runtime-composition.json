@@ -46,6 +46,7 @@
       "owned_paths": [
         "mobile-overlay/src/features/business",
         "mobile-overlay/src/features/neighborhood/reduceNeighborhood.ts",
+        "mobile-overlay/src/state/NeighborhoodStateProvider.tsx",
         "mobile-overlay/src/components/business",
         "mobile-overlay/src/components/LocalResultCard.tsx",
         "mobile-overlay/src/components/map/NeighborhoodMap.tsx",
@@ -57,6 +58,7 @@
       "branch_owned_paths": [
         "mobile-overlay/src/features/business",
         "mobile-overlay/src/features/neighborhood/reduceNeighborhood.ts",
+        "mobile-overlay/src/state/NeighborhoodStateProvider.tsx",
         "mobile-overlay/src/components/business",
         "mobile-overlay/src/components/LocalResultCard.tsx",
         "mobile-overlay/src/components/map/NeighborhoodMap.tsx",
