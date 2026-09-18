@@ -31,7 +31,7 @@ export function SummaryListRow({
       <View
         style={{
           flexDirection: stackMeta ? 'column' : 'row',
-          alignItems: stackMeta ? 'flex-start' : 'flex-start',
+          alignItems: 'flex-start',
           justifyContent: 'space-between',
           gap: 8,
         }}
@@ -42,7 +42,7 @@ export function SummaryListRow({
             flexShrink: 1,
             fontSize: 17,
             lineHeight: 23,
-            fontWeight: '650',
+            fontWeight: '600',
             color: paltaTheme.color.textPrimary,
           }}
         >
