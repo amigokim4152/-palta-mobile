@@ -2,109 +2,164 @@
 
 ## Purpose
 
-Build a Chile food corpus from public evidence before freezing consumer-facing categories.
+Build a Chile food taxonomy and a reliable Palta restaurant catalog without treating any delivery platform as Palta's production database.
 
-Uber Eats is treated as a high-density observation source for what is actually being sold in Chile, not as the Palta taxonomy. Platform category labels are intentionally preserved as source facts but are never copied directly into Palta navigation.
+Uber Eats can be used as a high-density **market-research reference** for understanding what is actually sold in Chile and how menus are structured. It is not the canonical source for Palta production records, and platform categories are never copied directly into Palta navigation.
+
+## Three data layers
+
+Food data is separated into three explicit layers:
+
+1. `research_observation`
+   - limited market-research observations from delivery platforms such as Uber Eats;
+   - useful for discovering restaurants, menu concepts, category noise and Chile-specific dish vocabulary;
+   - never sufficient by itself to publish a Palta canonical business, public contact, menu or current price.
+
+2. `independent_corroboration`
+   - independently checked public evidence such as an official restaurant website, official social account, merchant registration, public registry or other suitable public source;
+   - used to confirm business/outlet identity, address, public business contact, menu facts and prices;
+   - retains source URL and observation date.
+
+3. `canonical_production`
+   - facts eligible for Palta's live business/menu experience after identity and fact-level source requirements are satisfied;
+   - remains traceable back to its evidence;
+   - owner/merchant-provided data is preferred when available.
+
+The core rule is:
+
+`delivery-platform discovery/reference -> independent verification -> Palta canonical production`
+
+## Source policy
+
+### Delivery platforms
+
+A delivery-platform observation may help answer:
+
+- which restaurants or brands exist as discovery candidates;
+- which foods appear to be sold in Chile;
+- how merchant menu sections and commercial formats are commonly structured;
+- which cuisine/dish terms require taxonomy support.
+
+A delivery-platform observation alone must **not**:
+
+- create a production Canonical Business/Outlet automatically;
+- publish a phone/WhatsApp number as verified;
+- publish a menu item or current price as a Palta canonical fact;
+- supply copied platform photos, reviews, ratings or long creative descriptions.
+
+### Independent production sources
+
+Eligible corroborating sources include, subject to normal quality checks:
+
+- official merchant website;
+- official merchant social account;
+- merchant/owner registration in Palta;
+- public registry or public institutional source;
+- independently maintained public business directory/location source where appropriate;
+- another public source with materially independent provenance.
+
+Only public business contact information belongs in the catalog. Do not infer or expose private personal contact information.
 
 ## Collection unit
 
-One collection pass should capture the restaurant context and menu context together:
+When researching a candidate, collect the restaurant context and menu context together when available:
 
 1. Brand / business name.
 2. Outlet / branch name.
-3. Public street address, comuna, region and postal code when exposed.
-4. Public business phone / WhatsApp / website when exposed by an official or corroborating public source.
-5. Platform listing ID and URL.
-6. Platform categories and availability flags.
+3. Public street address, comuna, region and postal code.
+4. Public business phone / WhatsApp / website from an independent source when available.
+5. Research listing ID/URL when the record originated from a market-research reference.
+6. Research platform categories and availability observations as non-canonical evidence.
 7. Merchant-authored menu section names.
-8. Menu item names and observed CLP prices.
+8. Menu item names and observed CLP prices only as dated observations until independently confirmed.
 9. Delivery / pickup / scheduled-order observations.
 10. Observation timestamp and evidence URLs.
 
-Do not infer private contact information. Only public business contact data belongs here.
-
 ## Identity model
 
-Do not assume `one Uber Eats listing = one canonical Palta Business`.
+Do not assume `one delivery-platform listing = one canonical Palta Business`.
 
 The model is:
 
 `Canonical Business / Brand -> Outlet -> Platform Presence -> Listing history -> Menu Snapshot -> Section -> Item`
 
-Three distinct identity problems are already present in the RM corpus:
+Known identity risks include:
 
-- several separately named delivery listings can share one public address;
-- a listing name can imply one comuna while its exposed address points to another;
-- one verified physical outlet can have an old closed platform listing ID and a different active listing ID later.
+- several separately named delivery listings sharing one public address;
+- a listing name implying one comuna while its exposed address points to another;
+- one verified physical outlet having an old closed platform listing ID and a different active listing ID later;
+- virtual brands or ghost kitchens sharing a physical kitchen.
 
-Therefore neither platform listing ID, brand name nor street address can independently define a Palta Business or Outlet.
-
-A shared address can represent a normal multi-brand venue, a ghost kitchen, a virtual brand or bad source data. Same-address listings therefore remain distinct until identity evidence is sufficient. A historical/replaced listing remains attached to the same outlet as evidence and must not create a duplicate business.
+Therefore platform listing ID, brand name and street address cannot independently define a Palta Business or Outlet.
 
 ### Identity statuses
 
-- `verified`: official source confirms the outlet identity/contact/address.
-- `corroborated`: at least two independent public sources agree materially.
-- `platform_only`: currently observed only on the delivery platform.
+- `verified`: an official/merchant source confirms the outlet materially.
+- `corroborated`: suitable independent public evidence agrees materially.
+- `platform_only`: currently only a market-research platform observation exists.
 - `needs_review`: material conflicts remain.
 - `possible_virtual_brand`: shared-address / brand evidence suggests a virtual or kitchen-only listing.
 
-Only `verified` and `corroborated` outlet identities should automatically attach to a canonical Palta Business. Other records remain discoverable research evidence until reviewed.
+Only `verified` and `corroborated` identities are candidates for canonical production, and fact-level evidence requirements still apply separately. A verified outlet does not automatically make an Uber-only menu or price canonical.
 
-## Raw data vs Palta normalization
+## Raw evidence vs Palta normalization
 
-Always preserve the original merchant/platform facts:
+Always preserve source facts separately from Palta normalization:
 
-- source restaurant/listing name
-- source category labels
-- source address text when relevant
-- source menu section name
-- source menu item name
-- observed price
-- observed availability / closed state
+- source restaurant/listing name;
+- source category labels;
+- source address text when relevant;
+- source menu section name;
+- source menu item name;
+- observed price;
+- observed availability / closed state;
+- source and observation date.
 
 Normalization is a second layer. A menu item can then receive independent dimensions such as:
 
-- `dishFamily`: completo/hotdog, sandwich, burger, pizza, sushi roll, chicken, rice dish, noodle dish, soup/stew, seafood, empanada/pastry, salad/bowl, bakery, dessert, ice cream, coffee/tea, beverage, other.
-- `cuisineTags`: Chilean, Peruvian, Japanese, Korean, Chinese, American, Italian, Mexican, Venezuelan, Middle Eastern, Indian, Latin American, other.
-- `servingFormat`: single, combo, share, family, promotion, meal deal, by weight, unknown.
+- `dishFamily`: completo/hotdog, sandwich, burger, pizza, sushi roll, chicken, rice dish, noodle dish, soup/stew, seafood, empanada/pastry, salad/bowl, bakery, dessert, ice cream, coffee/tea, beverage, other;
+- `cuisineTags`: Chilean, Peruvian, Japanese, Korean, Chinese, American, Italian, Mexican, Venezuelan, Middle Eastern, Indian, Latin American, other;
+- `servingFormat`: single, combo, share, family, promotion, meal deal, by weight, unknown;
 - later: meal occasion, dietary facts, ingredients, preparation style, portion size and modifier groups when evidence exists.
 
 Do not force a single category when the product naturally belongs to several dimensions.
 
 ### Never classify from the brand name alone
 
-A restaurant brand can be misleading about what is actually sold. The corpus already contains a business whose name suggests burgers while the observed menu prominently sells pollo asado, arepitas and large family meals. Classification must be driven by menu evidence, not the merchant name.
+A restaurant brand can be misleading about what is actually sold. Classification must be driven by independently usable menu evidence, not the merchant name.
 
-## Why Uber Eats categories cannot become Palta categories
+## Why delivery-platform categories cannot become Palta categories
 
-Real listings demonstrate platform-category overloading. A sushi outlet can simultaneously be tagged Japanese, Asian, Sushi, Korean, Burgers, Chicken, Seafood, budget and family-meal. A shawarma outlet can be tagged Asian, Korean, Burger, Poke, American, Greek and Arab while the actual menu is clearly centered on shawarma. These labels are useful retrieval signals but are too noisy for a clean Palta IA.
+Real listings demonstrate category overloading. A restaurant may receive many platform tags that are useful for platform search/recommendation but are too noisy for a clean Palta information architecture.
 
-Palta consumer categories should be designed only after corpus analysis of actual menu-item frequencies and co-occurrence.
+Palta consumer categories should be designed from aggregated research signals and independently supported menu concepts, not copied platform category labels.
 
 ## Category design process
 
-1. Collect raw listings and menu snapshots at scale.
-2. Normalize obvious dish families without changing source names.
-3. Count item frequency, section frequency and platform-tag/dish co-occurrence.
-4. Track unmatched menu items instead of forcing them into a catch-all category.
-5. Identify Chile-specific stable concepts (for example completo, churrasco, chorrillana, pollo asado, empanada, ceviche, hand roll, pastel de choclo).
-6. Separate high-frequency dish intent from cuisine intent and commerce format.
-7. Build a small consumer-facing category set from observed supply, while keeping a deeper searchable taxonomy underneath.
-8. Re-run the analysis periodically because menus and platform supply change.
+1. Use bounded research samples to discover menu vocabulary, dish patterns and category problems.
+2. Preserve research observations in the research layer only.
+3. Build provisional dish/taxonomy signals without changing source names.
+4. Count item frequency, section frequency and tag/dish co-occurrence from the research corpus.
+5. Track unmatched menu items instead of forcing them into a catch-all category.
+6. Identify Chile-specific stable concepts such as completo, churrasco, chorrillana, pollo asado, empanada, ceviche and hand roll.
+7. Separate dish intent, cuisine intent and commerce format.
+8. Independently verify production businesses, outlets, contacts and menus before publishing them in Palta.
+9. Re-run research periodically without converting the delivery platform into a Palta bulk-ingestion source.
 
 The research scripts intentionally call their classification outputs `signals`; they are provisional analytical labels, not the final product taxonomy.
 
 ## Research sufficiency gate
 
-`data/food/chile/rm/corpus-coverage.json` defines the current pre-freeze gate. The navigation can be prototyped earlier, but consumer taxonomy v1 should not be treated as stable until the gate is met. `scripts/report-food-corpus-gate.mjs` reports progress without failing CI; `--strict` is reserved for a later freeze process.
+`data/food/chile/rm/corpus-coverage.json` defines a research sufficiency gate for taxonomy design. It is not a target for bulk copying any external service. The navigation can be prototyped earlier, but taxonomy v1 should not be treated as stable until coverage is sufficiently diverse across geography, dish types and identity-risk examples.
 
 ## Freshness
 
-Menu price, availability and opening data are observations, not permanent truth. Every snapshot must carry an observation date/time. Historical snapshots may be retained for change detection, but current UI must not present stale prices or availability as current facts.
+Menu price, availability and opening data are observations, not permanent truth. Every snapshot must carry an observation date/time. Current Palta UI must not present stale or research-only prices as verified current facts.
 
 A platform-closed listing does not prove the physical business permanently closed. Likewise, a replacement listing ID can appear for a still-active outlet. Platform availability and physical business lifecycle remain separate facts.
 
-## Copyright / source handling
+## Copyright and source handling
 
-Store factual fields needed for discovery and commerce: business/outlet identity, public contact information, address, source section names, item names, prices, option facts and availability observations. Do not copy long creative menu descriptions or platform imagery into Palta without an appropriate right or merchant-provided asset.
+Palta production data focuses on factual fields needed for discovery and commerce: business/outlet identity, public business contact information, address, menu item names, prices, option facts and availability facts supported by appropriate independent evidence.
+
+Do not copy delivery-platform imagery, reviews, ratings or long creative menu descriptions into Palta without an appropriate right or merchant-provided asset. Research observations remain provenance-bearing research records and are not automatically surfaced to users.
