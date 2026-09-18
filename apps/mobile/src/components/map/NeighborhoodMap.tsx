@@ -37,73 +37,6 @@ const SELECTION_PADDING = {
   left: 24,
 } as const;
 
-const CATEGORY_MARKER_LABEL = [
-  'match',
-  ['get', 'categoryKey'],
-  'auto_repair',
-  '⚙',
-  'pharmacy',
-  '✚',
-  'clinic',
-  '✚',
-  'hospital',
-  '✚',
-  'restaurant',
-  '🍴',
-  'cafe',
-  '☕',
-  'bakery',
-  '🍞',
-  'grocery',
-  '🛒',
-  'supermarket',
-  '🛒',
-  'pet',
-  '🐾',
-  'veterinary',
-  '🐾',
-  'school',
-  '✎',
-  'education',
-  '✎',
-  'hotel',
-  '⌂',
-  'beauty',
-  '✂',
-  'barber',
-  '✂',
-  'service',
-  '•',
-  '•',
-] as const;
-
-const ENTITY_MARKER_COLOR = [
-  'case',
-  ['==', ['get', 'selected'], true],
-  paltaTheme.color.brandFresh,
-  [
-    'match',
-    ['get', 'entityType'],
-    'business',
-    paltaTheme.color.brandPrimary,
-    'public_service',
-    paltaTheme.color.info,
-    'event',
-    '#A96414',
-    'place',
-    '#59655E',
-    paltaTheme.color.brandPrimary,
-  ],
-] as const;
-
-const OPERATIONAL_OPACITY = [
-  'match',
-  ['get', 'operationalState'],
-  ['closed_now', 'closed', 'temporarily_closed'],
-  0.56,
-  0.98,
-] as const;
-
 export function NeighborhoodMap({
   mapStyle,
   features,
@@ -232,7 +165,24 @@ export function NeighborhoodMap({
             type="circle"
             filter={['!', ['has', 'point_count']]}
             paint={{
-              'circle-color': ENTITY_MARKER_COLOR,
+              'circle-color': [
+                'case',
+                ['==', ['get', 'selected'], true],
+                paltaTheme.color.brandFresh,
+                [
+                  'match',
+                  ['get', 'entityType'],
+                  'business',
+                  paltaTheme.color.brandPrimary,
+                  'public_service',
+                  paltaTheme.color.info,
+                  'event',
+                  '#A96414',
+                  'place',
+                  '#59655E',
+                  paltaTheme.color.brandPrimary,
+                ],
+              ],
               'circle-radius': [
                 'case',
                 ['==', ['get', 'selected'], true],
@@ -241,7 +191,13 @@ export function NeighborhoodMap({
               ],
               'circle-stroke-color': '#FFFFFF',
               'circle-stroke-width': 1.4,
-              'circle-opacity': OPERATIONAL_OPACITY,
+              'circle-opacity': [
+                'match',
+                ['get', 'operationalState'],
+                ['closed_now', 'closed', 'temporarily_closed'],
+                0.56,
+                0.98,
+              ],
             }}
           />
           <Layer
@@ -249,7 +205,45 @@ export function NeighborhoodMap({
             type="symbol"
             filter={['!', ['has', 'point_count']]}
             layout={{
-              'text-field': CATEGORY_MARKER_LABEL,
+              'text-field': [
+                'match',
+                ['get', 'categoryKey'],
+                'auto_repair',
+                '⚙',
+                'pharmacy',
+                '✚',
+                'clinic',
+                '✚',
+                'hospital',
+                '✚',
+                'restaurant',
+                '🍴',
+                'cafe',
+                '☕',
+                'bakery',
+                '🍞',
+                'grocery',
+                '🛒',
+                'supermarket',
+                '🛒',
+                'pet',
+                '🐾',
+                'veterinary',
+                '🐾',
+                'school',
+                '✎',
+                'education',
+                '✎',
+                'hotel',
+                '⌂',
+                'beauty',
+                '✂',
+                'barber',
+                '✂',
+                'service',
+                '•',
+                '•',
+              ],
               'text-font': ['Noto Sans Symbols 2'],
               'text-size': [
                 'case',
@@ -262,7 +256,13 @@ export function NeighborhoodMap({
             }}
             paint={{
               'text-color': '#FFFFFF',
-              'text-opacity': OPERATIONAL_OPACITY,
+              'text-opacity': [
+                'match',
+                ['get', 'operationalState'],
+                ['closed_now', 'closed', 'temporarily_closed'],
+                0.56,
+                0.98,
+              ],
             }}
           />
           <Layer
