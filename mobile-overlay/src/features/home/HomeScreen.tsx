@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from 'react';
 import { router } from 'expo-router';
-import { Text, View } from 'react-native';
+import { Linking, Text, View } from 'react-native';
 import { useAdaptiveExperience } from '../../accessibility/useAdaptiveExperience';
 import { ActionSurface } from '../../components/home/ActionSurface';
 import { GlanceCluster } from '../../components/home/GlanceCluster';
@@ -73,10 +73,29 @@ export function HomeScreen() {
   const hasDemoData =
     data?.source_state?.some((item) => item.data_mode === 'demo') ?? false;
 
-  const openCare = useCallback((careTrackId?: string) => {
-    if (!careTrackId) return;
-    router.push(`/care/${encodeURIComponent(careTrackId)}`);
-  }, []);
+  const openItem = useCallback(
+    async (item: HomeRuntimeResponse['items'][number]) => {
+      if (item.care_track_id) {
+        router.push(`/care/${encodeURIComponent(item.care_track_id)}`);
+        return;
+      }
+      if (!item.action_target) return;
+
+      if (item.action_kind === 'external') {
+        await Linking.openURL(item.action_target);
+        return;
+      }
+
+      router.push(item.action_target as never);
+    },
+    [],
+  );
+
+  const hasAction = useCallback(
+    (item: HomeRuntimeResponse['items'][number]) =>
+      Boolean(item.care_track_id || item.action_target),
+    [],
+  );
 
   const primaryLabel =
     primary?.kind === 'action' || primary?.kind === 'alert' ? 'AHORA' : 'EN CURSO';
@@ -157,11 +176,13 @@ export function HomeScreen() {
                 eyebrow={primary.kind === 'alert' ? 'IMPORTANTE' : undefined}
                 title={primary.title}
                 body={primary.body}
-                actionLabel={primary.care_track_id ? 'Ver seguimiento' : undefined}
-                onPress={
+                actionLabel={
                   primary.care_track_id
-                    ? () => openCare(primary.care_track_id)
-                    : undefined
+                    ? 'Ver seguimiento'
+                    : primary.action_label
+                }
+                onPress={
+                  hasAction(primary) ? () => void openItem(primary) : undefined
                 }
               />
             </View>
@@ -177,14 +198,14 @@ export function HomeScreen() {
                   detail={item.body}
                   stackMeta={!adaptive.layout.allowHorizontalMetadataCompression}
                   explicitActionLabel={
-                    item.care_track_id && adaptive.layout.preferTextLabelsOverIconOnly
-                      ? 'Ver seguimiento'
+                    hasAction(item) && adaptive.layout.preferTextLabelsOverIconOnly
+                      ? item.care_track_id
+                        ? 'Ver seguimiento'
+                        : item.action_label
                       : undefined
                   }
                   onPress={
-                    item.care_track_id
-                      ? () => openCare(item.care_track_id)
-                      : undefined
+                    hasAction(item) ? () => void openItem(item) : undefined
                   }
                 />
               ))}
@@ -205,7 +226,12 @@ export function HomeScreen() {
                   }
                   stackMeta={!adaptive.layout.allowHorizontalMetadataCompression}
                   explicitActionLabel={
-                    adaptive.layout.preferTextLabelsOverIconOnly ? 'Ver' : undefined
+                    hasAction(item) && adaptive.layout.preferTextLabelsOverIconOnly
+                      ? item.action_label ?? 'Ver'
+                      : undefined
+                  }
+                  onPress={
+                    hasAction(item) ? () => void openItem(item) : undefined
                   }
                 />
               ))}
