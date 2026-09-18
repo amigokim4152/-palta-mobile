@@ -26,11 +26,18 @@ export function createMobileRuntime(auth?: AuthPort): MobileRuntime {
       EXPO_PUBLIC_MAP_STYLE_URL: process.env.EXPO_PUBLIC_MAP_STYLE_URL,
       EXPO_PUBLIC_ENV: process.env.EXPO_PUBLIC_ENV,
     });
+    const publicApiKey = process.env.EXPO_PUBLIC_PALTA_API_KEY?.trim();
 
     const client = createPaltaApiClient({
       baseUrl: env.apiBaseUrl,
       fetch: async (input, init) => {
-        const response = await fetch(input, init);
+        const response = await fetch(input, {
+          ...init,
+          headers: {
+            ...(init?.headers ?? {}),
+            ...(publicApiKey ? { apikey: publicApiKey } : {}),
+          },
+        });
         return {
           ok: response.ok,
           status: response.status,
