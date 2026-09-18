@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "updated_at": "2026-09-18",
+  "purpose": "Collection coverage plan for the Chile food corpus. Targets guide balanced observation; they are not consumer-facing categories.",
+  "collection_principles": {
+    "preserve_raw_platform_categories": true,
+    "preserve_merchant_menu_sections": true,
+    "preserve_source_item_names": true,
+    "collect_public_outlet_contact_when_available": true,
+    "separate_brand_outlet_listing": true,
+    "do_not_auto_merge_shared_addresses": true,
+    "do_not_surface_stale_prices_without_freshness": true
+  },
+  "dish_supply_lanes": [
+    {"id": "chilean_fast_local", "examples": ["completo", "churrasco", "lomito", "barros luco", "chorrillana", "sopaipilla"], "priority": "high"},
+    {"id": "empanadas_pastries_savoury", "examples": ["empanada", "queso", "pino", "camarón queso", "venezolana"], "priority": "high"},
+    {"id": "chicken", "examples": ["pollo asado", "pollo frito", "broaster", "alitas"], "priority": "high"},
+    {"id": "burgers_sandwiches", "examples": ["hamburguesa", "smash burger", "sandwich"], "priority": "high"},
+    {"id": "pizza_italian", "examples": ["pizza", "pasta", "lasagna"], "priority": "high"},
+    {"id": "sushi_japanese", "examples": ["roll", "handroll", "sashimi", "nigiri", "gohan"], "priority": "high"},
+    {"id": "peruvian", "examples": ["ceviche", "lomo saltado", "chaufa", "ají de gallina", "tacu tacu", "pollo a la brasa"], "priority": "high"},
+    {"id": "chinese", "examples": ["chapsui", "chaufán", "chaumin", "carne mongoliana", "costillar cantonés"], "priority": "high"},
+    {"id": "korean", "examples": ["bibimbap", "bulgogi", "dopbap", "japchae", "ramen", "mandu"], "priority": "medium"},
+    {"id": "mexican", "examples": ["taco", "burrito", "quesadilla"], "priority": "medium"},
+    {"id": "venezuelan", "examples": ["arepa", "cachapa", "tequeño", "empanada"], "priority": "medium"},
+    {"id": "middle_eastern", "examples": ["shawarma", "falafel", "kebab"], "priority": "medium"},
+    {"id": "indian", "examples": ["curry", "biryani", "naan"], "priority": "medium"},
+    {"id": "seafood", "examples": ["pescado", "mariscos", "jalea", "ceviche"], "priority": "high"},
+    {"id": "healthy_salads_bowls", "examples": ["ensalada", "bowl", "wrap", "vegan", "plant based"], "priority": "medium"},
+    {"id": "breakfast_brunch", "examples": ["desayuno", "brunch", "huevos", "tostadas", "pancakes"], "priority": "medium"},
+    {"id": "coffee_tea", "examples": ["espresso", "latte", "cappuccino", "té"], "priority": "high"},
+    {"id": "bakery", "examples": ["masa madre", "marraqueta", "brioche", "croissant"], "priority": "high"},
+    {"id": "pastry_cakes", "examples": ["torta", "kuchen", "muffin", "brownie", "cheesecake"], "priority": "high"},
+    {"id": "ice_cream_dessert", "examples": ["helado", "gelato", "postre"], "priority": "high"},
+    {"id": "beverages_juice", "examples": ["jugo", "smoothie", "bebida"], "priority": "low"}
+  ],
+  "commerce_shape_lanes": [
+    {"id": "single_item", "priority": "high"},
+    {"id": "combo", "priority": "high"},
+    {"id": "share_family", "priority": "high"},
+    {"id": "promotion_2x1", "priority": "high"},
+    {"id": "meal_of_day", "priority": "medium"},
+    {"id": "by_weight_or_volume", "priority": "medium"},
+    {"id": "modifier_heavy", "priority": "high"}
+  ],
+  "identity_risk_lanes": [
+    {"id": "shared_address_multiple_brands", "priority": "high"},
+    {"id": "listing_name_address_comuna_conflict", "priority": "high"},
+    {"id": "platform_closed_historical", "priority": "high"},
+    {"id": "mall_address_variants", "priority": "medium"},
+    {"id": "multi_branch_brand", "priority": "high"},
+    {"id": "platform_only_no_official_presence", "priority": "high"}
+  ],
+  "priority_comunas": [
+    "Santiago", "Providencia", "Las Condes", "Vitacura", "Ñuñoa", "Recoleta", "Macul", "La Florida", "Puente Alto", "Maipú", "Estación Central", "Pudahuel", "Quilicura", "Huechuraba", "Independencia", "San Miguel", "San Bernardo", "Lo Barnechea", "La Reina", "La Cisterna"
+  ],
+  "gate_before_consumer_taxonomy_v1": {
+    "minimum_outlets": 250,
+    "minimum_sampled_menu_items": 2500,
+    "minimum_priority_comunas_with_data": 15,
+    "required_identity_risk_examples": 5,
+    "note": "This is a research sufficiency gate, not a claim of statistical completeness. Consumer navigation may be prototyped earlier but should not be frozen before this gate."
+  }
+}
