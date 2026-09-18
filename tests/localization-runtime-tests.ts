@@ -1,8 +1,10 @@
+import { careStateLabel } from '../src/care/careTimeline.js';
 import {
   DEFAULT_CURRENCY,
   DEFAULT_LOCALE,
   DEFAULT_REGION,
   DEFAULT_TIMEZONE,
+  careT,
   createLanguageContext,
   discoveryT,
   resolveLocalizedContent,
@@ -62,6 +64,15 @@ assert(
   discoveryT('market.publishIn', 'en', { category: 'Vehicles' }) ===
     'Post in Vehicles',
   'Feature copy should support runtime interpolation.',
+);
+assert(
+  careStateLabel('follow_up', 'zh-Hans') === '后续处理',
+  'Care state labels should resolve in Simplified Chinese.',
+);
+assert(
+  careT('care.state', 'ko', { state: '기다리는 중' }) ===
+    '현재 상태: 기다리는 중',
+  'Care copy should preserve locale-specific interpolation order.',
 );
 
 const content = {
