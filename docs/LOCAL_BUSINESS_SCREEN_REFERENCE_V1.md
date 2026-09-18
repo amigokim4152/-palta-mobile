@@ -21,12 +21,14 @@ A result card should answer, without opening the profile:
 ### Layout priority
 - Contextual search input.
 - Only a few quick category shortcuts.
-- Persistent map surface.
+- **Default view is a dense, useful business list.** A person should see real choices immediately instead of an empty map canvas.
+- `Lista / Mapa` are peer views of the same result set, filters, selected Business ID and search context.
+- Map is one tap away and restores the same camera/search context.
 - Explicit `Buscar en esta zona` after a user pan.
 - Cluster tap smoothly expands the map.
 - Business pin tap selects the same canonical result and opens an in-context preview.
 - Bottom result sheet overlays the map; it must not resize the map surface.
-- List and map use the same result set and selected Business ID.
+- Returning from Business Profile restores the prior discovery context rather than starting over.
 
 ### Result card anatomy
 - Optional real cover photo; no fake stock photo when missing.
@@ -109,4 +111,4 @@ Short-lived discovery result cache may be memory-only for smooth return. Precise
 
 ## Visual principle
 
-Use the shared Palta theme and brand system. Borrow interaction clarity from benchmarks, never their proprietary visual identity. Keep one dominant action per moment, progressive disclosure, mobile-first touch sizes, and quiet empty space instead of filling every surface.
+Use the shared Palta theme and brand system. Borrow interaction clarity from benchmarks, never their proprietary visual identity. Keep one dominant action per moment, progressive disclosure, mobile-first touch sizes, and useful density without filling every surface. The default `Negocios` screen must look like a usable local-business product, not a map developer preview.
