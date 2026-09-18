@@ -10,6 +10,20 @@ The simulator/runtime integration branch is:
 
 Do not merge feature work into `main` just to make it visible in the simulator.
 
+## Repository-wide discovery
+
+This contract must be recoverable without prior chat context.
+
+Repository-wide entry points are:
+
+- `AGENTS.md` on `main`
+- `AGENTS.md` on `integration/runtime-composition-v1`
+- GitHub Issue #9: `[Source of Truth] Mobile runtime composition for parallel feature work`
+- this document
+- `manifest/mobile-runtime-composition.json`
+
+A new chat/agent working on any Palta mobile branch should inspect the repository-wide `AGENTS.md` and this composition contract before changing mobile-visible behavior.
+
 ## Rules
 
 1. A feature branch owns only its declared surface paths.
@@ -23,6 +37,7 @@ Do not merge feature work into `main` just to make it visible in the simulator.
 7. `mobile-overlay/src` on a feature branch remains that feature's versioned UI source. The composed simulator may overlay approved source paths into generated `apps/mobile/src`.
 8. Any source branch advance for a `reviewed_snapshot` must be reported as `REVIEW REQUIRED`; it must not silently replace the reviewed composition.
 9. CI must typecheck and bundle the actual composed `apps/mobile/src`, not only a source branch's `mobile-overlay`.
+10. A new mobile workstream must leave a discoverable handoff to this contract instead of relying on conversational memory.
 
 ## Current surface registry
 
@@ -67,5 +82,6 @@ Before adding a new surface:
 5. If it changes a shared API/Core contract, integrate the shared contract first and keep the surface `reviewed_snapshot` until verified.
 6. Add runtime assertions for the visible feature.
 7. Require composed runtime typecheck + iOS bundle CI to pass.
+8. Update the repository-wide handoff pointers when the composition contract materially changes.
 
 This keeps parallel development visible without letting one feature branch regress or overwrite another feature's latest reviewed runtime.
