@@ -25,6 +25,7 @@ import { paltaTheme } from '../../theme/paltaTheme';
 import { PropertyListingCard } from './PropertyListingCard';
 import { PROPERTY_DEMO_LISTINGS } from './propertyDemoData';
 import { RealEstateHomeSections } from './RealEstateHomeSections';
+import { RealEstateAccountActions } from './RealEstateAccountActions';
 
 const SANTIAGO_CENTER = { latitude: -33.4489, longitude: -70.6693 } as const;
 const PROPERTY_TYPE_ORDER: readonly PropertyType[] = [
@@ -292,6 +293,8 @@ export function PropiedadesScreen({ initialView = 'list' }: { initialView?: Real
           </View>
           <ViewToggle value={view} onChange={setView} />
         </View>
+
+        {!params.businessId ? <RealEstateAccountActions /> : null}
 
         {controls}
 
