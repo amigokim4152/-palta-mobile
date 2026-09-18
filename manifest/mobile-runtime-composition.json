@@ -74,6 +74,23 @@
         "mobile-overlay/src/app/(tabs)/community.tsx",
         "mobile-overlay/src/app/community"
       ]
+    },
+    {
+      "id": "market",
+      "source_branch": "integration/market-v1",
+      "integration_mode": "live_overlay",
+      "ownership_baseline_sha": "44a8b8d3a319f591858d86a2aff07f8630cd7cb4",
+      "owned_paths": [
+        "mobile-overlay/src/features/market",
+        "mobile-overlay/src/app/(tabs)/market.tsx",
+        "mobile-overlay/src/app/market"
+      ],
+      "branch_owned_paths": [
+        "mobile-overlay/src/features/market",
+        "mobile-overlay/src/app/(tabs)/market.tsx",
+        "mobile-overlay/src/app/market",
+        "src/market"
+      ]
     }
   ],
   "core_integrations": [
