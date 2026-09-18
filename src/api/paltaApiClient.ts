@@ -20,6 +20,9 @@ export type HomeApiItem = {
   delivery: 'home' | 'home_notify' | 'urgent';
   care_track_id?: string;
   related_entity_id?: string;
+  action_label?: string;
+  action_target?: string;
+  action_kind?: 'internal' | 'external';
 };
 
 export type HomeApiGlanceItem = {
