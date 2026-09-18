@@ -5,8 +5,10 @@ MOCK_PORT="${PALTA_MOCK_PORT:-8787}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(git -C "$SCRIPT_DIR/.." rev-parse --show-toplevel)"
 APP_DIR="$ROOT/apps/mobile"
-SYNC_WATCH_PID=""
+RUNTIME_WATCH_PID=""
 DEFAULT_MAP_STYLE_URL="${PALTA_MAP_STYLE_URL:-https://palta-edge-preflight.kimeuisin.workers.dev/maps/style.json}"
+COMPOSITION_BRANCH="integration/runtime-composition-v1"
+COMPOSITION_MANIFEST="$ROOT/manifest/mobile-runtime-composition.json"
 
 fail() {
   echo "FAIL: $1" >&2
@@ -18,8 +20,8 @@ info() {
 }
 
 cleanup() {
-  if [ -n "$SYNC_WATCH_PID" ]; then
-    kill "$SYNC_WATCH_PID" >/dev/null 2>&1 || true
+  if [ -n "$RUNTIME_WATCH_PID" ]; then
+    kill "$RUNTIME_WATCH_PID" >/dev/null 2>&1 || true
   fi
 }
 trap cleanup EXIT INT TERM
@@ -82,6 +84,24 @@ verify_mock_api() {
   node "$ROOT/dev/mock-api/smoke.mjs"
 }
 
+start_runtime_watcher() {
+  local current_branch="$1"
+  if [ "$current_branch" = "$COMPOSITION_BRANCH" ] && [ -f "$COMPOSITION_MANIFEST" ]; then
+    info "Starting composed runtime watcher (Home + Negocios + Community)..."
+    bash "$ROOT/scripts/watch-runtime-composition.sh" >/tmp/palta-runtime-composition.log 2>&1 &
+  else
+    info "Starting live mobile-overlay sync for Expo Fast Refresh..."
+    node "$ROOT/scripts/sync-mobile-runtime.mjs" --watch >/tmp/palta-mobile-runtime-sync.log 2>&1 &
+  fi
+  RUNTIME_WATCH_PID=$!
+  sleep 0.4
+  if ! kill -0 "$RUNTIME_WATCH_PID" >/dev/null 2>&1; then
+    tail -100 /tmp/palta-runtime-composition.log 2>/dev/null || true
+    tail -100 /tmp/palta-mobile-runtime-sync.log 2>/dev/null || true
+    fail "Live mobile runtime watcher failed to start."
+  fi
+}
+
 [ "$(uname -s)" = "Darwin" ] || fail "iOS Simulator launch requires macOS."
 for cmd in git node npm xcrun xcode-select open lsof ps; do
   command -v "$cmd" >/dev/null 2>&1 || fail "Required command not found: $cmd"
@@ -93,8 +113,16 @@ NODE_MAJOR="$(node -e "process.stdout.write(process.versions.node.split('.')[0])
 [ "$NODE_MAJOR" -ge 22 ] || fail "Node 22+ required; found $(node -v)."
 
 cd "$ROOT"
-info "Materializing the current branch mobile overlay..."
-node scripts/sync-mobile-runtime.mjs
+CURRENT_BRANCH="$(git branch --show-current)"
+if [ "$CURRENT_BRANCH" = "$COMPOSITION_BRANCH" ] && [ -f "$COMPOSITION_MANIFEST" ]; then
+  info "Validating composed mobile runtime..."
+  node scripts/check-mobile-runtime-composition.mjs
+  info "Composing reviewed surfaces with live feature overlays..."
+  node scripts/compose-mobile-runtime.mjs
+else
+  info "Materializing the current branch mobile overlay..."
+  node scripts/sync-mobile-runtime.mjs
+fi
 
 if [ ! -d "$APP_DIR/node_modules" ]; then
   if [ -f "$APP_DIR/package-lock.json" ]; then
@@ -106,23 +134,13 @@ if [ ! -d "$APP_DIR/node_modules" ]; then
   fi
 fi
 
-info "Starting live mobile-overlay sync for Expo Fast Refresh..."
-node "$ROOT/scripts/sync-mobile-runtime.mjs" --watch >/tmp/palta-mobile-runtime-sync.log 2>&1 &
-SYNC_WATCH_PID=$!
-sleep 0.3
-if ! kill -0 "$SYNC_WATCH_PID" >/dev/null 2>&1; then
-  tail -80 /tmp/palta-mobile-runtime-sync.log 2>/dev/null || true
-  fail "Live mobile runtime sync failed to start."
-fi
+start_runtime_watcher "$CURRENT_BRANCH"
 
 export EXPO_PUBLIC_PALTA_API_BASE_URL="http://127.0.0.1:${MOCK_PORT}"
 export EXPO_PUBLIC_ENV="development"
 export PALTA_MOCK_BASE_URL="http://127.0.0.1:${MOCK_PORT}"
 export EXPO_NO_TELEMETRY=1
 
-# Consume the existing shared Map Core runtime. Prefer the persisted map-runtime
-# value, then the current verified Palta Cloudflare style endpoint. This does
-# not create a Local Business map stack; Negocios continues to use MapLibre.
 load_persisted_map_style
 if [ -z "${EXPO_PUBLIC_MAP_STYLE_URL:-}" ]; then
   export EXPO_PUBLIC_MAP_STYLE_URL="$DEFAULT_MAP_STYLE_URL"
@@ -181,5 +199,5 @@ fi
 xcrun simctl bootstatus "$UDID" -b
 
 cd "$APP_DIR"
-info "Building and launching current Palta branch on iOS Simulator..."
+info "Building and launching current Palta runtime on iOS Simulator..."
 npx expo run:ios --device "$UDID"
