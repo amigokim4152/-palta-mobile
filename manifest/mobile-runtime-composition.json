@@ -138,6 +138,7 @@
       ],
       "reviewed_contract_paths": [
         "src/play/playDiscovery.ts",
+        "src/play/playContentTaxonomy.ts",
         "src/play/playFeedComposer.ts",
         "src/play/contextSpacePolicy.ts"
       ]
