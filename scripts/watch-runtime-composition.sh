@@ -8,6 +8,7 @@ REMOTE_NAME="${PALTA_REMOTE_NAME:-origin}"
 POLL_SECONDS="${PALTA_REMOTE_POLL_SECONDS:-3}"
 MANIFEST="$ROOT/manifest/mobile-runtime-composition.json"
 LAST_SIGNATURE=""
+LAST_SOURCE_SIGNATURE=""
 
 info() {
   echo "[Palta runtime] $1"
@@ -55,6 +56,19 @@ safe_fast_forward_composition() {
   fi
 }
 
+source_branches() {
+  node - "$MANIFEST" <<'NODE'
+const fs = require('fs');
+const file = process.argv[2];
+const manifest = JSON.parse(fs.readFileSync(file, 'utf8'));
+const branches = new Set();
+for (const surface of manifest.surfaces ?? []) {
+  if (typeof surface.source_branch === 'string') branches.add(surface.source_branch);
+}
+for (const branch of branches) console.log(branch);
+NODE
+}
+
 live_branches() {
   node - "$MANIFEST" <<'NODE'
 const fs = require('fs');
@@ -68,7 +82,7 @@ for (const surface of manifest.surfaces ?? []) {
 NODE
 }
 
-fetch_live_sources() {
+fetch_sources() {
   local branch
   while IFS= read -r branch; do
     [ -n "$branch" ] || continue
@@ -76,7 +90,7 @@ fetch_live_sources() {
       info "Could not fetch $branch; keeping the last composed runtime."
       return 1
     fi
-  done < <(live_branches)
+  done < <(source_branches)
 }
 
 composition_signature() {
@@ -89,6 +103,26 @@ composition_signature() {
     done < <(live_branches)
     shasum "$MANIFEST"
   } | shasum | awk '{print $1}'
+}
+
+source_signature() {
+  {
+    local branch
+    while IFS= read -r branch; do
+      [ -n "$branch" ] || continue
+      git rev-parse "$REMOTE_NAME/$branch"
+    done < <(source_branches)
+    shasum "$MANIFEST"
+  } | shasum | awk '{print $1}'
+}
+
+report_source_drift_if_changed() {
+  local signature
+  signature="$(source_signature)"
+  if [ "$signature" != "$LAST_SOURCE_SIGNATURE" ]; then
+    node "$ROOT/scripts/check-runtime-source-drift.mjs"
+    LAST_SOURCE_SIGNATURE="$signature"
+  fi
 }
 
 compose_if_changed() {
@@ -106,7 +140,8 @@ info "Watching composed runtime every ${POLL_SECONDS}s."
 info "Composition: $TARGET_BRANCH"
 
 while true; do
-  if safe_fast_forward_composition && fetch_live_sources; then
+  if safe_fast_forward_composition && fetch_sources; then
+    report_source_drift_if_changed
     compose_if_changed
   fi
   sleep "$POLL_SECONDS"
