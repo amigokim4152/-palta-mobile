@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Text, View } from 'react-native';
 import type { BusinessApiDetail } from '../../../../../src/api/paltaApiClient';
 import {
@@ -6,48 +7,18 @@ import {
   type FoodFulfillmentProfile,
   type FoodMoneyEvidence,
 } from '../../../../../src/business/foodFulfillment';
+import { inferFoodFulfillmentFromServiceLabels } from '../../../../../src/business/foodFulfillmentDiscovery';
 import { paltaTheme } from '../../../theme/paltaTheme';
 
 type FoodBusinessWithFulfillment = BusinessApiDetail & {
   food_fulfillment?: FoodFulfillmentProfile;
 };
 
-function normalize(value: string): string {
-  return value
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLocaleLowerCase('es-CL')
-    .trim();
-}
-
-function inferFulfillmentFromStrongSignals(
-  business: BusinessApiDetail,
-): FoodFulfillmentProfile | undefined {
-  const modes = new Set<FoodFulfillmentMode>();
-  const labels = (business.service_labels ?? []).map(normalize);
-
-  if (business.channel_links?.some((link) => link.provider === 'delivery_marketplace')) {
-    modes.add('external_delivery');
-  }
-  if (labels.some((label) => /\b(retiro|pickup|pick up)\b/.test(label))) {
-    modes.add('pickup');
-  }
-  if (labels.some((label) => /\b(delivery propio|despacho propio|reparto propio)\b/.test(label))) {
-    modes.add('merchant_delivery');
-  }
-
-  if (modes.size === 0) return undefined;
-  return {
-    modes: [...modes],
-    source: 'unknown',
-  };
-}
-
 export function resolveFoodFulfillmentProfile(
   business: BusinessApiDetail,
 ): FoodFulfillmentProfile | undefined {
   return (business as FoodBusinessWithFulfillment).food_fulfillment ??
-    inferFulfillmentFromStrongSignals(business);
+    inferFoodFulfillmentFromServiceLabels(business.service_labels);
 }
 
 function modeLabel(mode: FoodFulfillmentMode): string {
@@ -76,7 +47,7 @@ function minuteRangeLabel(
     : `${range.min} min`;
 }
 
-function FulfillmentShell({ children }: { children: React.ReactNode }) {
+function FulfillmentShell({ children }: { children: ReactNode }) {
   return (
     <View
       style={{
