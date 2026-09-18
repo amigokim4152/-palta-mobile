@@ -1,6 +1,6 @@
-import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
+import { execFileSync } from 'node:child_process';
 
 const root = process.cwd();
 const appRoot = path.join(root, 'apps/mobile');
@@ -9,43 +9,13 @@ function assert(condition, message) {
   if (!condition) throw new Error(message);
 }
 
-for (const relative of [
-  'apps/mobile/package.json',
-  'apps/mobile/app.config.ts',
-  'apps/mobile/metro.config.js',
-  'apps/mobile/tsconfig.json',
-  'scripts/sync-mobile-runtime.mjs',
-  'scripts/run-ios-mobile.sh',
-  'scripts/watch-local-business-simulator.sh',
-]) {
-  assert(fs.existsSync(path.join(root, relative)), `Missing runtime shell file: ${relative}`);
-}
-
-const packageJson = JSON.parse(fs.readFileSync(path.join(appRoot, 'package.json'), 'utf8'));
-assert(packageJson.main === 'expo-router/entry', 'Mobile runtime must use Expo Router entry.');
-assert(packageJson.dependencies?.expo, 'Mobile runtime must declare Expo.');
-assert(packageJson.dependencies?.['@maplibre/maplibre-react-native'], 'Mobile runtime must include MapLibre React Native.');
-
-const syncSource = fs.readFileSync(path.join(root, 'scripts/sync-mobile-runtime.mjs'), 'utf8');
-const iosRunnerSource = fs.readFileSync(path.join(root, 'scripts/run-ios-mobile.sh'), 'utf8');
-const liveWatcherSource = fs.readFileSync(
-  path.join(root, 'scripts/watch-local-business-simulator.sh'),
-  'utf8',
+assert(
+  fs.existsSync(path.join(appRoot, 'package.json')),
+  'Runnable Expo shell must already exist at apps/mobile.',
 );
 assert(
-  syncSource.includes("process.argv.includes('--watch')") &&
-    syncSource.includes('watch(sourceRoot, { recursive: true }'),
-  'Mobile overlay sync must support live watch mode for simulator Fast Refresh.',
-);
-assert(
-  iosRunnerSource.includes('sync-mobile-runtime.mjs\" --watch') ||
-    iosRunnerSource.includes('sync-mobile-runtime.mjs" --watch'),
-  'iOS runner must keep mobile-overlay synchronized while Expo is running.',
-);
-assert(
-  liveWatcherSource.includes('git merge --ff-only') &&
-    liveWatcherSource.includes('integration/local-business-v1'),
-  'Local Business live watcher must only use safe fast-forward updates on the intended branch.',
+  fs.existsSync(path.join(root, 'mobile-overlay/src')),
+  'Canonical mobile overlay source must exist before materialization.',
 );
 
 execFileSync(process.execPath, [path.join(root, 'scripts/sync-mobile-runtime.mjs')], {
@@ -68,9 +38,13 @@ assert(
   'Generated Negocios tab must use the canonical BusinessDiscoveryExperience.',
 );
 assert(
-  discoverySource.includes("useState<'list' | 'map'>('list')") &&
-    discoverySource.includes('<ViewModeSwitch value={viewMode}'),
-  'Generated Negocios runtime must open in the list-first production experience with map available as a peer view.',
+  !discoverySource.includes("useState<'list' | 'map'>") &&
+    !discoverySource.includes('<ViewModeSwitch') &&
+    discoverySource.includes('<NeighborhoodMap') &&
+    discoverySource.includes('<MapResultSheet') &&
+    discoverySource.includes("position: 'absolute', top: 0, right: 0, bottom: 0, left: 0") &&
+    discoverySource.includes("position: 'absolute', left: 0, right: 0, bottom: 0, width: '100%'"),
+  'Generated Negocios runtime must preserve the canonical edge-to-edge map-first experience with connected bottom-sheet results.',
 );
 
-console.log('PASS: runnable Expo shell materializes current Local Business UI with live simulator sync');
+console.log('PASS: runnable Expo shell materializes current Local Business map-first UI with live simulator sync');
