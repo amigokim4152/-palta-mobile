@@ -1,1 +1,1 @@
-export { ListingDetailV2 as default } from '../../../features/market/ListingDetailV2';
+export { ListingDetailRuntimeScreen as default } from '../../../features/market/ListingDetailRuntimeScreen';
