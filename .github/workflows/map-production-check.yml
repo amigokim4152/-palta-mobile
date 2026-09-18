@@ -1,0 +1,36 @@
+name: Palta Map Production Check
+
+on:
+  pull_request:
+    paths:
+      - 'infra/cloudflare/**'
+      - 'scripts/deploy-chile-map-production.sh'
+      - 'mobile-overlay/src/app/map/**'
+      - 'mobile-overlay/src/components/map/**'
+      - 'mobile-overlay/.env.example'
+      - '.github/workflows/map-production-check.yml'
+  push:
+    branches:
+      - 'integration/map-production-cl-v1'
+    paths:
+      - 'infra/cloudflare/**'
+      - 'scripts/deploy-chile-map-production.sh'
+      - 'mobile-overlay/src/app/map/**'
+      - 'mobile-overlay/src/components/map/**'
+      - 'mobile-overlay/.env.example'
+      - '.github/workflows/map-production-check.yml'
+
+jobs:
+  map-production:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Shell syntax
+        run: bash -n scripts/deploy-chile-map-production.sh
+      - name: Production Worker dry-run
+        run: npx --yes wrangler@4.133.0 deploy --dry-run --config infra/cloudflare/wrangler.map-production.jsonc
+      - name: Multipart uploader dry-run
+        run: npx --yes wrangler@4.133.0 deploy --dry-run --config infra/cloudflare/wrangler.map-uploader.jsonc --var UPLOAD_TOKEN:ci-only
