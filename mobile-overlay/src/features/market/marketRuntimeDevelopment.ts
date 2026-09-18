@@ -18,6 +18,7 @@ import {
 import type {
   MarketListingRecord,
   MarketPublicListing,
+  MarketTransactionListingSnapshot,
   MarketTransactionRecord,
   MarketTransactionReview,
 } from '../../../../src/market/marketPersistenceContract';
@@ -78,6 +79,21 @@ function allRecords(): MarketListingRecord[] {
     .map((item) => previewRecord(item.id))
     .filter((item): item is MarketListingRecord => Boolean(item));
   return [...preview, ...createdListings.values()];
+}
+
+function transactionSnapshot(
+  listing: MarketListingRecord,
+): MarketTransactionListingSnapshot {
+  const firstMedia = listing.media[0];
+  return {
+    listingId: listing.id,
+    title: listing.title,
+    category: listing.category,
+    tradeMode: listing.tradeMode,
+    ...(typeof listing.priceClp === 'number' ? { priceClp: listing.priceClp } : {}),
+    comunaName: listing.location.comunaName,
+    ...(firstMedia ? { mediaAssetId: firstMedia.mediaAssetId } : {}),
+  };
 }
 
 function toPublicListing(record: MarketListingRecord): MarketPublicListing {
@@ -227,12 +243,13 @@ const mutation: MarketMutationPort = {
     if (current.version !== command.expectedVersion) {
       throw new Error('Preview listing version conflict.');
     }
+    const { mediaAssetIds, ...patch } = command.patch;
     const updated: MarketListingRecord = {
       ...current,
-      ...command.patch,
-      ...(command.patch.mediaAssetIds
+      ...patch,
+      ...(mediaAssetIds
         ? {
-            media: command.patch.mediaAssetIds.map((mediaAssetId, sortOrder) => ({
+            media: mediaAssetIds.map((mediaAssetId, sortOrder) => ({
               mediaAssetId,
               sortOrder,
             })),
@@ -241,7 +258,6 @@ const mutation: MarketMutationPort = {
       updatedAt: new Date().toISOString(),
       version: current.version + 1,
     };
-    delete (updated as MarketListingRecord & { mediaAssetIds?: string[] }).mediaAssetIds;
     createdListings.set(updated.id, updated);
     return updated;
   },
@@ -292,6 +308,7 @@ const mutation: MarketMutationPort = {
       sellerUserId: listing.sellerUserId,
       buyerUserId: PREVIEW_CURRENT_USER_ID,
       status: 'coordinating',
+      listingSnapshot: transactionSnapshot(listing),
       ...(command.conversationId ? { conversationId: command.conversationId } : {}),
       createdAt: now,
       updatedAt: now,
@@ -303,9 +320,9 @@ const mutation: MarketMutationPort = {
   async reserveTransaction(command) {
     const current = transactions.get(command.transactionId);
     if (!current) throw new Error('Preview transaction not found.');
-    const updated = {
+    const updated: MarketTransactionRecord = {
       ...current,
-      status: 'reserved' as const,
+      status: 'reserved',
       updatedAt: new Date().toISOString(),
     };
     transactions.set(updated.id, updated);
@@ -329,9 +346,9 @@ const mutation: MarketMutationPort = {
   async cancelTransaction(command) {
     const current = transactions.get(command.transactionId);
     if (!current) throw new Error('Preview transaction not found.');
-    const updated = {
+    const updated: MarketTransactionRecord = {
       ...current,
-      status: 'cancelled' as const,
+      status: 'cancelled',
       updatedAt: new Date().toISOString(),
     };
     transactions.set(updated.id, updated);
