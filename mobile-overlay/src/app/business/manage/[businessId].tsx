@@ -37,6 +37,47 @@ function operationalTone(state?: BusinessOperationalState) {
   return 'normal' as const;
 }
 
+type GuidanceTargetKind =
+  | 'hours'
+  | 'corrections'
+  | 'profile'
+  | 'services'
+  | 'location'
+  | 'channels'
+  | 'posts'
+  | 'coupons'
+  | 'reviews';
+
+function guidanceTargetKind(target: string): GuidanceTargetKind | undefined {
+  const kinds: GuidanceTargetKind[] = [
+    'hours',
+    'corrections',
+    'profile',
+    'services',
+    'location',
+    'channels',
+    'posts',
+    'coupons',
+    'reviews',
+  ];
+  return kinds.find((kind) => target.includes(`/${kind}`));
+}
+
+function openGuidanceTarget(businessId: string, kind: GuidanceTargetKind) {
+  const id = encodeURIComponent(businessId);
+  switch (kind) {
+    case 'hours': return router.push(`/business/manage/${id}/hours`);
+    case 'corrections': return router.push(`/business/manage/${id}/corrections`);
+    case 'profile': return router.push(`/business/manage/${id}/profile`);
+    case 'services': return router.push(`/business/manage/${id}/services`);
+    case 'location': return router.push(`/business/manage/${id}/location`);
+    case 'channels': return router.push(`/business/manage/${id}/channels`);
+    case 'posts': return router.push(`/business/manage/${id}/posts`);
+    case 'coupons': return router.push(`/business/manage/${id}/coupons`);
+    case 'reviews': return router.push(`/business/manage/${id}/reviews`);
+  }
+}
+
 export default function BusinessOwnerHomeScreen() {
   const { businessId } = useLocalSearchParams<{ businessId: string }>();
 
@@ -207,16 +248,22 @@ export default function BusinessOwnerHomeScreen() {
             />
           ) : null}
 
-          {actionItems.slice(0, 2).map((item) => (
-            <OwnerPartnerCard
-              key={item.id}
-              eyebrow="Conviene resolver"
-              title={item.title}
-              body={item.reason}
-              badge={item.commercial === 'free' ? 'SIN COSTO' : undefined}
-              tone="attention"
-            />
-          ))}
+          {actionItems.slice(0, 2).map((item) => {
+            const targetKind = guidanceTargetKind(item.target);
+            return (
+              <OwnerPartnerCard
+                key={item.id}
+                eyebrow="Conviene resolver"
+                title={item.title}
+                body={item.reason}
+                badge={item.commercial === 'free' ? 'SIN COSTO' : undefined}
+                tone="attention"
+                onPress={targetKind
+                  ? () => openGuidanceTarget(business.id, targetKind)
+                  : undefined}
+              />
+            );
+          })}
 
           {!hasAttention ? (
             <OwnerPartnerCard
@@ -250,15 +297,21 @@ export default function BusinessOwnerHomeScreen() {
               title="Ahora conviene esto"
               subtitle="Primero mejoras prácticas que puedes resolver sin contratar otro módulo."
             />
-            {freeSuggestions.slice(0, 3).map((item) => (
-              <OwnerPartnerCard
-                key={item.id}
-                eyebrow="Mejora gratuita"
-                title={item.title}
-                body={item.reason}
-                badge="SIN COSTO"
-              />
-            ))}
+            {freeSuggestions.slice(0, 3).map((item) => {
+              const targetKind = guidanceTargetKind(item.target);
+              return (
+                <OwnerPartnerCard
+                  key={item.id}
+                  eyebrow="Mejora gratuita"
+                  title={item.title}
+                  body={item.reason}
+                  badge="SIN COSTO"
+                  onPress={targetKind
+                    ? () => openGuidanceTarget(business.id, targetKind)
+                    : undefined}
+                />
+              );
+            })}
           </View>
         ) : null}
 
