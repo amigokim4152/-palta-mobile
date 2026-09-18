@@ -9,6 +9,7 @@ export type AutosEntrySource =
 export interface AutosEntryContext {
   source: AutosEntrySource;
   businessId?: string;
+  listingId?: string;
   neighborhoodId?: string;
   comunaCode?: string;
   query?: string;
@@ -16,14 +17,24 @@ export interface AutosEntryContext {
 
 export type AutosDestination =
   | { route: '/autos'; params?: Record<string, string> }
-  | { route: '/market/vehicles'; params?: Record<string, string> }
+  | { route: '/autos/sell'; params?: Record<string, string> }
+  | { route: '/autos/saved'; params?: Record<string, string> }
+  | { route: '/autos/mine'; params?: Record<string, string> }
+  | { route: `/autos/listing/${string}`; params?: Record<string, string> }
   | { route: `/business/${string}`; params?: Record<string, string> };
 
 /**
  * Canonical handoff into the independent Autos vertical.
- * Negocios owns Business identity, not vehicle listing state.
+ * Negocios owns Business identity, not vehicle or vehicle-listing state.
  */
 export function resolveAutosEntry(context: AutosEntryContext): AutosDestination {
+  if (context.listingId) {
+    return {
+      route: `/autos/listing/${context.listingId}`,
+      params: buildContextParams(context),
+    };
+  }
+
   return {
     route: '/autos',
     params: buildContextParams(context),
