@@ -9,6 +9,7 @@ import {
   View,
 } from 'react-native';
 import type { MapFeature } from '../../../../../src/adapters/mapCore';
+import type { LocalSearchItem } from '../../../../../src/api/paltaApiClient';
 import { distanceMeters } from '../../../../../src/local/businessSnapshot';
 import { ScreenFrame } from '../../components/ScreenFrame';
 import { NeighborhoodMap } from '../../components/map/NeighborhoodMap';
@@ -42,13 +43,14 @@ export default function SharedMapScreen() {
   >('idle');
   const lastLoadedCenter = useRef(VITACURA_LAUNCH_CENTER);
   const viewportTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const entityTypes = useRef(new Map<string, LocalSearchItem['entity_type']>());
 
   const mapStyle = useMemo(
     () => createSantiagoMapStyle(getPreferredMapSource(SANTIAGO_MAP)),
     [offline],
   );
 
-  const loadLocalBusinesses = useCallback(
+  const loadLocalEntities = useCallback(
     async (center: { latitude: number; longitude: number }) => {
       if (mobileRuntime.status !== 'ready') {
         setLocalStatus('error');
@@ -62,6 +64,9 @@ export default function SharedMapScreen() {
           longitude: center.longitude,
           radiusM: SEARCH_RADIUS_M,
         });
+        entityTypes.current = new Map(
+          items.map((item) => [item.entity_id, item.entity_type]),
+        );
         const nextFeatures: MapFeature[] = items
           .filter((item) => item.location)
           .map((item) => ({
@@ -86,11 +91,11 @@ export default function SharedMapScreen() {
   );
 
   useEffect(() => {
-    void loadLocalBusinesses(VITACURA_LAUNCH_CENTER);
+    void loadLocalEntities(VITACURA_LAUNCH_CENTER);
     return () => {
       if (viewportTimer.current) clearTimeout(viewportTimer.current);
     };
-  }, [loadLocalBusinesses]);
+  }, [loadLocalEntities]);
 
   const handleViewportChanged = useCallback(
     (
@@ -111,11 +116,23 @@ export default function SharedMapScreen() {
 
       if (viewportTimer.current) clearTimeout(viewportTimer.current);
       viewportTimer.current = setTimeout(() => {
-        void loadLocalBusinesses(center);
+        void loadLocalEntities(center);
       }, VIEWPORT_DEBOUNCE_MS);
     },
-    [loadLocalBusinesses],
+    [loadLocalEntities],
   );
+
+  function handleSelectEntity(entityId: string) {
+    const entityType = entityTypes.current.get(entityId);
+    if (entityType === 'place') {
+      router.push(`/place/${encodeURIComponent(entityId)}`);
+      return;
+    }
+    if (entityType === 'business') {
+      router.push(`/business/${encodeURIComponent(entityId)}`);
+      return;
+    }
+  }
 
   async function handleDownload() {
     try {
@@ -153,9 +170,7 @@ export default function SharedMapScreen() {
             features={features}
             initialCenter={VITACURA_LAUNCH_CENTER}
             initialZoom={14}
-            onSelectEntity={(entityId) =>
-              router.push(`/business/${encodeURIComponent(entityId)}`)
-            }
+            onSelectEntity={handleSelectEntity}
             onViewportChanged={handleViewportChanged}
           />
         </View>
@@ -189,12 +204,8 @@ export default function SharedMapScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  map: {
-    flex: 1,
-  },
+  container: { flex: 1 },
+  map: { flex: 1 },
   offlineBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -202,27 +213,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
-  offlineText: {
-    flex: 1,
-  },
-  title: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  status: {
-    marginTop: 2,
-    fontSize: 12,
-    opacity: 0.65,
-  },
+  offlineText: { flex: 1 },
+  title: { fontSize: 14, fontWeight: '600' },
+  status: { marginTop: 2, fontSize: 12, opacity: 0.65 },
   button: {
     paddingHorizontal: 14,
     paddingVertical: 9,
     borderRadius: 10,
     backgroundColor: '#1f1f1f',
   },
-  buttonText: {
-    color: '#ffffff',
-    fontSize: 13,
-    fontWeight: '600',
-  },
+  buttonText: { color: '#ffffff', fontSize: 13, fontWeight: '600' },
 });
