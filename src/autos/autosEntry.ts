@@ -28,16 +28,18 @@ export type AutosDestination =
  * Negocios owns Business identity, not vehicle or vehicle-listing state.
  */
 export function resolveAutosEntry(context: AutosEntryContext): AutosDestination {
+  const params = buildContextParams(context);
+
   if (context.listingId) {
     return {
       route: `/autos/listing/${context.listingId}`,
-      params: buildContextParams(context),
+      params,
     };
   }
 
   return {
     route: '/autos',
-    params: buildContextParams(context),
+    params,
   };
 }
 
@@ -45,7 +47,7 @@ export function buildAutosBusinessDestination(businessId: string): AutosDestinat
   return { route: `/business/${businessId}` };
 }
 
-function buildContextParams(context: AutosEntryContext): Record<string, string> | undefined {
+function buildContextParams(context: AutosEntryContext): Record<string, string> {
   const params: Record<string, string> = { source: context.source };
 
   if (context.businessId) params.businessId = context.businessId;
@@ -53,5 +55,5 @@ function buildContextParams(context: AutosEntryContext): Record<string, string> 
   if (context.comunaCode) params.comunaCode = context.comunaCode;
   if (context.query) params.query = context.query;
 
-  return Object.keys(params).length > 0 ? params : undefined;
+  return params;
 }
