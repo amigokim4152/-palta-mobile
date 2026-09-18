@@ -8,10 +8,12 @@
     "start": "expo start --dev-client",
     "ios": "expo run:ios",
     "android": "expo run:android",
+    "web": "expo start --web",
     "typecheck": "tsc --noEmit",
     "config": "expo config --type public",
     "bundle:ios": "expo export --platform ios --output-dir .expo-export/ios",
-    "verify": "npm run typecheck && npm run config && npm run bundle:ios",
+    "bundle:web": "expo export --platform web --output-dir .expo-export/web",
+    "verify": "npm run typecheck && npm run config && npm run bundle:ios && npm run bundle:web",
     "doctor": "npx expo-doctor"
   },
   "dependencies": {
@@ -27,11 +29,14 @@
     "expo-sqlite": "~57.0.3",
     "expo-status-bar": "~57.0.1",
     "expo-web-browser": "~57.0.3",
+    "maplibre-gl": "^6.10.0",
     "react": "19.2.3",
+    "react-dom": "19.2.3",
     "react-native": "0.86.3",
     "react-native-safe-area-context": "~5.7.0",
     "react-native-screens": "~4.26.0",
-    "react-native-url-polyfill": "4.0.0"
+    "react-native-url-polyfill": "4.0.0",
+    "react-native-web": "~0.21.0"
   },
   "devDependencies": {
     "@types/react": "~19.2.2",
