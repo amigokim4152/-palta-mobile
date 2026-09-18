@@ -11,6 +11,9 @@ const forbiddenPublicPatterns = [
   /SERVICE_ROLE/i,
   /JWT_SECRET/i,
   /PRIVATE/i,
+  /PASSWORD/i,
+  /SECRET/i,
+  /(?:^|_)TOKEN(?:_|$)/i,
   /ACCESS_TOKEN/i,
   /WEBHOOK_SECRET/i,
 ];
