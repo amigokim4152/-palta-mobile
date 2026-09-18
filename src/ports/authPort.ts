@@ -44,11 +44,22 @@ export class AuthPortError extends Error {
   }
 }
 
+export type AuthStateListener = (state: AuthState) => void;
+export type AuthSubscriptionErrorListener = (error: unknown) => void;
+
 export interface AuthPort {
   getState(): Promise<AuthState>;
   getAccessToken(): Promise<string | null>;
   signOut(): Promise<void>;
-  subscribe(listener: (state: AuthState) => void): () => void;
+  /**
+   * Auth events and auth-resolution failures are separate channels. A provider
+   * session that cannot resolve its canonical Palta account must not be
+   * disguised as a normal signed-out event.
+   */
+  subscribe(
+    listener: AuthStateListener,
+    onError?: AuthSubscriptionErrorListener,
+  ): () => void;
 }
 
 export interface InteractiveAuthPort extends AuthPort {
