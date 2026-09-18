@@ -6,6 +6,7 @@ import { ScreenFrame } from '../../components/ScreenFrame';
 import { FilterChip } from '../../components/common/FilterChip';
 import { PaltaButton } from '../../components/common/PaltaButton';
 import { useAsyncResource } from '../../hooks/useAsyncResource';
+import { SchoolRelationshipPanel } from '../../features/community/SchoolRelationshipPanel';
 import {
   communityRuntime,
   type CommunityPostPurpose,
@@ -112,6 +113,14 @@ export default function CommunitySpaceScreen() {
             </View>
           </View>
         )}
+
+        {space.kind === 'school' ? (
+          <SchoolRelationshipPanel
+            spaceId={space.id}
+            spaceName={space.name}
+            membershipState={space.membershipState}
+          />
+        ) : null}
 
         {space.membershipState === 'active' && schoolItems.length > 0 ? (
           <View style={{ gap: paltaTheme.spacing.sm }}>
