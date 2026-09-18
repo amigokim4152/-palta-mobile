@@ -5,6 +5,7 @@ export * from './autosDealerSeed.js';
 export * from './autosDealerSeedIngestion.js';
 export * from './autosEntry.js';
 export * from './autosSaleCare.js';
+export * from './autosSalePreparation.js';
 export * from './autosSellerModel.js';
 export * from './chileVehicleData.js';
 export * from './chileVehicleDataset.js';
