@@ -14,7 +14,7 @@ const fakeFetch = async (
   url: string,
   init?: { method?: string; headers?: Record<string, string>; body?: string },
 ) => {
-  seen.push({ url, init });
+  seen.push(init ? { url, init } : { url });
 
   if (url.endsWith('/v1/autos/sale-preparation')) {
     return {
