@@ -23,11 +23,12 @@ Rules:
 Implementation order:
 1. mock adapter
 2. local Worker/API adapter
-3. Neon dev branch
-4. Cloudflare edge/cache
+3. Supabase development database
+4. Cloudflare edge/cache/API boundary
 5. real canonical releases
 
 Persistence:
-- `infra/postgres/001_auth_profile_core.sql` owns canonical Palta identity/profile storage.
-- `infra/postgres/002_community_core.sql` defines the Community persistence boundary.
-- mobile clients never connect directly to `palta_private` or `palta_community` schemas.
+- `infra/db/migrations` is the canonical shared database migration sequence.
+- `0003_community_preflight.sql` defines the Community persistence foundation.
+- `infra/postgres` is auth/profile work awaiting reconciliation into the canonical migration sequence; it is not a second production database.
+- mobile clients do not write Community persistence directly; mutations enter through the authenticated Palta API.
