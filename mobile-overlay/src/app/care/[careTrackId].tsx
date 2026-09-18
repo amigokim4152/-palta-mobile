@@ -4,7 +4,9 @@ import { Text, View } from 'react-native';
 import { careStateLabel } from '../../../../src/care/careTimeline';
 import {
   DEFAULT_TIMEZONE,
+  careIntentLabel,
   careT,
+  careWaitingForLabel,
 } from '../../../../src/localization/index';
 import {
   ErrorState,
@@ -58,6 +60,10 @@ export default function CareTrackScreen() {
   }
 
   const currentStateLabel = careStateLabel(care.state, locale);
+  const intentLabel = careIntentLabel(care.intent_key, locale);
+  const waitingForLabel = care.waiting_for
+    ? careWaitingForLabel(care.waiting_for, locale)
+    : null;
   const estimatedAt = care.expected_at
     ? new Intl.DateTimeFormat(locale, {
         year: 'numeric',
@@ -70,7 +76,7 @@ export default function CareTrackScreen() {
     : null;
 
   return (
-    <ScreenFrame title={careT('care.title', locale)} subtitle={care.intent_key}>
+    <ScreenFrame title={careT('care.title', locale)} subtitle={intentLabel}>
       <View style={{ gap: 12 }}>
         <SectionHeading
           eyebrow={careT('care.eyebrow', locale)}
@@ -78,9 +84,9 @@ export default function CareTrackScreen() {
           subtitle={careT('care.subtitle', locale)}
         />
         <CareTimeline state={care.state} />
-        {care.waiting_for ? (
+        {waitingForLabel ? (
           <Text>
-            {careT('care.waitingFor', locale, { value: care.waiting_for })}
+            {careT('care.waitingFor', locale, { value: waitingForLabel })}
           </Text>
         ) : null}
         {estimatedAt ? (
