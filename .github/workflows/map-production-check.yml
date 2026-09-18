@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - 'infra/cloudflare/**'
+      - 'src/local/businessSnapshot.ts'
       - 'scripts/deploy-chile-map-production.sh'
       - 'scripts/redeploy-chile-map-edge.sh'
       - 'scripts/run-ios-production-map-safe.sh'
@@ -17,8 +18,10 @@ on:
   push:
     branches:
       - 'integration/map-production-cl-v1'
+      - 'integration/santiago-business-runtime-v1'
     paths:
       - 'infra/cloudflare/**'
+      - 'src/local/businessSnapshot.ts'
       - 'scripts/deploy-chile-map-production.sh'
       - 'scripts/redeploy-chile-map-edge.sh'
       - 'scripts/run-ios-production-map-safe.sh'
