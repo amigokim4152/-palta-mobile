@@ -53,6 +53,25 @@ function itemSurface(item: HomeApiItem): HomeApiSurface {
   return item.surface ?? fallbackSurface(item);
 }
 
+function domainLabel(domain: string): string {
+  const labels: Record<string, string> = {
+    weather: 'Clima',
+    mobility: 'Movilidad',
+    care: 'Seguimiento',
+    commerce: 'Pedido',
+    'public-life': 'Municipalidad',
+    community: 'Comunidad',
+    school: 'Colegio',
+    health: 'Salud',
+    vehicle: 'Vehículo',
+    pets: 'Mascota',
+    news: 'Noticias',
+    'local-life': 'Vida local',
+    play: 'Panoramas',
+  };
+  return labels[domain] ?? 'Palta';
+}
+
 function scheduledMeta(value: string | undefined): string | undefined {
   if (!value) return undefined;
   const date = new Date(value);
@@ -63,6 +82,19 @@ function scheduledMeta(value: string | undefined): string | undefined {
     hour: '2-digit',
     minute: '2-digit',
   }).format(date);
+}
+
+function itemContextMeta(item: HomeApiItem): string {
+  const domain = domainLabel(item.source_domain);
+  const subject = item.subject?.label?.trim();
+  return subject ? `${domain} · ${subject}` : domain;
+}
+
+function upcomingMeta(item: HomeApiItem): string | undefined {
+  const context = itemContextMeta(item);
+  const schedule = scheduledMeta(item.scheduled_at);
+  if (!schedule) return context;
+  return `${context} · ${schedule}`;
 }
 
 async function openTarget(
@@ -193,6 +225,10 @@ export function HomeScreen() {
     ...(item.action_target ? { onPress: glancePress(item) } : {}),
   }));
 
+  const demoMode =
+    (data.glance ?? []).some((item) => item.data_mode === 'demo') ||
+    data.items.some((item) => item.data_mode === 'demo');
+
   const noActiveItems =
     nowItems.length === 0 &&
     inProgressItems.length === 0 &&
@@ -260,6 +296,30 @@ export function HomeScreen() {
           </View>
         </View>
 
+        {demoMode ? (
+          <View
+            style={{
+              alignSelf: 'flex-start',
+              borderRadius: paltaTheme.radius.pill,
+              backgroundColor: paltaTheme.color.brandSoft,
+              paddingHorizontal: 10,
+              paddingVertical: 6,
+            }}
+          >
+            <Text
+              allowFontScaling
+              style={{
+                fontSize: 11,
+                lineHeight: 15,
+                fontWeight: '700',
+                color: paltaTheme.color.brandPrimary,
+              }}
+            >
+              Vista de demostración · datos de ejemplo
+            </Text>
+          </View>
+        ) : null}
+
         {glanceItems.length > 0 ? (
           <GlanceCluster
             items={glanceItems}
@@ -274,7 +334,7 @@ export function HomeScreen() {
             {nowItems.map((item) => (
               <ActionSurface
                 key={item.id}
-                eyebrow={item.kind === 'alert' ? 'AHORA' : undefined}
+                eyebrow={`${domainLabel(item.source_domain).toUpperCase()} · AHORA`}
                 title={item.title}
                 body={item.body}
                 actionLabel={item.action_label}
@@ -291,7 +351,7 @@ export function HomeScreen() {
               <SummaryListRow
                 key={item.id}
                 title={item.title}
-                meta="En curso"
+                meta={itemContextMeta(item)}
                 detail={item.body}
                 explicitActionLabel={item.action_label}
                 onPress={itemPress(item)}
@@ -308,11 +368,11 @@ export function HomeScreen() {
               <SummaryListRow
                 key={item.id}
                 title={item.title}
-                meta={scheduledMeta(item.scheduled_at)}
+                meta={upcomingMeta(item)}
                 detail={item.body}
                 explicitActionLabel={item.action_label}
                 onPress={itemPress(item)}
-                stackMeta={!adaptive.layout.allowHorizontalMetadataCompression}
+                stackMeta
               />
             ))}
           </View>
@@ -325,6 +385,7 @@ export function HomeScreen() {
               <SummaryListRow
                 key={item.id}
                 title={item.title}
+                meta={itemContextMeta(item)}
                 detail={
                   adaptive.textScaleClass === 'accessibility'
                     ? undefined
