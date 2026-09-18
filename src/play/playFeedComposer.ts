@@ -2,6 +2,7 @@ import {
   isPublicPlayItem,
   selectPlayDiscoveryItems,
   validatePlayDiscoveryItem,
+  type PlayDiscoveryContext,
   type PlayDiscoveryItem,
   type PlayThemeKey,
 } from './playDiscovery.js';
@@ -45,6 +46,16 @@ function dedupeItems(items: readonly PlayDiscoveryItem[]): PlayDiscoveryItem[] {
   return result;
 }
 
+function discoveryContext(
+  theme: PlayThemeKey,
+  locality?: string,
+): PlayDiscoveryContext {
+  return {
+    selectedTheme: theme,
+    ...(locality ? { locality } : {}),
+  };
+}
+
 function selectPublic(
   items: readonly PlayDiscoveryItem[],
   theme: PlayThemeKey,
@@ -52,7 +63,7 @@ function selectPublic(
   limit = 8,
 ): PlayDiscoveryItem[] {
   return dedupeItems(
-    selectPlayDiscoveryItems(items, { locality, selectedTheme: theme }).filter(isPublicPlayItem),
+    selectPlayDiscoveryItems(items, discoveryContext(theme, locality)).filter(isPublicPlayItem),
   ).slice(0, limit);
 }
 
@@ -62,16 +73,14 @@ function selectTheme(
   locality?: string,
   limit = 12,
 ): PlayDiscoveryItem[] {
-  return dedupeItems(selectPlayDiscoveryItems(items, { locality, selectedTheme: theme })).slice(0, limit);
+  return dedupeItems(
+    selectPlayDiscoveryItems(items, discoveryContext(theme, locality)),
+  ).slice(0, limit);
 }
 
 /**
  * Builds the Play landing feed without turning it into an infinite content feed.
- *
  * Stable public/municipal supply remains visible regardless of the selected theme.
- * Theme selection changes a bounded second section instead of replacing the public
- * base. Business-backed birthday/activity items may enrich the feed, but never
- * displace the public-first 'today' anchor.
  */
 export function composePlayFeed(input: {
   items: readonly PlayDiscoveryItem[];
