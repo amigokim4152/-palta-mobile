@@ -7,8 +7,10 @@ on:
     paths:
       - 'apps/mobile/**'
       - 'mobile-overlay/**'
+      - 'package.json'
       - 'docs/MOBILE_BOOTSTRAP_COMMANDS.md'
       - 'docs/MOBILE_RUNTIME_DECISION.md'
+      - 'scripts/check-mobile-auth-secrets.mjs'
       - 'scripts/sync-mobile-runtime.mjs'
       - 'scripts/bootstrap-mobile.sh'
       - 'scripts/run-ios-mobile.sh'
@@ -17,8 +19,10 @@ on:
     paths:
       - 'apps/mobile/**'
       - 'mobile-overlay/**'
+      - 'package.json'
       - 'docs/MOBILE_BOOTSTRAP_COMMANDS.md'
       - 'docs/MOBILE_RUNTIME_DECISION.md'
+      - 'scripts/check-mobile-auth-secrets.mjs'
       - 'scripts/sync-mobile-runtime.mjs'
       - 'scripts/bootstrap-mobile.sh'
       - 'scripts/run-ios-mobile.sh'
@@ -41,6 +45,9 @@ jobs:
 
       - name: Check launcher shell syntax
         run: bash -n scripts/bootstrap-mobile.sh scripts/run-ios-mobile.sh
+
+      - name: Check mobile Auth credential boundary
+        run: node scripts/check-mobile-auth-secrets.mjs
 
       - name: Materialize current mobile overlay
         run: node scripts/sync-mobile-runtime.mjs
