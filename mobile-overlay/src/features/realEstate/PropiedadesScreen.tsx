@@ -18,6 +18,7 @@ import {
   REAL_ESTATE_TRANSACTION_LABELS,
   type RealEstateDiscoveryView,
 } from '../../../../src/realEstate/realEstateDiscovery';
+import { parseRealEstateListingQueryParams } from '../../../../src/realEstate/realEstateQueryParams';
 import type { RealEstateListingQuery } from '../../../../src/realEstate/realEstateRepository';
 import { FilterChip } from '../../components/common/FilterChip';
 import { NeighborhoodMap } from '../../components/map/NeighborhoodMap';
@@ -68,9 +69,37 @@ const PRICE_PRESETS = {
   ],
 } as const;
 
+type PropiedadesRouteParams = {
+  source?: string;
+  businessId?: string;
+  q?: string;
+  transaction?: string;
+  propertyType?: string;
+  publisher?: string;
+  minPriceClp?: string;
+  maxPriceClp?: string;
+  minPriceUf?: string;
+  maxPriceUf?: string;
+  minArea?: string;
+  maxArea?: string;
+  minBedrooms?: string;
+  minBathrooms?: string;
+  minParking?: string;
+};
+
 function nextPreset<T>(values: readonly T[], current: T): T {
   const index = values.findIndex((value) => value === current);
   return values[(index + 1) % values.length] ?? values[0]!;
+}
+
+function initialPricePresetIndex(transactionType: PropertyTransactionType, query: RealEstateListingQuery): number {
+  const presets = PRICE_PRESETS[transactionType];
+  const index = presets.findIndex((preset) => {
+    const clp = 'maxPriceClp' in preset ? preset.maxPriceClp : undefined;
+    const uf = 'maxPriceUf' in preset ? preset.maxPriceUf : undefined;
+    return clp === query.maxPriceClp && uf === query.maxPriceUf;
+  });
+  return index >= 0 ? index : 0;
 }
 
 function ViewToggle({ value, onChange }: { value: RealEstateDiscoveryView; onChange: (value: RealEstateDiscoveryView) => void }) {
@@ -237,17 +266,19 @@ function DiscoveryControls({
 }
 
 export function PropiedadesScreen({ initialView = 'list' }: { initialView?: RealEstateDiscoveryView }) {
-  const params = useLocalSearchParams<{ source?: string; businessId?: string }>();
+  const params = useLocalSearchParams<PropiedadesRouteParams>();
+  const restoredQuery = parseRealEstateListingQueryParams(params);
+  const initialTransactionType = restoredQuery.transactionType ?? 'rent';
   const [view, setView] = useState<RealEstateDiscoveryView>(initialView);
-  const [query, setQuery] = useState('');
-  const [transactionType, setTransactionType] = useState<PropertyTransactionType>('rent');
-  const [propertyType, setPropertyType] = useState<PropertyType | undefined>();
-  const [ownerDirectOnly, setOwnerDirectOnly] = useState(false);
-  const [pricePresetIndex, setPricePresetIndex] = useState(0);
-  const [minArea, setMinArea] = useState<number | undefined>();
-  const [minBedrooms, setMinBedrooms] = useState<number | undefined>();
-  const [minBathrooms, setMinBathrooms] = useState<number | undefined>();
-  const [minParking, setMinParking] = useState<number | undefined>();
+  const [query, setQuery] = useState(restoredQuery.text ?? '');
+  const [transactionType, setTransactionType] = useState<PropertyTransactionType>(initialTransactionType);
+  const [propertyType, setPropertyType] = useState<PropertyType | undefined>(restoredQuery.propertyType);
+  const [ownerDirectOnly, setOwnerDirectOnly] = useState(restoredQuery.publisherType === 'owner_direct');
+  const [pricePresetIndex, setPricePresetIndex] = useState(() => initialPricePresetIndex(initialTransactionType, restoredQuery));
+  const [minArea, setMinArea] = useState<number | undefined>(restoredQuery.minUsableAreaM2);
+  const [minBedrooms, setMinBedrooms] = useState<number | undefined>(restoredQuery.minBedrooms);
+  const [minBathrooms, setMinBathrooms] = useState<number | undefined>(restoredQuery.minBathrooms);
+  const [minParking, setMinParking] = useState<number | undefined>(restoredQuery.minParkingSpaces);
   const [selectedListingId, setSelectedListingId] = useState<string | null>(null);
   const { isSaved, toggleSaved } = useSavedRealEstateListings();
 
