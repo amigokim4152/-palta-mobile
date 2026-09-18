@@ -1,4 +1,9 @@
-import type { PaltaAccount, PaltaUserId } from './accountModel.js';
+import type {
+  AuthBrokerUserId,
+  PaltaAccount,
+  PaltaUserId,
+} from './accountModel.js';
+import { paltaUserIdFromAuthBrokerUserId } from './accountModel.js';
 import type { LinkedIdentity } from './identityModel.js';
 import type { ProviderPrincipal } from './providerPrincipal.js';
 import {
@@ -25,6 +30,15 @@ export type ResolvedAccount = {
   created: boolean;
 };
 
+export type CanonicalAccountResolution = {
+  authBrokerUserId: AuthBrokerUserId;
+  paltaUserId: PaltaUserId;
+};
+
+export type CanonicalAccountLookup = {
+  accountExists(paltaUserId: PaltaUserId): Promise<boolean>;
+};
+
 export class AccountResolutionError extends Error {
   constructor(
     readonly code:
@@ -36,7 +50,30 @@ export class AccountResolutionError extends Error {
       | 'account_missing',
   ) {
     super(code);
+    this.name = 'AccountResolutionError';
   }
+}
+
+/**
+ * Resolve the normalized v1 account after the configured broker has completed
+ * Apple/Google/Email identity handling.
+ *
+ * palta-dev deliberately keys public.palta_account.user_id to auth.users.id.
+ * Account creation belongs to the server-owned auth.users bootstrap trigger;
+ * this resolver verifies the canonical row and never creates it client-side.
+ */
+export async function resolveCanonicalAccount(input: {
+  authBrokerUserId: AuthBrokerUserId;
+  accounts: CanonicalAccountLookup;
+}): Promise<CanonicalAccountResolution> {
+  const paltaUserId = paltaUserIdFromAuthBrokerUserId(input.authBrokerUserId);
+  if (!(await input.accounts.accountExists(paltaUserId))) {
+    throw new AccountResolutionError('account_missing');
+  }
+  return {
+    authBrokerUserId: input.authBrokerUserId,
+    paltaUserId,
+  };
 }
 
 function assertAccountUsable(account: PaltaAccount): void {
@@ -72,6 +109,12 @@ async function resolveExisting(
   return { account, identity, profile, created: false };
 }
 
+/**
+ * Legacy provider-principal persistence flow retained for existing Core tests and
+ * future non-Supabase adapters. The palta-dev mobile runtime must use
+ * resolveCanonicalAccount after Supabase Auth has resolved identities; it must
+ * not invoke this creation path from the client.
+ */
 export async function resolveProviderPrincipal(input: {
   store: AccountPersistencePort;
   principal: ProviderPrincipal;
