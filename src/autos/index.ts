@@ -1,6 +1,7 @@
 export * from './autosCaptureFlow.js';
 export * from './autosContracts.js';
 export * from './autosDealerRegistry.js';
+export * from './autosDealerSeed.js';
 export * from './autosEntry.js';
 export * from './autosSaleCare.js';
 export * from './autosSellerModel.js';
