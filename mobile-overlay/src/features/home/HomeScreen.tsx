@@ -1,5 +1,13 @@
-import { Text, View } from 'react-native';
+import { useCallback } from 'react';
+import { router } from 'expo-router';
+import { Linking, Pressable, Text, View } from 'react-native';
+import type {
+  HomeApiGlanceItem,
+  HomeApiItem,
+  HomeApiSurface,
+} from '../../../../src/api/paltaApiClient';
 import { useAdaptiveExperience } from '../../accessibility/useAdaptiveExperience';
+import { ErrorState, LoadingState } from '../../components/AsyncStateBlock';
 import { ScreenFrame } from '../../components/ScreenFrame';
 import { ActionSurface } from '../../components/home/ActionSurface';
 import {
@@ -7,14 +15,9 @@ import {
   type GlanceItem,
 } from '../../components/home/GlanceCluster';
 import { SummaryListRow } from '../../components/home/SummaryListRow';
+import { useAsyncResource } from '../../hooks/useAsyncResource';
+import { mobileRuntime } from '../../services/paltaClient';
 import { paltaTheme } from '../../theme/paltaTheme';
-
-const glanceItems: GlanceItem[] = [
-  { id: 'weather', label: 'CLIMA', value: '23°', detail: '17° / 25°' },
-  { id: 'metro', label: 'METRO L1', value: 'Normal' },
-  { id: 'air', label: 'AIRE', value: 'Bueno' },
-  { id: 'bus', label: 'BUS', value: 'Sin alerta' },
-];
 
 function SectionLabel({ children }: { children: string }) {
   return (
@@ -40,8 +43,153 @@ function greetingForNow(now = new Date()): string {
   return 'Buenas noches';
 }
 
+function fallbackSurface(item: HomeApiItem): HomeApiSurface {
+  if (item.kind === 'action' || item.kind === 'alert') return 'now';
+  if (item.kind === 'status') return 'in_progress';
+  return 'useful_today';
+}
+
+function itemSurface(item: HomeApiItem): HomeApiSurface {
+  return item.surface ?? fallbackSurface(item);
+}
+
+function scheduledMeta(value: string | undefined): string | undefined {
+  if (!value) return undefined;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return undefined;
+  return new Intl.DateTimeFormat('es-CL', {
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date);
+}
+
+async function openTarget(
+  target: string | undefined,
+  kind: 'internal' | 'external' | undefined,
+) {
+  if (!target) return;
+  if (kind === 'external') {
+    await Linking.openURL(target);
+    return;
+  }
+  router.push(target as never);
+}
+
+function itemPress(item: HomeApiItem): (() => void) | undefined {
+  if (!item.action_target) return undefined;
+  return () => {
+    void openTarget(item.action_target, item.action_kind);
+  };
+}
+
+function glancePress(item: HomeApiGlanceItem): (() => void) | undefined {
+  if (!item.action_target) return undefined;
+  return () => {
+    void openTarget(item.action_target, item.action_kind);
+  };
+}
+
+function ContextAction({
+  label,
+  target,
+}: {
+  label: string;
+  target?: string;
+}) {
+  return (
+    <Pressable
+      accessibilityRole={target ? 'button' : undefined}
+      disabled={!target}
+      onPress={target ? () => void openTarget(target, 'internal') : undefined}
+      style={{
+        minHeight: paltaTheme.touch.minimum,
+        justifyContent: 'center',
+        paddingHorizontal: 2,
+      }}
+    >
+      <Text
+        allowFontScaling
+        style={{
+          fontSize: 13,
+          lineHeight: 18,
+          fontWeight: '700',
+          color: target
+            ? paltaTheme.color.brandPrimary
+            : paltaTheme.color.textMuted,
+        }}
+      >
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
 export function HomeScreen() {
   const adaptive = useAdaptiveExperience();
+
+  const loadHome = useCallback(async () => {
+    if (mobileRuntime.status !== 'ready') {
+      throw new Error(mobileRuntime.message);
+    }
+    return mobileRuntime.client.getHome();
+  }, []);
+
+  const { state, refresh } = useAsyncResource(loadHome);
+
+  if (state.status === 'loading' && !state.data) {
+    return (
+      <ScreenFrame title="Palta">
+        <LoadingState label="Actualizando tu día…" />
+      </ScreenFrame>
+    );
+  }
+
+  if (state.status === 'error' && !state.data) {
+    return (
+      <ScreenFrame title="Palta">
+        <ErrorState message={state.message} onRetry={() => void refresh()} />
+      </ScreenFrame>
+    );
+  }
+
+  const data = state.data;
+  if (!data) {
+    return (
+      <ScreenFrame title="Palta">
+        <Text allowFontScaling>No hay información disponible.</Text>
+      </ScreenFrame>
+    );
+  }
+
+  const context = data.context;
+  const localityLabel = context?.locality.label ?? data.locality_label ?? 'Tu zona';
+  const nowItems = data.items.filter((item) => itemSurface(item) === 'now');
+  const inProgressItems = data.items.filter(
+    (item) => itemSurface(item) === 'in_progress',
+  );
+  const upcomingItems = data.items.filter(
+    (item) => itemSurface(item) === 'upcoming',
+  );
+  const usefulTodayItems = data.items.filter(
+    (item) => itemSurface(item) === 'useful_today',
+  );
+
+  const glanceItems: GlanceItem[] = (data.glance ?? []).map((item) => ({
+    id: item.id,
+    label: item.label,
+    value: item.value,
+    ...(item.detail ? { detail: item.detail } : {}),
+    ...(item.exceptional !== undefined ? { exceptional: item.exceptional } : {}),
+    ...(item.action_target ? { onPress: glancePress(item) } : {}),
+  }));
+
+  const noActiveItems =
+    nowItems.length === 0 &&
+    inProgressItems.length === 0 &&
+    upcomingItems.length === 0 &&
+    usefulTodayItems.length === 0;
 
   return (
     <ScreenFrame title="Palta">
@@ -58,118 +206,147 @@ export function HomeScreen() {
           >
             {greetingForNow()}
           </Text>
-          <Text
-            allowFontScaling
+
+          <View
             style={{
               marginTop: 2,
-              fontSize: 14,
-              lineHeight: 19,
-              color: paltaTheme.color.textSecondary,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 12,
             }}
           >
-            Vitacura
-          </Text>
+            <Pressable
+              accessibilityRole={context?.locality.change_target ? 'button' : undefined}
+              disabled={!context?.locality.change_target}
+              onPress={
+                context?.locality.change_target
+                  ? () => void openTarget(context.locality.change_target, 'internal')
+                  : undefined
+              }
+              style={{ minHeight: paltaTheme.touch.minimum, justifyContent: 'center' }}
+            >
+              <Text
+                allowFontScaling
+                style={{
+                  fontSize: 14,
+                  lineHeight: 19,
+                  color: paltaTheme.color.textSecondary,
+                }}
+              >
+                {localityLabel}
+              </Text>
+            </Pressable>
+
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+              <ContextAction
+                label={
+                  context?.unread_notification_count
+                    ? `Avisos ${context.unread_notification_count}`
+                    : 'Avisos'
+                }
+                target={context?.notifications_target}
+              />
+              <ContextAction label="Perfil" target={context?.profile_target} />
+            </View>
+          </View>
         </View>
 
-        <View
-          accessibilityRole="text"
-          style={{
-            marginTop: -10,
-            alignSelf: 'flex-start',
-            borderRadius: paltaTheme.radius.pill,
-            backgroundColor: paltaTheme.color.surfaceMuted,
-            paddingHorizontal: 8,
-            paddingVertical: 4,
-          }}
-        >
+        {glanceItems.length > 0 ? (
+          <GlanceCluster
+            items={glanceItems}
+            columns={adaptive.layout.columns}
+            maxItems={adaptive.layout.maxInitialGlanceItems}
+          />
+        ) : null}
+
+        {nowItems.length > 0 ? (
+          <View style={{ gap: 10 }}>
+            <SectionLabel>AHORA</SectionLabel>
+            {nowItems.map((item) => (
+              <ActionSurface
+                key={item.id}
+                eyebrow={item.kind === 'alert' ? 'AHORA' : undefined}
+                title={item.title}
+                body={item.body}
+                actionLabel={item.action_label}
+                onPress={itemPress(item)}
+              />
+            ))}
+          </View>
+        ) : null}
+
+        {inProgressItems.length > 0 ? (
+          <View>
+            <SectionLabel>EN CURSO</SectionLabel>
+            {inProgressItems.map((item) => (
+              <SummaryListRow
+                key={item.id}
+                title={item.title}
+                meta="En curso"
+                detail={item.body}
+                explicitActionLabel={item.action_label}
+                onPress={itemPress(item)}
+                stackMeta={!adaptive.layout.allowHorizontalMetadataCompression}
+              />
+            ))}
+          </View>
+        ) : null}
+
+        {upcomingItems.length > 0 ? (
+          <View>
+            <SectionLabel>PRÓXIMO</SectionLabel>
+            {upcomingItems.map((item) => (
+              <SummaryListRow
+                key={item.id}
+                title={item.title}
+                meta={scheduledMeta(item.scheduled_at)}
+                detail={item.body}
+                explicitActionLabel={item.action_label}
+                onPress={itemPress(item)}
+                stackMeta={!adaptive.layout.allowHorizontalMetadataCompression}
+              />
+            ))}
+          </View>
+        ) : null}
+
+        {usefulTodayItems.length > 0 ? (
+          <View>
+            <SectionLabel>PARA HOY</SectionLabel>
+            {usefulTodayItems.map((item) => (
+              <SummaryListRow
+                key={item.id}
+                title={item.title}
+                detail={
+                  adaptive.textScaleClass === 'accessibility'
+                    ? undefined
+                    : item.body
+                }
+                explicitActionLabel={item.action_label}
+                onPress={itemPress(item)}
+                stackMeta={!adaptive.layout.allowHorizontalMetadataCompression}
+              />
+            ))}
+          </View>
+        ) : null}
+
+        {noActiveItems || data.quiet_state ? (
           <Text
             allowFontScaling
             style={{
-              fontSize: 11,
-              lineHeight: 15,
-              fontWeight: '700',
+              paddingBottom: 24,
+              fontSize: 13,
+              lineHeight: 19,
               color: paltaTheme.color.textMuted,
             }}
           >
-            Vista de composición · datos de ejemplo
+            {data.quiet_state?.title ?? 'Nada urgente por ahora.'}
           </Text>
-        </View>
+        ) : null}
 
-        <GlanceCluster
-          items={glanceItems}
-          columns={adaptive.layout.columns}
-          maxItems={adaptive.layout.maxInitialGlanceItems}
-        />
-
-        <View>
-          <SectionLabel>AHORA</SectionLabel>
-          <ActionSurface
-            eyebrow="NUEVO"
-            title="Llegó una respuesta a tu cotización"
-            body="Taller López respondió sobre la reparación de tu vehículo."
-          />
-        </View>
-
-        <View>
-          <SectionLabel>EN CURSO</SectionLabel>
-          <SummaryListRow
-            title="Solicitud al taller"
-            meta="En espera"
-            detail="Esperando una respuesta definitiva."
-            stackMeta={!adaptive.layout.allowHorizontalMetadataCompression}
-          />
-        </View>
-
-        <View>
-          <SectionLabel>PRÓXIMO</SectionLabel>
-          <SummaryListRow
-            title="Consulta médica"
-            meta="Mañana · 10:30"
-            detail="Revisa los documentos que debes llevar."
-            stackMeta={!adaptive.layout.allowHorizontalMetadataCompression}
-          />
-          <SummaryListRow
-            title="Documento del colegio"
-            meta="20 sep"
-            stackMeta={!adaptive.layout.allowHorizontalMetadataCompression}
-          />
-        </View>
-
-        <View>
-          <SectionLabel>PARA HOY</SectionLabel>
-          <SummaryListRow
-            title="Beneficio municipal cercano"
-            meta="Vitacura"
-            detail={
-              adaptive.textScaleClass === 'accessibility'
-                ? undefined
-                : 'Sólo aparecerá cuando corresponda a tu situación.'
-            }
-            stackMeta={!adaptive.layout.allowHorizontalMetadataCompression}
-          />
-          <SummaryListRow
-            title="Información local relevante para hoy"
-            meta="Local"
-            detail={
-              adaptive.textScaleClass === 'accessibility'
-                ? undefined
-                : 'Noticias recientes y realmente útiles para tu zona.'
-            }
-            stackMeta={!adaptive.layout.allowHorizontalMetadataCompression}
-          />
-        </View>
-
-        <Text
-          allowFontScaling
-          style={{
-            paddingBottom: 24,
-            fontSize: 13,
-            lineHeight: 19,
-            color: paltaTheme.color.textMuted,
-          }}
-        >
-          Nada más requiere tu atención por ahora.
-        </Text>
+        {state.status === 'error' ? (
+          <ErrorState message={state.message} onRetry={() => void refresh()} />
+        ) : null}
       </View>
     </ScreenFrame>
   );
