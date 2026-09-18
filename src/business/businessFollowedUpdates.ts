@@ -23,6 +23,9 @@ export type FollowedBusinessUpdateItem = Readonly<{
  * In-app relationship feed projection for a business the consumer explicitly
  * follows. This does not decide push/marketing delivery. Shared Notification and
  * Consent remain responsible for any out-of-app or interruptive delivery.
+ *
+ * Keep this feed intentionally quiet: at most one current coupon and the most
+ * recent public post per business. Older history remains on the Business Profile.
  */
 export function projectFollowedBusinessUpdates(input: {
   businessName: string;
@@ -33,44 +36,77 @@ export function projectFollowedBusinessUpdates(input: {
 }): FollowedBusinessUpdateItem[] {
   if (!input.relationship.followedAt) return [];
 
-  const items: FollowedBusinessUpdateItem[] = [];
+  const eligiblePosts = (input.posts ?? [])
+    .filter((post) => post.businessId === input.relationship.businessId)
+    .map((post) => ({ post, projected: projectPublicBasicBusinessPost(post) }))
+    .filter(
+      (entry): entry is {
+        post: BasicBusinessPost;
+        projected: NonNullable<ReturnType<typeof projectPublicBasicBusinessPost>>;
+      } => Boolean(entry.projected),
+    )
+    .sort(
+      (a, b) =>
+        Date.parse(b.projected.publishedAt) - Date.parse(a.projected.publishedAt),
+    );
 
-  for (const post of input.posts ?? []) {
-    if (post.businessId !== input.relationship.businessId) continue;
-    const projected = projectPublicBasicBusinessPost(post);
-    if (!projected) continue;
-    items.push({
-      id: `post:${post.id}`,
-      businessId: post.businessId,
-      businessName: input.businessName,
-      kind: 'post',
-      title: projected.title,
-      ...(projected.body ? { body: projected.body } : {}),
-      occurredAt: projected.publishedAt,
-    });
-  }
+  const latestPost = eligiblePosts[0];
+  const postItem: FollowedBusinessUpdateItem | undefined = latestPost
+    ? {
+        id: `post:${latestPost.post.id}`,
+        businessId: latestPost.post.businessId,
+        businessName: input.businessName,
+        kind: 'post',
+        title: latestPost.projected.title,
+        ...(latestPost.projected.body ? { body: latestPost.projected.body } : {}),
+        occurredAt: latestPost.projected.publishedAt,
+      }
+    : undefined;
 
-  for (const coupon of input.coupons ?? []) {
-    if (coupon.businessId !== input.relationship.businessId) continue;
-    const projected = projectBasicBusinessCoupon({
+  const eligibleCoupons = (input.coupons ?? [])
+    .filter((coupon) => coupon.businessId === input.relationship.businessId)
+    .map((coupon) => ({
       coupon,
-      now: input.now,
-      relationship: input.relationship,
+      projected: projectBasicBusinessCoupon({
+        coupon,
+        now: input.now,
+        relationship: input.relationship,
+      }),
+    }))
+    .filter((entry) => {
+      if (!entry.projected) return false;
+      const occurredAt = entry.coupon.startsAt ?? entry.coupon.issuedByVerifiedOwnerAt;
+      return Boolean(occurredAt && Number.isFinite(Date.parse(occurredAt)));
+    })
+    .sort((a, b) => {
+      const aAt = a.coupon.startsAt ?? a.coupon.issuedByVerifiedOwnerAt ?? '';
+      const bAt = b.coupon.startsAt ?? b.coupon.issuedByVerifiedOwnerAt ?? '';
+      return Date.parse(bAt) - Date.parse(aAt);
     });
-    if (!projected) continue;
-    const occurredAt = coupon.startsAt ?? coupon.issuedByVerifiedOwnerAt;
-    if (!occurredAt || !Number.isFinite(Date.parse(occurredAt))) continue;
-    items.push({
-      id: `coupon:${coupon.id}`,
-      businessId: coupon.businessId,
-      businessName: input.businessName,
-      kind: 'coupon',
-      title: projected.title,
-      ...(projected.description ? { body: projected.description } : {}),
-      occurredAt,
-      ...(projected.expiresAt ? { expiresAt: projected.expiresAt } : {}),
-    });
-  }
 
-  return items.sort((a, b) => Date.parse(b.occurredAt) - Date.parse(a.occurredAt));
+  const latestCoupon = eligibleCoupons[0];
+  const couponOccurredAt = latestCoupon
+    ? latestCoupon.coupon.startsAt ?? latestCoupon.coupon.issuedByVerifiedOwnerAt
+    : undefined;
+  const couponItem: FollowedBusinessUpdateItem | undefined =
+    latestCoupon?.projected && couponOccurredAt
+      ? {
+          id: `coupon:${latestCoupon.coupon.id}`,
+          businessId: latestCoupon.coupon.businessId,
+          businessName: input.businessName,
+          kind: 'coupon',
+          title: latestCoupon.projected.title,
+          ...(latestCoupon.projected.description
+            ? { body: latestCoupon.projected.description }
+            : {}),
+          occurredAt: couponOccurredAt,
+          ...(latestCoupon.projected.expiresAt
+            ? { expiresAt: latestCoupon.projected.expiresAt }
+            : {}),
+        }
+      : undefined;
+
+  return [couponItem, postItem]
+    .filter((item): item is FollowedBusinessUpdateItem => Boolean(item))
+    .sort((a, b) => Date.parse(b.occurredAt) - Date.parse(a.occurredAt));
 }
