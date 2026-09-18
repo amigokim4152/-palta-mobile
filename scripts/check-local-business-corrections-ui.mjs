@@ -4,7 +4,7 @@ import ts from 'typescript';
 
 const root = process.cwd();
 const files = [
-  'mobile-overlay/src/app/business/[businessId].tsx',
+  'mobile-overlay/src/features/business/BusinessProfileExperience.tsx',
   'mobile-overlay/src/app/business/[businessId]/report.tsx',
   'mobile-overlay/src/app/business/manage/[businessId].tsx',
   'mobile-overlay/src/app/business/manage/[businessId]/corrections.tsx',
@@ -67,7 +67,7 @@ const ownerCorrections = readChecked(files[3]);
 
 assert(
   detail.includes('/report') && detail.includes('¿Ves información incorrecta?'),
-  'Business detail must expose a consumer correction path.',
+  'Polished Business profile must expose a consumer correction path.',
 );
 assert(
   report.includes('mobileRuntime.client.corrections.submitBusinessCorrection') &&
