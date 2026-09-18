@@ -89,7 +89,13 @@ export type SetMarketFavoriteCommand = {
 
 export type StartMarketTransactionCommand = {
   listingId: MarketId;
-  /** Optional Message Core conversation reference used for continuity only. */
+  /**
+   * Durable Message Core relationship reference.
+   *
+   * The server must ensure/reuse the buyer's currently coordinating/reserved
+   * transaction for this listing. Retries with the same durable conversation
+   * therefore converge instead of creating duplicate transaction rows.
+   */
   conversationId?: string;
 };
 
