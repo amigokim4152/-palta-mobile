@@ -99,6 +99,51 @@
         {"name": "Torta Selva Negra"},
         {"name": "Mil Hojas Chocolate"}
       ]
+    },
+    {
+      "outlet_key": "cl-rm-huechuraba-bogl-bogl-pedro-fontova-7280",
+      "menu_scope": "official_outlet_menu_huechuraba",
+      "source": {"kind": "official_website", "url": "https://boglbogl.cl/pages/menu-bogl-bogl-comida-coreana-en-santiago", "observed_at": "2026-09-18"},
+      "sections": ["Combos", "Platos Coreanos", "Pollo Coreano", "Street Food", "Kimbap", "Ramyun", "Toppings", "Bebidas y Helados"],
+      "items": [
+        {"name": "Combo Samgak", "price_clp": 9990},
+        {"name": "Combo Mandu", "price_clp": 11990},
+        {"name": "Combo Pollo", "price_clp": 11990},
+        {"name": "Jeyuk Bokkeum", "price_clp": 7990},
+        {"name": "Bulgogi", "price_clp": 8990},
+        {"name": "Bibimbap", "price_clp": 8990},
+        {"name": "Japchae", "price_clp": 7990},
+        {"name": "Donkatsu", "price_clp": 8990},
+        {"name": "Pollo Frito", "price_clp": 7990},
+        {"name": "Yangnyeom Chicken", "price_clp": 8990},
+        {"name": "Mandu Frito", "price_clp": 5990},
+        {"name": "Tteokbokki", "price_clp": 7990},
+        {"name": "Corn Dog Coreano", "price_clp": 5500},
+        {"name": "Samgak Kimbap", "price_clp": 3990},
+        {"name": "Kimbap Clásico", "price_clp": 4990},
+        {"name": "Ramyun clásico preparado", "price_clp": 3990}
+      ]
+    },
+    {
+      "outlet_key": "cl-rm-huechuraba-street-wrap-pedro-fontova-6651",
+      "menu_scope": "official_brand_catalog_requires_outlet_freshness_check",
+      "source": {"kind": "official_website", "url": "https://www.streetwrap.cl/pedir", "observed_at": "2026-09-18"},
+      "sections": ["Street Frieds", "Se tu propio Chef!", "Combos", "Wraps", "Bowls", "Mini Wraps", "Pockets", "Picoteos y Aperitivos", "Kombuchas", "Jugos", "Gaseosas", "Aguas", "Postres"],
+      "items": [
+        {"name": "La Mexicana", "price_clp": 8490},
+        {"name": "La Gringa", "price_clp": 8490},
+        {"name": "Canadian Fusión", "price_clp": 8490},
+        {"name": "Arma tu Ensalada", "price_clp": 9390},
+        {"name": "Arma tu Wrap", "price_clp": 9390},
+        {"name": "Arma tu Bowl", "price_clp": 9390},
+        {"name": "Arma tu mini wrap", "price_clp": 5490},
+        {"name": "Combo Express", "price_clp": 9900},
+        {"name": "Combo para 2 Wrap", "price_clp": 22990},
+        {"name": "Combo Street Bowl", "price_clp": 9990},
+        {"name": "BBQ Chicken Wrap", "price_clp": 8300},
+        {"name": "Wrap de Falafel", "price_clp": 8890},
+        {"name": "Wrap de Salmón", "price_clp": 13990}
+      ]
     }
   ]
 }
