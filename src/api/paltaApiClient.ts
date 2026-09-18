@@ -1,3 +1,5 @@
+import type { PaltaLocale } from '../localization/locales.js';
+
 export type FetchLike = (
   input: string,
   init?: {
@@ -27,11 +29,17 @@ export type HomeApiResponse = {
   items: HomeApiItem[];
 };
 
+/**
+ * Canonical keys remain stable for filtering, analytics, and routing.
+ * Localized labels are additive display fields and may be absent while a
+ * backend lane is being migrated; clients must fall back to the canonical key.
+ */
 export type LocalSearchItem = {
   entity_id: string;
   entity_type: 'place' | 'business' | 'public_service' | 'event';
   name: string;
   category_key?: string;
+  category_label?: string;
   distance_m?: number;
   verification_status?: string;
   location: { lat: number; lng: number };
@@ -41,8 +49,10 @@ export type BusinessApiDetail = {
   id: string;
   name: string;
   category_key?: string;
+  category_label?: string;
   verification_status: 'unverified' | 'claimed' | 'verified' | 'suspended';
   opening_status?: string;
+  opening_status_label?: string;
   location?: { lat: number; lng: number };
   contact?: {
     phone?: string;
@@ -140,7 +150,7 @@ export class PaltaApiClient {
     return response.json();
   }
 
-  async getHome(locale = 'es-CL'): Promise<HomeApiResponse> {
+  async getHome(locale: PaltaLocale = 'es-CL'): Promise<HomeApiResponse> {
     const payload = expectObject(
       await this.request(`/v1/home?locale=${encodeURIComponent(locale)}`),
       'GET /v1/home',
@@ -156,6 +166,7 @@ export class PaltaApiClient {
     longitude: number;
     radiusM?: number;
     query?: string;
+    locale?: PaltaLocale;
   }): Promise<LocalSearchItem[]> {
     const params = new URLSearchParams({
       lat: String(input.latitude),
@@ -163,6 +174,7 @@ export class PaltaApiClient {
       radius_m: String(input.radiusM ?? 5000),
     });
     if (input.query) params.set('q', input.query);
+    if (input.locale) params.set('locale', input.locale);
 
     const payload = expectObject(
       await this.request(`/v1/local/search?${params.toString()}`),
@@ -174,9 +186,15 @@ export class PaltaApiClient {
     return payload.items as LocalSearchItem[];
   }
 
-  async getBusiness(businessId: string): Promise<BusinessApiDetail> {
+  async getBusiness(
+    businessId: string,
+    locale?: PaltaLocale,
+  ): Promise<BusinessApiDetail> {
+    const path = `/v1/business/${encodeURIComponent(businessId)}`;
     const result = expectObject(
-      await this.request(`/v1/business/${encodeURIComponent(businessId)}`),
+      await this.request(
+        locale ? `${path}?locale=${encodeURIComponent(locale)}` : path,
+      ),
       'GET /v1/business/{id}',
     );
     if (typeof result.id !== 'string' || typeof result.name !== 'string') {
