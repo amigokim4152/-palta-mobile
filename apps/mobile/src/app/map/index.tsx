@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { router } from 'expo-router';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -7,6 +8,8 @@ import {
   Text,
   View,
 } from 'react-native';
+import type { MapFeature } from '../../../../../src/adapters/mapCore';
+import { distanceMeters } from '../../../../../src/local/businessSnapshot';
 import { ScreenFrame } from '../../components/ScreenFrame';
 import { NeighborhoodMap } from '../../components/map/NeighborhoodMap';
 import {
@@ -17,24 +20,101 @@ import {
   hasOfflineMap,
 } from '../../map/offlineMapManager';
 import { createSantiagoMapStyle } from '../../map/santiagoMapStyle';
+import { mobileRuntime } from '../../services/paltaClient';
 
-const SANTIAGO_CENTER = {
-  latitude: -33.4489,
-  longitude: -70.6693,
+// Public launch-center fallback only. This is intentionally not the user's home
+// coordinate. A real device location can be supplied separately after permission.
+const VITACURA_LAUNCH_CENTER = {
+  latitude: -33.3842,
+  longitude: -70.5742,
 };
 
+const SEARCH_RADIUS_M = 5000;
+const RELOAD_DISTANCE_M = 650;
+const VIEWPORT_DEBOUNCE_MS = 450;
+
 export default function SharedMapScreen() {
-  const [offline, setOffline] = useState(() =>
-    hasOfflineMap(SANTIAGO_MAP),
-  );
+  const [offline, setOffline] = useState(() => hasOfflineMap(SANTIAGO_MAP));
   const [downloading, setDownloading] = useState(false);
+  const [features, setFeatures] = useState<MapFeature[]>([]);
+  const [localStatus, setLocalStatus] = useState<
+    'idle' | 'loading' | 'ready' | 'error'
+  >('idle');
+  const lastLoadedCenter = useRef(VITACURA_LAUNCH_CENTER);
+  const viewportTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const mapStyle = useMemo(
-    () =>
-      createSantiagoMapStyle(
-        getPreferredMapSource(SANTIAGO_MAP),
-      ),
+    () => createSantiagoMapStyle(getPreferredMapSource(SANTIAGO_MAP)),
     [offline],
+  );
+
+  const loadLocalBusinesses = useCallback(
+    async (center: { latitude: number; longitude: number }) => {
+      if (mobileRuntime.status !== 'ready') {
+        setLocalStatus('error');
+        return;
+      }
+
+      setLocalStatus('loading');
+      try {
+        const items = await mobileRuntime.client.searchLocal({
+          latitude: center.latitude,
+          longitude: center.longitude,
+          radiusM: SEARCH_RADIUS_M,
+        });
+        const nextFeatures: MapFeature[] = items
+          .filter((item) => item.location)
+          .map((item) => ({
+            id: item.entity_id,
+            entityType: item.entity_type,
+            coordinate: {
+              latitude: item.location!.lat,
+              longitude: item.location!.lng,
+            },
+            title: item.name,
+            ...(item.category_key ? { categoryKey: item.category_key } : {}),
+          }));
+
+        setFeatures(nextFeatures);
+        lastLoadedCenter.current = center;
+        setLocalStatus('ready');
+      } catch {
+        setLocalStatus('error');
+      }
+    },
+    [],
+  );
+
+  useEffect(() => {
+    void loadLocalBusinesses(VITACURA_LAUNCH_CENTER);
+    return () => {
+      if (viewportTimer.current) clearTimeout(viewportTimer.current);
+    };
+  }, [loadLocalBusinesses]);
+
+  const handleViewportChanged = useCallback(
+    (
+      center: { latitude: number; longitude: number },
+      zoom: number,
+      userInteraction: boolean,
+    ) => {
+      if (!userInteraction || zoom < 12) return;
+
+      const moved = distanceMeters(
+        {
+          lat: lastLoadedCenter.current.latitude,
+          lng: lastLoadedCenter.current.longitude,
+        },
+        { lat: center.latitude, lng: center.longitude },
+      );
+      if (moved < RELOAD_DISTANCE_M) return;
+
+      if (viewportTimer.current) clearTimeout(viewportTimer.current);
+      viewportTimer.current = setTimeout(() => {
+        void loadLocalBusinesses(center);
+      }, VIEWPORT_DEBOUNCE_MS);
+    },
+    [loadLocalBusinesses],
   );
 
   async function handleDownload() {
@@ -45,9 +125,7 @@ export default function SharedMapScreen() {
     } catch (error) {
       Alert.alert(
         'No se pudo descargar el mapa',
-        error instanceof Error
-          ? error.message
-          : 'Inténtalo nuevamente.',
+        error instanceof Error ? error.message : 'Inténtalo nuevamente.',
       );
     } finally {
       setDownloading(false);
@@ -59,25 +137,36 @@ export default function SharedMapScreen() {
     setOffline(false);
   }
 
+  const localStatusText =
+    localStatus === 'loading'
+      ? 'Buscando lugares…'
+      : localStatus === 'error'
+        ? 'Lugares no disponibles temporalmente'
+        : `${features.length} lugares cercanos`;
+
   return (
-    <ScreenFrame title="Mapa" subtitle="Santiago" scroll={false}>
+    <ScreenFrame title="Mapa" subtitle="Vitacura · Santiago" scroll={false}>
       <View style={styles.container}>
         <View style={styles.map}>
           <NeighborhoodMap
             mapStyle={JSON.stringify(mapStyle)}
-            features={[]}
-            initialCenter={SANTIAGO_CENTER}
-            initialZoom={11}
+            features={features}
+            initialCenter={VITACURA_LAUNCH_CENTER}
+            initialZoom={14}
+            onSelectEntity={(entityId) =>
+              router.push(`/business/${encodeURIComponent(entityId)}`)
+            }
+            onViewportChanged={handleViewportChanged}
           />
         </View>
 
         <View style={styles.offlineBar}>
           <View style={styles.offlineText}>
-            <Text style={styles.title}>Mapa sin conexión</Text>
+            <Text style={styles.title}>Mapa de Palta</Text>
             <Text style={styles.status}>
-              {offline
-                ? 'Santiago está descargado'
-                : 'Santiago · aproximadamente 38 MB'}
+              {localStatusText}
+              {' · '}
+              {offline ? 'mapa sin conexión listo' : 'mapa online'}
             </Text>
           </View>
 
