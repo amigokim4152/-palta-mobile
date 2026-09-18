@@ -58,6 +58,15 @@ export function parseRealEstateListingQueryParams(params: RealEstateQueryParams)
   const publisherType = params.publisher === 'owner_direct' || params.publisher === 'broker' || params.publisher === 'real_estate_business'
     ? params.publisher
     : undefined;
+  const minPriceClp = parseNumber(params.minPriceClp);
+  const maxPriceClp = parseNumber(params.maxPriceClp);
+  const minPriceUf = parseNumber(params.minPriceUf);
+  const maxPriceUf = parseNumber(params.maxPriceUf);
+  const minUsableAreaM2 = parseNumber(params.minArea);
+  const maxUsableAreaM2 = parseNumber(params.maxArea);
+  const minBedrooms = parseNumber(params.minBedrooms);
+  const minBathrooms = parseNumber(params.minBathrooms);
+  const minParkingSpaces = parseNumber(params.minParking);
 
   return {
     ...(params.q ? { text: params.q } : {}),
@@ -65,15 +74,15 @@ export function parseRealEstateListingQueryParams(params: RealEstateQueryParams)
     ...(transactionType ? { transactionType } : {}),
     ...(propertyType ? { propertyType } : {}),
     ...(publisherType ? { publisherType } : {}),
-    ...(parseNumber(params.minPriceClp) !== undefined ? { minPriceClp: parseNumber(params.minPriceClp) } : {}),
-    ...(parseNumber(params.maxPriceClp) !== undefined ? { maxPriceClp: parseNumber(params.maxPriceClp) } : {}),
-    ...(parseNumber(params.minPriceUf) !== undefined ? { minPriceUf: parseNumber(params.minPriceUf) } : {}),
-    ...(parseNumber(params.maxPriceUf) !== undefined ? { maxPriceUf: parseNumber(params.maxPriceUf) } : {}),
-    ...(parseNumber(params.minArea) !== undefined ? { minUsableAreaM2: parseNumber(params.minArea) } : {}),
-    ...(parseNumber(params.maxArea) !== undefined ? { maxUsableAreaM2: parseNumber(params.maxArea) } : {}),
-    ...(parseNumber(params.minBedrooms) !== undefined ? { minBedrooms: parseNumber(params.minBedrooms) } : {}),
-    ...(parseNumber(params.minBathrooms) !== undefined ? { minBathrooms: parseNumber(params.minBathrooms) } : {}),
-    ...(parseNumber(params.minParking) !== undefined ? { minParkingSpaces: parseNumber(params.minParking) } : {}),
+    ...(minPriceClp !== undefined ? { minPriceClp } : {}),
+    ...(maxPriceClp !== undefined ? { maxPriceClp } : {}),
+    ...(minPriceUf !== undefined ? { minPriceUf } : {}),
+    ...(maxPriceUf !== undefined ? { maxPriceUf } : {}),
+    ...(minUsableAreaM2 !== undefined ? { minUsableAreaM2 } : {}),
+    ...(maxUsableAreaM2 !== undefined ? { maxUsableAreaM2 } : {}),
+    ...(minBedrooms !== undefined ? { minBedrooms } : {}),
+    ...(minBathrooms !== undefined ? { minBathrooms } : {}),
+    ...(minParkingSpaces !== undefined ? { minParkingSpaces } : {}),
   };
 }
 
