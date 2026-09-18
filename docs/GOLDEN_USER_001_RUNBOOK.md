@@ -19,7 +19,7 @@ Every gate uses exactly one of these states:
 - `E2E_VERIFIED` — interaction, canonical persistence, restart/session restoration, permissions, and downstream linkage are verified
 - `BLOCKED` — the next Golden User action cannot proceed because of a known unresolved blocker
 
-Golden User progresses only through an `E2E_VERIFIED` executable gate. External provider release smoke is tracked separately when it does not change the internal Palta life-flow contract.
+Only `E2E_VERIFIED` advances Golden User 001 to the next gate.
 
 ## Golden User 001
 
@@ -31,12 +31,13 @@ Stable test namespace:
 - fixture marker: `synthetic=true`
 - environment: development/test only
 
+A server-side synthetic fixture may be provisioned for deterministic database tests, but it is not a mobile login bypass and does not replace live Auth-provider evidence.
+
 ## Gate order
 
 | Gate | User action | Current state | Advance condition |
 |---|---|---|---|
-| 01A Synthetic Auth | Open app, test-login, leave app, return, sign out/in | `RUNTIME_CONNECTED` | Same real Supabase session/Palta identity is restored and account row is accessible under owner RLS |
-| 01B Real Provider Smoke | Apple / Google / production email/deep link | `RELEASE_PENDING` | Each configured provider resolves correctly without unintended duplicate Palta accounts; does not block Gate 02 after 01A passes |
+| 01 Auth | Open app, create/sign in, leave app, return, sign out/in | `RUNTIME_CONNECTED` | Configured user Auth path works and the same Palta identity/session is restored under owner RLS |
 | 02 Core profile | Set minimum profile/locale/timezone | `NOT_STARTED` | Save, restart, restore, edit |
 | 03 Location context | Set/deny current location and set home comuna separately | `NOT_STARTED` | Current vs home location remain distinct and persist |
 | 04 Home | Enter Home as new/minimal user | `NOT_STARTED` | Correct sparse Home, no filler, correct private cards |
@@ -52,67 +53,68 @@ Stable test namespace:
 | 14 Transport/map | Use map/journey context | `NOT_STARTED` | Native MapLibre + production data endpoints work |
 | 15 Care/Event/follow-up | Wait/deadline/result/follow-up | `NOT_STARTED` | Event returns to correct Home/action state |
 
-## Gate 01A current state — 2026-09-18
+## Gate 01 current state — 2026-09-18
 
-Gate 01A is `RUNTIME_CONNECTED`.
+Gate 01 is `RUNTIME_CONNECTED`. The runtime and server foundation are connected, but the complete real mobile login → terminate/relaunch → logout → login-again cycle has not yet been executed and recorded.
 
-The previous Apple/Google/email runtime and canonical account work remains in place. In addition, Golden User 001 now has a dedicated development-only synthetic login path designed to exercise the real internal Auth path without waiting on external OAuth provider setup.
+Verified implementation/data facts:
 
-Implemented facts:
+1. mobile UI Source of Truth remains `mobile-overlay/src`; `apps/mobile/src` is generated
+2. Auth UI is capability-aware and only shows methods enabled by live Supabase settings
+3. `palta-dev` public Auth settings are reachable; email is enabled while Apple and Google are currently disabled
+4. Supabase provider code remains behind the existing Auth adapter/provider boundary
+5. raw provider identity, `AuthBrokerUserId`, and canonical `PaltaUserId` remain separate concepts
+6. session persistence uses Expo SecureStore; OAuth/email callback processing uses PKCE
+7. duplicate PKCE callback exchange is guarded
+8. Auth/account-resolution failures are shown as errors rather than disguised as signed-out state
+9. `palta-dev` has server-owned canonical `palta_account` bootstrap from `auth.users`
+10. client INSERT on `palta_account` remains denied
+11. a real `palta-dev` two-user transaction/RLS test proved user A cannot read user B account
+12. mobile config is fail-closed and accepts only a Supabase publishable key
+13. mobile runtime contains no service-role/admin key, public password, or Golden User password shortcut
+14. CI rejects `EXPO_PUBLIC_*` password/secret/token material and password-based Golden User bypasses
+15. development builds show `Palta ID` and `Auth ID` after sign-in so the same identity can be compared across restart and re-login
+16. `scheme=palta` and app identifiers remain `cl.somospalta.app`
 
-1. mobile UI Source of Truth remains `mobile-overlay/src`; `apps/mobile/src` remains generated
-2. normal Auth UI is capability-aware and only shows methods enabled by live Supabase settings
-3. `palta-dev` public Auth settings are reachable; email is enabled while Apple/Google are currently disabled
-4. Supabase session persistence uses Expo SecureStore and PKCE callback handling
-5. raw provider subject, Supabase `AuthBrokerUserId`, and canonical `PaltaUserId` remain explicit separate identity layers
-6. `palta-dev` has server-owned canonical `palta_account` bootstrap from `auth.users`
-7. client INSERT on `palta_account` remains denied and owner RLS has been negatively verified
-8. `createSupabaseAuthPort.native.ts` now exposes a dev-only Golden User action that calls real `supabase.auth.signInWithPassword`
-9. that test action still passes through the existing canonical account resolver and `palta_account` owner-RLS lookup
-10. `AuthGate` has a user-touchable `Golden User 001로 테스트 로그인` control when explicitly enabled in development
-11. production/prod environment suppresses the synthetic login even if the enable flag is accidentally set
-12. mobile never receives a Supabase secret/service-role key
-13. `apps/mobile/scripts/provision-golden-user.mjs` provisions or updates the fixed synthetic user through server-only Supabase Auth Admin API
-14. server provisioning metadata marks the user as synthetic / `golden-user-001` / development
-15. direct SQL insertion into `auth.users` is explicitly not used for the login-capable fixture
+### Optional server fixture utility
 
-See `docs/GOLDEN_USER_001_GATE_01_SYNTHETIC_AUTH.md` for the exact 01A contract.
+`apps/mobile/scripts/provision-golden-user.mjs` and `apps/mobile/.env.golden.example` are server/developer-side fixture tooling only. Real values live in ignored `apps/mobile/.env.golden` and are never mobile public configuration.
 
-### Gate 01A still NOT VERIFIED
+This utility can prepare deterministic server/account fixtures. It does not create a mobile test-login button, does not count as Auth E2E evidence, and does not unlock Gate 02.
 
-The server-side synthetic user has not yet been provisioned through the Auth Admin API in this verification session because no Supabase secret key is exposed to the mobile/runtime connector. The current real `palta-dev` Auth user count remains zero at the last check.
+See `docs/GOLDEN_USER_001_GATE_01_SYNTHETIC_AUTH.md` for the server-fixture boundary.
 
-Therefore the following still require actual evidence:
+## Gate 01 executable sequence
 
-1. provision Golden User 001 through `npm run golden:provision` in a trusted environment with `SUPABASE_SECRET_KEY`
-2. confirm exactly one real `auth.users` row and one triggered `public.palta_account` row
-3. enable local development Golden User Auth variables
-4. launch mobile runtime and press the Golden User button
-5. record the canonical `PaltaUserId`
-6. terminate/relaunch and confirm the same session/account
-7. logout, sign in again, confirm the same `PaltaUserId`
-8. run applicable CI/typechecks and secret-boundary checks on the final commit
-9. change 01A to `E2E_VERIFIED` only with this evidence
+On the development Mac:
 
-After **01A** becomes `E2E_VERIFIED`, Golden User 001 may continue immediately to **Gate 02 Core profile**. Gate 01B remains a separate release-readiness obligation.
+```bash
+./scripts/run-ios-mobile.sh
+```
 
-## Gate 01B release provider smoke
+Then execute in order:
 
-Before production release, configure and test each intended provider:
+1. verify the signed-out Auth surface appears when no valid session exists
+2. complete an actually enabled Golden User login path against `palta-dev`; email passwordless is currently enabled
+3. record the displayed canonical `Palta ID` and `Auth ID`
+4. confirm exactly one matching canonical `public.palta_account` exists
+5. terminate the app
+6. relaunch and confirm the same session and `Palta ID`
+7. sign out and confirm return to Auth
+8. sign in again and confirm the same `Palta ID`
+9. when Apple/Google are configured, exercise each provider and confirm no unintended duplicate Palta account is created
+10. record exact evidence in `docs/GOLDEN_USER_001_GATE_01_AUTH_HANDOFF.md`
+11. change Gate 01 to `E2E_VERIFIED` only after all required evidence exists
 
-- Apple
-- Google
-- production email/passwordless + deep link
-
-The provider smoke must verify that provider identities resolve to intended Palta identities without unintended duplicates. Do not invent placeholder Apple/Google credentials merely to turn buttons on.
+If a provider/configuration/deep-link error occurs, stop at that exact failure and fix only that Gate 01 blocker.
 
 ## Database hardening scope note
 
-The latest Supabase security-advisor pass contains existing PostGIS/public-schema findings and a Local Business intake finding. They are tracked separately and must not be “fixed” by an untested PostGIS relocation/drop while Golden User Auth is being verified.
+Existing Supabase advisor findings around PostGIS/public schema and Local Business intake are separate platform/data hardening work. Do not alter PostGIS or unrelated domain schemas while Gate 01 is being verified.
 
 ## Gate discipline
 
-When an executable gate blocks:
+When a gate blocks:
 
 1. stop Golden User progression
 2. record the exact break
@@ -121,4 +123,4 @@ When an executable gate blocks:
 5. mark `E2E_VERIFIED` only with evidence
 6. continue to the next gate
 
-Do not jump ahead to Pets, POS, Community, or visual polish while Gate 01A remains below `E2E_VERIFIED`.
+Do not jump ahead to Gate 02, Pets, POS, Community, or visual polish while Gate 01 remains below `E2E_VERIFIED`.
