@@ -27,10 +27,6 @@
   ],
   "correctionState": "updated",
   "updatedNotice": "Ejemplo de aviso visible cuando cambia un dato material.",
-  "body": [
-    "Un organismo local informó trabajos programados en un tramo de vía durante la mañana. Este texto es ficticio y solo sirve para probar el contrato público.",
-    "Cuando una ubicación esté verificada, el sitio puede ofrecer acceso al mapa y conectar la noticia con información de transporte o avisos de la comuna sin duplicar esos datos."
-  ],
   "whyItMatters": "Este bloque solo debe aparecer cuando existe una consecuencia concreta respaldada por información verificable.",
   "knownUnknown": {
     "known": ["Existe un cambio de demostración con alcance local y horario definido."],
