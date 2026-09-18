@@ -17,7 +17,7 @@ if [ ! -f "$APP_DIR/package.json" ]; then
     info "Partial local Expo runtime detected; preserving existing Palta runtime and restoring missing metadata..."
     RUNTIME_BACKUP="/tmp/palta-partial-runtime-backup-$(date +%Y%m%d-%H%M%S)"; mkdir -p "$RUNTIME_BACKUP"
     for item in .env.local expo-env.d.ts; do [ ! -f "$APP_DIR/$item" ] || cp "$APP_DIR/$item" "$RUNTIME_BACKUP/$item"; done
-    TMP_ROOT="$(mktemp -d /tmp/palta-expo-shell.XXXXXX)"; trap 'rm -rf "${TMP_ROOT:-}" "${TMP_SMOKE:-}"' EXIT
+    TMP_ROOT="$(mktemp -d /tmp/palta-expo-shell.XXXXXX)"; trap 'rm -rf "${TMP_ROOT:-}" "${TMP_SMOKE_DIR:-}"' EXIT
     info "Creating a clean Expo metadata donor without touching the existing runtime..."
     (cd "$TMP_ROOT" && npx create-expo-app@latest mobile --template blank-typescript --yes >/tmp/palta-expo-bootstrap.log 2>&1)
     DONOR="$TMP_ROOT/mobile"; [ -f "$DONOR/package.json" ] || { cat /tmp/palta-expo-bootstrap.log >&2 2>/dev/null || true; fail "Temporary Expo metadata bootstrap failed."; }
@@ -31,17 +31,12 @@ if [ ! -f "$APP_DIR/package.json" ]; then
   fi
 fi
 info "Using mobile runtime: $APP_DIR"
-
 cd "$APP_DIR"
-# SDK 57 currently resolves React 19.2.x while npm may select optional react-dom
-# 19.3.x. Keep Expo's SDK-selected package versions but let npm tolerate this
-# optional peer mismatch for native dependency reconciliation.
 export npm_config_legacy_peer_deps=true
 npx expo install expo-router expo-location expo-sqlite expo-secure-store expo-notifications expo-haptics expo-speech >/tmp/palta-expo-install.log 2>&1 || { cat /tmp/palta-expo-install.log >&2; fail "Expo dependency reconciliation failed."; }
 npm install --save @maplibre/maplibre-react-native --legacy-peer-deps >>/tmp/palta-expo-install.log 2>&1 || { cat /tmp/palta-expo-install.log >&2; fail "MapLibre dependency reconciliation failed."; }
 unset npm_config_legacy_peer_deps
 cd "$ROOT"
-
 info "Fetching simulator recovery branch without switching your current branch..."
 git fetch origin "$TARGET_BRANCH:refs/remotes/origin/$TARGET_BRANCH" >/dev/null
 REF="origin/$TARGET_BRANCH"; git rev-parse --verify "$REF" >/dev/null 2>&1 || fail "Cannot resolve $REF after fetch."
@@ -54,7 +49,9 @@ for script in ensure-mobile-router-runtime.sh sync-mobile-home-overlay.sh; do [ 
 "$ROOT/scripts/ensure-mobile-router-runtime.sh"
 "$ROOT/scripts/sync-mobile-home-overlay.sh"
 EXPERIMENTAL_STYLE="$APP_DIR/src/components/map/paltaDevelopmentMapStyle.ts"; if [ -f "$EXPERIMENTAL_STYLE" ]; then ensure_backup_dir; cp "$EXPERIMENTAL_STYLE" "$BACKUP_DIR/paltaDevelopmentMapStyle.ts"; rm -f "$EXPERIMENTAL_STYLE"; fi
-SMOKE_PATH="dev/mock-api/smoke.mjs"; git cat-file -e "$REF:$SMOKE_PATH" 2>/dev/null || fail "Recovery smoke test missing: $SMOKE_PATH"; TMP_SMOKE="$(mktemp /tmp/palta-smoke.XXXXXX.mjs)"; git show "$REF:$SMOKE_PATH" > "$TMP_SMOKE"
+SMOKE_PATH="dev/mock-api/smoke.mjs"; git cat-file -e "$REF:$SMOKE_PATH" 2>/dev/null || fail "Recovery smoke test missing: $SMOKE_PATH"
+TMP_SMOKE_DIR="$(mktemp -d /tmp/palta-smoke.XXXXXX)"; TMP_SMOKE="$TMP_SMOKE_DIR/smoke.mjs"; git show "$REF:$SMOKE_PATH" > "$TMP_SMOKE"
+trap 'rm -rf "${TMP_ROOT:-}" "${TMP_SMOKE_DIR:-}"' EXIT
 export EXPO_PUBLIC_PALTA_API_BASE_URL="http://127.0.0.1:${MOCK_PORT}" EXPO_PUBLIC_ENV="development" PALTA_MOCK_BASE_URL="http://127.0.0.1:${MOCK_PORT}"
 if lsof -nP -iTCP:"$MOCK_PORT" -sTCP:LISTEN -t >/dev/null 2>&1; then info "Reusing mock API on port $MOCK_PORT."; else PALTA_MOCK_PORT="$MOCK_PORT" nohup node "$ROOT/dev/mock-api/server.mjs" >/tmp/palta-mock-api.log 2>&1 & echo $! >/tmp/palta-mock-api.pid; sleep 1; fi
 node "$TMP_SMOKE" || { tail -80 /tmp/palta-mock-api.log 2>/dev/null || true; fail "Mock API smoke test failed."; }; info "Mock API smoke test passed."
