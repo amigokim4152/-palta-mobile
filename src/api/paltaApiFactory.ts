@@ -25,6 +25,7 @@ import {
   type FetchLike,
 } from './paltaApiClient.js';
 import { RealEstateApiClient } from './realEstateApiClient.js';
+import { RealEstateMediaUploadApiClient } from './realEstateMediaUploadApiClient.js';
 
 export type PaltaApiClientWithDomains = PaltaApiClient & {
   operatingRules: BusinessOperatingRulesApiClient;
@@ -35,6 +36,7 @@ export type PaltaApiClientWithDomains = PaltaApiClient & {
   services: BusinessServicesApiClient;
   location: BusinessLocationApiClient;
   realEstate: RealEstateApiClient;
+  realEstateMediaUpload: RealEstateMediaUploadApiClient;
 };
 
 export function createPaltaApiClient(input: {
@@ -94,6 +96,12 @@ export function createPaltaApiClient(input: {
   });
 
   client.realEstate = new RealEstateApiClient({
+    baseUrl: input.baseUrl,
+    fetch: input.fetch,
+    ...(getAccessToken ? { getAccessToken } : {}),
+  });
+
+  client.realEstateMediaUpload = new RealEstateMediaUploadApiClient({
     baseUrl: input.baseUrl,
     fetch: input.fetch,
     ...(getAccessToken ? { getAccessToken } : {}),
