@@ -12,6 +12,7 @@ import type { VehicleBodyType } from '../../../../src/autos/autosContracts';
 import { FilterChip } from '../../components/common/FilterChip';
 import { paltaTheme } from '../../theme/paltaTheme';
 import { AUTOS_DEMO_LISTINGS } from './autosDemoData';
+import { toggleAutosListingSaved, useAutosDemoState } from './autosDemoState';
 import { VehicleListingCard } from './VehicleListingCard';
 
 type AutosFilter = 'all' | VehicleBodyType | 'hybrid';
@@ -56,6 +57,7 @@ function QuickAction({
 }
 
 export function AutosScreen() {
+  const demoState = useAutosDemoState();
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<AutosFilter>('all');
   const [ownerDirectOnly, setOwnerDirectOnly] = useState(false);
@@ -63,9 +65,14 @@ export function AutosScreen() {
   const [recentOnly, setRecentOnly] = useState(false);
   const [lowMileageOnly, setLowMileageOnly] = useState(false);
 
+  const allListings = useMemo(
+    () => [...demoState.publishedListings, ...AUTOS_DEMO_LISTINGS],
+    [demoState.publishedListings],
+  );
+
   const listings = useMemo(() => {
     const normalizedQuery = query.trim().toLocaleLowerCase('es-CL');
-    return AUTOS_DEMO_LISTINGS.filter(({ vehicle, listing }) => {
+    return allListings.filter(({ vehicle, listing }) => {
       if (filter === 'hybrid' && vehicle.fuel !== 'hybrid') return false;
       if (filter !== 'all' && filter !== 'hybrid' && vehicle.bodyType !== filter) return false;
       if (ownerDirectOnly && listing.sellerType !== 'owner_direct') return false;
@@ -82,7 +89,7 @@ export function AutosScreen() {
       }
       return true;
     });
-  }, [budgetOnly, filter, lowMileageOnly, ownerDirectOnly, query, recentOnly]);
+  }, [allListings, budgetOnly, filter, lowMileageOnly, ownerDirectOnly, query, recentOnly]);
 
   const hasFilters =
     filter !== 'all' || ownerDirectOnly || budgetOnly || recentOnly || lowMileageOnly;
@@ -108,8 +115,16 @@ export function AutosScreen() {
 
         <View style={{ flexDirection: 'row', gap: paltaTheme.spacing.xs }}>
           <QuickAction title="Vender mi auto" subtitle="Publicar" onPress={() => router.push('/autos/sell')} />
-          <QuickAction title="Guardados" subtitle="Tus favoritos" onPress={() => router.push('/autos/saved')} />
-          <QuickAction title="Mis autos" subtitle="Tus vehículos" onPress={() => router.push('/autos/mine')} />
+          <QuickAction
+            title="Guardados"
+            subtitle={`${demoState.savedListingIds.length} favoritos`}
+            onPress={() => router.push('/autos/saved')}
+          />
+          <QuickAction
+            title="Mis autos"
+            subtitle={demoState.publishedListings.length ? 'Publicación activa' : 'Tus vehículos'}
+            onPress={() => router.push('/autos/mine')}
+          />
         </View>
 
         <View
@@ -185,7 +200,7 @@ export function AutosScreen() {
               Venta local, con más contexto
             </Text>
             <Text style={{ fontSize: 12, lineHeight: 17, color: paltaTheme.color.textSecondary }}>
-              Palta distinguirá dueño directo y automotora, conectará el negocio cuando corresponda y mantendrá el vehículo separado de la publicación.
+              Palta distingue dueño directo y automotora, conecta el negocio cuando corresponde y mantiene el vehículo separado de la publicación.
             </Text>
           </View>
         ) : null}
@@ -206,6 +221,8 @@ export function AutosScreen() {
                 <VehicleListingCard
                   key={item.listing.id}
                   item={item}
+                  saved={demoState.savedListingIds.includes(item.listing.id)}
+                  onToggleSaved={() => toggleAutosListingSaved(item.listing.id)}
                   onPress={() => router.push(`/autos/listing/${encodeURIComponent(item.listing.id)}`)}
                 />
               ))}
@@ -231,7 +248,7 @@ export function AutosScreen() {
         </View>
 
         <Text style={{ fontSize: 11, lineHeight: 16, color: paltaTheme.color.textMuted }}>
-          Datos de demostración. La navegación y los contratos están preparados para reemplazar estas publicaciones por datos reales sin cambiar la estructura del producto.
+          Estado demo interactivo. La persistencia se reemplazará por la cuenta Palta sin cambiar esta navegación.
         </Text>
       </ScrollView>
     </SafeAreaView>
