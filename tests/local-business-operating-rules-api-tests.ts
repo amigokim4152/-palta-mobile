@@ -1,4 +1,5 @@
 import { createPaltaApiClient } from '../src/api/paltaApiFactory.js';
+import { authBrokerUserId } from '../src/auth/accountModel.js';
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
@@ -36,7 +37,11 @@ const client = createPaltaApiClient({
     async getState() {
       return {
         status: 'signed_in' as const,
-        session: { userId: 'user-test', accessToken: 'token-test' },
+        session: {
+          authUserId: authBrokerUserId('user-test'),
+          paltaUserId: 'user-test',
+          accessToken: 'token-test',
+        },
       };
     },
     async getAccessToken() {
@@ -113,7 +118,7 @@ assert(!('confirmed_at' in (requestedBody ?? {})), 'Seasonal client must not sel
 await client.operatingRules.removeSeasonalSchedule('biz-test', 'low-season');
 assert(
   requestedPath.endsWith('/v1/business/biz-test/operating-rules/seasons/low-season'),
-  'Removing a season should address the same season resource.',
+  'Removing a season should address the same season resource path.',
 );
 assert(currentMethod(requestedMethod) === 'DELETE', 'Removing a seasonal schedule should use DELETE.');
 
