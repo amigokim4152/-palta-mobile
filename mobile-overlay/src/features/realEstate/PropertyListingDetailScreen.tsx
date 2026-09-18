@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
-import { SafeAreaView, ScrollView, Text, View } from 'react-native';
+import { SafeAreaView, ScrollView, Share, Text, View } from 'react-native';
 import {
   formatListingPrice,
   formatPropertyFacts,
@@ -71,6 +71,17 @@ export function PropertyListingDetailScreen() {
 
   const { listing, property } = item;
   const isSaved = savedListings.isSaved(listing.id);
+
+  async function shareListing() {
+    await Share.share({
+      message: [
+        'Propiedad en Somos Palta',
+        `${item.sector} · ${item.comuna}`,
+        formatListingPrice(listing),
+        formatPropertyFacts(property),
+      ].filter(Boolean).join('\n'),
+    });
+  }
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: paltaTheme.color.canvas }}>
@@ -198,12 +209,21 @@ export function PropertyListingDetailScreen() {
           </Surface>
 
           <View style={{ flexDirection: 'row', gap: paltaTheme.spacing.sm }}>
-            <PaltaButton label="Compartir" variant="secondary" disabled style={{ flex: 1 }} />
-            <PaltaButton label="Consultar" disabled style={{ flex: 1 }} />
+            <PaltaButton
+              label="Compartir"
+              variant="secondary"
+              style={{ flex: 1 }}
+              onPress={() => void shareListing()}
+            />
+            <PaltaButton
+              label="Consultar"
+              style={{ flex: 1 }}
+              onPress={() => router.push(`/propiedades/contact/${encodeURIComponent(listing.id)}`)}
+            />
           </View>
 
           <Text style={{ fontSize: 11, lineHeight: 16, color: paltaTheme.color.textMuted }}>
-            Vista en desarrollo con datos de prueba. Compartir y consultar se activarán al conectar Share/Message Core y la identidad verificada del publicador.
+            Compartir usa el sistema del teléfono. Consultar prepara una solicitud local; el envío real se conectará a Message/Care Core y a la identidad verificada del publicador.
           </Text>
         </View>
       </ScrollView>
