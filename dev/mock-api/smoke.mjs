@@ -15,6 +15,17 @@ assert(health.response.ok && health.body.ok === true, 'health failed');
 
 const home = await json('/v1/home?locale=es-CL');
 assert(home.response.ok && Array.isArray(home.body.items), 'home failed');
+assert(home.body.contract_version === 'functional-home-v1', 'functional Home contract missing');
+assert(home.body.context?.locality?.label === 'Vitacura', 'Home context/locality missing');
+assert(typeof home.body.context?.notifications_target === 'string', 'Home notifications target missing');
+assert(typeof home.body.context?.profile_target === 'string', 'Home profile target missing');
+assert(Array.isArray(home.body.glance) && home.body.glance.length >= 2, 'Home glance missing');
+assert(home.body.items.some((item) => item.surface === 'now'), 'Home AHORA item missing');
+assert(home.body.items.some((item) => item.surface === 'in_progress'), 'Home EN CURSO item missing');
+assert(home.body.items.some((item) => item.surface === 'upcoming'), 'Home PRÓXIMO item missing');
+assert(home.body.items.some((item) => item.surface === 'useful_today'), 'Home PARA HOY item missing');
+const careHomeItem = home.body.items.find((item) => item.care_track_id === 'care-demo-1');
+assert(careHomeItem?.action_target === '/care/care-demo-1', 'Home Care deep link missing');
 
 const local = await json('/v1/local/search?lat=-33.39&lng=-70.57&radius_m=5000');
 assert(local.response.ok && local.body.items.length >= 2, 'local search failed');
@@ -65,7 +76,10 @@ assert(careRead.response.ok && careRead.body.id === care.body.id, 'care read fai
 
 console.log('PASS: Palta mock API HTTP smoke');
 console.log(JSON.stringify({
+  homeContract: home.body.contract_version,
   homeItems: home.body.items.length,
+  homeGlance: home.body.glance.length,
+  locality: home.body.context.locality.label,
   localItems: local.body.items.length,
   businessId,
   careId: care.body.id,
