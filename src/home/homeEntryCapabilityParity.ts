@@ -32,6 +32,7 @@ export const HOME_ENTRY_CAPABILITIES: readonly HomeEntryCapabilityDefinition[] =
   { key: 'entry.interests', ownerDomain: 'Personalization', legacyRoute: '/interests', demoRequired: true, description: 'Review and edit explicit interests that drive Home personalization.' },
   { key: 'entry.kids', ownerDomain: 'Kids', legacyRoute: '/kids', demoRequired: true, description: 'Open curated child/family content surface.' },
   { key: 'entry.services', ownerDomain: 'Services/Care', legacyRoute: '/services', demoRequired: true, description: 'Open service-request/Chile work-assistance surface.' },
+  { key: 'entry.notices', ownerDomain: 'Palta Notices', legacyRoute: '/notice', demoRequired: true, description: 'Open public Palta operating notices, distinct from private user notifications.' },
   { key: 'entry.more', ownerDomain: 'Shell', legacyRoute: '/more', demoRequired: true, description: 'Open complete Palta navigation/discovery hub.' },
 ] as const;
 
