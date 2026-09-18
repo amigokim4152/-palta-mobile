@@ -109,9 +109,9 @@ export function projectMunicipalEventToPlay(input: MunicipalEventPlayInput, cont
     id: `municipal:${input.id}`,
     sourceKind: 'municipal_event',
     contentKind: inferPlayContentKind({
-      category: input.category,
+      ...(input.category ? { category: input.category } : {}),
       title: input.title,
-      venue: input.venue,
+      ...(input.venue ? { venue: input.venue } : {}),
       tags,
     }),
     title: input.title,
