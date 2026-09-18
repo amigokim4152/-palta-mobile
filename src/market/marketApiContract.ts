@@ -53,8 +53,12 @@ export type MarketTransactionCounterpartySummary = {
 };
 
 export type MarketTransactionView = MarketTransactionRecord & {
-  /** The other participant relative to the authenticated viewer. */
-  counterparty: MarketTransactionCounterpartySummary;
+  /**
+   * The other participant relative to the authenticated viewer.
+   * Optional only during the live API migration; UI must use a privacy-safe
+   * generic label rather than exposing raw user ids when it is absent.
+   */
+  counterparty?: MarketTransactionCounterpartySummary;
 };
 
 export type DiscoverMarketListingsQuery = {
