@@ -7,22 +7,28 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(git rev-parse --show-toplevel)"
 APP_DIR="$ROOT/apps/mobile"
 
-if [ -e "$APP_DIR" ]; then
-  echo "FAIL: $APP_DIR already exists. Refusing to overwrite."
+if [ ! -f "$APP_DIR/package.json" ] || [ ! -f "$APP_DIR/package-lock.json" ]; then
+  echo "FAIL: versioned Palta mobile runtime shell is missing at $APP_DIR." >&2
+  echo "Refusing to create a second Expo app with create-expo-app@latest." >&2
   exit 20
 fi
 
-echo "Creating Expo app shell at $APP_DIR"
-mkdir -p "$ROOT/apps"
+NODE_MAJOR="$(node -e "process.stdout.write(process.versions.node.split('.')[0])")"
+if [ "$NODE_MAJOR" -lt 22 ]; then
+  echo "FAIL: Node 22+ required; found $(node -v)." >&2
+  exit 21
+fi
 
-cd "$ROOT/apps"
-npx create-expo-app@latest mobile --template blank-typescript
+echo "[Palta Mobile] Materializing current branch overlay..."
+node "$SCRIPT_DIR/sync-mobile-runtime.mjs"
 
-cd "$APP_DIR"
-npx expo install expo-router expo-location expo-sqlite expo-secure-store expo-notifications expo-haptics expo-speech
-npx expo install @maplibre/maplibre-react-native
+echo "[Palta Mobile] Installing locked Expo SDK 57 dependencies..."
+npm ci --prefix "$APP_DIR"
 
 echo
-echo "Expo shell created. No Palta overlay copied automatically."
-echo "Next: review and copy mobile-overlay/ intentionally."
-echo "This script does not commit or push."
+printf '%s\n' \
+  "PASS: Palta mobile runtime prepared." \
+  "Source of Truth: mobile-overlay/src" \
+  "Generated runtime: apps/mobile/src" \
+  "Native shell: apps/mobile" \
+  "MapLibre verification requires an iOS/Android development build."
