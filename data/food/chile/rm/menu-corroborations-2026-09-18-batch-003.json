@@ -1,0 +1,75 @@
+{
+  "dataset": "palta_food_menu_corroborations_rm",
+  "observed_at": "2026-09-18",
+  "policy": {
+    "factual_fields_only": true,
+    "collect_images": false,
+    "collect_reviews": false,
+    "collect_ratings": false,
+    "collect_long_descriptions": false
+  },
+  "records": [
+    {
+      "outlet_key": "cl-rm-maipu-delivery-sushi-sur-1207",
+      "menu_scope": "official_order_pages_require_merchant_freshness_confirmation_before_live_publish",
+      "source": {
+        "kind": "official_website",
+        "url": "https://www.deliverysushimaipu.cl/",
+        "observed_at": "2026-09-18"
+      },
+      "sections": ["Combinados", "Rolls"],
+      "items": [
+        {"name": "100 bocados", "price_clp": 38990},
+        {"name": "Adi roll", "price_clp": 4300}
+      ]
+    },
+    {
+      "outlet_key": "cl-rm-san-bernardo-el-cacique-san-jose-531",
+      "menu_scope": "current_public_digital_menu_requires_merchant_authorization_before_live_publish",
+      "source": {
+        "kind": "other_public_source",
+        "url": "https://www.tumenuya.com/elcaciquesanbernardo",
+        "observed_at": "2026-09-18"
+      },
+      "items": [
+        {"name": "Ceviche de carretilla con calamar frito", "price_clp": 15600},
+        {"name": "Ceviche de Camarón", "price_clp": 14500},
+        {"name": "Ceviche de pescado", "price_clp": 13200},
+        {"name": "Ceviche Mixto", "price_clp": 14000},
+        {"name": "Ceviche poseidon", "price_clp": 15900},
+        {"name": "Lomo Saltado", "price_clp": 14990},
+        {"name": "Tacu Tacu con Lomo Saltado", "price_clp": 14800},
+        {"name": "Pescado a lo Macho", "price_clp": 13200},
+        {"name": "Arroz cremoso con salmon", "price_clp": 13900},
+        {"name": "Causa de Pollo", "price_clp": 11900}
+      ]
+    },
+    {
+      "brand_name": "Maribérico",
+      "menu_scope": "official_omnichannel_brand_catalog_requires_outlet_binding_and_merchant_authorization",
+      "source": {
+        "kind": "official_website",
+        "url": "https://www.mariberico.cl/pedir",
+        "observed_at": "2026-09-18"
+      },
+      "sections": ["Selección del Chef", "Platos Frescos", "Mariscos", "Pescados", "Platos para Hornear", "Pastas", "Packs y Promociones"],
+      "items": [
+        {"name": "Ceviche Camarón", "price_clp": 6990},
+        {"name": "Ceviche Mixto", "price_clp": 6990},
+        {"name": "Ceviche de Reineta", "price_clp": 6990},
+        {"name": "Ceviche de Salmón", "price_clp": 6990},
+        {"name": "Pack 25 Ostras Chicas", "price_clp": 9990},
+        {"name": "Pack 25 Ostras Medianas", "price_clp": 11990},
+        {"name": "Pastel de Jaiba", "price_clp": 7990},
+        {"name": "Chupe de Locos", "price_clp": 7990},
+        {"name": "Merluza con Cous Cous", "price_clp": 8990},
+        {"name": "Machas Parmesanas Gourmet", "price_clp": 12990},
+        {"name": "Ostiones Parmesanos Gourmet", "price_clp": 13990},
+        {"name": "Pack 3 Ceviches", "price_clp": 19990},
+        {"name": "Pack 4 Ceviches", "price_clp": 23990},
+        {"name": "Pack Pasteles X4", "price_clp": 29990},
+        {"name": "Pack Pasteles X6", "price_clp": 39990}
+      ]
+    }
+  ]
+}
