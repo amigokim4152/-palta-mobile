@@ -12,6 +12,15 @@ const seenListingIds = new Set();
 let recordsChecked = 0;
 let menuItemsChecked = 0;
 let relatedListingsChecked = 0;
+let corroborationsChecked = 0;
+
+function validPhone(value) {
+  return /^\+56\d{8,9}$/.test(value);
+}
+
+function validWhatsapp(value) {
+  return /^\+56\d{9}$/.test(value);
+}
 
 function registerListing({ name, outletKey, listing, related = false }) {
   if (!listing?.listing_id || !listing?.url || listing.platform !== 'uber_eats') {
@@ -70,11 +79,11 @@ for (const name of files) {
     }
 
     const phone = outlet.public_contact?.phone;
-    if (phone && !/^\+56\d{8,9}$/.test(phone)) {
+    if (phone && !validPhone(phone)) {
       throw new Error(`${name}: invalid_public_phone:${outlet.outlet_key}`);
     }
     const whatsapp = outlet.public_contact?.whatsapp;
-    if (whatsapp && !/^\+56\d{9}$/.test(whatsapp)) {
+    if (whatsapp && !validWhatsapp(whatsapp)) {
       throw new Error(`${name}: invalid_public_whatsapp:${outlet.outlet_key}`);
     }
 
@@ -94,6 +103,50 @@ for (const name of files) {
   }
 }
 
+const corroborationFiles = fs.readdirSync(root)
+  .filter((name) => name.startsWith('outlet-corroborations-') && name.endsWith('.json'))
+  .sort();
+const seenCorroboratedOutlets = new Set();
+
+for (const name of corroborationFiles) {
+  const payload = JSON.parse(fs.readFileSync(path.join(root, name), 'utf8'));
+  if (payload.dataset !== 'palta_food_outlet_corroborations_rm') {
+    throw new Error(`${name}: unexpected_corroboration_dataset`);
+  }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(payload.observed_at ?? '')) {
+    throw new Error(`${name}: observed_at_required`);
+  }
+  if (!Array.isArray(payload.records)) throw new Error(`${name}: records_required`);
+
+  for (const record of payload.records) {
+    corroborationsChecked += 1;
+    if (!seenOutletKeys.has(record.outlet_key)) {
+      throw new Error(`${name}: corroboration_unknown_outlet:${record.outlet_key}`);
+    }
+    if (seenCorroboratedOutlets.has(record.outlet_key)) {
+      throw new Error(`${name}: duplicate_corroboration_outlet:${record.outlet_key}`);
+    }
+    seenCorroboratedOutlets.add(record.outlet_key);
+    if (record.identity_status !== 'verified' && record.identity_status !== 'corroborated') {
+      throw new Error(`${name}: invalid_corroboration_status:${record.outlet_key}`);
+    }
+    if (!Array.isArray(record.evidence) || record.evidence.length === 0) {
+      throw new Error(`${name}: corroboration_evidence_required:${record.outlet_key}`);
+    }
+    if (!record.evidence.some((item) => item.kind !== 'uber_eats')) {
+      throw new Error(`${name}: corroboration_independent_source_required:${record.outlet_key}`);
+    }
+    const phone = record.public_contact?.phone;
+    if (phone && !validPhone(phone)) {
+      throw new Error(`${name}: invalid_corroboration_phone:${record.outlet_key}`);
+    }
+    const whatsapp = record.public_contact?.whatsapp;
+    if (whatsapp && !validWhatsapp(whatsapp)) {
+      throw new Error(`${name}: invalid_corroboration_whatsapp:${record.outlet_key}`);
+    }
+  }
+}
+
 console.log(
-  `PASS: food data catalog ${recordsChecked} outlets / ${menuItemsChecked} sampled menu items / ${relatedListingsChecked} related listings across ${files.length} observation files`,
+  `PASS: food data catalog ${recordsChecked} outlets / ${menuItemsChecked} sampled menu items / ${relatedListingsChecked} related listings / ${corroborationsChecked} corroborations across ${files.length} observation files`,
 );
