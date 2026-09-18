@@ -17,29 +17,39 @@ function normalize(value?: string): string {
 
 function minuteKey(value?: string): string {
   if (!value) return 'unscheduled';
-  // Preserve minute precision so repeated cinema/performance sessions never collapse.
   return value.length >= 16 ? value.slice(0, 16) : value;
 }
 
-function businessKey(item: PlayDiscoveryItem): string | undefined {
+function eventFingerprint(item: PlayDiscoveryItem): string {
+  return [
+    'event',
+    item.contentKind,
+    normalize(item.title),
+    normalize(item.comuna),
+    normalize(item.venue),
+    minuteKey(item.startAt),
+  ].join(':');
+}
+
+function offeringKey(item: PlayDiscoveryItem): string | undefined {
+  const offeringId = item.offeringId ?? item.businessProjection?.offeringId;
+  if (offeringId) return `offering:${offeringId}`;
   const businessId = item.businessProjection?.businessId ?? item.businessId;
-  if (!businessId) return undefined;
-  const offeringId = item.businessProjection?.offeringId;
-  return offeringId
-    ? `business:${businessId}:offering:${offeringId}`
-    : `business:${businessId}:kind:${item.contentKind}`;
+  if (!businessId || item.eventId) return undefined;
+  return `business:${businessId}:kind:${item.contentKind}`;
 }
 
 /**
- * Conservative identity used only when an upstream canonical key is unavailable.
- * Exact minute + venue are included intentionally: two screenings of the same film
- * at 18:00 and 20:00 must stay separate user choices.
+ * Conservative cross-source identity. Events use title+venue+exact minute so the
+ * same show discovered from municipality/venue/ticketing can merge while distinct
+ * showtimes remain separate. Offerings keep their canonical offering identity.
  */
 export function playCanonicalKey(item: PlayDiscoveryItem): string {
   if (item.canonicalKey?.trim()) return item.canonicalKey.trim();
+  if (item.eventId || item.startAt) return eventFingerprint(item);
 
-  const canonicalBusiness = businessKey(item);
-  if (canonicalBusiness) return canonicalBusiness;
+  const canonicalOffering = offeringKey(item);
+  if (canonicalOffering) return canonicalOffering;
   if (item.placeId?.trim()) return `place:${item.placeId.trim()}:kind:${item.contentKind}`;
 
   return [
@@ -48,7 +58,6 @@ export function playCanonicalKey(item: PlayDiscoveryItem): string {
     normalize(item.title),
     normalize(item.comuna),
     normalize(item.venue),
-    minuteKey(item.startAt),
   ].join(':');
 }
 
@@ -107,51 +116,50 @@ function preferredItem(items: readonly PlayDiscoveryItem[]): PlayDiscoveryItem {
   })[0] as PlayDiscoveryItem;
 }
 
-function smallestDistance(items: readonly PlayDiscoveryItem[]): number | undefined {
-  const values = items
-    .map((item) => item.distanceM)
-    .filter((value): value is number => value !== undefined && Number.isFinite(value));
+function minimumMetric(
+  items: readonly PlayDiscoveryItem[],
+  selector: (item: PlayDiscoveryItem) => number | undefined,
+): number | undefined {
+  const values = items.map(selector).filter((value): value is number => value !== undefined && Number.isFinite(value));
   return values.length ? Math.min(...values) : undefined;
 }
 
-/**
- * Merge exact cross-source duplicates without flattening genuinely different
- * sessions/offerings. All provenance and operational actions remain available.
- */
 export function mergePlayDiscoveryGroup(items: readonly PlayDiscoveryItem[]): PlayDiscoveryItem {
   if (!items.length) throw new Error('play_canonical_group_empty');
   const preferred = preferredItem(items);
   const key = playCanonicalKey(preferred);
-  const allSources = uniqueSources(
-    items.flatMap((item) => [item.source, ...(item.alternateSources ?? [])]),
-  );
-  const allActions = uniqueActions(
-    items.flatMap((item) => [
-      ...(item.primaryAction ? [item.primaryAction] : []),
-      ...(item.alternateActions ?? []),
-    ]),
-  );
+  const allSources = uniqueSources(items.flatMap((item) => [item.source, ...(item.alternateSources ?? [])]));
+  const allActions = uniqueActions(items.flatMap((item) => [
+    ...(item.primaryAction ? [item.primaryAction] : []),
+    ...(item.alternateActions ?? []),
+  ]));
   const primaryAction = preferred.primaryAction ?? allActions[0];
   const alternateActions = primaryAction
     ? allActions.filter((action) => actionIdentity(action) !== actionIdentity(primaryAction))
     : allActions;
-  const distanceM = smallestDistance(items);
-  const nearest = distanceM === undefined
-    ? undefined
-    : items.find((item) => item.distanceM === distanceM);
+  const travelTimeMinutes = minimumMetric(items, (item) => item.travelTimeMinutes);
+  const distanceM = minimumMetric(items, (item) => item.distanceM);
+  const nearest = travelTimeMinutes !== undefined
+    ? items.find((item) => item.travelTimeMinutes === travelTimeMinutes)
+    : distanceM !== undefined
+      ? items.find((item) => item.distanceM === distanceM)
+      : undefined;
 
   return {
     ...preferred,
     canonicalKey: key,
+    eventId: preferred.eventId ?? items.find((item) => item.eventId)?.eventId,
+    venueId: preferred.venueId ?? items.find((item) => item.venueId)?.venueId,
+    offeringId: preferred.offeringId ?? items.find((item) => item.offeringId)?.offeringId,
+    organizerIds: uniqueStrings(items.flatMap((item) => item.organizerIds ?? [])),
     themeTags: uniqueStrings(items.flatMap((item) => item.themeTags)) as PlayDiscoveryItem['themeTags'],
     experienceTags: uniqueStrings(items.flatMap((item) => item.experienceTags ?? [])),
     isFree: items.some((item) => item.isFree === true) ? true : preferred.isFree,
-    registrationRequired: items.some((item) => item.registrationRequired === true)
-      ? true
-      : preferred.registrationRequired,
+    registrationRequired: items.some((item) => item.registrationRequired === true) ? true : preferred.registrationRequired,
     ...(preferred.imageUrl ?? items.find((item) => item.imageUrl)?.imageUrl
       ? { imageUrl: preferred.imageUrl ?? items.find((item) => item.imageUrl)?.imageUrl }
       : {}),
+    ...(travelTimeMinutes !== undefined ? { travelTimeMinutes } : {}),
     ...(distanceM !== undefined ? { distanceM } : {}),
     ...(nearest?.distanceLabel ? { distanceLabel: nearest.distanceLabel } : {}),
     ...(primaryAction ? { primaryAction } : {}),
@@ -163,9 +171,7 @@ export function mergePlayDiscoveryGroup(items: readonly PlayDiscoveryItem[]): Pl
   };
 }
 
-export function canonicalizePlayDiscoveryItems(
-  items: readonly PlayDiscoveryItem[],
-): PlayDiscoveryItem[] {
+export function canonicalizePlayDiscoveryItems(items: readonly PlayDiscoveryItem[]): PlayDiscoveryItem[] {
   const groups = new Map<string, PlayDiscoveryItem[]>();
   for (const item of items) {
     const key = playCanonicalKey(item);
@@ -173,6 +179,5 @@ export function canonicalizePlayDiscoveryItems(
     current.push(item);
     groups.set(key, current);
   }
-
   return [...groups.values()].map(mergePlayDiscoveryGroup);
 }
