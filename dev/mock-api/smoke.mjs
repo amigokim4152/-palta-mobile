@@ -27,6 +27,7 @@ const source = (domain) => home.body.source_state.find((item) => item.source_dom
 const weatherState = source('weather');
 const publicLifeState = source('public-life');
 const newsState = source('news');
+const schoolState = source('school');
 
 assert(
   weatherState && (weatherState.data_mode === 'live' || weatherState.data_mode === 'unavailable'),
@@ -39,6 +40,10 @@ assert(
 assert(
   newsState && (newsState.data_mode === 'scheduled' || newsState.data_mode === 'unavailable'),
   'news must use the official scheduled source or be explicitly unavailable',
+);
+assert(
+  schoolState?.data_mode === 'demo',
+  'development upcoming item must stay explicitly demo until a real calendar relationship is connected',
 );
 
 const weatherGlance = home.body.glance.find((item) => item.source_domain === 'weather');
@@ -54,6 +59,12 @@ assert(
 assert(
   !home.body.items.some((item) => item.id === 'home-benefit-demo-1' || item.id === 'home-news-demo-1'),
   'retired municipal/news demo cards must never reappear',
+);
+const upcomingDemo = home.body.items.find((item) => item.id === 'home-upcoming-demo-1');
+assert(upcomingDemo?.kind === 'status', 'visual upcoming sample must remain a non-urgent status item');
+assert(
+  typeof upcomingDemo?.scheduled_at === 'string' && Number.isFinite(Date.parse(upcomingDemo.scheduled_at)),
+  'visual upcoming sample must carry a valid scheduled_at value',
 );
 
 const local = await json('/v1/local/search?lat=-33.39&lng=-70.57&radius_m=5000');
@@ -108,6 +119,7 @@ console.log(JSON.stringify({
   weatherMode: weatherState.data_mode,
   publicLifeMode: publicLifeState.data_mode,
   newsMode: newsState.data_mode,
+  schoolMode: schoolState.data_mode,
   localItems: local.body.items.length,
   businessId,
   careId: care.body.id,
