@@ -68,9 +68,15 @@ Disabled providers are not shown as dead buttons. When their Supabase provider c
 
 ## Composed runtime verification evidence
 
-GitHub Actions run `35340479503` for composition commit `561e89527dcab0761cc0e39584560232ea429fb2` completed successfully.
+Latest whole-app verification succeeded on composition commit `5b3c4f9a5c7396413f04090f31950e8252bb8ae0`.
 
-It verified all of the following on the actual composed runtime path:
+Successful GitHub Actions runs:
+
+- Mobile Runtime Check: `35341308081`
+- Core Check: `35341307918`
+- Palta Core CI: `35341307922`
+
+The successful Mobile Runtime Check verified all of the following on the actual composed runtime path:
 
 - launcher shell syntax
 - mobile Auth credential boundary
@@ -80,12 +86,15 @@ It verified all of the following on the actual composed runtime path:
 - source Expo config
 - source iOS JavaScript bundle
 - runtime composition contract
-- composition materialization
+- composition materialization with current live overlays
+- rejection of non-runtime `*.template.*` sources from generated runtime
 - post-composition Auth credential boundary
 - generated simulator runtime TypeScript
 - composed iOS simulator JavaScript bundle
 
-An obsolete `supabaseAuthAdapter.template.ts` had initially leaked into generated `apps/mobile/src` and conflicted with the new canonical `AuthSession`. The materializer now removes `*.template.*` source files so documentation/example adapters cannot enter executable generated runtime output.
+The composed check included the current live Negocios, Market and Play surfaces. Their required reviewed Core contracts were reconciled rather than bypassing type safety. In particular, the current food discovery UI now resolves through the reviewed canonical `src/business/foodVertical.ts` contract, while Market lifecycle/message contracts remain explicitly tracked.
+
+An obsolete `supabaseAuthAdapter.template.ts` had initially leaked into generated `apps/mobile/src` and conflicted with the new canonical `AuthSession`. The materializer now removes `*.template.*` source files, and CI explicitly fails if any template source reaches executable generated runtime output.
 
 The composition manifest records Auth/Profile as `integrated` at the reviewed Core SHA. Any later Auth/Profile branch advance must again surface as `CORE REVIEW REQUIRED` until deliberately reconciled.
 
@@ -116,6 +125,7 @@ The repository enforces these boundaries:
 1. environment preflight rejects privileged-looking `EXPO_PUBLIC_*` variables, including password/secret/token material
 2. mobile Auth secret scanning rejects admin/service-role material, hardcoded Supabase environment binding, public credential variables, Golden User password shortcuts, and password-based Supabase login inside the runtime surface
 3. the same Auth secret scan runs again after runtime composition, so an unsafe live overlay cannot silently enter generated `apps/mobile/src`
+4. generated runtime must contain no `*.template.*` source files
 
 A previously introduced development password shortcut was removed. Gate 01 must use the real configured user-facing Auth path, not `signInWithPassword` hidden behind a development control.
 
@@ -183,7 +193,7 @@ Provisioning a fixture is not Gate 01 completion evidence and does not permit Ga
 | 7 | User A cannot read user B account | `VERIFIED` | real `palta-dev` two-user RLS negative test |
 | 8 | Missing/invalid config and account failures are visible/safe | `PARTIALLY VERIFIED` | fail-closed/error UI + source/composed typechecks; live failure interaction not executed |
 | 9 | No private/admin/password credential bundled in mobile | `VERIFIED` | pre/post-composition credential guards passed |
-| 10 | Applicable TypeScript/tests/migrations pass | `VERIFIED` | Auth/Profile Core verify passed; composed source/generated runtime typecheck and iOS bundles passed |
+| 10 | Applicable TypeScript/tests/migrations pass | `VERIFIED` | latest Core Check, full Core CI, source/generated runtime typechecks and composed iOS bundle passed at `5b3c4f9...` |
 | 11 | Gate status changes only with real runtime evidence | `VERIFIED` | remains `RUNTIME_CONNECTED` |
 
 ## Remaining Gate 01 execution
