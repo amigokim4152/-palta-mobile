@@ -6,6 +6,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(git -C "$SCRIPT_DIR/.." rev-parse --show-toplevel)"
 APP_DIR="$ROOT/apps/mobile"
 SYNC_WATCH_PID=""
+DEFAULT_MAP_STYLE_URL="${PALTA_MAP_STYLE_URL:-https://palta-edge-preflight.kimeuisin.workers.dev/maps/style.json}"
 
 fail() {
   echo "FAIL: $1" >&2
@@ -22,6 +23,21 @@ cleanup() {
   fi
 }
 trap cleanup EXIT INT TERM
+
+load_persisted_map_style() {
+  local env_file="$APP_DIR/.env.local"
+  [ -f "$env_file" ] || return 0
+
+  while IFS='=' read -r key value; do
+    case "$key" in
+      EXPO_PUBLIC_MAP_STYLE_URL)
+        if [ -z "${EXPO_PUBLIC_MAP_STYLE_URL:-}" ] && [ -n "$value" ]; then
+          export EXPO_PUBLIC_MAP_STYLE_URL="$value"
+        fi
+        ;;
+    esac
+  done < "$env_file"
+}
 
 [ "$(uname -s)" = "Darwin" ] || fail "iOS Simulator launch requires macOS."
 for cmd in git node npm xcrun xcode-select open lsof; do
@@ -60,6 +76,15 @@ export EXPO_PUBLIC_PALTA_API_BASE_URL="http://127.0.0.1:${MOCK_PORT}"
 export EXPO_PUBLIC_ENV="development"
 export PALTA_MOCK_BASE_URL="http://127.0.0.1:${MOCK_PORT}"
 export EXPO_NO_TELEMETRY=1
+
+# Consume the existing shared Map Core runtime. Prefer the persisted map-runtime
+# value, then the current verified Palta Cloudflare style endpoint. This does
+# not create a Local Business map stack; Negocios continues to use MapLibre.
+load_persisted_map_style
+if [ -z "${EXPO_PUBLIC_MAP_STYLE_URL:-}" ]; then
+  export EXPO_PUBLIC_MAP_STYLE_URL="$DEFAULT_MAP_STYLE_URL"
+fi
+info "MapLibre style: $EXPO_PUBLIC_MAP_STYLE_URL"
 
 if lsof -nP -iTCP:"$MOCK_PORT" -sTCP:LISTEN -t >/dev/null 2>&1; then
   info "Reusing listener on mock API port $MOCK_PORT."
