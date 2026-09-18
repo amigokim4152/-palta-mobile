@@ -3,6 +3,10 @@ import type {
   NotificationApiItem,
   NotificationApiResponse,
 } from './notificationApiContract.js';
+import type {
+  ProfileApiResponse,
+  UpdateProfileApiInput,
+} from './profileApiContract.js';
 
 export type {
   HomeApiContext,
@@ -19,6 +23,10 @@ export type {
   NotificationApiResponse,
   NotificationApiSummary,
 } from './notificationApiContract.js';
+export type {
+  ProfileApiResponse,
+  UpdateProfileApiInput,
+} from './profileApiContract.js';
 
 export type FetchLike = (
   input: string,
@@ -87,6 +95,25 @@ function expectObject(value: unknown, label: string): Record<string, unknown> {
     throw new Error(`${label} returned a non-object payload`);
   }
   return value as Record<string, unknown>;
+}
+
+function validateProfilePayload(
+  payload: Record<string, unknown>,
+  label: string,
+): ProfileApiResponse {
+  if (
+    typeof payload.preferred_language !== 'string' ||
+    typeof payload.timezone !== 'string'
+  ) {
+    throw new Error(`${label} returned invalid profile`);
+  }
+  if (
+    payload.preferred_name !== undefined &&
+    typeof payload.preferred_name !== 'string'
+  ) {
+    throw new Error(`${label} returned invalid preferred_name`);
+  }
+  return payload as ProfileApiResponse;
 }
 
 export class PaltaApiError extends Error {
@@ -200,6 +227,22 @@ export class PaltaApiClient {
       throw new Error('POST /v1/notifications/{id}/read returned invalid item');
     }
     return payload as NotificationApiItem;
+  }
+
+  async getProfile(): Promise<ProfileApiResponse> {
+    const payload = expectObject(
+      await this.request('/v1/profile'),
+      'GET /v1/profile',
+    );
+    return validateProfilePayload(payload, 'GET /v1/profile');
+  }
+
+  async updateProfile(input: UpdateProfileApiInput): Promise<ProfileApiResponse> {
+    const payload = expectObject(
+      await this.request('/v1/profile', { method: 'PATCH', body: input }),
+      'PATCH /v1/profile',
+    );
+    return validateProfilePayload(payload, 'PATCH /v1/profile');
   }
 
   async searchLocal(input: {
