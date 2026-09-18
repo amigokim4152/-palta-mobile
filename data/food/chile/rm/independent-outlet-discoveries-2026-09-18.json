@@ -1,0 +1,83 @@
+{
+  "dataset": "palta_food_independent_outlet_discoveries_rm",
+  "observed_at": "2026-09-18",
+  "policy": {
+    "factual_fields_only": true,
+    "collect_images": false,
+    "merchant_authorization_status": "pending",
+    "live_publish_allowed": false
+  },
+  "records": [
+    {
+      "outlet_key": "cl-rm-la-cisterna-celesushi-gran-avenida-8010",
+      "brand_name": "CeleSushi Delivery",
+      "outlet_name": "La Cisterna",
+      "address": "Gran Avenida 8010",
+      "comuna": "La Cisterna",
+      "identity_status": "verified",
+      "public_contact": {"phone": "+56936505194", "whatsapp": "+56936505194", "website": "https://www.celesushi.cl/"},
+      "evidence": [{"kind": "official_website", "url": "https://www.celesushi.cl/", "observed_at": "2026-09-18"}]
+    },
+    {
+      "outlet_key": "cl-rm-providencia-celesushi-santa-isabel-219",
+      "brand_name": "CeleSushi Delivery",
+      "outlet_name": "Providencia",
+      "address": "Santa Isabel 219",
+      "comuna": "Providencia",
+      "identity_status": "verified",
+      "public_contact": {"phone": "+56975103059", "whatsapp": "+56975103059", "website": "https://www.celesushi.cl/"},
+      "evidence": [{"kind": "official_website", "url": "https://www.celesushi.cl/", "observed_at": "2026-09-18"}]
+    },
+    {
+      "outlet_key": "cl-rm-maipu-celesushi-avenida-sur-918",
+      "brand_name": "CeleSushi Delivery",
+      "outlet_name": "Maipú",
+      "address": "Avenida Sur 918",
+      "comuna": "Maipú",
+      "identity_status": "verified",
+      "public_contact": {"phone": "+56978314673", "whatsapp": "+56978314673", "website": "https://www.celesushi.cl/"},
+      "evidence": [{"kind": "official_website", "url": "https://www.celesushi.cl/", "observed_at": "2026-09-18"}]
+    },
+    {
+      "outlet_key": "cl-rm-el-bosque-celesushi-observatorio-1062",
+      "brand_name": "CeleSushi Delivery",
+      "outlet_name": "El Bosque",
+      "address": "Observatorio 1062",
+      "comuna": "El Bosque",
+      "identity_status": "verified",
+      "public_contact": {"phone": "+56986395924", "whatsapp": "+56986395924", "website": "https://www.celesushi.cl/"},
+      "evidence": [{"kind": "official_website", "url": "https://www.celesushi.cl/", "observed_at": "2026-09-18"}]
+    },
+    {
+      "outlet_key": "cl-rm-pedro-aguirre-cerda-celesushi-club-hipico-2707",
+      "brand_name": "CeleSushi Delivery",
+      "outlet_name": "Pedro Aguirre Cerda",
+      "address": "Club Hípico 2707",
+      "comuna": "Pedro Aguirre Cerda",
+      "identity_status": "verified",
+      "public_contact": {"phone": "+56976779371", "whatsapp": "+56976779371", "website": "https://www.celesushi.cl/"},
+      "evidence": [{"kind": "official_website", "url": "https://www.celesushi.cl/", "observed_at": "2026-09-18"}]
+    },
+    {
+      "outlet_key": "cl-rm-nunoa-celesushi-azapa-3843-local-13",
+      "brand_name": "CeleSushi Delivery",
+      "outlet_name": "Ñuñoa",
+      "address": "Azapa 3843, Local 13",
+      "comuna": "Ñuñoa",
+      "identity_status": "verified",
+      "public_contact": {"phone": "+56940667283", "whatsapp": "+56940667283", "website": "https://www.celesushi.cl/"},
+      "evidence": [{"kind": "official_website", "url": "https://www.celesushi.cl/", "observed_at": "2026-09-18"}]
+    },
+    {
+      "outlet_key": "cl-rm-la-florida-celesushi-vicuna-mackenna-9124",
+      "brand_name": "CeleSushi Delivery",
+      "outlet_name": "La Florida",
+      "address": "Av. Vicuña Mackena 9124",
+      "comuna": "La Florida",
+      "identity_status": "verified",
+      "public_contact": {"phone": "+56958297002", "whatsapp": "+56958297002", "website": "https://www.celesushi.cl/"},
+      "identity_note": "Address text is preserved exactly as exposed by the official site; spelling normalization can occur later without changing source evidence.",
+      "evidence": [{"kind": "official_website", "url": "https://www.celesushi.cl/", "observed_at": "2026-09-18"}]
+    }
+  ]
+}
