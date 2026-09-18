@@ -7,6 +7,15 @@ import { paltaTheme } from '../../theme/paltaTheme';
 import { communityRuntime, type CommunityKind, type CommunityTabData } from './communityRuntime';
 
 const kindLabel: Record<CommunityKind, string> = { school: 'Escuela', church: 'Iglesia', neighborhood: 'Barrio', interest: 'Interés', activity: 'Actividad', apartment: 'Edificio' };
+const filters: Array<{ key: 'all' | CommunityKind; label: string }> = [
+  { key: 'all', label: 'Para ti' },
+  { key: 'school', label: 'Escuela' },
+  { key: 'neighborhood', label: 'Barrio' },
+  { key: 'church', label: 'Iglesia' },
+  { key: 'apartment', label: 'Edificio' },
+  { key: 'activity', label: 'Actividades' },
+  { key: 'interest', label: 'Intereses' },
+];
 
 export function CommunityScreen() {
   const [filter, setFilter] = useState<'all' | CommunityKind>('all');
@@ -15,15 +24,13 @@ export function CommunityScreen() {
 
   useEffect(() => { let active = true; communityRuntime.loadTab().then((next) => active && setData(next), () => active && setError('No pudimos cargar la comunidad. Intenta nuevamente.')); return () => { active = false; }; }, []);
   const visibleFeed = useMemo(() => !data ? [] : filter === 'all' ? data.feed : data.feed.filter((item) => item.kind === filter), [data, filter]);
+  const visibleDiscover = useMemo(() => !data ? [] : filter === 'all' ? data.discover : data.discover.filter((item) => item.kind === filter), [data, filter]);
 
   return (
     <ScreenFrame title="Comunidad" subtitle="Tus grupos, avisos y conversaciones en un solo lugar">
       <View style={{ gap: paltaTheme.spacing.xl }}>
         <View style={{ flexDirection: 'row', gap: paltaTheme.spacing.xs, flexWrap: 'wrap' }}>
-          <FilterChip label="Para ti" selected={filter === 'all'} onPress={() => setFilter('all')} />
-          <FilterChip label="Escuela" selected={filter === 'school'} onPress={() => setFilter('school')} />
-          <FilterChip label="Barrio" selected={filter === 'neighborhood'} onPress={() => setFilter('neighborhood')} />
-          <FilterChip label="Iglesia" selected={filter === 'church'} onPress={() => setFilter('church')} />
+          {filters.map((item) => <FilterChip key={item.key} label={item.label} selected={filter === item.key} onPress={() => setFilter(item.key)} />)}
         </View>
 
         {!data && !error ? <Text style={{ color: paltaTheme.color.textSecondary }}>Cargando comunidad…</Text> : null}
@@ -46,11 +53,12 @@ export function CommunityScreen() {
                   <Pressable key={community.id} accessibilityRole="button" accessibilityLabel={`Abrir ${community.name}`} onPress={() => router.push(`/community/${community.id}`)} style={({ pressed }) => ({ minHeight: 64, paddingVertical: paltaTheme.spacing.sm, borderBottomWidth: 1, borderBottomColor: paltaTheme.color.divider, opacity: pressed ? 0.72 : 1 })}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: paltaTheme.spacing.sm }}>
                       <View style={{ flex: 1 }}>
-                        <Text style={{ fontSize: 16, fontWeight: '700', color: paltaTheme.color.textPrimary }}>{community.name}</Text>
+                        <Text style={{ fontSize: 12, color: paltaTheme.color.textMuted }}>{kindLabel[community.kind]}</Text>
+                        <Text style={{ marginTop: 2, fontSize: 16, fontWeight: '700', color: paltaTheme.color.textPrimary }}>{community.name}</Text>
                         <Text style={{ marginTop: 4, fontSize: 13, color: paltaTheme.color.textSecondary }}>{community.meta}</Text>
                       </View>
                       {community.unreadCount > 0 || community.actionRequiredCount > 0 ? (
-                        <View style={{ alignItems: 'flex-end' }}>
+                        <View style={{ alignItems: 'flex-end', justifyContent: 'center' }}>
                           {community.unreadCount > 0 ? <Text style={{ fontSize: 12, fontWeight: '700', color: paltaTheme.color.brandPrimary }}>{community.unreadCount} nuevos</Text> : null}
                           {community.actionRequiredCount > 0 ? <Text style={{ marginTop: 3, fontSize: 12, color: paltaTheme.color.textSecondary }}>{community.actionRequiredCount} pendiente</Text> : null}
                         </View>
@@ -81,12 +89,13 @@ export function CommunityScreen() {
             ))}
           </View>
 
-          {data.discover.length > 0 ? (
+          {visibleDiscover.length > 0 ? (
             <View style={{ gap: paltaTheme.spacing.sm }}>
               <Text style={{ fontSize: 19, fontWeight: '700', color: paltaTheme.color.textPrimary }}>Descubrir</Text>
-              {data.discover.map((community) => (
-                <Pressable key={community.id} accessibilityRole="button" accessibilityLabel={`Descubrir ${community.name}`} onPress={() => router.push(`/community/${community.id}`)} style={{ minHeight: paltaTheme.touch.minimum, padding: paltaTheme.spacing.md, borderRadius: paltaTheme.radius.surface, backgroundColor: paltaTheme.color.brandSoft }}>
-                  <Text style={{ fontWeight: '700', color: paltaTheme.color.textPrimary }}>{community.name}</Text>
+              {visibleDiscover.map((community) => (
+                <Pressable key={community.id} accessibilityRole="button" accessibilityLabel={`Descubrir ${community.name}`} onPress={() => router.push(`/community/${community.id}`)} style={({ pressed }) => ({ minHeight: paltaTheme.touch.minimum, padding: paltaTheme.spacing.md, borderRadius: paltaTheme.radius.surface, backgroundColor: paltaTheme.color.brandSoft, opacity: pressed ? 0.72 : 1 })}>
+                  <Text style={{ fontSize: 12, color: paltaTheme.color.textMuted }}>{kindLabel[community.kind]}</Text>
+                  <Text style={{ marginTop: 2, fontWeight: '700', color: paltaTheme.color.textPrimary }}>{community.name}</Text>
                   <Text style={{ marginTop: 4, color: paltaTheme.color.textSecondary }}>{community.meta}</Text>
                 </Pressable>
               ))}
