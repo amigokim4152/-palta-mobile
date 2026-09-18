@@ -10,7 +10,7 @@ function assert(condition: unknown, message: string): asserts condition {
 
 const keys = HOME_CAPABILITIES.map((item) => item.key);
 assert(new Set(keys).size === keys.length, 'Home capability keys must be unique');
-assert(keys.length >= 35, 'Home capability registry is unexpectedly incomplete');
+assert(keys.length >= 37, 'Home capability registry is unexpectedly incomplete');
 
 const requiredSurfaces = [
   'context',
@@ -49,6 +49,9 @@ for (const key of [
   'upcoming.property_viewing',
   'today.municipal_benefit',
   'today.local_news',
+  'today.seasonal_fruit',
+  'today.seasonal_vegetable',
+  'today.seasonal_seafood',
   'today.followed_business_update',
   'today.jobs_nearby',
   'today.property_saved_change',
@@ -56,8 +59,13 @@ for (const key of [
   assert(homeCapability(key), `Required Home capability missing: ${key}`);
 }
 
+assert(
+  !homeCapability('today.seasonal_food'),
+  'Seasonal food must remain split into fruit, vegetable, and seafood capabilities.',
+);
+
 const demoKeys = requiredDemoCapabilityKeys();
 assert(new Set(demoKeys).size === demoKeys.length, 'Demo capability keys must be unique');
-assert(demoKeys.length >= 35, 'Complete demo must cover the functional registry');
+assert(demoKeys.length >= 37, 'Complete demo must cover the functional registry');
 
 console.log(`PASS: Home capability registry (${keys.length} capabilities)`);
