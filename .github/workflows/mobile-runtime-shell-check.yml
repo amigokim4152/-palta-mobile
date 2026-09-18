@@ -7,10 +7,12 @@ on:
     paths:
       - 'apps/mobile/**'
       - 'mobile-overlay/**'
+      - '.env.example'
       - 'package.json'
       - 'docs/MOBILE_BOOTSTRAP_COMMANDS.md'
       - 'docs/MOBILE_RUNTIME_DECISION.md'
       - 'scripts/check-mobile-auth-secrets.mjs'
+      - 'scripts/check-supabase-auth-public-settings.mjs'
       - 'scripts/sync-mobile-runtime.mjs'
       - 'scripts/bootstrap-mobile.sh'
       - 'scripts/run-ios-mobile.sh'
@@ -19,10 +21,12 @@ on:
     paths:
       - 'apps/mobile/**'
       - 'mobile-overlay/**'
+      - '.env.example'
       - 'package.json'
       - 'docs/MOBILE_BOOTSTRAP_COMMANDS.md'
       - 'docs/MOBILE_RUNTIME_DECISION.md'
       - 'scripts/check-mobile-auth-secrets.mjs'
+      - 'scripts/check-supabase-auth-public-settings.mjs'
       - 'scripts/sync-mobile-runtime.mjs'
       - 'scripts/bootstrap-mobile.sh'
       - 'scripts/run-ios-mobile.sh'
@@ -48,6 +52,9 @@ jobs:
 
       - name: Check mobile Auth credential boundary
         run: node scripts/check-mobile-auth-secrets.mjs
+
+      - name: Check palta-dev public Auth provider readiness
+        run: node --env-file=.env.example scripts/check-supabase-auth-public-settings.mjs
 
       - name: Materialize current mobile overlay
         run: node scripts/sync-mobile-runtime.mjs
