@@ -2,11 +2,30 @@ import {
   assertPublicNewsProjectionSafe,
   type PublicNewsHome,
   type PublicNewsVoiceContribution,
+  type PublicNewsVoicesPage,
 } from '../src/news/publicContracts.js';
+import {
+  toNewsHomeViewModel,
+  toNewsVoicesViewModel,
+} from '../src/news/newsWebModel.js';
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
 }
+
+const brief = (id: string, section: 'essential' | 'nearby' | 'chile' | 'local' | 'deep_dive' | 'voices', publishedAt: string) => ({
+  storyId: id,
+  slug: `story-${id}`,
+  section,
+  title: `Título ${id}`,
+  summary: `Resumen ${id}`,
+  contentClass: section === 'deep_dive' ? 'deep_dive' as const : 'official_source' as const,
+  publishedAt,
+  geography: { countryCode: 'CL' as const, precision: 'country' as const },
+  topic: 'general',
+  source: { label: 'Fuente', attribution: 'Fuente de prueba.', sourceType: 'official' as const },
+  actions: [],
+});
 
 const safeHome: PublicNewsHome = {
   schemaVersion: 1,
@@ -14,7 +33,12 @@ const safeHome: PublicNewsHome = {
   generatedAt: '2026-09-18T07:00:00-03:00',
   publicationGate: 'closed',
   sections: {
-    essential: [],
+    essential: [
+      brief('old', 'essential', '2026-09-18T06:00:00-03:00'),
+      brief('new', 'essential', '2026-09-18T08:00:00-03:00'),
+      brief('mid', 'essential', '2026-09-18T07:00:00-03:00'),
+      brief('overflow', 'essential', '2026-09-18T05:00:00-03:00'),
+    ],
     nearby: [],
     chile: [],
     local: [],
@@ -24,6 +48,11 @@ const safeHome: PublicNewsHome = {
 };
 assertPublicNewsProjectionSafe(safeHome);
 assert(safeHome.publicationGate === 'closed', 'News Web mock/public contract must remain fail-closed during development.');
+const homeView = toNewsHomeViewModel(safeHome);
+assert(homeView.publicationGate === 'closed', 'View model must preserve the publication gate.');
+assert(homeView.essential.length === 3, 'Lo esencial must remain intentionally capped at three items.');
+assert(homeView.essential[0]?.storyId === 'new', 'News Home must order sections newest first.');
+assert(homeView.isEmpty === false, 'A Home with one populated section is not empty.');
 
 const voice: PublicNewsVoiceContribution = {
   storyId: 'voice-1',
@@ -47,6 +76,23 @@ const voice: PublicNewsVoiceContribution = {
   mediaRights: 'none_required',
 };
 assertPublicNewsProjectionSafe(voice);
+
+const voicesPayload: PublicNewsVoicesPage = {
+  schemaVersion: 1,
+  locale: 'es-CL',
+  generatedAt: '2026-09-18T07:00:00-03:00',
+  publicationGate: 'closed',
+  disclosure: 'Las voces son perspectivas de sus autores.',
+  contributions: [
+    voice,
+    { ...voice, storyId: 'voice-2', slug: 'entrevista-local', voiceType: 'interview', publishedAt: '2026-09-18T08:00:00-03:00' },
+    { ...voice, storyId: 'voice-3', slug: 'arte-estudiantil', voiceType: 'student_art', mediaRights: 'cleared' },
+  ],
+};
+const voicesView = toNewsVoicesViewModel(voicesPayload);
+assert(voicesView.essays.length === 1, 'Essays must remain a separate Local Voices group.');
+assert(voicesView.interviews.length === 1, 'Interviews must remain a separate Local Voices group.');
+assert(voicesView.showcase.length === 1, 'Student art must route to Community Showcase, not factual News.');
 
 let blocked = false;
 try {
@@ -73,4 +119,4 @@ try {
 }
 assert(blocked, 'Public News projection must reject nested editorial workflow state.');
 
-console.log('PASS: Palta News Web public projection boundary tests');
+console.log('PASS: Palta News Web public projection + view model tests');
