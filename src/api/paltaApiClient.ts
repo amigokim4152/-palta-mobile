@@ -1,3 +1,16 @@
+import type { HomeApiResponse } from './homeApiContract.js';
+
+export type {
+  HomeApiContext,
+  HomeApiCorrectionReason,
+  HomeApiDataMode,
+  HomeApiGlanceItem,
+  HomeApiItem,
+  HomeApiResponse,
+  HomeApiSubject,
+  HomeApiSurface,
+} from './homeApiContract.js';
+
 export type FetchLike = (
   input: string,
   init?: {
@@ -10,22 +23,6 @@ export type FetchLike = (
   status: number;
   json(): Promise<unknown>;
 }>;
-
-export type HomeApiItem = {
-  id: string;
-  kind: 'action' | 'status' | 'alert' | 'useful_today' | 'content';
-  title: string;
-  body?: string;
-  source_domain: string;
-  delivery: 'home' | 'home_notify' | 'urgent';
-  care_track_id?: string;
-  related_entity_id?: string;
-};
-
-export type HomeApiResponse = {
-  generated_at?: string;
-  items: HomeApiItem[];
-};
 
 export type LocalSearchItem = {
   entity_id: string;
@@ -147,6 +144,21 @@ export class PaltaApiClient {
     );
     if (!Array.isArray(payload.items)) {
       throw new Error('GET /v1/home payload missing items[]');
+    }
+    if (payload.glance !== undefined && !Array.isArray(payload.glance)) {
+      throw new Error('GET /v1/home glance must be an array when present');
+    }
+    if (payload.context !== undefined) {
+      expectObject(payload.context, 'GET /v1/home context');
+    }
+    if (payload.quiet_state !== undefined) {
+      expectObject(payload.quiet_state, 'GET /v1/home quiet_state');
+    }
+    if (
+      payload.contract_version !== undefined &&
+      payload.contract_version !== 'functional-home-v1'
+    ) {
+      throw new Error('GET /v1/home returned unsupported contract_version');
     }
     return payload as HomeApiResponse;
   }
