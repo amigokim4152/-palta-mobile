@@ -1,0 +1,92 @@
+name: Golden User Gate 01 Auth Test Check
+
+on:
+  push:
+    branches:
+      - integration/runtime-composition-v1
+    paths:
+      - 'mobile-overlay/src/features/auth/**'
+      - 'mobile-overlay/src/providers/AuthRuntimeProvider.tsx'
+      - 'mobile-overlay/src/adapters/**auth**'
+      - 'mobile-overlay/src/app/_layout.tsx'
+      - 'mobile-overlay/package.json'
+      - 'apps/mobile/package.json'
+      - 'src/auth/**'
+      - 'src/ports/authPort.ts'
+      - 'scripts/sync-mobile-runtime.mjs'
+      - 'scripts/run-ios-mobile.sh'
+      - 'scripts/run-golden-user-ios.sh'
+      - 'scripts/check-mobile-auth-secrets.mjs'
+      - 'scripts/check-supabase-auth-public-settings.mjs'
+      - '.github/workflows/golden-user-auth-test-check.yml'
+  workflow_dispatch:
+
+jobs:
+  verify-gate01-auth-test-runtime:
+    runs-on: ubuntu-latest
+    env:
+      EXPO_PUBLIC_SUPABASE_URL: https://rqbpbauhkdgsrkbwmkmg.supabase.co
+      EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_QEHIwvil9m4lyE6kJ1ba6w_CjA9_XXh
+      EXPO_PUBLIC_ENV: development
+      EXPO_PUBLIC_PALTA_API_BASE_URL: http://127.0.0.1:8787
+      EXPO_PUBLIC_MAP_STYLE_URL: https://palta-edge-preflight.kimeuisin.workers.dev/maps/style.json
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.13.0'
+
+      - name: Validate Gate 01 launcher scripts
+        run: |
+          bash -n scripts/run-ios-mobile.sh
+          bash -n scripts/run-golden-user-ios.sh
+          grep -q 'PALTA_RUNTIME_MODE="gate01_auth"' scripts/run-golden-user-ios.sh
+          grep -q 'Gate 01 Auth-isolated runtime' scripts/run-ios-mobile.sh
+
+      - name: Validate mobile Auth credential boundary
+        run: node scripts/check-mobile-auth-secrets.mjs
+
+      - name: Validate palta-dev Auth readiness
+        run: |
+          node scripts/check-supabase-auth-public-settings.mjs
+          node scripts/check-supabase-auth-public-settings.mjs email
+
+      - name: Install composition-source mobile dependencies
+        working-directory: mobile-overlay
+        run: npm install --no-audit --no-fund
+
+      - name: Typecheck Gate 01 source runtime
+        working-directory: mobile-overlay
+        run: npm run typecheck
+
+      - name: Bundle Gate 01 source runtime for iOS
+        working-directory: mobile-overlay
+        run: npm run bundle:ios
+
+      - name: Materialize Auth-isolated simulator runtime
+        run: node scripts/sync-mobile-runtime.mjs
+
+      - name: Reject template source in isolated runtime
+        run: |
+          if find apps/mobile/src -type f -name '*.template.*' -print -quit | grep -q .; then
+            echo 'FAIL: template source leaked into Gate 01 runtime' >&2
+            exit 1
+          fi
+
+      - name: Re-check Auth credential boundary after materialization
+        run: node scripts/check-mobile-auth-secrets.mjs
+
+      - name: Install isolated simulator dependencies
+        working-directory: apps/mobile
+        run: npm install --no-audit --no-fund
+
+      - name: Typecheck isolated simulator runtime
+        working-directory: apps/mobile
+        run: npx tsc --noEmit
+
+      - name: Bundle isolated simulator runtime for iOS
+        working-directory: apps/mobile
+        run: npx expo export --platform ios --output-dir .expo-export/golden-user-gate01
