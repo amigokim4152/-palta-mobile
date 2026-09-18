@@ -273,6 +273,7 @@ export function AutosScreen() {
                     <VehicleListingCard
                       item={item}
                       saved={demoState.savedListingIds.includes(item.listing.id)}
+                      selected={item.listing.id === selectedListing?.listing.id}
                       onToggleSaved={() => toggleAutosListingSaved(item.listing.id)}
                       onPress={() => {
                         setSelectedListingId(item.listing.id);
