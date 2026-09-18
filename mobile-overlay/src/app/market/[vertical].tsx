@@ -2,16 +2,13 @@ import { useLocalSearchParams } from 'expo-router';
 import { Text, View } from 'react-native';
 import { ScreenFrame } from '../../components/ScreenFrame';
 import { SectionHeading } from '../../components/common/SectionHeading';
-
-type MarketRouteVertical =
-  | 'secondhand'
-  | 'vehicles'
-  | 'property'
-  | 'local_produce';
+import {
+  MarketVerticalBrowseScreen,
+  type MarketRouteVertical,
+} from '../../features/market/MarketVerticalBrowseScreen';
 
 type MarketRouteDefinition = {
   title: string;
-  mapUseful: boolean;
 };
 
 /**
@@ -20,15 +17,15 @@ type MarketRouteDefinition = {
  * with the reviewed 8b955c4 contract until the new canonical policy is promoted.
  */
 const MARKET_ROUTE_UI: Record<MarketRouteVertical, MarketRouteDefinition> = {
-  secondhand: { title: 'Usados', mapUseful: false },
-  vehicles: { title: 'Vehículos', mapUseful: true },
-  property: { title: 'Propiedades', mapUseful: true },
-  local_produce: { title: 'Productos locales', mapUseful: true },
+  secondhand: { title: 'Usados' },
+  vehicles: { title: 'Vehículos' },
+  property: { title: 'Propiedades' },
+  local_produce: { title: 'Productos locales' },
 };
 
-function routeDefinition(value: string | undefined): MarketRouteDefinition | undefined {
+function routeVertical(value: string | undefined): MarketRouteVertical | undefined {
   if (!value || !(value in MARKET_ROUTE_UI)) return undefined;
-  return MARKET_ROUTE_UI[value as MarketRouteVertical];
+  return value as MarketRouteVertical;
 }
 
 export default function MarketVerticalScreen() {
@@ -36,9 +33,9 @@ export default function MarketVerticalScreen() {
     vertical?: string;
     mode?: string;
   }>();
-  const definition = routeDefinition(vertical);
+  const resolvedVertical = routeVertical(vertical);
 
-  if (!definition) {
+  if (!resolvedVertical) {
     return (
       <ScreenFrame title="Mercado">
         <Text>Categoría no válida.</Text>
@@ -46,27 +43,20 @@ export default function MarketVerticalScreen() {
     );
   }
 
-  const createMode = mode === 'create';
+  if (mode !== 'create') {
+    return <MarketVerticalBrowseScreen vertical={resolvedVertical} />;
+  }
 
+  const definition = MARKET_ROUTE_UI[resolvedVertical];
   return (
-    <ScreenFrame
-      title={definition.title}
-      subtitle={createMode ? 'Publicar' : 'Explorar'}
-    >
+    <ScreenFrame title={definition.title} subtitle="Publicar">
       <View style={{ gap: 16 }}>
         <SectionHeading
-          title={createMode ? `Publicar en ${definition.title}` : `Explorar ${definition.title}`}
-          subtitle={
-            createMode
-              ? 'Cada tipo de publicación usa un formulario específico; no existe un “publicar” genérico.'
-              : definition.mapUseful
-                ? 'Lista y mapa comparten los mismos listings; el mapa usa Map Core.'
-                : 'Esta categoría prioriza lista y búsqueda y puede abrir mapa cuando aporte valor.'
-          }
+          title={`Publicar en ${definition.title}`}
+          subtitle="Cada tipo de publicación usa un formulario específico; no existe un publicar genérico."
         />
         <Text style={{ opacity: 0.62 }}>
-          La entrada usa la política común de Mercado. Los formularios específicos se
-          conectan por vertical sin duplicar Business, Map, Messaging ni Care.
+          Esta entrada conserva el vertical seleccionado. El formulario específico se conecta sin duplicar Business, Map, Messaging ni Care.
         </Text>
       </View>
     </ScreenFrame>

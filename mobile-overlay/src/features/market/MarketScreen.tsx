@@ -20,6 +20,43 @@ import type { MarketPublicListing } from '../../../../src/market/marketPersisten
 import { paltaTheme } from '../../theme/paltaTheme';
 import { getMarketRuntime } from './marketRuntime';
 
+type RuntimeCompatibleVertical =
+  | 'secondhand'
+  | 'vehicles'
+  | 'property'
+  | 'local_produce';
+
+type ExtendedDiscoverMarketListingsQuery = DiscoverMarketListingsQuery & {
+  vertical?: RuntimeCompatibleVertical;
+};
+
+const MARKET_VERTICAL_ENTRIES: Array<{
+  key: RuntimeCompatibleVertical;
+  title: string;
+  description: string;
+}> = [
+  {
+    key: 'secondhand',
+    title: 'Usados',
+    description: 'Artículos de personas cerca de ti',
+  },
+  {
+    key: 'vehicles',
+    title: 'Vehículos',
+    description: 'Autos y otros vehículos',
+  },
+  {
+    key: 'property',
+    title: 'Propiedades',
+    description: 'Venta y arriendo',
+  },
+  {
+    key: 'local_produce',
+    title: 'Productos locales',
+    description: 'Venta directa de tu zona',
+  },
+];
+
 function formatPrice(listing: MarketPublicListing) {
   if (listing.tradeMode === 'free') return 'Gratis';
   if (listing.tradeMode === 'wanted') return 'Busco';
@@ -124,7 +161,8 @@ export function MarketScreen() {
     if (!runtime.read) return;
     let active = true;
     const normalizedQuery = query.trim();
-    const request: DiscoverMarketListingsQuery = {
+    const request: ExtendedDiscoverMarketListingsQuery = {
+      vertical: 'secondhand',
       sort: 'recent',
       limit: 30,
       ...(category !== 'all' ? { category } : {}),
@@ -134,7 +172,7 @@ export function MarketScreen() {
     setLoading(true);
     setLoadError(undefined);
     runtime.read
-      .discover(request)
+      .discover(request as DiscoverMarketListingsQuery)
       .then((page) => {
         if (!active) return;
         setListings(page.items);
@@ -179,12 +217,56 @@ export function MarketScreen() {
         </View>
       </View>
 
+      <Text style={styles.verticalIntro}>¿Qué estás buscando?</Text>
+      <FlatList
+        horizontal
+        data={MARKET_VERTICAL_ENTRIES}
+        keyExtractor={(item) => item.key}
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.verticalRow}
+        renderItem={({ item }) => {
+          const selected = item.key === 'secondhand';
+          return (
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => {
+                if (selected) return;
+                router.push(`/market/${item.key}`);
+              }}
+              style={({ pressed }) => [
+                styles.verticalCard,
+                selected && styles.verticalCardSelected,
+                pressed && !selected && styles.pressed,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.verticalTitle,
+                  selected && styles.verticalTitleSelected,
+                ]}
+              >
+                {item.title}
+              </Text>
+              <Text
+                numberOfLines={2}
+                style={[
+                  styles.verticalDescription,
+                  selected && styles.verticalDescriptionSelected,
+                ]}
+              >
+                {item.description}
+              </Text>
+            </Pressable>
+          );
+        }}
+      />
+
       <View style={styles.searchBox}>
         <Text style={styles.searchGlyph}>⌕</Text>
         <TextInput
           value={query}
           onChangeText={setQuery}
-          placeholder="Buscar en Mercado"
+          placeholder="Buscar artículos usados"
           placeholderTextColor={paltaTheme.color.textMuted}
           style={styles.searchInput}
           returnKeyType="search"
@@ -218,7 +300,7 @@ export function MarketScreen() {
       />
 
       <View style={styles.sectionLine}>
-        <Text style={styles.sectionTitle}>Cerca de ti</Text>
+        <Text style={styles.sectionTitle}>Usados cerca de ti</Text>
         <Text style={styles.sortText}>Más recientes</Text>
       </View>
     </View>
@@ -333,6 +415,43 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
   },
+  verticalIntro: {
+    marginTop: 16,
+    color: paltaTheme.color.textSecondary,
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  verticalRow: {
+    paddingTop: 9,
+    paddingBottom: 2,
+    gap: 9,
+  },
+  verticalCard: {
+    width: 142,
+    minHeight: 82,
+    borderRadius: paltaTheme.radius.surface,
+    borderWidth: 1,
+    borderColor: paltaTheme.color.border,
+    backgroundColor: paltaTheme.color.surface,
+    padding: 12,
+  },
+  verticalCardSelected: {
+    borderColor: paltaTheme.color.brandPrimary,
+    backgroundColor: paltaTheme.color.brandSoft,
+  },
+  verticalTitle: {
+    color: paltaTheme.color.textPrimary,
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  verticalTitleSelected: { color: paltaTheme.color.brandPrimary },
+  verticalDescription: {
+    marginTop: 6,
+    color: paltaTheme.color.textMuted,
+    fontSize: 11,
+    lineHeight: 15,
+  },
+  verticalDescriptionSelected: { color: paltaTheme.color.textSecondary },
   searchBox: {
     marginTop: 16,
     height: 48,

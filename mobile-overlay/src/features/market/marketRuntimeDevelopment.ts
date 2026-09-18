@@ -53,6 +53,10 @@ type ExtendedCreateCommand = CreateMarketListingCommand & {
   sellerBusinessId?: string;
 };
 
+type RuntimePublicListing = MarketPublicListing & {
+  vertical?: RuntimeCompatibleVertical;
+};
+
 const createdListingVerticals = new Map<string, RuntimeCompatibleVertical>();
 
 const publishedAtById: Record<string, string> = {
@@ -61,6 +65,10 @@ const publishedAtById: Record<string, string> = {
   'preview-camera-03': '2026-09-18T10:35:00Z',
   'preview-shoes-04': '2026-09-18T09:40:00Z',
   'preview-free-05': '2026-09-18T08:40:00Z',
+  'preview-car-06': '2026-09-18T12:31:00Z',
+  'preview-property-sale-07': '2026-09-18T12:13:00Z',
+  'preview-property-rent-08': '2026-09-18T11:52:00Z',
+  'preview-produce-09': '2026-09-18T12:00:00Z',
 };
 
 function nextId(prefix: string): string {
@@ -69,7 +77,14 @@ function nextId(prefix: string): string {
 }
 
 function listingVertical(listingId: string): RuntimeCompatibleVertical {
-  return createdListingVerticals.get(listingId) ?? 'secondhand';
+  const preview = marketPreviewListings.find((candidate) => candidate.id === listingId);
+  return createdListingVerticals.get(listingId) ?? preview?.vertical ?? 'secondhand';
+}
+
+function runtimeTradeMode(
+  tradeMode: (typeof marketPreviewListings)[number]['tradeMode'],
+): MarketListingRecord['tradeMode'] {
+  return tradeMode as unknown as MarketListingRecord['tradeMode'];
 }
 
 function validateExtendedDiscoveryQuery(query: ExtendedDiscoverQuery): void {
@@ -95,7 +110,7 @@ function previewRecord(id: string): MarketListingRecord | undefined {
     title: item.title,
     description: item.description,
     category: item.category,
-    tradeMode: item.tradeMode,
+    tradeMode: runtimeTradeMode(item.tradeMode),
     ...(typeof item.priceClp === 'number' ? { priceClp: item.priceClp } : {}),
     status: mutableStatuses.get(item.id) ?? item.status,
     location: { comunaName: item.comuna },
@@ -133,8 +148,9 @@ function toPublicListing(record: MarketListingRecord): MarketPublicListing {
   const preview = marketPreviewListings.find((item) => item.id === record.id);
   const trust = marketSellerTrustPreviewByListing[record.id];
 
-  return {
+  const result: RuntimePublicListing = {
     id: record.id,
+    vertical: listingVertical(record.id),
     title: record.title,
     description: record.description,
     category: record.category,
@@ -160,6 +176,7 @@ function toPublicListing(record: MarketListingRecord): MarketPublicListing {
       ? { distanceKm: preview.distanceKm }
       : {}),
   };
+  return result;
 }
 
 function paginate<T>(items: T[], cursor?: string, limit = 30): MarketCursorPage<T> {
@@ -207,7 +224,7 @@ const read: MarketReadPort = {
       .filter((listing) => {
         if (extended.vertical && listingVertical(listing.id) !== extended.vertical) return false;
         if (query.category && listing.category !== query.category) return false;
-        if (query.tradeMode && listing.tradeMode !== query.tradeMode) return false;
+        if (query.tradeMode && String(listing.tradeMode) !== String(query.tradeMode)) return false;
         if (query.comunaCode && listing.location.comunaCode !== query.comunaCode) {
           return false;
         }
