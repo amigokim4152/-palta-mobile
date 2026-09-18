@@ -6,6 +6,7 @@
     "build:dry": "wrangler deploy --dry-run --config wrangler.build.jsonc"
   },
   "dependencies": {
+    "jose": "6.2.12",
     "pg": "8.16.3"
   },
   "devDependencies": {
