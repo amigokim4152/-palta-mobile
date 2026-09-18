@@ -6,6 +6,11 @@ import {
 } from './operating-rules-state.mjs';
 import { handleBusinessReviewsRequest } from './business-reviews-state.mjs';
 import { handleBusinessCorrectionsRequest } from './business-corrections-state.mjs';
+import {
+  demoBusinesses,
+  demoCoupons,
+  demoRelationships,
+} from './local-business-demo-fixtures.mjs';
 
 const host = process.env.PALTA_MOCK_HOST ?? '127.0.0.1';
 const port = Number(process.env.PALTA_MOCK_PORT ?? '8787');
@@ -22,80 +27,17 @@ const channelLabels = {
   other: 'Otro canal',
 };
 
-const businesses = [
-  {
-    id: 'biz-taller-1',
-    name: 'Taller ejemplo',
-    category_key: 'auto_repair',
-    search_terms: ['taller', 'auto', 'mecánica', 'frenos', 'neumáticos'],
-    verification_status: 'unverified',
-    opening_status: 'Abierto hoy',
-    operational_state: 'open_now',
-    operational_confirmed_at: '2026-09-17T08:00:00-03:00',
-    description: 'Mantención y reparación automotriz con atención por WhatsApp.',
-    hours_summary: 'Lun–Vie 09:00–18:00 · Sáb 09:00–14:00',
-    service_labels: ['Mantención', 'Frenos', 'Neumáticos'],
-    service_area_labels: ['Vitacura', 'Las Condes'],
-    photo_urls: [],
-    posts: [
-      {
-        id: 'post-taller-1',
-        title: 'Agenda disponible esta semana',
-        body: 'Consulta por horario antes de venir.',
-        published_at: '2026-09-16T14:00:00-03:00',
-      },
-    ],
-    enabled_capabilities: ['quote'],
-    channel_links: [
-      { provider: 'instagram', label: 'Instagram', url: 'https://www.instagram.com/' },
-      { provider: 'google_business', label: 'Google', url: 'https://www.google.com/maps' },
-    ],
-    location: { lat: -33.3908, lng: -70.5707 },
-    contact: { whatsapp: '+56000000000' },
-  },
-  {
-    id: 'biz-farmacia-1',
-    name: 'Farmacia ejemplo',
-    category_key: 'pharmacy',
-    search_terms: ['farmacia', 'salud', 'medicamentos'],
-    verification_status: 'verified',
-    opening_status: 'Abierto ahora',
-    operational_state: 'open_now',
-    operational_confirmed_at: '2026-09-17T08:00:00-03:00',
-    description: 'Farmacia de barrio con atención presencial y consulta telefónica.',
-    hours_summary: 'Lun–Sáb 09:00–20:00',
-    service_labels: ['Farmacia', 'Cuidado personal'],
-    service_area_labels: ['Vitacura'],
-    photo_urls: [],
-    posts: [],
-    enabled_capabilities: ['coupon'],
-    channel_links: [
-      { provider: 'website', label: 'Sitio web', url: 'https://example.com/' },
-      { provider: 'facebook', label: 'Facebook', url: 'https://www.facebook.com/' },
-    ],
-    location: { lat: -33.3942, lng: -70.5752 },
-    contact: { phone: '+56000000001' },
-  },
-];
+const businesses = structuredClone(demoBusinesses);
 
 const idempotencyCareIds = new Map();
 const idempotencyBusinessResults = new Map();
 const idempotencyPostIds = new Map();
-const businessRelationships = new Map();
-const businessCoupons = new Map([
-  ['biz-farmacia-1', {
-    id: 'coupon-farmacia-demo',
-    business_id: 'biz-farmacia-1',
-    title: '10% en cuidado personal',
-    description: 'Beneficio básico del negocio.',
-    redemption_instruction: 'Muéstralo antes de pagar.',
-    audience: 'public',
-    status: 'published',
-    starts_at: '2026-09-17T00:00:00-03:00',
-    expires_at: '2026-10-17T23:59:59-03:00',
-    issued_by_verified_owner_at: '2026-09-17T09:00:00-03:00',
-  }],
-]);
+const businessRelationships = new Map(
+  demoRelationships.map(([id, relationship]) => [id, { ...relationship }]),
+);
+const businessCoupons = new Map(
+  demoCoupons.map(([id, coupon]) => [id, { ...coupon }]),
+);
 
 const careTracks = new Map([
   ['care-demo-1', {
@@ -132,6 +74,19 @@ function normalize(value) {
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase();
+}
+
+function distanceMeters(origin, target) {
+  const earthRadiusM = 6371000;
+  const toRadians = (value) => (value * Math.PI) / 180;
+  const lat1 = toRadians(origin.lat);
+  const lat2 = toRadians(target.lat);
+  const dLat = toRadians(target.lat - origin.lat);
+  const dLng = toRadians(target.lng - origin.lng);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+  return earthRadiusM * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
 function normalizeSafePublicUrl(value) {
@@ -356,12 +311,15 @@ const server = http.createServer(async (req, res) => {
             const haystack = normalize([
               business.name,
               business.category_key,
+              business.description,
               ...(business.search_terms ?? []),
+              ...(business.service_labels ?? []),
+              ...(business.service_area_labels ?? []),
             ].join(' '));
             return q.split(/\s+/).filter(Boolean).some((term) => haystack.includes(term));
           });
       return json(res, 200, {
-        items: matching.map((business, index) => ({
+        items: matching.map((business) => ({
           entity_id: business.id,
           entity_type: 'business',
           name: business.name,
@@ -369,8 +327,12 @@ const server = http.createServer(async (req, res) => {
           verification_status: business.verification_status,
           operational_state: business.operational_state,
           operational_confirmed_at: business.operational_confirmed_at,
-          distance_m: index === 0 ? 850 : 1200,
-          location: business.location,
+          ...(business.location
+            ? {
+                distance_m: Math.round(distanceMeters({ lat, lng }, business.location)),
+                location: business.location,
+              }
+            : {}),
           ...discoveryPreviewFor(business),
         })),
       });
