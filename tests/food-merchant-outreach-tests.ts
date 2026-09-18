@@ -1,6 +1,7 @@
 import {
   DEFAULT_FOOD_MERCHANT_AUTHORIZATION_SCOPE,
   buildFoodMerchantOutreachCandidate,
+  buildSpanishFoodIdentityConfirmationMessage,
   buildSpanishFoodMerchantPermissionMessage,
   merchantAuthorizationMayPromoteOutlet,
 } from '../src/foodCatalog/foodMerchantOutreach.js';
@@ -31,12 +32,31 @@ const outlet: FoodOutletIdentity = {
 };
 
 const candidate = buildFoodMerchantOutreachCandidate(outlet);
-assert(candidate.status === 'ready_to_contact', 'Public WhatsApp should put outlet in outreach queue.');
+assert(candidate.status === 'ready_to_contact', 'Public WhatsApp should put a non-conflicted outlet in outreach queue.');
 assert(candidate.whatsapp === '+56912345678', 'Public WhatsApp must be preserved for outreach.');
 assert(
   !DEFAULT_FOOD_MERCHANT_AUTHORIZATION_SCOPE.some((scope) => String(scope).includes('image')),
   'Default food outreach scope must not include images.',
 );
+
+const conflictedOutlet: FoodOutletIdentity = {
+  ...outlet,
+  outletKey: 'cl-rm-test-conflict',
+  brandName: 'Restaurante Dirección Dudosa',
+  identityStatus: 'needs_review',
+  identityNote: 'One source says 2316 and another says 2317.',
+};
+const conflictedCandidate = buildFoodMerchantOutreachCandidate(conflictedOutlet);
+assert(
+  conflictedCandidate.status === 'ready_for_identity_confirmation',
+  'Conflicted outlet must resolve identity before normal authorization outreach.',
+);
+const identityMessage = buildSpanishFoodIdentityConfirmationMessage({
+  brandName: conflictedOutlet.brandName,
+  question: 'Encontramos dos direcciones públicas: 2316 y 2317. ¿Cuál es la correcta?',
+});
+assert(identityMessage.includes('2316 y 2317'), 'Identity confirmation must carry the concrete fact conflict.');
+assert(identityMessage.includes('No estamos recopilando fotos'), 'Identity confirmation must preserve the no-photo policy.');
 
 const message = buildSpanishFoodMerchantPermissionMessage({
   brandName: outlet.brandName,
@@ -69,4 +89,4 @@ assert(
   'Menu-only authorization must not silently authorize the outlet identity/address.',
 );
 
-console.log('PASS: food merchant outreach stays factual-only and records explicit authorization scope');
+console.log('PASS: food merchant outreach separates identity confirmation from factual-only authorization');
