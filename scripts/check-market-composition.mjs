@@ -36,6 +36,8 @@ for (const requiredPath of [
 for (const contractPath of [
   'src/market/marketCatalog.ts',
   'src/market/marketVerticalPolicy.ts',
+  'src/market/marketLifecycle.ts',
+  'src/market/marketMessageIntent.ts',
 ]) {
   if (!market.reviewed_contract_paths?.includes(contractPath)) {
     fail(`Mercado missing reviewed contract path: ${contractPath}`);
@@ -49,4 +51,4 @@ if (!tabLayout.includes('<Tabs.Screen name="market" options={{ title: \'Mercado\
   fail('Shared tab layout must expose the Mercado primary tab.');
 }
 
-console.log('PASS: Mercado is registered as a live primary surface with reviewed market contracts.');
+console.log('PASS: Mercado is registered as a live primary surface with reviewed lifecycle and messaging handoff contracts.');
