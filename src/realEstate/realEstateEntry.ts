@@ -1,4 +1,4 @@
-import type { BusinessId, ListingId, PropertyId } from './realEstateContracts';
+import type { BusinessId, ListingId, PropertyId } from './realEstateContracts.js';
 
 export type RealEstateEntrySource =
   | 'negocios_category'
@@ -31,23 +31,25 @@ export type RealEstateDestination =
  * independent Propiedades surface.
  */
 export function resolveRealEstateEntry(context: RealEstateEntryContext): RealEstateDestination {
+  const params = buildContextParams(context);
+
   if (context.listingId) {
     return {
       route: `/propiedades/listing/${context.listingId}`,
-      params: buildContextParams(context),
+      params,
     };
   }
 
   if (context.propertyId) {
     return {
       route: `/propiedades/property/${context.propertyId}`,
-      params: buildContextParams(context),
+      params,
     };
   }
 
   return {
     route: '/propiedades',
-    params: buildContextParams(context),
+    params,
   };
 }
 
@@ -55,7 +57,7 @@ export function buildBusinessProfileDestination(businessId: BusinessId): RealEst
   return { route: `/business/${businessId}` };
 }
 
-function buildContextParams(context: RealEstateEntryContext): Record<string, string> | undefined {
+function buildContextParams(context: RealEstateEntryContext): Record<string, string> {
   const params: Record<string, string> = { source: context.source };
 
   if (context.businessId) params.businessId = context.businessId;
@@ -63,5 +65,5 @@ function buildContextParams(context: RealEstateEntryContext): Record<string, str
   if (context.comunaCode) params.comunaCode = context.comunaCode;
   if (context.query) params.query = context.query;
 
-  return Object.keys(params).length > 0 ? params : undefined;
+  return params;
 }
