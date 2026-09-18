@@ -27,6 +27,13 @@ function draft(overrides: Partial<BusinessOnboardingDraft> = {}): BusinessOnboar
   };
 }
 
+function draftWithoutLocation(
+  overrides: Partial<BusinessOnboardingDraft> = {},
+): BusinessOnboardingDraft {
+  const { anchorLocation: _anchor, addressLabel: _address, ...base } = draft();
+  return { ...base, ...overrides };
+}
+
 assert(deriveBusinessPublicLocationPrecision(['storefront']) === 'exact', 'storefront must persist an exact public point');
 assert(deriveBusinessPublicLocationPrecision(['mixed']) === 'exact', 'mixed includes a storefront and must preserve its public point');
 assert(deriveBusinessPublicLocationPrecision(['customer_site']) === 'area_only', 'customer-site work must not create a fake storefront pin');
@@ -90,9 +97,7 @@ assert(intakeCall?.init?.headers?.Authorization === `Bearer ${secret}`, 'Only th
 let unresolvedRejected = false;
 try {
   await adapter.persistRegistration({
-    draft: draft({
-      anchorLocation: undefined,
-      addressLabel: undefined,
+    draft: draftWithoutLocation({
       presenceModes: ['customer_site'],
       serviceAreaIds: ['providencia'],
     }),
@@ -117,11 +122,9 @@ try {
 assert(malformedCodeRejected, 'Only official five-digit Chile area codes may cross the persistence boundary.');
 assert(calls.length === 1, 'Malformed area codes must fail before hitting Supabase.');
 
-const online = draft({
+const online = draftWithoutLocation({
   businessName: 'Asesoría Remota Palta',
   ownerDescription: 'Asesoría profesional remota',
-  anchorLocation: undefined,
-  addressLabel: undefined,
   confirmedServiceIds: ['professional_service'],
   presenceModes: ['online'],
   serviceAreaIds: [],
@@ -147,7 +150,7 @@ try {
   badPrimaryComunaRejected = error instanceof Error && error.message === 'invalid_comuna_code';
 }
 assert(badPrimaryComunaRejected, 'Promotion must reject a UI slug in place of an official comuna code.');
-assert(calls.length === 3, 'Invalid primary comuna code must fail before hitting Supabase.');
+assert(Number(calls.length) === 3, 'Invalid primary comuna code must fail before hitting Supabase.');
 
 const failing = new SupabaseBusinessOnboardingAdapter({
   projectUrl: 'https://example.supabase.co',
