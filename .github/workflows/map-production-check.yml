@@ -9,6 +9,7 @@ on:
       - 'scripts/run-ios-production-map-safe.sh'
       - 'scripts/inspect-local-place-data.mjs'
       - 'scripts/inspect-local-place-summary.sh'
+      - 'scripts/probe-legacy-local-places.mjs'
       - 'mobile-overlay/src/app/map/**'
       - 'mobile-overlay/src/components/map/**'
       - 'mobile-overlay/.env.example'
@@ -23,6 +24,7 @@ on:
       - 'scripts/run-ios-production-map-safe.sh'
       - 'scripts/inspect-local-place-data.mjs'
       - 'scripts/inspect-local-place-summary.sh'
+      - 'scripts/probe-legacy-local-places.mjs'
       - 'mobile-overlay/src/app/map/**'
       - 'mobile-overlay/src/components/map/**'
       - 'mobile-overlay/.env.example'
@@ -43,6 +45,7 @@ jobs:
           bash -n scripts/run-ios-production-map-safe.sh
           bash -n scripts/inspect-local-place-summary.sh
           node --check scripts/inspect-local-place-data.mjs
+          node --check scripts/probe-legacy-local-places.mjs
       - name: Production Worker dry-run
         run: npx --yes wrangler@4.133.0 deploy --dry-run --config infra/cloudflare/wrangler.map-production.jsonc
       - name: Multipart uploader dry-run
