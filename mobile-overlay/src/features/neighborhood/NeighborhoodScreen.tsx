@@ -14,6 +14,7 @@ import { NeighborhoodMap } from '../../components/map/NeighborhoodMap';
 import { ScreenFrame } from '../../components/ScreenFrame';
 import { useAsyncResource } from '../../hooks/useAsyncResource';
 import { expoLocationAdapter } from '../../adapters/expoLocationAdapter';
+import { useLocalization } from '../../providers/LocalizationProvider';
 import { mobileRuntime } from '../../services/paltaClient';
 import { useNeighborhoodState } from '../../state/NeighborhoodStateProvider';
 
@@ -22,14 +23,21 @@ const DEVELOPMENT_LOCATION = {
   longitude: -70.5707,
 };
 
-function formatDistance(distanceM?: number): string | undefined {
+function formatDistance(
+  distanceM: number | undefined,
+  locale: string,
+): string | undefined {
   if (distanceM === undefined) return undefined;
   if (distanceM < 1000) return `${Math.round(distanceM)} m`;
-  return `${(distanceM / 1000).toFixed(1).replace('.', ',')} km`;
+  return `${new Intl.NumberFormat(locale, {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  }).format(distanceM / 1000)} km`;
 }
 
 export function NeighborhoodScreen() {
   const { state: neighborhood, dispatch } = useNeighborhoodState();
+  const { locale, t } = useLocalization();
   const [locationBusy, setLocationBusy] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
 
@@ -98,20 +106,16 @@ export function NeighborhoodScreen() {
       if (permission !== 'granted_foreground') {
         setLocationError(
           permission === 'restricted'
-            ? 'Activa la ubicación para Palta desde Ajustes.'
-            : 'Sin permiso de ubicación puedes explorar otra zona manualmente.',
+            ? t('neighborhood.locationRestricted')
+            : t('neighborhood.locationDenied'),
         );
         return;
       }
 
       const point = await expoLocationAdapter.getCurrentPosition();
       dispatch({ type: 'set_effective_location', location: point });
-    } catch (error) {
-      setLocationError(
-        error instanceof Error
-          ? error.message
-          : 'No pudimos obtener tu ubicación.',
-      );
+    } catch {
+      setLocationError(t('neighborhood.locationUnavailable'));
     } finally {
       setLocationBusy(false);
     }
@@ -129,15 +133,14 @@ export function NeighborhoodScreen() {
   if (!neighborhood.effectiveLocation) {
     return (
       <ScreenFrame
-        title="Tu barrio"
-        subtitle="La ubicación se usa sólo cuando hace falta"
+        title={t('neighborhood.title')}
+        subtitle={t('neighborhood.permissionSubtitle')}
       >
         <Text style={{ fontSize: 18, fontWeight: '700' }}>
-          ¿Qué hay cerca de ti?
+          {t('neighborhood.nearbyPrompt')}
         </Text>
         <Text style={{ marginTop: 8, opacity: 0.65 }}>
-          Palta usa tu ubicación mientras estás usando esta pantalla. No la
-          convierte automáticamente en tu casa o zona de vida.
+          {t('neighborhood.locationUseExplanation')}
         </Text>
 
         <Pressable
@@ -146,7 +149,9 @@ export function NeighborhoodScreen() {
           style={{ marginTop: 18, paddingVertical: 12 }}
         >
           <Text style={{ fontWeight: '700', opacity: locationBusy ? 0.5 : 1 }}>
-            {locationBusy ? 'Buscando ubicación…' : 'Usar mi ubicación'}
+            {locationBusy
+              ? t('neighborhood.locating')
+              : t('neighborhood.useLocation')}
           </Text>
         </Pressable>
 
@@ -161,7 +166,9 @@ export function NeighborhoodScreen() {
             }
             style={{ paddingVertical: 12 }}
           >
-            <Text style={{ opacity: 0.6 }}>Usar ubicación de desarrollo</Text>
+            <Text style={{ opacity: 0.6 }}>
+              {t('neighborhood.useDevelopmentLocation')}
+            </Text>
           </Pressable>
         ) : null}
 
@@ -174,8 +181,8 @@ export function NeighborhoodScreen() {
 
   return (
     <ScreenFrame
-      title="Tu barrio"
-      subtitle="Ubicación activa · editable"
+      title={t('neighborhood.title')}
+      subtitle={t('neighborhood.activeSubtitle')}
       scroll={false}
     >
       <View style={{ flex: 1 }}>
@@ -207,9 +214,9 @@ export function NeighborhoodScreen() {
                 borderWidth: 1,
               }}
             >
-              <Text>Map Core preparado</Text>
+              <Text>{t('neighborhood.mapPrepared')}</Text>
               <Text style={{ marginTop: 6, opacity: 0.6 }}>
-                Falta conectar EXPO_PUBLIC_MAP_STYLE_URL.
+                {t('neighborhood.mapStyleMissing')}
               </Text>
             </View>
           )}
@@ -233,7 +240,9 @@ export function NeighborhoodScreen() {
                 backgroundColor: 'white',
               }}
             >
-              <Text style={{ fontWeight: '700' }}>Buscar en esta zona</Text>
+              <Text style={{ fontWeight: '700' }}>
+                {t('neighborhood.searchArea')}
+              </Text>
             </Pressable>
           ) : null}
         </View>
@@ -252,7 +261,7 @@ export function NeighborhoodScreen() {
             }}
           >
             <FilterChip
-              label="Abierto ahora"
+              label={t('neighborhood.openNow')}
               selected={neighborhood.activeFilters.includes('open_now')}
               onPress={() => {
                 const next = neighborhood.activeFilters.includes('open_now')
@@ -264,7 +273,7 @@ export function NeighborhoodScreen() {
               }}
             />
             <FilterChip
-              label="Verificado"
+              label={t('common.verified')}
               selected={neighborhood.activeFilters.includes('verified')}
               onPress={() => {
                 const next = neighborhood.activeFilters.includes('verified')
@@ -278,11 +287,11 @@ export function NeighborhoodScreen() {
           </View>
 
           <Text style={{ fontSize: 13, fontWeight: '700', opacity: 0.6 }}>
-            CERCA DE TI
+            {t('neighborhood.nearYou')}
           </Text>
 
           {state.status === 'loading' && !state.data ? (
-            <LoadingState label="Buscando cerca…" />
+            <LoadingState label={t('neighborhood.loading')} />
           ) : null}
 
           {state.status === 'error' && !state.data ? (
@@ -291,8 +300,8 @@ export function NeighborhoodScreen() {
 
           {state.status === 'empty' ? (
             <EmptyState
-              title="No encontramos resultados aquí"
-              body="Puedes mover el mapa o cambiar la búsqueda."
+              title={t('neighborhood.emptyTitle')}
+              body={t('neighborhood.emptyBody')}
             />
           ) : null}
 
@@ -303,12 +312,12 @@ export function NeighborhoodScreen() {
               meta={[
                 item.category_key,
                 item.verification_status === 'verified'
-                  ? 'Verificado'
+                  ? t('common.verified')
                   : undefined,
               ]
                 .filter(Boolean)
                 .join(' · ')}
-              distance={formatDistance(item.distance_m)}
+              distance={formatDistance(item.distance_m, locale)}
               onPress={() => openEntity(item.entity_id, item.entity_type)}
             />
           ))}
