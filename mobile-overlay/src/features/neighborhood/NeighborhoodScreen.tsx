@@ -297,7 +297,7 @@ export function NeighborhoodScreen() {
           ) : null}
 
           {state.status === 'error' && !state.data ? (
-            <ErrorState message={state.message} onRetry={() => void refresh()} />
+            <ErrorState onRetry={() => void refresh()} />
           ) : null}
 
           {state.status === 'empty' ? (
@@ -325,7 +325,7 @@ export function NeighborhoodScreen() {
           ))}
 
           {state.status === 'error' && state.data ? (
-            <ErrorState message={state.message} onRetry={() => void refresh()} />
+            <ErrorState onRetry={() => void refresh()} />
           ) : null}
         </MapResultSheet>
       </View>
