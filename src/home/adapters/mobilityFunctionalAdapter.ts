@@ -73,7 +73,7 @@ export function mobilityToFunctionalHome(
       items.push({
         id: `departure-${departure.routeLabel}-${input.observedAt}`,
         surface: 'now',
-        kind: 'action',
+        kind: 'alert',
         title: `Tu bus ${departure.routeLabel} está por llegar`,
         body: departure.stopLabel
           ? `Llegada estimada en ${Math.round(departure.minutes)} min · ${departure.stopLabel}`
