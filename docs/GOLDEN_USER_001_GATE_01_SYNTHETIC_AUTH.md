@@ -1,6 +1,8 @@
 # Golden User 001 — Gate 01A Synthetic Auth
 
-Status: `RUNTIME_CONNECTED` — dev-only mobile path is implemented; server provisioning and live restart-cycle evidence remain `NOT VERIFIED`.
+Status: `RUNTIME_CONNECTED` — development runtime path and CI are verified; trusted Auth Admin provisioning plus device restart-cycle evidence remain `NOT VERIFIED`.
+
+Focused implementation branch: `integration/golden-user-001-auth-synthetic-v1`.
 
 ## Why this path exists
 
@@ -15,7 +17,7 @@ This is not a mock session. The development login must create a real Supabase Au
 
 ## Implemented mobile path
 
-On `integration/golden-user-001-v1`:
+On `integration/golden-user-001-auth-synthetic-v1`:
 
 - `createSupabaseAuthPort.native.ts` exposes a development-only Golden User login action.
 - It calls `supabase.auth.signInWithPassword`, so the returned session/JWT is real Supabase Auth state.
@@ -23,13 +25,15 @@ On `integration/golden-user-001-v1`:
 - Existing SecureStore session persistence and Auth state subscription are reused.
 - `AuthGate` exposes `Golden User 001로 테스트 로그인` only when development configuration explicitly enables it.
 - Signed-in development builds continue to show Gate 01 identity evidence (`Palta ID`, `Auth ID`).
+- `scripts/preflight-env.mjs` rejects Golden User Auth outside `EXPO_PUBLIC_ENV=development` and rejects production builds carrying Golden User public credentials.
+- `scripts/run-ios-mobile.sh` runs the environment boundary preflight before the iOS development launch.
 
 ## Production guard
 
 Synthetic login is unavailable unless all conditions are true:
 
 - `EXPO_PUBLIC_ENABLE_GOLDEN_USER_AUTH=true`
-- environment is not `production`/`prod`
+- `EXPO_PUBLIC_ENV=development`
 - synthetic email and password are supplied to the local development build
 
 No Supabase secret/service-role key is accepted by mobile code.
@@ -67,7 +71,35 @@ EXPO_PUBLIC_GOLDEN_USER_EMAIL=<same synthetic email provisioned on server>
 EXPO_PUBLIC_GOLDEN_USER_PASSWORD=<synthetic development password>
 ```
 
-These values are for development builds only. The synthetic password is therefore treated as a test credential, never a production credential.
+These values are for development builds only. The synthetic password is treated as a test credential, never a production credential.
+
+## Verified evidence — 2026-09-18
+
+Current focused-branch HEAD verified at this checkpoint:
+
+`862eb72edd214feac33b122df71acad1b9c2b22f`
+
+Successful GitHub Actions on that exact HEAD:
+
+- Palta Core Check run `35338388785` — `success`
+- Palta Core CI run `35338388843` — `success`
+- Palta Mobile Runtime Shell run `35338388900` — `success`
+
+The focused branch is used because parallel work sessions were writing contradictory Auth changes to the controller branch. Do not force-update either branch over newer work. Reconcile only after Gate 01A evidence is complete.
+
+Latest direct `palta-dev` database check at this checkpoint:
+
+- `auth.users = 0`
+- `auth.identities = 0`
+- `public.palta_account = 0`
+
+Therefore no login-capable Golden User has yet been provisioned.
+
+## Current external boundary
+
+The connected Supabase management surface used in this session exposes SQL/project/runtime operations but does not expose Auth Admin user creation or a retrievable secret key. That boundary is intentional and must not be bypassed by inserting directly into Supabase Auth tables or by exposing an admin key to mobile.
+
+The remaining trusted action is therefore to execute the already-versioned `golden:provision` command from a trusted development/server shell that has the project's Supabase secret key. After that one action, the mobile Golden User flow can be exercised without Apple/Google provider interaction.
 
 ## Gate 01A Definition of Done
 
@@ -84,4 +116,11 @@ All items must be evidenced before changing 01A to `E2E_VERIFIED`:
 9. Owner RLS still prevents access to another account.
 10. Mobile typecheck/CI and secret-boundary checks pass.
 
-Until these are complete, Gate 01A remains `RUNTIME_CONNECTED`, not `E2E_VERIFIED`.
+Current status by item:
+
+- #1–#3: `NOT VERIFIED` — trusted Auth Admin provisioning has not executed
+- #4–#8: `NOT VERIFIED` — requires provisioned synthetic account and actual mobile interaction
+- #9: `VERIFIED` on the existing real `palta-dev` negative owner-RLS test
+- #10: `VERIFIED` on focused HEAD `862eb72...`
+
+Until #1–#8 are evidenced, Gate 01A remains `RUNTIME_CONNECTED`, not `E2E_VERIFIED`.
