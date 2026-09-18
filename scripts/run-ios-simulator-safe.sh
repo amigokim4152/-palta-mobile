@@ -34,8 +34,6 @@ if [ ! -f "$APP_DIR/package.json" ]; then
 fi
 info "Using mobile runtime: $APP_DIR"
 
-# Expo cannot mutate a dynamic app.config.ts during `expo install`. Sync the
-# canonical Palta config first so required native plugins are already declared.
 [ -f "$CONFIG_SOURCE" ] || fail "Canonical Expo config missing: $CONFIG_SOURCE"
 mkdir -p "$APP_DIR"
 if [ ! -f "$CONFIG_DEST" ] || ! cmp -s "$CONFIG_SOURCE" "$CONFIG_DEST"; then
@@ -45,8 +43,10 @@ fi
 
 cd "$APP_DIR"
 export npm_config_legacy_peer_deps=true
-npx expo install expo-router expo-location expo-sqlite expo-secure-store expo-notifications expo-haptics expo-speech >/tmp/palta-expo-install.log 2>&1 || { cat /tmp/palta-expo-install.log >&2; fail "Expo dependency reconciliation failed."; }
-npm install --save @maplibre/maplibre-react-native --legacy-peer-deps >>/tmp/palta-expo-install.log 2>&1 || { cat /tmp/palta-expo-install.log >&2; fail "MapLibre dependency reconciliation failed."; }
+# app.config.ts declares MapLibre, so it must exist before any Expo command
+# evaluates the dynamic config and resolves config plugins.
+npm install --save @maplibre/maplibre-react-native --legacy-peer-deps >/tmp/palta-expo-install.log 2>&1 || { cat /tmp/palta-expo-install.log >&2; fail "MapLibre dependency reconciliation failed."; }
+npx expo install expo-router expo-location expo-sqlite expo-secure-store expo-notifications expo-haptics expo-speech >>/tmp/palta-expo-install.log 2>&1 || { cat /tmp/palta-expo-install.log >&2; fail "Expo dependency reconciliation failed."; }
 unset npm_config_legacy_peer_deps
 cd "$ROOT"
 info "Fetching simulator recovery branch without switching your current branch..."
