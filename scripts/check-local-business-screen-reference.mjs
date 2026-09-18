@@ -69,6 +69,10 @@ assert(
   card.includes('categoryLabels'),
   'Consumer cards must translate known categories and suppress unknown internal taxonomy keys.',
 );
+assert(
+  card.includes('✓ Verificado') && card.includes("value !== 'Verificado'"),
+  'Verification must stay a compact trust cue rather than consume the discovery highlight slot.',
+);
 
 assert(
   discovery.includes('BusinessDiscoveryShell') &&
@@ -87,17 +91,21 @@ assert(
   'Discovery experience must project real-photo/service/highlight slots into production result cards.',
 );
 
-const heroIndex = detail.indexOf('<ProfileHero business={business}');
+const heroIndex = detail.indexOf('<ProfileHero');
 const actionsIndex = detail.indexOf('<BusinessActionBar');
 const servicesIndex = detail.indexOf('title="Qué hace este negocio"');
+const hoursIndex = detail.indexOf('title="Horario y atención"');
 const couponIndex = detail.indexOf('title="Beneficio disponible"');
+const postsIndex = detail.indexOf('title="Novedades"');
 const reviewsIndex = detail.indexOf('title="Opiniones verificadas"');
 const externalIndex = detail.indexOf('<ExternalChannels');
 assert(heroIndex >= 0, 'Business profile must begin with a visual business hero.');
 assert(actionsIndex > heroIndex, 'Primary business actions must appear immediately after the hero.');
 assert(servicesIndex > actionsIndex, 'Service detail must follow immediate actions.');
-assert(couponIndex === -1 || couponIndex > actionsIndex, 'Benefits must remain supporting content below direct actions.');
-assert(reviewsIndex === -1 || reviewsIndex > actionsIndex, 'Verified reviews must remain supporting content below direct actions.');
+assert(hoursIndex === -1 || hoursIndex > servicesIndex, 'Hours and service area must follow service identity.');
+assert(couponIndex === -1 || couponIndex > Math.max(actionsIndex, hoursIndex), 'Benefits must remain supporting content below services/hours.');
+assert(postsIndex === -1 || postsIndex > Math.max(actionsIndex, couponIndex), 'Recent business updates must remain below direct actions and benefits.');
+assert(reviewsIndex === -1 || reviewsIndex > Math.max(actionsIndex, postsIndex), 'Verified reviews must remain supporting content after recent business updates.');
 assert(externalIndex > actionsIndex, 'External channels belong below primary Palta actions.');
 assert(
   detail.includes('.slice(0, 6)') && detail.includes('pagingEnabled'),
@@ -106,6 +114,12 @@ assert(
 assert(
   detail.includes('business.posts.slice(0, 3)') && detail.includes('reviews.items.slice(0, 3)'),
   'Profile should progressively disclose useful updates and verified-use reviews instead of flooding the first viewport.',
+);
+assert(
+  detail.includes('readLocalBusinessDiscoveryCache') &&
+  detail.includes("return 'Zona de atención'") &&
+  detail.includes('formatDistance(item.distance_m)'),
+  'Profile must carry discovery distance/service-area context without persisting precise search location.',
 );
 assert(
   !detail.includes('Contactar y actuar') && !detail.includes('Map Core preparado'),
