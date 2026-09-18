@@ -6,6 +6,7 @@ const manifestPath = path.join(root, 'manifest/mobile-runtime-composition.json')
 const agentsPath = path.join(root, 'AGENTS.md');
 const contractPath = path.join(root, 'docs/MOBILE_RUNTIME_COMPOSITION.md');
 const validModes = new Set(['live_overlay', 'reviewed_snapshot']);
+const validCoreStatuses = new Set(['pending_contract_integration', 'integrated', 'review_required']);
 const shaPattern = /^[0-9a-f]{40}$/;
 
 function fail(message) {
@@ -62,6 +63,9 @@ if (manifest.generated_runtime_root !== 'apps/mobile/src') {
 }
 if (!Array.isArray(manifest.surfaces) || manifest.surfaces.length === 0) {
   fail('Runtime composition must register at least one surface.');
+}
+if (!Array.isArray(manifest.core_integrations) || manifest.core_integrations.length === 0) {
+  fail('Runtime composition must track shared Core integration branches.');
 }
 
 const sharedPaths = (manifest.shared_paths ?? []).map(normalizeRepoPath);
@@ -139,19 +143,67 @@ for (const [surfaceId, routePath] of routeAssertions) {
   if (!ownsRoute) fail(`${surfaceId} must own its primary tab route ${routePath}.`);
 }
 
+const coreIds = new Set();
+const coreBranches = new Set();
+for (const core of manifest.core_integrations) {
+  if (!core || typeof core !== 'object') fail('Invalid Core integration entry.');
+  if (typeof core.id !== 'string' || !core.id.trim()) fail('Every Core integration needs an id.');
+  if (coreIds.has(core.id)) fail(`Duplicate Core integration id: ${core.id}`);
+  coreIds.add(core.id);
+
+  if (typeof core.source_branch !== 'string' || !core.source_branch.startsWith('integration/')) {
+    fail(`Core ${core.id} must point at an integration/* source branch.`);
+  }
+  if (coreBranches.has(core.source_branch)) {
+    fail(`Duplicate Core source branch: ${core.source_branch}`);
+  }
+  coreBranches.add(core.source_branch);
+
+  if (!validCoreStatuses.has(core.status)) {
+    fail(`Core ${core.id} has invalid status ${core.status}.`);
+  }
+  if (!shaPattern.test(core.observed_source_sha ?? '')) {
+    fail(`Core ${core.id} must record a 40-character observed_source_sha.`);
+  }
+}
+
+const expectedCoreIds = ['auth_profile', 'messaging', 'commerce', 'localization', 'map_runtime'];
+for (const id of expectedCoreIds) {
+  if (!coreIds.has(id)) fail(`Missing required Shared Core watch: ${id}`);
+}
+
+const plannedCoreBranches = new Set(manifest.planned_core_integrations ?? []);
+for (const branch of coreBranches) {
+  if (!plannedCoreBranches.has(branch)) {
+    fail(`Tracked Core branch must remain listed in planned_core_integrations until migration completes: ${branch}`);
+  }
+}
+
 const composerPath = path.join(root, 'scripts/compose-mobile-runtime.mjs');
 const watcherPath = path.join(root, 'scripts/watch-runtime-composition.sh');
-if (!fs.existsSync(composerPath) || !fs.existsSync(watcherPath)) {
-  fail('Composed runtime requires both composer and watcher scripts.');
+const driftPath = path.join(root, 'scripts/check-runtime-source-drift.mjs');
+for (const requiredPath of [composerPath, watcherPath, driftPath]) {
+  if (!fs.existsSync(requiredPath)) {
+    fail(`Composed runtime missing required script: ${path.relative(root, requiredPath)}`);
+  }
 }
+
 const composer = fs.readFileSync(composerPath, 'utf8');
+const watcher = fs.readFileSync(watcherPath, 'utf8');
+const drift = fs.readFileSync(driftPath, 'utf8');
 if (!composer.includes("surface.integration_mode !== 'live_overlay'")) {
   fail('Runtime composer must overlay only explicitly live surfaces.');
 }
 if (!composer.includes("const prefix = 'mobile-overlay/src/'")) {
   fail('Runtime composer must confine live overlays to mobile-overlay/src.');
 }
+if (!watcher.includes('manifest.core_integrations') || !watcher.includes('refspecs+=')) {
+  fail('Runtime watcher must batch-fetch and monitor Shared Core source branches.');
+}
+if (!drift.includes('CORE REVIEW REQUIRED') || !drift.includes('observed_source_sha')) {
+  fail('Runtime drift check must report Shared Core advances without auto-copying them.');
+}
 
 console.log(
-  `PASS: mobile runtime composition (${manifest.surfaces.length} surfaces; ${liveSurfaceCount} live, ${snapshotSurfaceCount} reviewed; ${ownership.length} owned paths; cross-chat discovery protected)`,
+  `PASS: mobile runtime composition (${manifest.surfaces.length} surfaces; ${liveSurfaceCount} live, ${snapshotSurfaceCount} reviewed; ${manifest.core_integrations.length} Core watches; ${ownership.length} owned paths; cross-chat discovery protected)`,
 );
