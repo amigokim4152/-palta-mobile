@@ -28,6 +28,19 @@ function formatDistance(distanceM?: number): string | undefined {
   return `${(distanceM / 1000).toFixed(1).replace('.', ',')} km`;
 }
 
+function isOpenNow(operationalState?: string): boolean {
+  return operationalState === 'open_now' || operationalState === 'open';
+}
+
+function operationalLabel(operationalState?: string): string | undefined {
+  if (isOpenNow(operationalState)) return 'Abierto ahora';
+  if (operationalState === 'closed_now' || operationalState === 'closed') {
+    return 'Cerrado ahora';
+  }
+  if (operationalState === 'temporarily_closed') return 'Cerrado temporalmente';
+  return undefined;
+}
+
 export function NeighborhoodScreen() {
   const { state: neighborhood, dispatch } = useNeighborhoodState();
   const [locationBusy, setLocationBusy] = useState(false);
@@ -63,6 +76,12 @@ export function NeighborhoodScreen() {
         if (
           neighborhood.activeFilters.includes('verified') &&
           item.verification_status !== 'verified'
+        ) {
+          return false;
+        }
+        if (
+          neighborhood.activeFilters.includes('open_now') &&
+          !isOpenNow(item.operational_state)
         ) {
           return false;
         }
@@ -298,11 +317,21 @@ export function NeighborhoodScreen() {
             />
           ) : null}
 
+          {state.data &&
+          state.data.length > 0 &&
+          visibleResults.length === 0 ? (
+            <EmptyState
+              title="No hay resultados con estos filtros"
+              body="Prueba quitar un filtro para ver más lugares cercanos."
+            />
+          ) : null}
+
           {visibleResults.map((item) => (
             <LocalResultCard
               key={item.entity_id}
               name={item.name}
               meta={[
+                operationalLabel(item.operational_state),
                 item.category_key,
                 item.verification_status === 'verified'
                   ? 'Verificado'
@@ -313,7 +342,7 @@ export function NeighborhoodScreen() {
               distance={
                 item.location
                   ? formatDistance(item.distance_m)
-                  : 'Zona de atención'
+                  : 'Atiende por zona'
               }
               selected={item.entity_id === neighborhood.selectedEntityId}
               onPress={() => openEntity(item.entity_id, item.entity_type)}
