@@ -33,7 +33,11 @@ type Env = {
 const DEFAULT_MAP_VERSION = '2026.09.17.1';
 const DEFAULT_MAP_OBJECT_KEY =
   'palta/cl/maps/basemap/versions/2026.09.17.1/basemap.pmtiles';
-const MAP_STYLE_VERSION = 'palta-v1.1';
+const MAP_STYLE_VERSION = 'palta-v1.2';
+const MAP_FONT_OBJECT_KEY =
+  'palta/cl/maps/fonts/noto-sans/1edf95b/NotoSans.ttf';
+const MAP_FONT_LICENSE_OBJECT_KEY =
+  'palta/cl/maps/fonts/noto-sans/1edf95b/OFL.txt';
 
 function corsHeaders(): Headers {
   return new Headers({
@@ -86,7 +90,11 @@ function contentRange(
   };
 }
 
+const spanishName = ['coalesce', ['get', 'name:es'], ['get', 'name']];
+
 function buildChileStyle(origin: string, version: string) {
+  const fontUrl = `${origin}/maps/cl/fonts/NotoSans.ttf`;
+
   return {
     version: 8,
     name: `Somos Palta · Chile · ${version}`,
@@ -97,6 +105,9 @@ function buildChileStyle(origin: string, version: string) {
     },
     center: [-70.65, -33.45],
     zoom: 10,
+    'font-faces': {
+      'Noto Sans': [{ url: fontUrl }],
+    },
     sources: {
       chile: {
         type: 'vector',
@@ -144,7 +155,7 @@ function buildChileStyle(origin: string, version: string) {
         'source-layer': 'landuse',
         filter: [
           'match',
-          ['get', 'class'],
+          ['get', 'kind'],
           [
             'park',
             'garden',
@@ -152,6 +163,8 @@ function buildChileStyle(origin: string, version: string) {
             'recreation_ground',
             'cemetery',
             'pitch',
+            'forest',
+            'wood',
           ],
           true,
           false,
@@ -208,8 +221,8 @@ function buildChileStyle(origin: string, version: string) {
             1.8,
             14,
             3.2,
-            17,
-            6.4,
+            15,
+            4.4,
           ],
           'line-opacity': 0.94,
         },
@@ -233,8 +246,8 @@ function buildChileStyle(origin: string, version: string) {
             1.25,
             14,
             2.4,
-            17,
-            5,
+            15,
+            3.5,
           ],
           'line-opacity': 0.98,
         },
@@ -246,8 +259,8 @@ function buildChileStyle(origin: string, version: string) {
         'source-layer': 'roads',
         filter: [
           'match',
-          ['get', 'class'],
-          ['motorway', 'trunk', 'primary'],
+          ['get', 'kind'],
+          ['motorway', 'trunk', 'primary', 'major_road'],
           true,
           false,
         ],
@@ -263,8 +276,8 @@ function buildChileStyle(origin: string, version: string) {
             1.4,
             13,
             2.5,
-            16,
-            4.6,
+            15,
+            3.9,
           ],
           'line-opacity': 0.95,
         },
@@ -279,6 +292,121 @@ function buildChileStyle(origin: string, version: string) {
           'fill-color': '#DDD9D0',
           'fill-opacity': 0.86,
           'fill-outline-color': '#CCC8BE',
+        },
+      },
+      {
+        id: 'water-labels',
+        type: 'symbol',
+        source: 'chile',
+        'source-layer': 'water',
+        minzoom: 9,
+        filter: ['has', 'name'],
+        layout: {
+          'text-field': spanishName,
+          'text-font': ['Noto Sans'],
+          'text-size': [
+            'interpolate',
+            ['linear'],
+            ['zoom'],
+            9,
+            10,
+            15,
+            12,
+          ],
+          'text-max-width': 8,
+        },
+        paint: {
+          'text-color': '#527889',
+          'text-halo-color': '#F7F8F4',
+          'text-halo-width': 1.3,
+        },
+      },
+      {
+        id: 'place-labels',
+        type: 'symbol',
+        source: 'chile',
+        'source-layer': 'places',
+        minzoom: 4,
+        filter: ['has', 'name'],
+        layout: {
+          'text-field': spanishName,
+          'text-font': ['Noto Sans'],
+          'text-size': [
+            'interpolate',
+            ['linear'],
+            ['zoom'],
+            4,
+            10,
+            8,
+            12,
+            12,
+            14,
+            15,
+            16,
+          ],
+          'text-max-width': 9,
+          'text-letter-spacing': 0.01,
+          'text-allow-overlap': false,
+          'text-optional': true,
+        },
+        paint: {
+          'text-color': '#344239',
+          'text-halo-color': '#F7F8F4',
+          'text-halo-width': 1.5,
+          'text-halo-blur': 0.4,
+        },
+      },
+      {
+        id: 'road-labels',
+        type: 'symbol',
+        source: 'chile',
+        'source-layer': 'roads',
+        minzoom: 12,
+        filter: ['has', 'name'],
+        layout: {
+          'symbol-placement': 'line',
+          'symbol-spacing': 320,
+          'text-field': spanishName,
+          'text-font': ['Noto Sans'],
+          'text-size': [
+            'interpolate',
+            ['linear'],
+            ['zoom'],
+            12,
+            10,
+            15,
+            12,
+          ],
+          'text-max-angle': 30,
+          'text-padding': 2,
+          'text-keep-upright': true,
+        },
+        paint: {
+          'text-color': '#68716B',
+          'text-halo-color': '#FFFFFF',
+          'text-halo-width': 1.5,
+          'text-halo-blur': 0.3,
+        },
+      },
+      {
+        id: 'poi-labels',
+        type: 'symbol',
+        source: 'chile',
+        'source-layer': 'pois',
+        minzoom: 14,
+        filter: ['has', 'name'],
+        layout: {
+          'text-field': spanishName,
+          'text-font': ['Noto Sans'],
+          'text-size': 10.5,
+          'text-max-width': 8,
+          'text-offset': [0, 0.7],
+          'text-optional': true,
+        },
+        paint: {
+          'text-color': '#5C665F',
+          'text-halo-color': '#F7F8F4',
+          'text-halo-width': 1.2,
         },
       },
     ],
@@ -297,6 +425,8 @@ function buildManifest(origin: string, objectKey: string, version: string) {
     metadata_url: `${origin}/maps/cl/metadata.json`,
     pmtiles_url: `${origin}/maps/cl/basemap.pmtiles`,
     immutable_version_url: `${origin}/maps/cl/versions/${version}/basemap.pmtiles`,
+    font_url: `${origin}/maps/cl/fonts/NotoSans.ttf`,
+    font_license_url: `${origin}/maps/cl/fonts/OFL.txt`,
     attribution: '© OpenStreetMap contributors',
   };
 }
@@ -410,7 +540,7 @@ async function decodePmtilesMetadata(
   };
 }
 
-async function serveMapObject(
+async function serveR2Object(
   request: Request,
   env: Env,
   key: string,
@@ -448,6 +578,14 @@ async function serveMapObject(
   return new Response(object.body, { status: 200, headers });
 }
 
+function getOnly(request: Request): Response | null {
+  if (request.method === 'GET' || request.method === 'HEAD') return null;
+  return new Response('Method Not Allowed', {
+    status: 405,
+    headers: { Allow: 'GET, HEAD, OPTIONS' },
+  });
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
@@ -471,6 +609,7 @@ export default {
           mapManifestPath: '/maps/cl/manifest.json',
           mapStylePath: '/maps/cl/style.json',
           mapMetadataPath: '/maps/cl/metadata.json',
+          mapFontPath: '/maps/cl/fonts/NotoSans.ttf',
         },
         'no-store',
       );
@@ -513,41 +652,42 @@ export default {
       }
     }
 
+    if (url.pathname === '/maps/cl/fonts/NotoSans.ttf') {
+      const invalid = getOnly(request);
+      if (invalid) return invalid;
+      return serveR2Object(request, env, MAP_FONT_OBJECT_KEY);
+    }
+
+    if (url.pathname === '/maps/cl/fonts/OFL.txt') {
+      const invalid = getOnly(request);
+      if (invalid) return invalid;
+      return serveR2Object(request, env, MAP_FONT_LICENSE_OBJECT_KEY);
+    }
+
     if (url.pathname === '/maps/cl/basemap.pmtiles') {
-      if (request.method !== 'GET' && request.method !== 'HEAD') {
-        return new Response('Method Not Allowed', {
-          status: 405,
-          headers: { Allow: 'GET, HEAD, OPTIONS' },
-        });
-      }
-      return serveMapObject(request, env, objectKey);
+      const invalid = getOnly(request);
+      if (invalid) return invalid;
+      return serveR2Object(request, env, objectKey);
     }
 
     const versionMatch = url.pathname.match(
       /^\/maps\/cl\/versions\/([A-Za-z0-9._-]+)\/basemap\.pmtiles$/,
     );
     if (versionMatch) {
-      if (request.method !== 'GET' && request.method !== 'HEAD') {
-        return new Response('Method Not Allowed', {
-          status: 405,
-          headers: { Allow: 'GET, HEAD, OPTIONS' },
-        });
-      }
+      const invalid = getOnly(request);
+      if (invalid) return invalid;
       const immutableKey = `palta/cl/maps/basemap/versions/${versionMatch[1]}/basemap.pmtiles`;
-      return serveMapObject(request, env, immutableKey);
+      return serveR2Object(request, env, immutableKey);
     }
 
     if (url.pathname === '/maps/style.json') {
       return serveJson(request, buildChileStyle(url.origin, version));
     }
+
     if (url.pathname === '/maps/santiago.pmtiles') {
-      if (request.method !== 'GET' && request.method !== 'HEAD') {
-        return new Response('Method Not Allowed', {
-          status: 405,
-          headers: { Allow: 'GET, HEAD, OPTIONS' },
-        });
-      }
-      return serveMapObject(request, env, objectKey);
+      const invalid = getOnly(request);
+      if (invalid) return invalid;
+      return serveR2Object(request, env, objectKey);
     }
 
     return new Response('Not Found', { status: 404 });
