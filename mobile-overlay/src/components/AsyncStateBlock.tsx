@@ -1,9 +1,15 @@
 import { Pressable, Text, View } from 'react-native';
+import { surfaceT } from '../../../src/localization/index';
+import { useLocalization } from '../providers/LocalizationProvider';
 
-export function LoadingState({ label = 'Cargando…' }: { label?: string }) {
+export function LoadingState({ label }: { label?: string }) {
+  const { locale } = useLocalization();
+
   return (
     <View style={{ paddingVertical: 18 }}>
-      <Text style={{ opacity: 0.65 }}>{label}</Text>
+      <Text style={{ opacity: 0.65 }}>
+        {label ?? surfaceT('async.loading', locale)}
+      </Text>
     </View>
   );
 }
@@ -15,13 +21,19 @@ export function ErrorState({
   message: string;
   onRetry?: () => void;
 }) {
+  const { locale } = useLocalization();
+
   return (
     <View style={{ paddingVertical: 18, gap: 10 }}>
-      <Text style={{ fontWeight: '700' }}>No pudimos actualizar esta información.</Text>
+      <Text style={{ fontWeight: '700' }}>
+        {surfaceT('async.errorTitle', locale)}
+      </Text>
       <Text style={{ opacity: 0.65 }}>{message}</Text>
       {onRetry ? (
         <Pressable onPress={onRetry} style={{ paddingVertical: 8 }}>
-          <Text style={{ fontWeight: '700' }}>Reintentar</Text>
+          <Text style={{ fontWeight: '700' }}>
+            {surfaceT('async.retry', locale)}
+          </Text>
         </Pressable>
       ) : null}
     </View>
