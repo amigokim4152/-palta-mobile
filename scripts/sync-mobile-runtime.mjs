@@ -12,6 +12,7 @@ const temporaryRoot = path.join(appRoot, '.src-sync-tmp');
 const repositoryCoreRoot = path.join(root, 'src');
 
 const textExtensions = new Set(['.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs']);
+const templateSourcePattern = /\.template\.(?:[cm]?[jt]sx?)$/i;
 
 function normalizeModuleSpecifier(value) {
   return value.split(path.sep).join('/');
@@ -72,7 +73,16 @@ async function transformTree(currentDir) {
       continue;
     }
 
-    if (!entry.isFile() || !textExtensions.has(path.extname(entry.name))) continue;
+    if (!entry.isFile()) continue;
+
+    // mobile-overlay may keep documentation/example adapters as *.template.*,
+    // but generated apps/mobile/src must contain only executable runtime code.
+    if (templateSourcePattern.test(entry.name)) {
+      await rm(target, { force: true });
+      continue;
+    }
+
+    if (!textExtensions.has(path.extname(entry.name))) continue;
 
     const relative = path.relative(temporaryRoot, target);
     const sourceFile = path.join(sourceRoot, relative);
