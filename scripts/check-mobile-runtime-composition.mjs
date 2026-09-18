@@ -3,6 +3,8 @@ import path from 'node:path';
 
 const root = process.cwd();
 const manifestPath = path.join(root, 'manifest/mobile-runtime-composition.json');
+const validModes = new Set(['live_overlay', 'reviewed_snapshot']);
+const shaPattern = /^[0-9a-f]{40}$/;
 
 function fail(message) {
   throw new Error(message);
@@ -26,6 +28,9 @@ if (manifest.version !== 1) fail(`Unsupported runtime composition version: ${man
 if (manifest.composition_branch !== 'integration/runtime-composition-v1') {
   fail('Runtime composition branch must remain integration/runtime-composition-v1.');
 }
+if (manifest.generated_runtime_root !== 'apps/mobile/src') {
+  fail('Composed runtime must materialize only into apps/mobile/src.');
+}
 if (!Array.isArray(manifest.surfaces) || manifest.surfaces.length === 0) {
   fail('Runtime composition must register at least one surface.');
 }
@@ -33,6 +38,8 @@ if (!Array.isArray(manifest.surfaces) || manifest.surfaces.length === 0) {
 const sharedPaths = (manifest.shared_paths ?? []).map(normalizeRepoPath);
 const ownership = [];
 const ids = new Set();
+let liveSurfaceCount = 0;
+let snapshotSurfaceCount = 0;
 
 for (const surface of manifest.surfaces) {
   if (!surface || typeof surface !== 'object') fail('Invalid surface entry.');
@@ -43,12 +50,31 @@ for (const surface of manifest.surfaces) {
   if (typeof surface.source_branch !== 'string' || !surface.source_branch.startsWith('integration/')) {
     fail(`Surface ${surface.id} must point at an integration/* source branch.`);
   }
+  if (!validModes.has(surface.integration_mode)) {
+    fail(`Surface ${surface.id} has invalid integration_mode ${surface.integration_mode}.`);
+  }
+  if (surface.integration_mode === 'live_overlay') {
+    liveSurfaceCount += 1;
+    if (surface.integrated_source_sha !== undefined) {
+      fail(`Live surface ${surface.id} must follow its source branch instead of pinning integrated_source_sha.`);
+    }
+  } else {
+    snapshotSurfaceCount += 1;
+    if (!shaPattern.test(surface.integrated_source_sha ?? '')) {
+      fail(`Reviewed snapshot ${surface.id} must record a 40-character integrated_source_sha.`);
+    }
+  }
+
   if (!Array.isArray(surface.owned_paths) || surface.owned_paths.length === 0) {
     fail(`Surface ${surface.id} must declare owned_paths.`);
   }
 
   for (const rawPath of surface.owned_paths) {
     const ownedPath = normalizeRepoPath(rawPath);
+    if (surface.integration_mode === 'live_overlay' && !ownedPath.startsWith('mobile-overlay/src/')) {
+      fail(`Live surface ${surface.id} can overlay only mobile-overlay/src paths: ${ownedPath}.`);
+    }
+
     for (const sharedPath of sharedPaths) {
       if (containsPath(sharedPath, ownedPath) || containsPath(ownedPath, sharedPath)) {
         fail(`Surface ${surface.id} cannot own shared composition path ${ownedPath} (conflicts with ${sharedPath}).`);
@@ -84,4 +110,19 @@ for (const [surfaceId, routePath] of routeAssertions) {
   if (!ownsRoute) fail(`${surfaceId} must own its primary tab route ${routePath}.`);
 }
 
-console.log(`PASS: mobile runtime composition ownership (${manifest.surfaces.length} surfaces, ${ownership.length} owned paths)`);
+const composerPath = path.join(root, 'scripts/compose-mobile-runtime.mjs');
+const watcherPath = path.join(root, 'scripts/watch-runtime-composition.sh');
+if (!fs.existsSync(composerPath) || !fs.existsSync(watcherPath)) {
+  fail('Composed runtime requires both composer and watcher scripts.');
+}
+const composer = fs.readFileSync(composerPath, 'utf8');
+if (!composer.includes("surface.integration_mode !== 'live_overlay'")) {
+  fail('Runtime composer must overlay only explicitly live surfaces.');
+}
+if (!composer.includes("const prefix = 'mobile-overlay/src/'")) {
+  fail('Runtime composer must confine live overlays to mobile-overlay/src.');
+}
+
+console.log(
+  `PASS: mobile runtime composition (${manifest.surfaces.length} surfaces; ${liveSurfaceCount} live, ${snapshotSurfaceCount} reviewed; ${ownership.length} owned paths)`,
+);
