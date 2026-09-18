@@ -3,6 +3,7 @@ import { Pressable, SafeAreaView, ScrollView, Text, View } from 'react-native';
 import {
   VEHICLE_SALE_CARE_CHECKLIST,
   buildVehicleSaleCareTrack,
+  type VehicleSaleMilestone,
 } from '../../../../src/autos/autosSaleCare';
 import { buildVehicleSalePreparation } from '../../../../src/autos/autosSalePreparation';
 import { paltaTheme } from '../../theme/paltaTheme';
@@ -16,6 +17,16 @@ import {
 function clp(value: number) {
   return `$${new Intl.NumberFormat('es-CL').format(value)}`;
 }
+
+const nextActionLabel: Partial<Record<VehicleSaleMilestone, string>> = {
+  offer_selected: 'Coordinar inspección',
+  inspection_scheduled: 'Confirmar inspección realizada',
+  inspection_completed: 'Revisar precio final',
+  final_price_confirmed: 'Confirmar pago',
+  payment_confirmed: 'Iniciar transferencia',
+  transfer_started: 'Confirmar transferencia inscrita',
+  transfer_registered: 'Confirmar entrega del vehículo',
+};
 
 export function AutosSaleCareScreen() {
   const { requestId } = useLocalSearchParams<{ requestId: string }>();
@@ -39,8 +50,6 @@ export function AutosSaleCareScreen() {
     records: care.records,
   });
 
-  // Demo has no connected SII snapshot yet. Once the official adapter is connected,
-  // its verified vehicle snapshot is passed here without changing this screen flow.
   const salePreparation = buildVehicleSalePreparation({
     snapshots: [],
     salePriceClp: care.finalPriceClp,
@@ -52,6 +61,7 @@ export function AutosSaleCareScreen() {
   const completed = new Set(care.records.map((record) => record.milestone));
   const latest = care.records[care.records.length - 1];
   const done = latest?.milestone === 'vehicle_handed_over';
+  const actionLabel = latest ? nextActionLabel[latest.milestone] : undefined;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: paltaTheme.color.canvas }}>
@@ -71,7 +81,14 @@ export function AutosSaleCareScreen() {
           <Text style={{ fontSize: 22, fontWeight: '900', color: paltaTheme.color.textPrimary }}>{clp(care.finalPriceClp)}</Text>
           <Text style={{ fontSize: 13, fontWeight: '800', color: paltaTheme.color.textPrimary }}>{selectedOffer?.businessName}</Text>
           <Text style={{ fontSize: 12, lineHeight: 18, color: paltaTheme.color.textSecondary }}>
-            Estado compartido: {track.state}. Palta mantiene el proceso unido hasta que pago, transferencia y entrega queden confirmados.
+            Palta mantiene la venta unida hasta que inspección, precio, pago, transferencia y entrega queden confirmados.
+          </Text>
+        </View>
+
+        <View style={{ padding: paltaTheme.spacing.md, gap: 5, borderRadius: paltaTheme.radius.surface, borderWidth: 1, borderColor: paltaTheme.color.divider, backgroundColor: paltaTheme.color.surface }}>
+          <Text style={{ fontSize: 14, fontWeight: '900', color: paltaTheme.color.textPrimary }}>Tu privacidad al coordinar</Text>
+          <Text style={{ fontSize: 12, lineHeight: 18, color: paltaTheme.color.textSecondary }}>
+            La automotora elegida todavía no necesita ver tu teléfono ni tu ubicación exacta. Puedes coordinar dentro de Palta. Si una visita requiere compartir un dato privado, Palta te lo mostrará y pedirá confirmación justo antes de enviarlo.
           </Text>
         </View>
 
@@ -127,7 +144,7 @@ export function AutosSaleCareScreen() {
           })}
         </View>
 
-        {!done ? (
+        {!done && actionLabel ? (
           <Pressable
             accessibilityRole="button"
             onPress={() => advanceDemoVehicleSaleCare(requestId)}
@@ -139,9 +156,11 @@ export function AutosSaleCareScreen() {
               backgroundColor: pressed ? paltaTheme.color.brandMid : paltaTheme.color.brandPrimary,
             })}
           >
-            <Text style={{ fontSize: 15, fontWeight: '900', color: paltaTheme.color.surface }}>Avanzar siguiente paso · demo</Text>
+            <Text style={{ fontSize: 15, fontWeight: '900', color: paltaTheme.color.surface }}>{actionLabel}</Text>
           </Pressable>
-        ) : (
+        ) : null}
+
+        {done ? (
           <View style={{ padding: paltaTheme.spacing.lg, gap: 6, borderRadius: paltaTheme.radius.surface, backgroundColor: paltaTheme.color.brandSoft }}>
             <Text style={{ fontSize: 18, fontWeight: '900', color: paltaTheme.color.brandPrimary }}>Venta completada</Text>
             <Text style={{ fontSize: 12, lineHeight: 18, color: paltaTheme.color.textSecondary }}>
@@ -151,7 +170,7 @@ export function AutosSaleCareScreen() {
               <Text style={{ marginTop: paltaTheme.spacing.xs, fontWeight: '900', color: paltaTheme.color.brandPrimary }}>Volver a Autos ›</Text>
             </Pressable>
           </View>
-        )}
+        ) : null}
       </ScrollView>
     </SafeAreaView>
   );
