@@ -21,6 +21,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
     retry,
   } = useAuthRuntime();
   const [email, setEmail] = useState('');
+  const showGate01Evidence = process.env.EXPO_PUBLIC_ENV === 'development';
 
   if (state.status === 'loading') {
     return (
@@ -35,6 +36,24 @@ export function AuthGate({ children }: { children: ReactNode }) {
     return (
       <View style={styles.appContainer}>
         {children}
+        {showGate01Evidence ? (
+          <View style={styles.evidencePanel}>
+            <Text style={styles.evidenceTitle}>Gate 01 · 개발 검증</Text>
+            <Text style={styles.evidenceLabel}>Palta ID</Text>
+            <Text selectable style={styles.evidenceValue}>
+              {state.session.paltaUserId}
+            </Text>
+            <Text style={styles.evidenceLabel}>Auth ID</Text>
+            <Text selectable style={styles.evidenceValue}>
+              {state.session.authUserId}
+            </Text>
+            {state.session.expiresAt ? (
+              <Text style={styles.evidenceMeta}>
+                세션 만료 예정: {state.session.expiresAt}
+              </Text>
+            ) : null}
+          </View>
+        ) : null}
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="로그아웃"
@@ -218,6 +237,23 @@ const styles = StyleSheet.create({
     backgroundColor: '#F1F5EC',
   },
   noticeText: { color: '#32452E' },
+  evidencePanel: {
+    position: 'absolute',
+    left: 12,
+    right: 12,
+    bottom: 20,
+    zIndex: 100,
+    gap: 3,
+    padding: 10,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.96)',
+    borderWidth: 1,
+    borderColor: '#D9D9D2',
+  },
+  evidenceTitle: { fontSize: 12, fontWeight: '700' },
+  evidenceLabel: { marginTop: 2, fontSize: 10, color: '#66665F' },
+  evidenceValue: { fontSize: 11 },
+  evidenceMeta: { marginTop: 3, fontSize: 10, color: '#66665F' },
   signOutButton: {
     position: 'absolute',
     top: 48,
