@@ -14,6 +14,10 @@ import {
   marketCategories,
   type MarketCategoryKey,
 } from '../../../../src/market/marketCatalog';
+import {
+  isMarketListingPublic,
+  marketListingStatusMeta,
+} from '../../../../src/market/marketLifecycle';
 import { paltaTheme } from '../../theme/paltaTheme';
 import {
   marketPreviewListings,
@@ -54,9 +58,11 @@ function ListingRow({ listing }: { listing: MarketPreviewListing }) {
           >
             {formatPrice(listing)}
           </Text>
-          {listing.status === 'reserved' ? (
+          {listing.status !== 'active' ? (
             <View style={styles.statusChip}>
-              <Text style={styles.statusChipText}>Reservado</Text>
+              <Text style={styles.statusChipText}>
+                {marketListingStatusMeta[listing.status].label}
+              </Text>
             </View>
           ) : null}
         </View>
@@ -74,7 +80,9 @@ export function MarketScreen() {
   const [query, setQuery] = useState('');
 
   const listings = useMemo(() => {
-    const base = __DEV__ ? marketPreviewListings : [];
+    const base = __DEV__
+      ? marketPreviewListings.filter((listing) => isMarketListingPublic(listing.status))
+      : [];
     const normalized = query.trim().toLocaleLowerCase('es-CL');
 
     return base.filter((listing) => {
@@ -90,18 +98,28 @@ export function MarketScreen() {
   const header = (
     <View>
       <View style={styles.topBar}>
-        <View>
+        <View style={styles.headingBlock}>
           <Text style={styles.heading}>Mercado</Text>
           <Pressable style={styles.locationButton}>
             <Text style={styles.locationText}>Vitacura · cerca de mí</Text>
             <Text style={styles.locationChevron}>⌄</Text>
           </Pressable>
         </View>
-        {__DEV__ ? (
-          <View style={styles.previewBadge}>
-            <Text style={styles.previewBadgeText}>Vista previa</Text>
-          </View>
-        ) : null}
+        <View style={styles.topActions}>
+          {__DEV__ ? (
+            <View style={styles.previewBadge}>
+              <Text style={styles.previewBadgeText}>Vista previa</Text>
+            </View>
+          ) : null}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Mis publicaciones"
+            onPress={() => router.push('/market/my-listings')}
+            style={styles.myListingsButton}
+          >
+            <Text style={styles.myListingsButtonText}>Mis ventas</Text>
+          </Pressable>
+        </View>
       </View>
 
       <View style={styles.searchBox}>
@@ -197,7 +215,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
+    gap: 10,
   },
+  headingBlock: { flex: 1 },
   heading: {
     color: paltaTheme.color.textPrimary,
     fontSize: 28,
@@ -221,16 +241,30 @@ const styles = StyleSheet.create({
     color: paltaTheme.color.textSecondary,
     fontSize: 16,
   },
+  topActions: { alignItems: 'flex-end', gap: 7 },
   previewBadge: {
-    marginTop: 4,
     borderRadius: paltaTheme.radius.pill,
     backgroundColor: paltaTheme.color.brandSoft,
     paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingVertical: 5,
   },
   previewBadgeText: {
     color: paltaTheme.color.brandPrimary,
-    fontSize: 11,
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  myListingsButton: {
+    minHeight: 34,
+    justifyContent: 'center',
+    borderRadius: paltaTheme.radius.pill,
+    borderWidth: 1,
+    borderColor: paltaTheme.color.border,
+    backgroundColor: paltaTheme.color.surface,
+    paddingHorizontal: 12,
+  },
+  myListingsButtonText: {
+    color: paltaTheme.color.textPrimary,
+    fontSize: 12,
     fontWeight: '700',
   },
   searchBox: {
