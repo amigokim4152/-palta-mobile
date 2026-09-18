@@ -4,6 +4,8 @@ import {
   nextSheetSnap,
   type ResultSheetSnap,
 } from '../../../../src/neighborhood/resultSheetPolicy';
+import { neighborhoodT } from '../../../../src/localization/index';
+import { useLocalization } from '../../providers/LocalizationProvider';
 
 const heightBySnap: Record<ResultSheetSnap, number> = {
   peek: 170,
@@ -19,9 +21,11 @@ export function MapResultSheet({
   snap: ResultSheetSnap;
   onSnapChange: (next: ResultSheetSnap) => void;
 }>) {
+  const { locale } = useLocalization();
+
   return (
     <View
-      accessibilityLabel="Resultados del mapa"
+      accessibilityLabel={neighborhoodT('neighborhood.a11y.mapResults', locale)}
       style={{
         minHeight: heightBySnap[snap],
         maxHeight: heightBySnap[snap],
@@ -41,7 +45,10 @@ export function MapResultSheet({
       >
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Mostrar más resultados"
+          accessibilityLabel={neighborhoodT(
+            'neighborhood.a11y.showMoreResults',
+            locale,
+          )}
           onPress={() => onSnapChange(nextSheetSnap(snap, 'up'))}
           style={{ minWidth: 44, minHeight: 44, justifyContent: 'center' }}
         >
@@ -49,7 +56,10 @@ export function MapResultSheet({
         </Pressable>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Mostrar más mapa"
+          accessibilityLabel={neighborhoodT(
+            'neighborhood.a11y.showMoreMap',
+            locale,
+          )}
           onPress={() => onSnapChange(nextSheetSnap(snap, 'down'))}
           style={{ minWidth: 44, minHeight: 44, justifyContent: 'center' }}
         >
