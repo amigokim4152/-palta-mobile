@@ -4,11 +4,11 @@ import type {
   RealEstateListingRepository,
   RealEstateListingSearchItem,
 } from '../../../../src/realEstate/realEstateRepository';
-import { demoRealEstateListingRepository } from './demoRealEstateListingRepository';
+import { defaultRealEstateListingRepository } from './defaultRealEstateListingRepository';
 
 export function useRealEstateListings(
   query: RealEstateListingQuery,
-  repository: RealEstateListingRepository = demoRealEstateListingRepository,
+  repository: RealEstateListingRepository = defaultRealEstateListingRepository,
 ) {
   const [listings, setListings] = useState<readonly RealEstateListingSearchItem[]>([]);
   const [loading, setLoading] = useState(true);
