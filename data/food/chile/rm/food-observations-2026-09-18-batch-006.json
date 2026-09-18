@@ -1,0 +1,218 @@
+{
+  "dataset": "palta_food_observations_rm",
+  "observed_at": "2026-09-18",
+  "currency": "CLP",
+  "scope": "Región Metropolitana de Santiago",
+  "records": [
+    {
+      "outlet": {
+        "outlet_key": "cl-rm-maipu-delivery-sushi-sur-1207",
+        "brand_name": "Delivery Sushi Maipú",
+        "address": "Sur 1207",
+        "comuna": "Maipú",
+        "region": "Región Metropolitana",
+        "postal_code": "9274843",
+        "identity_status": "platform_only"
+      },
+      "listing": {
+        "platform": "uber_eats",
+        "listing_id": "xnyzu4M_RkSH-lrhN6pCmg",
+        "listing_name": "Delivery Sushi Maipú",
+        "url": "https://www.ubereats.com/cl/store/delivery-sushi-maipu/xnyzu4M_RkSH-lrhN6pCmg",
+        "platform_categories": ["Sushi"],
+        "delivery_supported": true,
+        "pickup_supported": true,
+        "scheduled_orders_supported": true
+      },
+      "menu_snapshot": {
+        "sections": ["Artículos destacados"],
+        "sample_items": [
+          {"name": "Promo Facebook 50 bocados", "price_clp": 18500},
+          {"name": "Roll fitness", "price_clp": 7690},
+          {"name": "Acevichado roll", "price_clp": 7500},
+          {"name": "Maki roll", "price_clp": 4560}
+        ]
+      },
+      "evidence": [
+        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/delivery-sushi-maipu/xnyzu4M_RkSH-lrhN6pCmg", "observed_at": "2026-09-18"}
+      ]
+    },
+    {
+      "outlet": {
+        "outlet_key": "cl-rm-pudahuel-la-hamburgueseria-san-juan-valdes-1402",
+        "brand_name": "la hamburguesería pudahuel",
+        "address": "Calle San Juan Valdés 1402",
+        "comuna": "Pudahuel",
+        "region": "Región Metropolitana",
+        "postal_code": "9020000",
+        "identity_status": "platform_only"
+      },
+      "listing": {
+        "platform": "uber_eats",
+        "listing_id": "4K_GzNjnVgykSOQwHHCV0Q",
+        "listing_name": "la hamburguesería pudahuel",
+        "url": "https://www.ubereats.com/cl/store/la-hamburgueseria-pudahuel/4K_GzNjnVgykSOQwHHCV0Q",
+        "platform_categories": ["Americana", "Sándwiches", "Hamburguesas"],
+        "delivery_supported": true,
+        "pickup_supported": true
+      },
+      "menu_snapshot": {
+        "sections": ["Artículos destacados", "Promo 2×1", "Promociones", "Completos", "Perros calientes", "As", "Extras de salsas"],
+        "sample_items": [
+          {"name": "Hamburguesa cheddar bacon doble", "price_clp": 10000},
+          {"name": "Hamburguesa kids", "price_clp": 6500},
+          {"name": "Hamburguesa de pollo clásica", "price_clp": 7000},
+          {"name": "Churrasco chacarero", "price_clp": 7100},
+          {"name": "2x1 perro caliente pequeños", "price_clp": 3990},
+          {"name": "Completo italiiano", "price_clp": 3080},
+          {"name": "Completo dinámico", "price_clp": 3580},
+          {"name": "Perro caliente venezolano", "price_clp": 3990},
+          {"name": "As italiano", "price_clp": 4990}
+        ]
+      },
+      "evidence": [
+        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/la-hamburgueseria-pudahuel/4K_GzNjnVgykSOQwHHCV0Q", "observed_at": "2026-09-18"}
+      ]
+    },
+    {
+      "outlet": {
+        "outlet_key": "cl-rm-san-bernardo-el-cacique-san-jose-531",
+        "brand_name": "El Cacique",
+        "outlet_name": "San Bernardo",
+        "address": "San Jose 531",
+        "comuna": "San Bernardo",
+        "region": "Región Metropolitana",
+        "postal_code": "8050000",
+        "identity_status": "platform_only"
+      },
+      "listing": {
+        "platform": "uber_eats",
+        "listing_id": "4AqO5XYLVSiFxDHqwD96TA",
+        "listing_name": "El Cacique - San Bernardo",
+        "url": "https://www.ubereats.com/cl/store/el-cacique-san-bernardo/4AqO5XYLVSiFxDHqwD96TA",
+        "platform_categories": ["Peruana", "Pescados y mariscos", "Fusión latina", "Latinoamericana"],
+        "delivery_supported": true,
+        "scheduled_orders_supported": true
+      },
+      "menu_snapshot": {
+        "sections": ["Artículos destacados"],
+        "sample_items": [
+          {"name": "Lomo salteado", "price_clp": 18980},
+          {"name": "Trilogía de Carnivora", "price_clp": 18850},
+          {"name": "Cordon blue de lomo", "price_clp": 19630},
+          {"name": "Fettuccine a la huancaína con lomo al pisco", "price_clp": 19500},
+          {"name": "Mar y tierra", "price_clp": 19890},
+          {"name": "Arroz con mariscos", "price_clp": 17940},
+          {"name": "Jalea de mariscos", "price_clp": 20410}
+        ]
+      },
+      "evidence": [
+        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/el-cacique-san-bernardo/4AqO5XYLVSiFxDHqwD96TA", "observed_at": "2026-09-18"}
+      ]
+    },
+    {
+      "outlet": {
+        "outlet_key": "cl-rm-estacion-central-china-wok-san-francisco-de-borja-66",
+        "brand_name": "China Wok",
+        "outlet_name": "Estación Central",
+        "address": "Calle San Francisco De Borja 66, 0196",
+        "comuna": "Estación Central",
+        "region": "Región Metropolitana",
+        "postal_code": "9160000",
+        "identity_status": "platform_only"
+      },
+      "listing": {
+        "platform": "uber_eats",
+        "listing_id": "Q_-798KmRca-I05hXc7NUA",
+        "listing_name": "China Wok - Estación Central",
+        "url": "https://www.ubereats.com/cl/store/china-wok-estacion-central/Q_-798KmRca-I05hXc7NUA",
+        "platform_categories": ["China"],
+        "delivery_supported": true,
+        "observed_availability": "closed_on_platform",
+        "closed_on_platform_at": "2025-07-17T14:09:09.718Z"
+      },
+      "menu_snapshot": {
+        "sections": ["PROMOCIONES EXCLUSIVAS"],
+        "sample_items": [
+          {"name": "2X1 Tallarin Mongoliano"},
+          {"name": "Pollo Saltado Desc OFF"},
+          {"name": "Combo Lomo Saltado Des OFF"},
+          {"name": "Wok Pollo Mongoliano para dos"},
+          {"name": "Duo Lomo Saltado"},
+          {"name": "Banquete Desc OFF"}
+        ]
+      },
+      "evidence": [
+        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/china-wok-estacion-central/Q_-798KmRca-I05hXc7NUA", "observed_at": "2026-09-18"}
+      ]
+    },
+    {
+      "outlet": {
+        "outlet_key": "cl-rm-puente-alto-meraki-sushi-los-toros-1399",
+        "brand_name": "Meraki Sushi",
+        "outlet_name": "Puente Alto",
+        "address": "Los Toros 1399",
+        "comuna": "Puente Alto",
+        "region": "Región Metropolitana",
+        "postal_code": "8220627",
+        "identity_status": "platform_only"
+      },
+      "listing": {
+        "platform": "uber_eats",
+        "listing_id": "pW-8yvgpUtiAgJHQ1buKqQ",
+        "listing_name": "Meraki Sushi - Puente Alto",
+        "url": "https://www.ubereats.com/cl/store/meraki-sushi-puente-alto/pW-8yvgpUtiAgJHQ1buKqQ",
+        "platform_categories": ["Japonesa", "Asiática", "Sushi"],
+        "delivery_supported": true,
+        "pickup_supported": true,
+        "scheduled_orders_supported": true
+      },
+      "menu_snapshot": {
+        "sections": ["Artículos destacados"],
+        "sample_items": [
+          {"name": "Ding Dong Acevichada", "price_clp": 17103},
+          {"name": "Promo 20", "price_clp": 16990}
+        ]
+      },
+      "evidence": [
+        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/meraki-sushi-puente-alto/pW-8yvgpUtiAgJHQ1buKqQ", "observed_at": "2026-09-18"}
+      ]
+    },
+    {
+      "outlet": {
+        "outlet_key": "cl-rm-la-florida-mariberico-la-florida-9073-local-2",
+        "brand_name": "Mariberico",
+        "outlet_name": "La Florida",
+        "address": "Avenida La Florida 9073, Local 2",
+        "comuna": "La Florida",
+        "region": "Región Metropolitana",
+        "postal_code": "8240000",
+        "identity_status": "platform_only"
+      },
+      "listing": {
+        "platform": "uber_eats",
+        "listing_id": "rAURexpYUfiDuN4uby5njw",
+        "listing_name": "Mariberico (La Florida)",
+        "url": "https://www.ubereats.com/cl/store/mariberico-la-florida/rAURexpYUfiDuN4uby5njw",
+        "platform_categories": ["Latinoamericana", "Sudamericana", "Portuguesa"],
+        "delivery_supported": true,
+        "scheduled_orders_supported": true
+      },
+      "menu_snapshot": {
+        "sections": ["Artículos destacados", "Packs y Promociones"],
+        "sample_items": [
+          {"name": "Pack de 25 Ostras Medianas", "price_clp": 13990},
+          {"name": "Machas a la Parmesana Gourmet 12 Un", "price_clp": 13990},
+          {"name": "Ostiones Parmesanos", "price_clp": 13990},
+          {"name": "Pastel de Jaiba", "price_clp": 8990},
+          {"name": "Tartar de Salmón Fresco", "price_clp": 17990},
+          {"name": "Pack Pasteles X4", "price_clp": 35990},
+          {"name": "Pack 3 Ceviches", "price_clp": 19990}
+        ]
+      },
+      "evidence": [
+        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/mariberico-la-florida/rAURexpYUfiDuN4uby5njw", "observed_at": "2026-09-18"}
+      ]
+    }
+  ]
+}
