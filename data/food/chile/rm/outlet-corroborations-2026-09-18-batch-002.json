@@ -1,0 +1,52 @@
+{
+  "dataset": "palta_food_outlet_corroborations_rm",
+  "observed_at": "2026-09-18",
+  "records": [
+    {
+      "outlet_key": "cl-rm-independencia-fritomania-cruz-1501",
+      "identity_status": "corroborated",
+      "address": "Cruz 1501",
+      "comuna": "Independencia",
+      "public_contact": {
+        "phone": "+56934587463",
+        "whatsapp": "+56934587463",
+        "website": "https://lafritomania.com/"
+      },
+      "identity_note": "Official Fritomania Linktree exposes an Independencia WhatsApp endpoint. Address is corroborated by the current delivery listing/Rappi record; retain merchant confirmation as the final live-use gate.",
+      "evidence": [
+        {"kind": "official_social", "url": "https://linktr.ee/fritomaniachile", "observed_at": "2026-09-18"},
+        {"kind": "official_website", "url": "https://lafritomania.com/", "observed_at": "2026-09-18"},
+        {"kind": "rappi", "url": "https://www.rappi.cl/restaurantes/900090226-fritomania", "observed_at": "2026-09-18"}
+      ]
+    },
+    {
+      "outlet_key": "cl-rm-independencia-los-chamos-burger-independencia-1920",
+      "identity_status": "corroborated",
+      "address": "Avenida Independencia 1920",
+      "comuna": "Independencia",
+      "public_contact": {
+        "phone": "+56967168861"
+      },
+      "identity_note": "Exact Independencia address is independently present in company/public business records and a separate restaurant directory. Phone is kept as public business phone only; WhatsApp capability is not inferred.",
+      "evidence": [
+        {"kind": "other_public_source", "url": "https://datalux.cl/empresa/77044645-7-los-chamos-burger-spa/", "observed_at": "2026-09-18"},
+        {"kind": "other_public_source", "url": "https://carta.menu/restaurants/independencia-5/los-chamos-burger", "observed_at": "2026-09-18"}
+      ]
+    },
+    {
+      "outlet_key": "cl-rm-independencia-astoria-av-independencia-565",
+      "identity_status": "corroborated",
+      "address": "Avenida Independencia 565, Local FC-04 Piso 3",
+      "comuna": "Independencia",
+      "public_contact": {
+        "phone": "+56963091389",
+        "website": "https://astoria.cl/"
+      },
+      "identity_note": "Official Astoria site lists Mall Barrio Independencia Santiago as a branch; independent business directory supplies the exact FC-04 address and public phone. Merchant authorization remains pending before live Food launch.",
+      "evidence": [
+        {"kind": "official_website", "url": "https://astoria.cl/Locales.html", "observed_at": "2026-09-18"},
+        {"kind": "other_public_source", "url": "https://es.restaurantguru.com/Astoria-Mall-Barrio-Independencia-Chile", "observed_at": "2026-09-18"}
+      ]
+    }
+  ]
+}
