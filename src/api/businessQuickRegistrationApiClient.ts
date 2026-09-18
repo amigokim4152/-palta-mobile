@@ -9,6 +9,7 @@ export type BusinessQuickRegistrationInput = {
   anchorLocation: { lat: number; lng: number };
   contact: { whatsapp?: string; phone?: string };
   idempotencyKey: string;
+  clientElapsedSeconds?: number;
 };
 
 export type BusinessQuickRegistrationResult = {
@@ -45,6 +46,9 @@ export async function submitBusinessQuickRegistration(input: {
       anchor_location: registration.anchorLocation,
       contact: registration.contact,
       idempotency_key: registration.idempotencyKey,
+      ...(registration.clientElapsedSeconds !== undefined
+        ? { client_elapsed_seconds: registration.clientElapsedSeconds }
+        : {}),
     }),
   });
 
