@@ -12,6 +12,7 @@ import * as SecureStore from 'expo-secure-store';
 import {
   SUPPORTED_LOCALES,
   resolvePreferredLocale,
+  resolveSignedInLocalePreference,
   t as translate,
   tryNormalizeLocale,
   type PaltaLocale,
@@ -64,36 +65,22 @@ export function LocalizationProvider({ children }: { children: ReactNode }) {
           const accountId = String(state.session.paltaUserId);
           const accessToken = state.session.accessToken;
           const remote = await port.get(accountId, accessToken);
+          const resolved = resolveSignedInLocalePreference({
+            remoteLocale: remote?.preferredLocale,
+            remoteExplicit: remote?.explicit,
+            localExplicitLocale: localStored,
+            deviceLocales: deviceLocales(),
+          });
 
-          if (remote?.explicit) {
-            const next = resolvePreferredLocale({
-              storedLocale: remote.preferredLocale,
-              storedLocaleExplicit: true,
-              deviceLocales: deviceLocales(),
-            });
-            if (!cancelled) setLocaleState(next);
-            return;
-          }
+          if (!cancelled) setLocaleState(resolved.locale);
 
-          if (localStored) {
-            if (!cancelled) setLocaleState(localStored);
-
-            // A locale stored locally only exists after an explicit user choice.
-            // Once the user signs in, promote that choice to the canonical account
-            // preference so another device can restore it later.
+          if (resolved.promoteLocalToAccount) {
             try {
-              await port.set(accountId, accessToken, localStored);
+              await port.set(accountId, accessToken, resolved.locale);
             } catch {
               // Keep the explicit local choice visible even if account persistence
               // is temporarily unavailable. A later settings change can retry it.
             }
-            return;
-          }
-
-          if (!cancelled) {
-            setLocaleState(
-              resolvePreferredLocale({ deviceLocales: deviceLocales() }),
-            );
           }
           return;
         }
