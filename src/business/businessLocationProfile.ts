@@ -18,7 +18,7 @@ export type BusinessPublicLocationProjection = Readonly<{
 }>;
 
 const PRIVATE_HOME_MODES = new Set(['private_home_base', 'home_base']);
-const EXACT_PUBLIC_MODES = new Set(['storefront', 'fixed_stand', 'fixed_location']);
+const EXACT_PUBLIC_MODES = new Set(['storefront', 'mixed', 'fixed_stand', 'fixed_location']);
 
 function pointIsValid(point: LocationPoint): boolean {
   return (
