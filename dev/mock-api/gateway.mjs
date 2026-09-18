@@ -3,7 +3,7 @@ import { handleRealEstateRequest } from './real-estate-state.mjs';
 
 const host = process.env.PALTA_MOCK_HOST ?? '127.0.0.1';
 const publicPort = Number(process.env.PALTA_MOCK_PORT ?? '8787');
-const backendPort = Number(process.env.PALTA_MOCK_BACKEND_PORT ?? String(publicPort + 1));
+const backendPort = Number(process.env.PALTA_MOCK_BACKEND_PORT ?? String(publicPort + 10000));
 
 if (!Number.isFinite(publicPort) || !Number.isFinite(backendPort) || publicPort === backendPort) {
   throw new Error('PALTA mock gateway requires two distinct valid ports.');
