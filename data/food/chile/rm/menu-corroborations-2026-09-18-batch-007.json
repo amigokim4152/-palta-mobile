@@ -1,0 +1,78 @@
+{
+  "dataset": "palta_food_menu_corroborations_rm",
+  "observed_at": "2026-09-18",
+  "policy": {
+    "factual_fields_only": true,
+    "collect_images": false,
+    "collect_reviews": false,
+    "collect_ratings": false,
+    "collect_long_descriptions": false
+  },
+  "records": [
+    {
+      "brand_name": "Tommy Beans",
+      "menu_scope": "official_brand_order_catalog_current_prices_requires_outlet_freshness_check_and_merchant_authorization",
+      "source": {"kind": "official_website", "url": "https://www.tommybeans.cl/pedir", "observed_at": "2026-09-18"},
+      "sections": ["Tommy Promos", "Ármalos a tu pinta", "Armados por Tommy", "Individuales", "Para Dos", "Familiares", "Taquear", "Quesadillas", "Salsas y Otros"],
+      "items": [
+        {"name": "Chido Box", "price_clp": 11590},
+        {"name": "Combo Para Dos", "price_clp": 14000},
+        {"name": "Dupla Mex", "price_clp": 15690},
+        {"name": "Super Bowl", "price_clp": 10000},
+        {"name": "Tommy For One + Nachos", "price_clp": 6490},
+        {"name": "Arma tu Bowl", "price_clp": 7790},
+        {"name": "Arma tu Burrito", "price_clp": 7790},
+        {"name": "Burrote de Kilo", "price_clp": 16990},
+        {"name": "Bowl Carnal Prime", "price_clp": 7990},
+        {"name": "Bowl Chicken Prime", "price_clp": 7590},
+        {"name": "Burrito Carnal Prime", "price_clp": 7990},
+        {"name": "Burrito Chicken Prime", "price_clp": 7590},
+        {"name": "Tommy Lover Pollo Grill", "price_clp": 6590},
+        {"name": "Menú Kids", "price_clp": 5990},
+        {"name": "Tacos a tu Pinta Pollo", "price_clp": 20190},
+        {"name": "Quesadilla Personal", "price_clp": 6490}
+      ]
+    },
+    {
+      "brand_name": "Tarragona",
+      "menu_scope": "official_brand_order_catalog_current_prices_requires_outlet_freshness_check_and_merchant_authorization",
+      "source": {"kind": "official_website", "url": "https://pide.tarragona.cl/pedir", "observed_at": "2026-09-18"},
+      "sections": ["Combos Individuales", "Compartir Sándwich y Fajitas", "Snacks"],
+      "items": [
+        {"name": "Combo Fillet", "price_clp": 7190},
+        {"name": "Combo Big Chicken Sandwich", "price_clp": 6490},
+        {"name": "Combo Fajita Bacon", "price_clp": 7190},
+        {"name": "Combo Fajita Clasica", "price_clp": 6690},
+        {"name": "Combo Fajita Spring", "price_clp": 6690},
+        {"name": "Combo Mega Fillet", "price_clp": 9290},
+        {"name": "Combo Sandwich Big BBQ", "price_clp": 7490},
+        {"name": "Combo Sandwich Big Bacon", "price_clp": 7990},
+        {"name": "Combo Sandwich Big Italiano", "price_clp": 7490},
+        {"name": "Dupla Deluxe Box Fajitas", "price_clp": 12990},
+        {"name": "Dupla Deluxe Box Sandwich", "price_clp": 12990},
+        {"name": "Trio Deluxe Box Fajitas", "price_clp": 15990},
+        {"name": "Trio Deluxe Box Sandwich", "price_clp": 15990},
+        {"name": "Caja de Papas", "price_clp": 3990},
+        {"name": "10 Empanadas Snack", "price_clp": 2990}
+      ]
+    },
+    {
+      "brand_name": "Juan Maestro",
+      "menu_scope": "official_brand_menu_names_requires_outlet_freshness_check_and_merchant_authorization",
+      "source": {"kind": "official_website", "url": "https://www.juanmaestro.cl/pedir", "observed_at": "2026-09-18"},
+      "items": [
+        {"name": "Completo"},
+        {"name": "Súper Juan Chacarero"},
+        {"name": "Gran Maestro (500 grs)"},
+        {"name": "Churrasco Italiano"},
+        {"name": "Churrasco Chacarero"},
+        {"name": "Lomo Italiano"},
+        {"name": "Lomo Chacarero"},
+        {"name": "Pollo Italiano"},
+        {"name": "Pollo Chacarero"},
+        {"name": "Mechada Italiana"},
+        {"name": "Mechada Chacarera"}
+      ]
+    }
+  ]
+}
