@@ -24,6 +24,7 @@ import {
   PaltaApiClient,
   type FetchLike,
 } from './paltaApiClient.js';
+import { RealEstateApiClient } from './realEstateApiClient.js';
 
 export type PaltaApiClientWithDomains = PaltaApiClient & {
   operatingRules: BusinessOperatingRulesApiClient;
@@ -33,6 +34,7 @@ export type PaltaApiClientWithDomains = PaltaApiClient & {
   quotes: BusinessQuotesApiClient;
   services: BusinessServicesApiClient;
   location: BusinessLocationApiClient;
+  realEstate: RealEstateApiClient;
 };
 
 export function createPaltaApiClient(input: {
@@ -86,6 +88,12 @@ export function createPaltaApiClient(input: {
   });
 
   client.location = new BusinessLocationApiClient({
+    baseUrl: input.baseUrl,
+    fetch: input.fetch,
+    ...(getAccessToken ? { getAccessToken } : {}),
+  });
+
+  client.realEstate = new RealEstateApiClient({
     baseUrl: input.baseUrl,
     fetch: input.fetch,
     ...(getAccessToken ? { getAccessToken } : {}),
