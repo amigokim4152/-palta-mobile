@@ -17,6 +17,9 @@ export type MunicipalEventPlayInput = Readonly<{
   sourceUrl?: string;
   verifiedAt?: string;
   outdoor?: boolean;
+  /** Resolved by shared location/map infrastructure; Play does not calculate it. */
+  distanceM?: number;
+  distanceLabel?: string;
 }>;
 
 export type MunicipalPlayProjectionContext = Readonly<{
@@ -35,36 +38,16 @@ function activeOnDate(input: MunicipalEventPlayInput, isoDate: string): boolean 
 
 function isFamilyFriendly(input: MunicipalEventPlayInput): boolean {
   const haystack = `${normalize(input.audience)} ${normalize(input.category)} ${normalize(input.title)}`;
-  return [
-    'famil',
-    'niñ',
-    'infantil',
-    'kids',
-    'taller',
-    'cuentacuentos',
-    'circo',
-  ].some((token) => haystack.includes(token));
+  return ['famil', 'niñ', 'infantil', 'kids', 'taller', 'cuentacuentos', 'circo'].some((token) => haystack.includes(token));
 }
 
 function isOutdoor(input: MunicipalEventPlayInput): boolean {
   if (input.outdoor !== undefined) return input.outdoor;
   const haystack = `${normalize(input.category)} ${normalize(input.title)} ${normalize(input.venue)}`;
-  return [
-    'aire libre',
-    'parque',
-    'plaza',
-    'feria',
-    'ciclet',
-    'trekking',
-    'sender',
-    'outdoor',
-  ].some((token) => haystack.includes(token));
+  return ['aire libre', 'parque', 'plaza', 'feria', 'ciclet', 'trekking', 'sender', 'outdoor'].some((token) => haystack.includes(token));
 }
 
-function inferThemeTags(
-  input: MunicipalEventPlayInput,
-  context: MunicipalPlayProjectionContext,
-): PlayThemeKey[] {
+function inferThemeTags(input: MunicipalEventPlayInput, context: MunicipalPlayProjectionContext): PlayThemeKey[] {
   const tags: PlayThemeKey[] = [];
   if (activeOnDate(input, context.todayIsoDate)) tags.push('today');
   if (context.weekendIsoDates.some((date) => activeOnDate(input, date))) tags.push('weekend');
@@ -77,25 +60,13 @@ function inferThemeTags(
 function experienceTags(input: MunicipalEventPlayInput): string[] {
   const tags: string[] = [];
   const category = normalize(input.category);
-  const categoryLabels: ReadonlyArray<[string, string]> = [
-    ['music', 'Música'],
-    ['música', 'Música'],
-    ['culture', 'Cultura'],
-    ['cultura', 'Cultura'],
-    ['festival', 'Festival'],
-    ['exhibition', 'Exposición'],
-    ['exposición', 'Exposición'],
-    ['cinema', 'Cine'],
-    ['cine', 'Cine'],
-    ['sports', 'Deporte'],
-    ['deporte', 'Deporte'],
-    ['workshop', 'Taller'],
-    ['taller', 'Taller'],
-    ['market', 'Feria'],
-    ['feria', 'Feria'],
+  const labels: ReadonlyArray<[string, string]> = [
+    ['music', 'Música'], ['música', 'Música'], ['culture', 'Cultura'], ['cultura', 'Cultura'],
+    ['festival', 'Festival'], ['exhibition', 'Exposición'], ['exposición', 'Exposición'],
+    ['cinema', 'Cine'], ['cine', 'Cine'], ['sports', 'Deporte'], ['deporte', 'Deporte'],
+    ['workshop', 'Taller'], ['taller', 'Taller'], ['market', 'Feria'], ['feria', 'Feria'],
   ];
-
-  const matched = categoryLabels.find(([key]) => category.includes(key));
+  const matched = labels.find(([key]) => category.includes(key));
   if (matched) tags.push(matched[1]);
   if (isFamilyFriendly(input)) tags.push('Familia');
   if (isOutdoor(input)) tags.push('Aire libre');
@@ -110,14 +81,7 @@ function scheduleLabel(input: MunicipalEventPlayInput, context: MunicipalPlayPro
   return input.startTime ? `${prefix} · ${input.startTime}` : prefix;
 }
 
-/**
- * Adapter from normalized municipal/public event data into the Play discovery model.
- * Upstream retains event truth; Play adds only bounded discovery classification.
- */
-export function projectMunicipalEventToPlay(
-  input: MunicipalEventPlayInput,
-  context: MunicipalPlayProjectionContext,
-): PlayDiscoveryItem {
+export function projectMunicipalEventToPlay(input: MunicipalEventPlayInput, context: MunicipalPlayProjectionContext): PlayDiscoveryItem {
   const tags = experienceTags(input);
   return {
     id: `municipal:${input.id}`,
@@ -132,6 +96,8 @@ export function projectMunicipalEventToPlay(
     registrationRequired: Boolean(input.requiresRegistration),
     ...(input.audience ? { audienceLabel: input.audience } : {}),
     ...(input.imageUrl ? { imageUrl: input.imageUrl } : {}),
+    ...(input.distanceM !== undefined ? { distanceM: input.distanceM } : {}),
+    ...(input.distanceLabel ? { distanceLabel: input.distanceLabel } : {}),
     ...(tags.length ? { experienceTags: tags } : {}),
     themeTags: inferThemeTags(input, context),
     source: {
@@ -142,9 +108,6 @@ export function projectMunicipalEventToPlay(
   };
 }
 
-export function projectMunicipalEventsToPlay(
-  inputs: readonly MunicipalEventPlayInput[],
-  context: MunicipalPlayProjectionContext,
-): PlayDiscoveryItem[] {
+export function projectMunicipalEventsToPlay(inputs: readonly MunicipalEventPlayInput[], context: MunicipalPlayProjectionContext): PlayDiscoveryItem[] {
   return inputs.map((input) => projectMunicipalEventToPlay(input, context));
 }
