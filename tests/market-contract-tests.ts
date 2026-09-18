@@ -56,6 +56,7 @@ const listing: MarketListingRecord = {
   version: 1,
 };
 
+const firstMedia = listing.media[0];
 const transaction: MarketTransactionRecord = {
   id: 'transaction-1',
   listingId: listing.id,
@@ -67,9 +68,9 @@ const transaction: MarketTransactionRecord = {
     title: listing.title,
     category: listing.category,
     tradeMode: listing.tradeMode,
-    priceClp: listing.priceClp,
+    ...(typeof listing.priceClp === 'number' ? { priceClp: listing.priceClp } : {}),
     comunaName: listing.location.comunaName,
-    mediaAssetId: listing.media[0]?.mediaAssetId,
+    ...(firstMedia ? { mediaAssetId: firstMedia.mediaAssetId } : {}),
   },
   conversationId: 'conversation-1',
   createdAt: '2026-09-18T12:05:00Z',
