@@ -31,6 +31,7 @@ export type FoodOutletIdentity = Readonly<{
   outletKey: string;
   brandName: string;
   outletName?: string;
+  /** Resolved/corroborated outlet address candidate, not blindly copied platform text. */
   address?: string;
   comuna?: string;
   region?: string;
@@ -38,6 +39,7 @@ export type FoodOutletIdentity = Readonly<{
   location?: { lat: number; lng: number };
   publicContact?: PublicBusinessContact;
   identityStatus: FoodEvidenceStatus;
+  identityNote?: string;
   evidence: readonly FoodSourceEvidence[];
 }>;
 
@@ -46,17 +48,27 @@ export type PlatformFoodListing = Readonly<{
   listingId: string;
   outletKey: string;
   listingName: string;
+  /** Preserve platform-exposed location text separately when it may conflict with outlet truth. */
+  sourceAddress?: string;
+  sourceComuna?: string;
+  sourcePostalCode?: string;
   platformCategories: readonly string[];
   deliveryAvailable?: boolean;
   pickupAvailable?: boolean;
   scheduledOrdersAvailable?: boolean;
   observedAvailability?: 'available' | 'temporarily_unavailable' | 'closed_on_platform';
+  closedOnPlatformAt?: string;
+  observedHours?: readonly string[];
   source: FoodSourceEvidence;
 }>;
 
 export type RawMenuItem = Readonly<{
   sourceItemName: string;
+  /** Current observed sell price. Never assume it is permanent. */
   priceClp?: number;
+  /** Optional crossed-out/reference price when the platform exposes a promotion. */
+  referencePriceClp?: number;
+  promotionLabel?: string;
   sourceSectionName?: string;
   available?: boolean;
   popularityHint?: string;
@@ -83,11 +95,16 @@ export type DishFamily =
   | 'sushi_roll'
   | 'chicken'
   | 'rice_dish'
+  | 'noodle_dish'
+  | 'soup_stew'
   | 'seafood'
   | 'empanada_pastry'
+  | 'salad_bowl'
   | 'fries_side'
   | 'bakery'
   | 'dessert'
+  | 'ice_cream'
+  | 'coffee_tea'
   | 'beverage'
   | 'other';
 
@@ -99,6 +116,10 @@ export type CuisineTag =
   | 'chinese'
   | 'american'
   | 'italian'
+  | 'mexican'
+  | 'venezuelan'
+  | 'middle_eastern'
+  | 'indian'
   | 'latin_american'
   | 'other';
 
@@ -109,6 +130,7 @@ export type ServingFormat =
   | 'family'
   | 'promotion'
   | 'meal_deal'
+  | 'by_weight'
   | 'unknown';
 
 export type NormalizedFoodItem = Readonly<{
