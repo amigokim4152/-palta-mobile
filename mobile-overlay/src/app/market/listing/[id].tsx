@@ -1,1 +1,1 @@
-export { ListingDetailRuntimeScreen as default } from '../../../features/market/ListingDetailRuntimeScreen';
+export { MarketListingDetailPreviewRoute as default } from '../../../features/market/MarketListingDetailPreviewRoute';
