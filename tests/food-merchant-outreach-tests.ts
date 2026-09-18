@@ -40,7 +40,7 @@ assert(
 
 const message = buildSpanishFoodMerchantPermissionMessage({
   brandName: outlet.brandName,
-  outletName: outlet.outletName,
+  outletName: 'Providencia',
 });
 assert(message.includes('No utilizaremos fotos de otras plataformas.'), 'Permission message must state the no-photo policy.');
 assert(message.includes('Sí, autorizo'), 'Permission message should request an explicit affirmative response.');
