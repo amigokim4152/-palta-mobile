@@ -39,6 +39,19 @@ const SANTIAGO_EXPLORATION_ORIGIN = {
 const FILTER_OPEN_NOW = 'local_business:open_now';
 const FILTER_VERIFIED = 'local_business:verified';
 
+const CATEGORY_SERVICE_LABELS: Record<string, readonly string[]> = {
+  auto_repair: ['Taller mecánico'],
+  pharmacy: ['Farmacia'],
+  restaurant: ['Restaurante'],
+  cafe: ['Café'],
+  bakery: ['Panadería'],
+  beauty: ['Belleza'],
+  home_repair: ['Hogar y reparación'],
+  pet: ['Mascotas'],
+  education: ['Clases y educación'],
+  professional_service: ['Servicios profesionales'],
+};
+
 type DiscoveryVisual = {
   imageUrl?: string;
   serviceLabels: string[];
@@ -49,10 +62,22 @@ function discoveryVisual(value: unknown): DiscoveryVisual {
   if (!value || typeof value !== 'object') return { serviceLabels: [] };
   const row = value as Record<string, unknown>;
   const imageUrl = typeof row.image_url === 'string' ? row.image_url : undefined;
-  const serviceLabels = Array.isArray(row.service_labels)
+  const explicitServices = Array.isArray(row.service_labels)
     ? row.service_labels.filter((item): item is string => typeof item === 'string').slice(0, 2)
     : [];
-  const highlight = typeof row.highlight === 'string' ? row.highlight : undefined;
+  const categoryKey = typeof row.category_key === 'string' ? row.category_key : undefined;
+  const serviceLabels = explicitServices.length
+    ? explicitServices
+    : categoryKey
+      ? [...(CATEGORY_SERVICE_LABELS[categoryKey] ?? [])]
+      : [];
+  const explicitHighlight = typeof row.highlight === 'string' ? row.highlight.trim() : '';
+  const highlight = explicitHighlight
+    ? explicitHighlight
+    : row.verification_status === 'verified'
+      ? 'Negocio verificado'
+      : undefined;
+
   return {
     ...(imageUrl ? { imageUrl } : {}),
     serviceLabels,
@@ -194,13 +219,7 @@ function EmptyLocationStart({
         >
           Encuentra lo que necesitas cerca, sin perder tiempo.
         </Text>
-        <Text
-          style={{
-            fontSize: 15,
-            lineHeight: 22,
-            color: paltaTheme.color.textSecondary,
-          }}
-        >
+        <Text style={{ fontSize: 15, lineHeight: 22, color: paltaTheme.color.textSecondary }}>
           Mira qué está abierto ahora, qué ofrece cada negocio y cómo puedes contactarlo.
         </Text>
       </View>
@@ -240,7 +259,9 @@ function EmptyLocationStart({
         </Text>
       </Pressable>
 
-      {locationError ? <Text style={{ color: paltaTheme.color.textSecondary }}>{locationError}</Text> : null}
+      {locationError ? (
+        <Text style={{ color: paltaTheme.color.textSecondary }}>{locationError}</Text>
+      ) : null}
     </View>
   );
 }
@@ -268,8 +289,7 @@ export function BusinessDiscoveryExperience() {
   );
 
   const cachedResults = useMemo(
-    () =>
-      discoveryCacheKey ? readLocalBusinessDiscoveryCache(discoveryCacheKey) : undefined,
+    () => (discoveryCacheKey ? readLocalBusinessDiscoveryCache(discoveryCacheKey) : undefined),
     [discoveryCacheKey],
   );
 
@@ -421,6 +441,7 @@ export function BusinessDiscoveryExperience() {
             name={selectedBusiness.name}
             meta={[
               formatOperationalState(selectedBusiness.operational_state, selectedBusiness.next_open_at),
+              selectedBusiness.category_key,
               selectedBusiness.verification_status === 'verified' ? 'Verificado' : undefined,
             ].filter(Boolean).join(' · ')}
             distance={selectedBusiness.location ? formatDistance(selectedBusiness.distance_m) : 'Zona de atención'}
@@ -472,6 +493,7 @@ export function BusinessDiscoveryExperience() {
               name={item.name}
               meta={[
                 formatOperationalState(item.operational_state, item.next_open_at),
+                item.category_key,
                 item.verification_status === 'verified' ? 'Verificado' : undefined,
               ].filter(Boolean).join(' · ')}
               distance={item.location ? formatDistance(item.distance_m) : 'Zona de atención'}
