@@ -95,6 +95,61 @@ export interface PublicNewsHome {
   readonly sections: Readonly<Record<PublicNewsSection, readonly PublicNewsBrief[]>>;
 }
 
+export interface PublicNewsModuleLink {
+  readonly module: "events" | "benefits" | "procedures" | "transport" | "community" | "map";
+  readonly label: string;
+  readonly target: string;
+  readonly reason: string;
+}
+
+export interface PublicNewsTrackedTopic {
+  readonly topicId: string;
+  readonly label: string;
+  readonly status: "watching" | "developing" | "stable";
+  readonly evidenceCount: number;
+  readonly deepDiveSlug?: string;
+}
+
+export interface PublicNewsLocalPage {
+  readonly schemaVersion: 1;
+  readonly locale: "es-CL";
+  readonly generatedAt: string;
+  readonly publicationGate: "open" | "closed";
+  readonly geography: PublicNewsGeography;
+  readonly heading: string;
+  readonly current: readonly PublicNewsBrief[];
+  readonly briefs: readonly PublicNewsBrief[];
+  readonly trackedTopics: readonly PublicNewsTrackedTopic[];
+  readonly crossModuleLinks: readonly PublicNewsModuleLink[];
+  readonly voices: readonly PublicNewsVoiceContribution[];
+}
+
+export type PublicNewsVoiceType =
+  | "essay"
+  | "interview"
+  | "field_note"
+  | "photo_essay"
+  | "student_art"
+  | "local_memory"
+  | "proposal";
+
+export interface PublicNewsVoiceContribution extends PublicNewsBrief {
+  readonly contentClass: "local_voice";
+  readonly voiceType: PublicNewsVoiceType;
+  readonly contributorLabel: string;
+  readonly perspectiveDisclosure: string;
+  readonly mediaRights: "none_required" | "cleared";
+}
+
+export interface PublicNewsVoicesPage {
+  readonly schemaVersion: 1;
+  readonly locale: "es-CL";
+  readonly generatedAt: string;
+  readonly publicationGate: "open" | "closed";
+  readonly disclosure: string;
+  readonly contributions: readonly PublicNewsVoiceContribution[];
+}
+
 export const forbiddenPublicNewsFields = [
   "risk_flags",
   "editorial_state",
