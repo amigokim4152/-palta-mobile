@@ -11,13 +11,18 @@ export type CareApiTrack = { id: string; intent_key: string; state: 'discover' |
 
 export type CommunityKind = 'school' | 'church' | 'neighborhood' | 'interest' | 'activity' | 'apartment';
 export type CommunityMembershipState = 'active' | 'pending' | 'none' | 'invite_required';
+export type CommunityMembershipRoleKey = 'member' | 'guardian' | 'student' | 'teacher' | 'staff' | 'leader' | 'admin';
+export type CommunityMembershipDecision = 'approve' | 'reject' | 'end';
 export type CommunityApiCard = { id: string; name: string; kind: CommunityKind; meta: string; unreadCount: number; actionRequiredCount: number };
 export type CommunityApiFeedItem = { id: string; communityId: string; communityName: string; kind: CommunityKind; author: string; timeLabel: string; body: string; announcement: boolean; commentCount: number; reactionCount: number };
 export type CommunityApiTab = { communities: CommunityApiCard[]; discover: CommunityApiCard[]; feed: CommunityApiFeedItem[] };
 export type CommunityApiPostSummary = { id: string; author: string; timeLabel: string; body: string; commentCount: number; reactionCount: number };
-export type CommunityApiSpace = { id: string; name: string; subtitle: string; membershipState: CommunityMembershipState; canJoin: boolean; joinLabel: string; joinDescription: string; joinActionLabel: string; posts: CommunityApiPostSummary[] };
+export type CommunityApiSpace = { id: string; name: string; subtitle: string; membershipState: CommunityMembershipState; roleKey?: CommunityMembershipRoleKey; canJoin: boolean; joinLabel: string; joinDescription: string; joinActionLabel: string; posts: CommunityApiPostSummary[] };
 export type CommunityApiComment = { id: string; author: string; body: string; timeLabel: string };
 export type CommunityApiThread = { communityName: string; post: CommunityApiPostSummary; comments: CommunityApiComment[]; canComment: boolean };
+export type CommunityApiPendingMembership = { membershipId: string; memberLabel: string; requestedRoleKey: CommunityMembershipRoleKey; requestedAt?: string };
+export type CommunityApiActiveMembership = { membershipId: string; memberLabel: string; roleKey: CommunityMembershipRoleKey; effectiveFrom?: string; isSelf?: boolean };
+export type CommunityApiMembershipManagement = { currentRoleKey: CommunityMembershipRoleKey; pending: CommunityApiPendingMembership[]; active: CommunityApiActiveMembership[] };
 
 export type PaltaApiClientOptions = { baseUrl: string; fetch: FetchLike; getAccessToken?: () => Promise<string | null> };
 function joinUrl(baseUrl: string, path: string): string { return `${baseUrl.replace(/\/$/, '')}${path.startsWith('/') ? path : `/${path}`}`; }
@@ -56,6 +61,8 @@ export class PaltaApiClient {
   async getCommunitySpace(spaceId: string): Promise<CommunityApiSpace> { const result = expectObject(await this.request(`/v1/community/spaces/${encodeURIComponent(spaceId)}`), 'GET /v1/community/spaces/{id}'); if (typeof result.id !== 'string' || typeof result.name !== 'string' || !Array.isArray(result.posts)) throw new Error('GET /v1/community/spaces/{id} returned invalid space'); return result as CommunityApiSpace; }
   async getCommunityPost(spaceId: string, postId: string): Promise<CommunityApiThread> { const result = expectObject(await this.request(`/v1/community/spaces/${encodeURIComponent(spaceId)}/posts/${encodeURIComponent(postId)}`), 'GET /v1/community/spaces/{id}/posts/{postId}'); expectObject(result.post, 'Community thread post'); expectArray(result.comments, 'Community thread comments'); return result as CommunityApiThread; }
   async joinCommunitySpace(spaceId: string): Promise<void> { await this.request(`/v1/community/spaces/${encodeURIComponent(spaceId)}/join`, { method: 'POST' }); }
+  async getCommunityMembershipManagement(spaceId: string): Promise<CommunityApiMembershipManagement> { const result = expectObject(await this.request(`/v1/community/spaces/${encodeURIComponent(spaceId)}/memberships`), 'GET /v1/community/spaces/{id}/memberships'); expectArray(result.pending, 'Community pending memberships'); expectArray(result.active, 'Community active memberships'); if (typeof result.currentRoleKey !== 'string') throw new Error('Community membership management missing currentRoleKey'); return result as CommunityApiMembershipManagement; }
+  async updateCommunityMembership(input: { spaceId: string; membershipId: string; action: CommunityMembershipDecision; roleKey?: CommunityMembershipRoleKey }): Promise<void> { await this.request(`/v1/community/spaces/${encodeURIComponent(input.spaceId)}/memberships/${encodeURIComponent(input.membershipId)}`, { method: 'PATCH', body: { action: input.action, ...(input.roleKey ? { roleKey: input.roleKey } : {}) } }); }
   async addCommunityComment(spaceId: string, postId: string, body: string): Promise<void> { await this.request(`/v1/community/spaces/${encodeURIComponent(spaceId)}/posts/${encodeURIComponent(postId)}/comments`, { method: 'POST', body: { body } }); }
   async reactToCommunityPost(spaceId: string, postId: string, reactionKey: string): Promise<void> { await this.request(`/v1/community/spaces/${encodeURIComponent(spaceId)}/posts/${encodeURIComponent(postId)}/reactions`, { method: 'POST', body: { reactionKey } }); }
 }
