@@ -75,14 +75,14 @@ export function validateRealEstateDraft(
 
 export function createRealEstateDraft(
   input: RealEstateListingDraftInput,
-  options?: { id?: string; now?: string },
+  options?: { id?: string; now?: string; createdAt?: string },
 ): RealEstateListingDraft {
   const now = options?.now ?? new Date().toISOString();
   return {
     ...input,
     id: options?.id ?? `draft-${Date.now()}`,
     status: validateRealEstateDraft(input).length === 0 ? 'ready_for_review' : 'draft',
-    createdAt: now,
+    createdAt: options?.createdAt ?? now,
     updatedAt: now,
   };
 }
