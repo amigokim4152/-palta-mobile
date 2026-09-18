@@ -30,31 +30,62 @@ export function SellScreen() {
   const [description, setDescription] = useState('');
   const [mediaAssetIds, setMediaAssetIds] = useState<string[]>([]);
   const [publishing, setPublishing] = useState(false);
+  const [selectingMedia, setSelectingMedia] = useState(false);
   const [formError, setFormError] = useState<string | undefined>();
 
   const categoryChoices = marketCategories.filter(
     (item): item is { key: SellCategory; label: string } => item.key !== 'all',
   );
+  const publicArea =
+    runtime.publicArea ??
+    (runtime.mode === 'development_preview'
+      ? { comunaName: 'Vitacura', comunaCode: '13132' }
+      : undefined);
 
-  function addPhoto() {
-    if (runtime.mode !== 'development_preview') {
-      setFormError(
-        'La carga de fotos se habilitará cuando Media Core esté conectado a Mercado.',
-      );
+  async function addPhoto() {
+    if (mediaAssetIds.length >= 10 || selectingMedia) return;
+
+    if (runtime.selectListingMedia) {
+      setSelectingMedia(true);
+      setFormError(undefined);
+      try {
+        const selected = await runtime.selectListingMedia({
+          currentAssetIds: mediaAssetIds,
+          maxAssets: 10,
+        });
+        setMediaAssetIds(selected.slice(0, 10));
+      } catch {
+        setFormError('No pudimos agregar las fotos. Intenta nuevamente.');
+      } finally {
+        setSelectingMedia(false);
+      }
       return;
     }
-    if (mediaAssetIds.length >= 10) return;
-    setMediaAssetIds((current) => [
-      ...current,
-      `preview-upload:${current.length + 1}`,
-    ]);
-    setFormError(undefined);
+
+    if (runtime.mode === 'development_preview') {
+      setMediaAssetIds((current) => [
+        ...current,
+        `preview-upload:${current.length + 1}`,
+      ]);
+      setFormError(undefined);
+      return;
+    }
+
+    setFormError(
+      'La carga de fotos requiere la conexión con Media Core antes de publicar.',
+    );
   }
 
   async function publish() {
     if (!runtime.mutation || publishing) {
       setFormError(
         runtime.unavailableReason ?? 'Mercado todavía no puede publicar en este runtime.',
+      );
+      return;
+    }
+    if (!publicArea) {
+      setFormError(
+        'Selecciona una comuna de entrega antes de publicar. Mercado no guarda tu dirección exacta.',
       );
       return;
     }
@@ -88,7 +119,7 @@ export function SellScreen() {
         category,
         tradeMode,
         ...(typeof parsedPrice === 'number' ? { priceClp: parsedPrice } : {}),
-        location: { comunaName: 'Vitacura', comunaCode: '13132' },
+        location: publicArea,
         mediaAssetIds,
         publish: true,
       });
@@ -125,7 +156,9 @@ export function SellScreen() {
 
         <Pressable onPress={addPhoto} style={styles.photoBox}>
           <Text style={styles.photoPlus}>＋</Text>
-          <Text style={styles.photoTitle}>Agregar fotos</Text>
+          <Text style={styles.photoTitle}>
+            {selectingMedia ? 'Agregando…' : 'Agregar fotos'}
+          </Text>
           <Text style={styles.photoCaption}>{mediaAssetIds.length} / 10</Text>
         </Pressable>
 
@@ -214,15 +247,18 @@ export function SellScreen() {
 
         <View style={styles.fieldGroup}>
           <Text style={styles.label}>Zona de entrega</Text>
-          <Pressable style={styles.locationRow}>
+          <View style={styles.locationRow}>
             <View style={styles.locationTextBlock}>
-              <Text style={styles.locationMain}>Vitacura</Text>
+              <Text style={styles.locationMain}>
+                {publicArea?.comunaName ?? 'Comuna pendiente'}
+              </Text>
               <Text style={styles.locationSub}>
-                La ubicación exacta no se muestra públicamente
+                {publicArea
+                  ? 'La ubicación exacta no se muestra públicamente'
+                  : 'Location Core debe entregar una zona pública antes de publicar'}
               </Text>
             </View>
-            <Text style={styles.chevron}>›</Text>
-          </Pressable>
+          </View>
         </View>
 
         <View style={styles.fieldGroup}>
@@ -249,11 +285,11 @@ export function SellScreen() {
         ) : null}
 
         <Pressable
-          disabled={publishing}
+          disabled={publishing || selectingMedia}
           style={({ pressed }) => [
             styles.publishButton,
             pressed && styles.pressed,
-            publishing && styles.publishButtonDisabled,
+            (publishing || selectingMedia) && styles.publishButtonDisabled,
           ]}
           onPress={publish}
         >
@@ -434,10 +470,6 @@ const styles = StyleSheet.create({
     marginTop: 3,
     color: paltaTheme.color.textMuted,
     fontSize: 12,
-  },
-  chevron: {
-    color: paltaTheme.color.textMuted,
-    fontSize: 26,
   },
   textArea: {
     minHeight: 130,
