@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Pressable, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 import type { BusinessCapability } from '../../../../../src/business/businessActionPolicy';
 import { enqueueMutation } from '../../../../../src/mobile/offlineMutationQueue';
 import {
@@ -17,6 +17,34 @@ import { SectionHeading } from '../../components/common/SectionHeading';
 import { useAsyncResource } from '../../hooks/useAsyncResource';
 import { mobileRuntime } from '../../services/paltaClient';
 import { useMutationQueueStore } from '../../services/useMutationQueueStore';
+
+const capabilitySet = new Set<BusinessCapability>([
+  'call',
+  'whatsapp',
+  'save',
+  'quote',
+  'reservation',
+  'queue',
+  'inquiry',
+  'coupon',
+  'pricing',
+]);
+
+function businessCapabilities(input: {
+  enabled_capabilities?: string[];
+  contact?: { phone?: string; whatsapp?: string };
+}): BusinessCapability[] {
+  const result: BusinessCapability[] = [];
+  for (const value of input.enabled_capabilities ?? []) {
+    if (capabilitySet.has(value as BusinessCapability)) {
+      result.push(value as BusinessCapability);
+    }
+  }
+  if (input.contact?.whatsapp && !result.includes('whatsapp')) result.push('whatsapp');
+  if (input.contact?.phone && !result.includes('call')) result.push('call');
+  if (!result.includes('save')) result.push('save');
+  return result;
+}
 
 export default function BusinessDetailScreen() {
   const { businessId } = useLocalSearchParams<{ businessId: string }>();
@@ -124,6 +152,14 @@ export default function BusinessDetailScreen() {
     );
   }
 
+  const ownerStatus = business.owner_verification_status ?? business.verification_status;
+  const capabilities = businessCapabilities(business);
+  const sample = business.record_class === 'sample';
+  const hoursText =
+    business.hours_summary ??
+    business.hours_raw?.join(' · ') ??
+    business.hours?.map((item) => item.raw ?? [item.day, item.open, item.close].filter(Boolean).join(' ')).filter(Boolean).join(' · ');
+
   return (
     <ScreenFrame
       title={business.name}
@@ -131,25 +167,66 @@ export default function BusinessDetailScreen() {
         .filter(Boolean)
         .join(' · ')}
     >
-      <View style={{ gap: 14 }}>
-        <Text>
-          Verificación: {business.verification_status}. Los datos públicos
-          pueden verse; cupones y ofertas controladas requieren propietario
-          verificado.
-        </Text>
+      <View style={{ gap: 16 }}>
+        {sample ? (
+          <View style={{ padding: 12, borderWidth: 1, borderRadius: 10 }}>
+            <Text style={{ fontWeight: '700' }}>DATOS DE PRUEBA</Text>
+            <Text style={{ opacity: 0.72 }}>
+              Este perfil existe sólo para desarrollo y nunca debe publicarse como un negocio real.
+            </Text>
+          </View>
+        ) : null}
+
+        <View style={{ gap: 5 }}>
+          {business.address ? <Text>{business.address}</Text> : null}
+          {business.commune || business.region ? (
+            <Text style={{ opacity: 0.66 }}>
+              {[business.commune, business.region].filter(Boolean).join(' · ')}
+            </Text>
+          ) : null}
+        </View>
+
+        <View style={{ gap: 5 }}>
+          <Text>
+            Información pública: {business.fact_verification_status ?? 'sin confirmar'}
+          </Text>
+          <Text>
+            Propietario en Palta: {ownerStatus}
+          </Text>
+          <Text style={{ opacity: 0.66 }}>
+            Confirmar datos públicos no significa que el propietario esté verificado. Cupones,
+            precios y otras acciones controladas requieren autorización del negocio.
+          </Text>
+        </View>
+
+        {hoursText || business.hours_note ? (
+          <View style={{ gap: 5 }}>
+            <SectionHeading title="Horario" />
+            {hoursText ? <Text>{hoursText}</Text> : null}
+            {business.hours_note ? (
+              <Text style={{ opacity: 0.66 }}>{business.hours_note}</Text>
+            ) : null}
+          </View>
+        ) : null}
+
+        {business.service_labels?.length ? (
+          <View style={{ gap: 5 }}>
+            <SectionHeading title="Servicios" />
+            <Text>{business.service_labels.join(' · ')}</Text>
+          </View>
+        ) : null}
+
+        {business.parking ? (
+          <Text>Estacionamiento: {business.parking}</Text>
+        ) : null}
 
         <SectionHeading
           title="¿Qué quieres hacer?"
-          subtitle="Palta muestra sólo acciones que este negocio puede ofrecer."
+          subtitle="Palta muestra sólo acciones disponibles para este negocio."
         />
 
         <BusinessActionBar
-          capabilities={[
-            'quote',
-            ...(business.contact?.whatsapp ? (['whatsapp'] as const) : []),
-            ...(business.contact?.phone ? (['call'] as const) : []),
-            'save',
-          ]}
+          capabilities={capabilities}
           verificationStatus={business.verification_status}
           onAction={handleAction}
         />
@@ -162,11 +239,17 @@ export default function BusinessDetailScreen() {
           <Text style={{ opacity: 0.72 }}>{submitMessage}</Text>
         ) : null}
 
+        {business.evidence?.checked_at ? (
+          <Text style={{ opacity: 0.52 }}>
+            Datos revisados: {business.evidence.checked_at}
+          </Text>
+        ) : null}
+
         {state.status === 'error' ? (
           <ErrorState message={state.message} onRetry={() => void refresh()} />
         ) : null}
 
-        <Text style={{ opacity: 0.55 }}>Canonical ID: {business.id}</Text>
+        <Text style={{ opacity: 0.45 }}>Canonical ID: {business.id}</Text>
       </View>
     </ScreenFrame>
   );
