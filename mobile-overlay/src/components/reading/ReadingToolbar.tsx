@@ -40,7 +40,7 @@ export function ReadingToolbar({
           : paltaTheme.color.surface,
       }}
     >
-      <Text allowFontScaling style={{ fontWeight: '750' }}>
+      <Text allowFontScaling style={{ fontWeight: '700' }}>
         {label}
       </Text>
     </Pressable>
