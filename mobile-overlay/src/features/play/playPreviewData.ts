@@ -1,0 +1,82 @@
+import type { PlayDiscoveryItem } from '../../../../src/play/playDiscovery';
+
+/**
+ * Development-only fixtures used to review the Play information hierarchy before
+ * the municipal/public event adapter is connected. Production must not present
+ * these records as real events.
+ */
+export const playPreviewItems: readonly PlayDiscoveryItem[] = [
+  {
+    id: 'preview-vitacura-family-workshop',
+    sourceKind: 'municipal_event',
+    title: 'Taller familiar en centro cultural',
+    comuna: 'Vitacura',
+    venue: 'Centro cultural',
+    scheduleLabel: 'Hoy · 16:00',
+    startAt: '2026-09-18T16:00:00-03:00',
+    isFree: true,
+    registrationRequired: true,
+    audienceLabel: 'Familias',
+    themeTags: ['today', 'family', 'free'],
+    source: { authority: 'Municipalidad · ejemplo' },
+  },
+  {
+    id: 'preview-las-condes-outdoor',
+    sourceKind: 'municipal_event',
+    title: 'Actividad al aire libre para niños',
+    comuna: 'Las Condes',
+    venue: 'Parque comunal',
+    scheduleLabel: 'Hoy · 17:30',
+    startAt: '2026-09-18T17:30:00-03:00',
+    isFree: true,
+    audienceLabel: 'Niños y familias',
+    themeTags: ['today', 'family', 'free', 'outdoor'],
+    source: { authority: 'Municipalidad · ejemplo' },
+  },
+  {
+    id: 'preview-providencia-culture',
+    sourceKind: 'public_program',
+    title: 'Música y cultura en el barrio',
+    comuna: 'Providencia',
+    venue: 'Espacio público',
+    scheduleLabel: 'Hoy · 19:00',
+    startAt: '2026-09-18T19:00:00-03:00',
+    isFree: true,
+    audienceLabel: 'Todo público',
+    themeTags: ['today', 'free', 'outdoor'],
+    source: { authority: 'Agenda pública · ejemplo' },
+  },
+  {
+    id: 'preview-nunoa-weekend',
+    sourceKind: 'municipal_event',
+    title: 'Feria y actividades de fin de semana',
+    comuna: 'Ñuñoa',
+    venue: 'Plaza comunal',
+    scheduleLabel: 'Sábado · 11:00',
+    startAt: '2026-09-19T11:00:00-03:00',
+    isFree: true,
+    audienceLabel: 'Todo público',
+    themeTags: ['weekend', 'family', 'free', 'outdoor'],
+    source: { authority: 'Municipalidad · ejemplo' },
+  },
+  {
+    id: 'preview-birthday-pool',
+    sourceKind: 'business',
+    title: 'Cumpleaños con piscina',
+    comuna: 'Santiago',
+    scheduleLabel: 'Reserva previa',
+    audienceLabel: 'Cumpleaños infantiles',
+    themeTags: ['birthday', 'family', 'outdoor'],
+    source: { authority: 'Negocio · ejemplo' },
+  },
+  {
+    id: 'preview-birthday-indoor',
+    sourceKind: 'business',
+    title: 'Cumpleaños indoor y juegos',
+    comuna: 'Santiago',
+    scheduleLabel: 'Reserva previa',
+    audienceLabel: 'Cumpleaños infantiles',
+    themeTags: ['birthday', 'family'],
+    source: { authority: 'Negocio · ejemplo' },
+  },
+];
