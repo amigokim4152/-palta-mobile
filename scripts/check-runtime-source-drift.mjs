@@ -24,7 +24,30 @@ function refSha(branch) {
   }
 }
 
+function normalizeRepoPath(value) {
+  return String(value ?? '').replace(/\\/g, '/').replace(/^\.\//, '').replace(/\/$/, '');
+}
+
+function ownsPath(ownedPaths, candidate) {
+  const file = normalizeRepoPath(candidate);
+  return ownedPaths.some((raw) => {
+    const owned = normalizeRepoPath(raw);
+    return file === owned || file.startsWith(`${owned}/`);
+  });
+}
+
+function changedFiles(fromSha, toSha) {
+  if (!fromSha || !toSha || fromSha === toSha) return [];
+  try {
+    const output = git(['diff', '--name-only', fromSha, toSha, '--']);
+    return output ? output.split('\n').map((entry) => entry.trim()).filter(Boolean) : [];
+  } catch {
+    return [];
+  }
+}
+
 const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
+const branchMetadataPaths = (manifest.branch_metadata_paths ?? []).map(normalizeRepoPath);
 let driftCount = 0;
 
 for (const surface of manifest.surfaces ?? []) {
@@ -33,6 +56,24 @@ for (const surface of manifest.surfaces ?? []) {
   if (!current) {
     console.log(`SOURCE UNKNOWN: ${surface.id} (${remoteName}/${surface.source_branch} not fetched)`);
     continue;
+  }
+
+  const ownershipBaseline =
+    surface.integration_mode === 'live_overlay'
+      ? surface.ownership_baseline_sha
+      : surface.integrated_source_sha;
+  const changed = changedFiles(ownershipBaseline, current);
+  const unowned = changed.filter(
+    (file) => !ownsPath(surface.owned_paths ?? [], file) && !ownsPath(branchMetadataPaths, file),
+  );
+
+  if (unowned.length > 0) {
+    driftCount += 1;
+    console.log(
+      `OWNERSHIP REVIEW REQUIRED: ${surface.id} changed ${unowned.length} path(s) outside its declared surface (${surface.source_branch})`,
+    );
+    for (const file of unowned.slice(0, 8)) console.log(`  - ${file}`);
+    if (unowned.length > 8) console.log(`  - ... ${unowned.length - 8} more`);
   }
 
   if (surface.integration_mode === 'live_overlay') {
