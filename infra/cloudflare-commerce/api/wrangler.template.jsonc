@@ -2,7 +2,7 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "palta-commerce-api",
   "main": "src/index.ts",
-  "compatibility_date": "2026-09-17",
+  "compatibility_date": "2026-09-18",
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": true,
   "hyperdrive": [
@@ -24,6 +24,7 @@
     ]
   },
   "vars": {
-    "PALTA_RUNTIME": "commerce_api"
+    "PALTA_RUNTIME": "commerce_api",
+    "SUPABASE_URL": "__PALTA_SUPABASE_URL__"
   }
 }
