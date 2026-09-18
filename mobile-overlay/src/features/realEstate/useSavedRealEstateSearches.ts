@@ -27,5 +27,16 @@ export function useSavedRealEstateSearches() {
     setSearches((current) => current.filter((item) => item.id !== searchId));
   }, [store]);
 
-  return { searches, loading, refresh, remove };
+  const setAlertPreference = useCallback(async (searchId: string, enabled: boolean) => {
+    const existing = searches.find((item) => item.id === searchId);
+    if (!existing) return;
+    const next: SavedRealEstateSearch = {
+      ...existing,
+      alertEnabled: enabled,
+    };
+    await store.saveSearch(next);
+    setSearches((current) => current.map((item) => item.id === searchId ? next : item));
+  }, [searches, store]);
+
+  return { searches, loading, refresh, remove, setAlertPreference };
 }
