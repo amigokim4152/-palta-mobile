@@ -50,6 +50,31 @@ jobs:
       - name: Resolve Expo public config
         run: |
           cd apps/mobile
-          npx expo config --type public > /tmp/palta-expo-config.json
-          grep -q 'cl.somospalta.app' /tmp/palta-expo-config.json
-          grep -q '"scheme": "palta"' /tmp/palta-expo-config.json
+          npx expo config --type public --json > /tmp/palta-expo-config.json
+          node - <<'NODE'
+          const fs = require('fs');
+          const config = JSON.parse(fs.readFileSync('/tmp/palta-expo-config.json', 'utf8'));
+          const expected = {
+            name: 'Palta',
+            slug: 'palta',
+            scheme: 'palta',
+            iosBundleIdentifier: 'cl.somospalta.app',
+            androidPackage: 'cl.somospalta.app',
+          };
+          const actual = {
+            name: config.name,
+            slug: config.slug,
+            scheme: config.scheme,
+            iosBundleIdentifier: config.ios?.bundleIdentifier,
+            androidPackage: config.android?.package,
+          };
+          const failures = Object.entries(expected)
+            .filter(([key, value]) => actual[key] !== value)
+            .map(([key, value]) => `${key}: expected ${value}, got ${actual[key]}`);
+          if (failures.length) {
+            console.error('FAIL: resolved Expo config does not match Palta canonical identity');
+            for (const failure of failures) console.error(`- ${failure}`);
+            process.exit(1);
+          }
+          console.log('PASS: resolved Expo config matches Palta canonical identity');
+          NODE
