@@ -11,6 +11,18 @@ const seenOutletKeys = new Set();
 const seenListingIds = new Set();
 let recordsChecked = 0;
 let menuItemsChecked = 0;
+let relatedListingsChecked = 0;
+
+function registerListing({ name, outletKey, listing, related = false }) {
+  if (!listing?.listing_id || !listing?.url || listing.platform !== 'uber_eats') {
+    throw new Error(`${name}: ${related ? 'related_' : ''}uber_listing_required:${outletKey}`);
+  }
+  if (seenListingIds.has(listing.listing_id)) {
+    throw new Error(`${name}: duplicate_listing_id:${listing.listing_id}`);
+  }
+  seenListingIds.add(listing.listing_id);
+  if (related) relatedListingsChecked += 1;
+}
 
 for (const name of files) {
   const payload = JSON.parse(fs.readFileSync(path.join(root, name), 'utf8'));
@@ -32,15 +44,27 @@ for (const name of files) {
     if (seenOutletKeys.has(outlet.outlet_key)) throw new Error(`${name}: duplicate_outlet_key:${outlet.outlet_key}`);
     seenOutletKeys.add(outlet.outlet_key);
 
-    if (!listing.listing_id || !listing.url || listing.platform !== 'uber_eats') {
-      throw new Error(`${name}: uber_listing_required:${outlet.outlet_key}`);
-    }
-    if (seenListingIds.has(listing.listing_id)) throw new Error(`${name}: duplicate_listing_id:${listing.listing_id}`);
-    seenListingIds.add(listing.listing_id);
+    registerListing({ name, outletKey: outlet.outlet_key, listing });
 
     if (!Array.isArray(listing.platform_categories)) {
       throw new Error(`${name}: platform_categories_required:${outlet.outlet_key}`);
     }
+
+    if (record.related_platform_listings !== undefined) {
+      if (!Array.isArray(record.related_platform_listings)) {
+        throw new Error(`${name}: related_platform_listings_must_be_array:${outlet.outlet_key}`);
+      }
+      for (const related of record.related_platform_listings) {
+        registerListing({ name, outletKey: outlet.outlet_key, listing: related, related: true });
+        if (
+          related.observed_availability === 'closed_on_platform' &&
+          !related.closed_on_platform_at
+        ) {
+          throw new Error(`${name}: closed_related_listing_requires_closed_at:${related.listing_id}`);
+        }
+      }
+    }
+
     if (!Array.isArray(menu.sections) || !Array.isArray(menu.sample_items)) {
       throw new Error(`${name}: menu_snapshot_required:${outlet.outlet_key}`);
     }
@@ -70,4 +94,6 @@ for (const name of files) {
   }
 }
 
-console.log(`PASS: food data catalog ${recordsChecked} outlets / ${menuItemsChecked} sampled menu items across ${files.length} observation files`);
+console.log(
+  `PASS: food data catalog ${recordsChecked} outlets / ${menuItemsChecked} sampled menu items / ${relatedListingsChecked} related listings across ${files.length} observation files`,
+);
