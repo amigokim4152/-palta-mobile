@@ -30,6 +30,13 @@ const post: BasicBusinessPost = {
   publishedAt: '2026-09-17T10:00:00-03:00',
   publishedByVerifiedOwnerAt: '2026-09-17T10:00:00-03:00',
 };
+const olderPost: BasicBusinessPost = {
+  ...post,
+  id: 'post-old',
+  title: 'Horario de la semana pasada',
+  publishedAt: '2026-09-10T10:00:00-03:00',
+  publishedByVerifiedOwnerAt: '2026-09-10T10:00:00-03:00',
+};
 
 const followerCoupon: BasicBusinessCoupon = {
   id: 'coupon-1',
@@ -42,12 +49,20 @@ const followerCoupon: BasicBusinessCoupon = {
   expiresAt: '2026-09-30T23:59:59-03:00',
   issuedByVerifiedOwnerAt: '2026-09-17T11:00:00-03:00',
 };
+const olderCoupon: BasicBusinessCoupon = {
+  ...followerCoupon,
+  id: 'coupon-old',
+  title: 'Beneficio anterior',
+  startsAt: '2026-09-12T11:00:00-03:00',
+  expiresAt: '2026-09-25T23:59:59-03:00',
+  issuedByVerifiedOwnerAt: '2026-09-12T11:00:00-03:00',
+};
 
 const nonFollowerItems = projectFollowedBusinessUpdates({
   businessName: 'Café ejemplo',
   relationship: nonFollower,
-  posts: [post],
-  coupons: [followerCoupon],
+  posts: [olderPost, post],
+  coupons: [olderCoupon, followerCoupon],
   now: '2026-09-17T12:00:00-03:00',
 });
 assert(nonFollowerItems.length === 0, 'Non-followers must not receive relationship-feed items.');
@@ -55,18 +70,20 @@ assert(nonFollowerItems.length === 0, 'Non-followers must not receive relationsh
 const followerItems = projectFollowedBusinessUpdates({
   businessName: 'Café ejemplo',
   relationship: follower,
-  posts: [post],
-  coupons: [followerCoupon],
+  posts: [olderPost, post],
+  coupons: [olderCoupon, followerCoupon],
   now: '2026-09-17T12:00:00-03:00',
 });
-assert(followerItems.length === 2, 'Follower should see eligible business post and coupon.');
+assert(followerItems.length === 2, 'Follower feed should stay bounded to one current coupon and one latest post per business.');
 assert(followerItems[0]?.kind === 'coupon', 'Newest relationship item should appear first.');
-assert(followerItems[1]?.kind === 'post', 'Older business post should follow newer coupon.');
+assert(followerItems[0]?.title === '10% para seguidores', 'Newest eligible coupon should win over older coupons.');
+assert(followerItems[1]?.kind === 'post', 'Latest public business post should follow newer coupon.');
+assert(followerItems[1]?.title === 'Abrimos este sábado', 'Older post history should remain on the profile, not flood Siguiendo.');
 
 const afterExpiry = projectFollowedBusinessUpdates({
   businessName: 'Café ejemplo',
   relationship: follower,
-  posts: [post],
+  posts: [olderPost, post],
   coupons: [followerCoupon],
   now: '2026-10-01T00:00:00-03:00',
 });
