@@ -11,6 +11,8 @@ This is the executable completion path for Somos Palta. A feature is complete on
 
 Feature/Core branches remain Sources of Truth for their own contracts. Actual whole-app simulator verification is executed from `integration/runtime-composition-v1`; do not judge the complete app by checking out a single feature branch.
 
+For Gate 01 Auth specifically, use the dedicated Auth-isolated test mode on the same runtime branch so unrelated live Market/Play/other feature drift cannot invalidate an Auth/session test. This isolation excludes feature overlays only; it does **not** fake Auth, session persistence, deep links, or canonical account resolution.
+
 ## Completion states
 
 Every gate uses exactly one of these states:
@@ -58,7 +60,7 @@ A server-side synthetic fixture may be provisioned for deterministic database te
 
 ## Gate 01 current state — 2026-09-18
 
-Gate 01 is `RUNTIME_CONNECTED`. The runtime and server foundation are connected, but the complete real mobile login → terminate/relaunch → logout → login-again cycle has not yet been executed and recorded.
+Gate 01 is `RUNTIME_CONNECTED`. The runtime/server/test harness are ready, but the complete real mobile login → terminate/relaunch → logout → login-again cycle has not yet been executed and recorded.
 
 Verified implementation/data facts:
 
@@ -74,48 +76,77 @@ Verified implementation/data facts:
 10. `palta-dev` has server-owned canonical `palta_account` bootstrap from `auth.users`
 11. client INSERT on `palta_account` remains denied
 12. a real `palta-dev` two-user transaction/RLS test proved user A cannot read user B account
-13. mobile config is fail-closed and accepts only a Supabase publishable key
-14. mobile runtime contains no service-role/admin key, public password, or Golden User password shortcut
-15. CI rejects `EXPO_PUBLIC_*` password/secret/token material and password-based Golden User bypasses
-16. development builds show `Palta ID` and `Auth ID` after sign-in so the same identity can be compared across restart and re-login
-17. `scheme=palta` and app identifiers remain `cl.somospalta.app`
-18. latest composed runtime verification at commit `5b3c4f9a5c7396413f04090f31950e8252bb8ae0` passed Core Check, full Core CI, source typecheck/config/iOS bundle, composition materialization with current live overlays, template-source rejection, post-composition credential scan, generated runtime typecheck, and composed iOS bundle
-19. successful latest runs: Mobile Runtime Check `35341308081`, Core Check `35341307918`, Palta Core CI `35341307922`
-20. Auth/Profile integration is recorded in the composition manifest at source SHA `a030511374d7a7a4b1383d5627f7d9ba4e6780aa`
-21. live surface dependencies required by the current composed runtime are tracked as reviewed contracts rather than copied ad hoc; generated runtime rejects `*.template.*` sources
+13. mobile config accepts only a publishable Supabase key and contains no service-role/admin credential
+14. CI rejects public password/secret/token material and password-based Golden User bypasses
+15. development builds show canonical account resolution state, `Palta ID`, and `Auth ID` after sign-in
+16. `scheme=palta` and app identifiers remain `cl.somospalta.app`
+17. historical whole-app composition verification succeeded at `5b3c4f9a5c7396413f04090f31950e8252bb8ae0` in Mobile Runtime Check `35341308081`
+18. Auth/Profile integration is recorded in the composition manifest at source SHA `a030511374d7a7a4b1383d5627f7d9ba4e6780aa`
+19. `npm run test:golden:ios` starts a development-only Gate 01 Auth-isolated runtime from `integration/runtime-composition-v1`
+20. the launcher asks locally for a Golden User test email and uses the real `palta-dev` email Magic Link flow
+21. Gate 01 isolation uses `mobile-overlay/src` → existing `apps/mobile/src`; it does not compose unrelated live feature overlays
+22. dedicated `Golden User Gate 01 Auth Test Check` run `35345553869` passed launcher validation, real `palta-dev` readiness, source/generated typechecks, source/generated iOS bundles, template rejection, and pre/post materialization Auth credential checks
+
+## Gate 01 test-mode boundary
+
+The dedicated test mode exists only to keep Auth verification deterministic while other product surfaces are changing in parallel.
+
+It **does test**:
+
+- actual Supabase email Magic Link
+- actual `palta://auth/callback` path
+- actual canonical account resolver
+- actual `palta_account` bootstrap/RLS boundary
+- actual persisted mobile session
+- actual logout/re-login path
+
+It **does not test or include** unrelated live Market/Play/Negocios surface overlays during this Gate 01 run.
+
+It is therefore valid evidence for Gate 01 Auth/session/account behavior, but not proof that every current product surface composes successfully at the same instant.
 
 ### Optional server fixture utility
 
-`apps/mobile/scripts/provision-golden-user.mjs` and `apps/mobile/.env.golden.example` are server/developer-side fixture tooling only. Real values live in ignored `apps/mobile/.env.golden` and are never mobile public configuration.
+`apps/mobile/scripts/provision-golden-user.mjs` and `apps/mobile/.env.golden.example` are server/developer-side fixture tooling only. Real values live in ignored local configuration and are never mobile public configuration.
 
-This utility can prepare deterministic server/account fixtures. It does not create a mobile test-login button, does not count as Auth E2E evidence, and does not unlock Gate 02.
+This utility can prepare deterministic server/account fixtures. It does not create a mobile password bypass, does not count as Auth E2E evidence, and does not unlock Gate 02.
 
 See `docs/GOLDEN_USER_001_GATE_01_SYNTHETIC_AUTH.md` for the server-fixture boundary.
 
 ## Gate 01 executable sequence
 
-On the development Mac, use the whole-app composition branch:
+On the development Mac:
 
 ```bash
 git fetch origin
 git switch integration/runtime-composition-v1
 git pull --ff-only
-npm run dev:ios
+npm run test:golden:ios
 ```
+
+The terminal prompts:
+
+```text
+Golden User 001 테스트 이메일:
+```
+
+Enter the email to use for the synthetic Golden User test identity. It is supplied to the local development process and is not committed to Git.
 
 Then execute in order:
 
-1. verify the signed-out Auth surface appears when no valid session exists
-2. complete an actually enabled Golden User login path against `palta-dev`; email passwordless is currently enabled
-3. record the displayed canonical `Palta ID` and `Auth ID`
-4. confirm exactly one matching canonical `public.palta_account` exists
-5. terminate the app
-6. relaunch and confirm the same session and `Palta ID`
-7. sign out and confirm return to Auth
-8. sign in again and confirm the same `Palta ID`
-9. when Apple/Google are configured, exercise each provider and confirm no unintended duplicate Palta account is created
-10. record exact evidence in `docs/GOLDEN_USER_001_GATE_01_AUTH_HANDOFF.md`
-11. change Gate 01 to `E2E_VERIFIED` only after all required evidence exists
+1. verify the signed-out Auth surface and `Golden User 001 테스트` panel appear
+2. tap `테스트 로그인 링크 보내기`
+3. receive the real `palta-dev` email Magic Link
+4. open it through the simulator callback, or paste it into `받은 Magic Link 붙여넣기` and trigger the login test
+5. record the displayed canonical `Palta ID` and `Auth ID`
+6. confirm exactly one matching canonical `public.palta_account` exists
+7. terminate the app completely
+8. relaunch the Gate 01 test runtime and confirm the same restored session and `Palta ID`
+9. sign out and confirm return to Auth
+10. sign in again and confirm the same `Palta ID`
+11. record exact evidence in `docs/GOLDEN_USER_001_GATE_01_AUTH_HANDOFF.md`
+12. change Gate 01 to `E2E_VERIFIED` only after all required evidence exists
+
+Apple/Google are not part of this immediate execution because those providers are currently disabled in `palta-dev`. When their credentials are enabled, exercise them and confirm no unintended duplicate canonical Palta account is created.
 
 If a provider/configuration/deep-link error occurs, stop at that exact failure and fix only that Gate 01 blocker.
 
