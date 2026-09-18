@@ -86,9 +86,14 @@ begin
     true
   );
 
-  select count(*), min(user_id)
-    into visible_count, visible_user
+  select count(*)
+    into visible_count
   from public.business_operational_grant;
+
+  select user_id
+    into visible_user
+  from public.business_operational_grant
+  limit 1;
 
   if visible_count <> 1 then
     raise exception 'business grant RLS exposed % rows, expected 1', visible_count;
