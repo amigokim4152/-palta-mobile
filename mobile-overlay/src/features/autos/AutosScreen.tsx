@@ -59,6 +59,9 @@ export function AutosScreen() {
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<AutosFilter>('all');
   const [ownerDirectOnly, setOwnerDirectOnly] = useState(false);
+  const [budgetOnly, setBudgetOnly] = useState(false);
+  const [recentOnly, setRecentOnly] = useState(false);
+  const [lowMileageOnly, setLowMileageOnly] = useState(false);
 
   const listings = useMemo(() => {
     const normalizedQuery = query.trim().toLocaleLowerCase('es-CL');
@@ -66,6 +69,9 @@ export function AutosScreen() {
       if (filter === 'hybrid' && vehicle.fuel !== 'hybrid') return false;
       if (filter !== 'all' && filter !== 'hybrid' && vehicle.bodyType !== filter) return false;
       if (ownerDirectOnly && listing.sellerType !== 'owner_direct') return false;
+      if (budgetOnly && listing.priceClp > 15000000) return false;
+      if (recentOnly && vehicle.year < 2022) return false;
+      if (lowMileageOnly && listing.mileageKm >= 40000) return false;
       if (
         normalizedQuery &&
         !`${listing.title} ${vehicle.make} ${vehicle.model} ${listing.comuna} ${listing.sector ?? ''}`
@@ -76,7 +82,10 @@ export function AutosScreen() {
       }
       return true;
     });
-  }, [filter, ownerDirectOnly, query]);
+  }, [budgetOnly, filter, lowMileageOnly, ownerDirectOnly, query, recentOnly]);
+
+  const hasFilters =
+    filter !== 'all' || ownerDirectOnly || budgetOnly || recentOnly || lowMileageOnly;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: paltaTheme.color.canvas }}>
@@ -145,13 +154,25 @@ export function AutosScreen() {
               selected={ownerDirectOnly}
               onPress={() => setOwnerDirectOnly(!ownerDirectOnly)}
             />
-            <FilterChip label="Precio" />
-            <FilterChip label="Año" />
-            <FilterChip label="Kilometraje" />
+            <FilterChip
+              label="Hasta $15M"
+              selected={budgetOnly}
+              onPress={() => setBudgetOnly(!budgetOnly)}
+            />
+            <FilterChip
+              label="2022+"
+              selected={recentOnly}
+              onPress={() => setRecentOnly(!recentOnly)}
+            />
+            <FilterChip
+              label="< 40.000 km"
+              selected={lowMileageOnly}
+              onPress={() => setLowMileageOnly(!lowMileageOnly)}
+            />
           </ScrollView>
         </View>
 
-        {!query && filter === 'all' && !ownerDirectOnly ? (
+        {!query && !hasFilters ? (
           <View
             style={{
               padding: paltaTheme.spacing.md,
@@ -172,7 +193,7 @@ export function AutosScreen() {
         <View style={{ gap: paltaTheme.spacing.sm }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
             <Text style={{ fontSize: 19, fontWeight: '900', color: paltaTheme.color.textPrimary }}>
-              {query ? 'Resultados' : 'Autos cerca de ti'}
+              {query || hasFilters ? 'Resultados' : 'Autos cerca de ti'}
             </Text>
             <Text style={{ fontSize: 12, color: paltaTheme.color.textMuted }}>
               {listings.length} {listings.length === 1 ? 'publicación' : 'publicaciones'}
