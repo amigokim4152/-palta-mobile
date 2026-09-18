@@ -40,7 +40,6 @@ export function AutosSaleCareScreen() {
   });
   const transaction = estimateChileVehicleTransaction({
     salePriceClp: care.finalPriceClp,
-    siiCurrentMarketValueClp: Math.max(1, Math.round(care.finalPriceClp * 0.82)),
     costBearer: 'buyer',
   });
   const completed = new Set(care.records.map((record) => record.milestone));
@@ -65,18 +64,18 @@ export function AutosSaleCareScreen() {
           <Text style={{ fontSize: 22, fontWeight: '900', color: paltaTheme.color.textPrimary }}>{clp(care.finalPriceClp)}</Text>
           <Text style={{ fontSize: 13, fontWeight: '800', color: paltaTheme.color.textPrimary }}>{selectedOffer?.businessName}</Text>
           <Text style={{ fontSize: 12, lineHeight: 18, color: paltaTheme.color.textSecondary }}>
-            Estado compartido: {track.state}. Palta mantiene el proceso unido hasta que pago, transferencia e entrega queden confirmados.
+            Estado compartido: {track.state}. Palta mantiene el proceso unido hasta que pago, transferencia y entrega queden confirmados.
           </Text>
         </View>
 
         <View style={{ padding: paltaTheme.spacing.md, gap: 7, borderRadius: paltaTheme.radius.surface, borderWidth: 1, borderColor: paltaTheme.color.divider, backgroundColor: paltaTheme.color.surface }}>
           <Text style={{ fontSize: 14, fontWeight: '900', color: paltaTheme.color.textPrimary }}>Costos estimados de transferencia</Text>
-          <Text style={{ fontSize: 12, color: paltaTheme.color.textSecondary }}>Impuesto estimado: {clp(transaction.transferTaxClp)}</Text>
+          <Text style={{ fontSize: 12, color: paltaTheme.color.textSecondary }}>Impuesto estimado mínimo: {clp(transaction.transferTaxClp)}</Text>
           <Text style={{ fontSize: 12, color: paltaTheme.color.textSecondary }}>Registro: {clp(transaction.motorVehicleRegistryFeeClp)}</Text>
           <Text style={{ fontSize: 12, color: paltaTheme.color.textSecondary }}>Declaración ante oficial civil: {clp(transaction.civilOfficerProcedureFeeClp)}</Text>
-          <Text style={{ fontSize: 13, fontWeight: '900', color: paltaTheme.color.textPrimary }}>Total estimado: {clp(transaction.totalTransferCostsClp)}</Text>
+          <Text style={{ fontSize: 13, fontWeight: '900', color: paltaTheme.color.textPrimary }}>Total estimado mínimo: {clp(transaction.totalTransferCostsClp)}</Text>
           <Text style={{ fontSize: 11, lineHeight: 17, color: paltaTheme.color.textMuted }}>
-            Esta demo asume que la parte compradora cubre estos costos. En producción Palta mostrará quién paga según el acuerdo real y la regla vigente.
+            Falta incorporar la tasación SII real del vehículo. Si esa tasación supera el precio de venta, la base imponible puede aumentar. Esta demo asume además que la parte compradora cubre los costos.
           </Text>
         </View>
 
