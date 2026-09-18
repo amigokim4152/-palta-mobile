@@ -9,7 +9,7 @@ export default function TabLayout() {
       <Tabs.Screen name="neighborhood" options={{ href: null }} />
       <Tabs.Screen name="community" options={{ title: 'Comunidad' }} />
       <Tabs.Screen name="market" options={{ title: 'Mercado' }} />
-      <Tabs.Screen name="play" options={{ title: 'Panoramas' }} />
+      <Tabs.Screen name="play" options={{ title: 'Panorama' }} />
     </Tabs>
   );
 }
