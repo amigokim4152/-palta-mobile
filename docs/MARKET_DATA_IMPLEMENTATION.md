@@ -17,6 +17,7 @@ Implementation must conform to:
 - `src/market/marketMessageIntent.ts`
 - `src/market/marketPersistenceContract.ts`
 - `src/market/marketApiContract.ts`
+- `src/market/marketHttpAdapter.ts`
 - `src/market/marketAccessPolicy.ts`
 
 Do not invent parallel models in SQL, Worker code or mobile UI.
@@ -92,7 +93,20 @@ Favorites are private user state. Public APIs may expose only aggregate count.
 - buyer_user_id
 - status = coordinating / reserved / completed / cancelled
 - conversation_id nullable reference owned by Message Core
+- immutable listing snapshot captured when the transaction starts
 - created_at / updated_at / completed_at nullable
+
+The snapshot must preserve the minimum user-facing transaction context even after the public listing is sold, withdrawn or edited:
+
+- listing_id
+- title
+- category
+- trade_mode
+- price_clp nullable
+- comuna_name
+- first media_asset_id nullable
+
+The infrastructure workstream may store this as normalized immutable columns or a validated JSON object, but the API must return the canonical `MarketTransactionListingSnapshot`. Do not resolve the current mutable listing at review/history read time as a substitute for the snapshot.
 
 Constraints:
 
@@ -100,6 +114,7 @@ Constraints:
 - one active/reserved transaction per listing at a time
 - completion is terminal
 - transaction rows are visible only to participants and service role
+- listing snapshot is written once when the transaction is created and is not rewritten by later listing edits
 
 ### market_transaction_review
 
@@ -131,7 +146,7 @@ It must not contain exact coordinates, exact address, contact details, raw Auth 
 
 All side effects enter through authenticated Palta API operations. Mobile must not receive direct INSERT/UPDATE/DELETE permissions for Mercado tables.
 
-Canonical routes are declared in `MARKET_API_ROUTES` in `src/market/marketApiContract.ts`.
+Canonical routes are declared in `MARKET_API_ROUTES` in `src/market/marketApiContract.ts`. HTTP serialization/parsing is defined by `src/market/marketHttpAdapter.ts`; internal TypeScript models remain camelCase while the Palta HTTP wire uses snake_case.
 
 Server-side mutation order:
 
@@ -159,7 +174,7 @@ Public discovery includes only active and reserved listings. Sold and withdrawn 
 
 Recommended server behavior:
 
-- first serious buyer interaction may create `coordinating`
+- first serious buyer interaction may create `coordinating` and atomically capture the listing snapshot
 - seller selects/accepts one buyer -> `reserved`; listing -> `reserved`
 - seller confirms exchange -> transaction `completed`; listing -> `sold`
 - either participant may cancel before completion; listing returns to `active` when no other reservation remains
@@ -194,6 +209,19 @@ The API implementation must leave explicit hooks for:
 
 Do not overload listing status with moderation state if moderation needs independent audit history.
 
+## Mobile live-runtime boundary
+
+The feature-side live adapter is described in `docs/MARKET_LIVE_RUNTIME_HANDOFF.md`.
+
+Mercado receives shared capabilities by injection:
+
+- authenticated/optional-auth HTTP transport from the shared Palta API/Auth runtime
+- coarse public area from Location Core
+- media asset resolver and picker/uploader from Media Core
+- conversation handoff from Message Core
+
+Production must not fall back to development fixtures when any live dependency is absent.
+
 ## Implementation gate
 
 Before applying a real migration to `palta-dev`:
@@ -202,6 +230,8 @@ Before applying a real migration to `palta-dev`:
 2. Auth/Profile user identifier mapping is confirmed;
 3. Media Core asset identifier is confirmed;
 4. Message Core conversation reference contract is confirmed;
-5. RLS/API policy is reviewed;
-6. migration and rollback are tested against development data;
-7. mobile dev fixtures remain dev-only until the real adapter passes composed runtime verification.
+5. transaction listing snapshot storage is confirmed;
+6. RLS/API policy is reviewed;
+7. migration and rollback are tested against development data;
+8. API responses pass `marketHttpAdapter` canonical parsing;
+9. mobile dev fixtures remain dev-only until the real adapter passes composed runtime verification.
