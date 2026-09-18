@@ -60,8 +60,13 @@ const benefits = municipalRecordsToFunctionalHome(
   now,
 );
 assert(benefits.length === 2, 'Only verified/corroborated, local, relevant and current municipal records should enter Home.');
-assert(benefits.find((item) => item.id.endsWith('ongoing'))?.surface === 'useful_today', 'Ongoing benefit belongs in PARA HOY.');
-assert(benefits.find((item) => item.id.endsWith('deadline'))?.surface === 'now', 'Benefit deadline within attention window belongs in AHORA.');
+const ongoingBenefit = benefits.find((item) => item.id.endsWith('ongoing'));
+const deadlineBenefit = benefits.find((item) => item.id.endsWith('deadline'));
+assert(ongoingBenefit?.surface === 'useful_today', 'Ongoing benefit belongs in PARA HOY.');
+assert(ongoingBenefit?.capabilityKey === 'today.municipal_benefit', 'Ongoing local benefit must use the canonical municipal benefit capability.');
+assert(deadlineBenefit?.surface === 'now', 'Benefit deadline within attention window belongs in AHORA.');
+assert(deadlineBenefit?.capabilityKey === 'now.admin_deadline', 'Imminent municipal deadline must escalate to the canonical admin deadline capability.');
+assert(benefits.every((item) => item.dedupeKey?.startsWith('public-life:municipal:')), 'Municipal items need stable dedupe keys.');
 assert(benefits.every((item) => validateHomeFunctionalItem(item).length === 0), 'Municipal items must satisfy Home contract.');
 
 const unavailableBenefits = municipalRecordsToFunctionalHome({
