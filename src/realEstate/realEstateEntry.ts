@@ -1,4 +1,4 @@
-import type { BusinessId, ListingId, PropertyId } from './realEstateContracts';
+import type { BusinessId, ListingId, PropertyId } from './realEstateContracts.js';
 
 export type RealEstateEntrySource =
   | 'negocios_category'
@@ -25,30 +25,30 @@ export type RealEstateDestination =
   | { route: `/propiedades/property/${string}`; params?: Record<string, string> }
   | { route: `/business/${string}`; params?: Record<string, string> };
 
+function withParams<T extends RealEstateDestination['route']>(
+  route: T,
+  params: Record<string, string> | undefined,
+): Extract<RealEstateDestination, { route: T }> | RealEstateDestination {
+  return params ? { route, params } as RealEstateDestination : { route } as RealEstateDestination;
+}
+
 /**
  * Single handoff contract used by Negocios and the rest of Palta.
  * Negocios never owns Property/Listing state; it only hands context to the
  * independent Propiedades surface.
  */
 export function resolveRealEstateEntry(context: RealEstateEntryContext): RealEstateDestination {
+  const params = buildContextParams(context);
+
   if (context.listingId) {
-    return {
-      route: `/propiedades/listing/${context.listingId}`,
-      params: buildContextParams(context),
-    };
+    return withParams(`/propiedades/listing/${context.listingId}`, params);
   }
 
   if (context.propertyId) {
-    return {
-      route: `/propiedades/property/${context.propertyId}`,
-      params: buildContextParams(context),
-    };
+    return withParams(`/propiedades/property/${context.propertyId}`, params);
   }
 
-  return {
-    route: '/propiedades',
-    params: buildContextParams(context),
-  };
+  return withParams('/propiedades', params);
 }
 
 export function buildBusinessProfileDestination(businessId: BusinessId): RealEstateDestination {
