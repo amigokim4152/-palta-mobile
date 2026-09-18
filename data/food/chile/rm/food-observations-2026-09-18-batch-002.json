@@ -1,0 +1,223 @@
+{
+  "dataset": "palta_food_observations_rm",
+  "observed_at": "2026-09-18",
+  "currency": "CLP",
+  "scope": "Región Metropolitana de Santiago",
+  "records": [
+    {
+      "outlet": {
+        "outlet_key": "cl-rm-santiago-dopbap-san-martin-85",
+        "brand_name": "DOPBAP Comida Coreana",
+        "address": "San Martin 85",
+        "comuna": "Santiago",
+        "region": "Región Metropolitana",
+        "postal_code": "8340515",
+        "identity_status": "platform_only"
+      },
+      "listing": {
+        "platform": "uber_eats",
+        "listing_id": "qMP5sZgVRlaSKU1PbquypQ",
+        "listing_name": "DOPBAP Comida Coreana",
+        "url": "https://www.ubereats.com/cl/store/dopbap-comida-coreana/qMP5sZgVRlaSKU1PbquypQ",
+        "platform_categories": ["Coreana", "Plant Based", "Vegana"],
+        "delivery_supported": true,
+        "pickup_supported": true
+      },
+      "menu_snapshot": {
+        "sections": ["Artículos destacados", "Ofertas", "Arroces", "Acompañamientos", "Extra", "Bebidas", "Fideos", "Arroz colación", "Ramen colación", "Ramen colación + arroz", "Deluxe para Dos"],
+        "sample_items": [
+          {"name": "Bulgogi dopbap + 2 mandu + bebida", "price_clp": 9784},
+          {"name": "Jeyuk dopbap + 2 mandu + bebida", "price_clp": 9784},
+          {"name": "Kimchi bokkeumbap + 2 mandu + bebida", "price_clp": 9784},
+          {"name": "Japchae + 2 mandu + bebida", "price_clp": 13298},
+          {"name": "Bibimbap + 2 mandu + bebida", "price_clp": 12620},
+          {"name": "Bulgogi dopbap", "price_clp": 11535},
+          {"name": "Jjajang ramen", "price_clp": 10178}
+        ]
+      },
+      "evidence": [
+        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/dopbap-comida-coreana/qMP5sZgVRlaSKU1PbquypQ", "observed_at": "2026-09-18"}
+      ]
+    },
+    {
+      "outlet": {
+        "outlet_key": "cl-rm-santiago-akitu-fusion-loreto-162",
+        "brand_name": "Akitu Fusion - Comida Peruana",
+        "address": "Loreto 162",
+        "comuna": "Santiago",
+        "region": "Región Metropolitana",
+        "postal_code": "8420471",
+        "identity_status": "platform_only"
+      },
+      "listing": {
+        "platform": "uber_eats",
+        "listing_id": "jzljin-6UZ2gb-VdR2NJbg",
+        "listing_name": "Akitu Fusion - Comida Peruana",
+        "url": "https://www.ubereats.com/cl/store/akitu-fusion-comida-peruana/jzljin-6UZ2gb-VdR2NJbg",
+        "platform_categories": ["Peruana", "Carne", "Pescados y mariscos"],
+        "delivery_supported": true,
+        "pickup_supported": true
+      },
+      "menu_snapshot": {
+        "sections": ["Menu económico (incluye entrada)", "Menu ejecutivo (incluye entrada)", "Promocion", "Recomendaciones", "Pollo a la brasa (combos)", "Entradas"],
+        "sample_items": [
+          {"name": "Arroz chaufa de pollo", "price_clp": 12500},
+          {"name": "Saltado de pollo", "price_clp": 12500},
+          {"name": "Pollo a la brasa (individual)", "price_clp": 12500},
+          {"name": "Ají de gallina", "price_clp": 12500},
+          {"name": "Lomo saltado", "price_clp": 13500},
+          {"name": "Mostrito con pollo a la brasa", "price_clp": 13500},
+          {"name": "Arroz con marisco", "price_clp": 13500},
+          {"name": "Pescado a lo macho", "price_clp": 13500},
+          {"name": "Tacu tacu con pollo saltado", "price_clp": 13500},
+          {"name": "Aeropuerto", "price_clp": 13500}
+        ]
+      },
+      "evidence": [
+        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/akitu-fusion-comida-peruana/jzljin-6UZ2gb-VdR2NJbg", "observed_at": "2026-09-18"}
+      ]
+    },
+    {
+      "outlet": {
+        "outlet_key": "cl-rm-providencia-mi-ensalada-orrego-luco-42",
+        "brand_name": "MI ENSALADA",
+        "address": "Pasaje Orrego Luco 42",
+        "comuna": "Providencia",
+        "region": "Región Metropolitana",
+        "identity_status": "platform_only"
+      },
+      "listing": {
+        "platform": "uber_eats",
+        "listing_id": "Ds-GpQqWQpOQxxjgUKlwwQ",
+        "listing_name": "MI ENSALADA",
+        "url": "https://www.ubereats.com/cl/store/mi-ensalada/Ds-GpQqWQpOQxxjgUKlwwQ",
+        "platform_categories": ["Ensaladas"],
+        "delivery_supported": true,
+        "pickup_supported": true
+      },
+      "menu_snapshot": {
+        "sections": ["Artículos destacados", "MI DESAYUNO", "MI COMBOS", "MI ENSALADA", "MI PLATOS VEGANOS", "MI PLATO CALIENTE", "MI SOPAS", "MI SANDWICH", "MI WRAP", "MI POSTRE", "MI ADEREZO EXTRA", "MI EXTRA PROTEINA", "MI EXTRAS VEGETA", "MI BEBIDAS"],
+        "sample_items": [
+          {"name": "PLATO DEL DÍA #2", "price_clp": 8490},
+          {"name": "MI ENSALADA DE SALMÓN AHUMADO", "price_clp": 8990},
+          {"name": "MI ENSALADA PAPA", "price_clp": 8690},
+          {"name": "PROMO COMBO 1", "price_clp": 8792},
+          {"name": "TORTILLA DE VERDURAS", "price_clp": 8290},
+          {"name": "MI WRAP SUPERIOR", "price_clp": 8890},
+          {"name": "MI ENSALADA ATÚN SELLADO", "price_clp": 9190}
+        ]
+      },
+      "evidence": [
+        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/mi-ensalada/Ds-GpQqWQpOQxxjgUKlwwQ", "observed_at": "2026-09-18"}
+      ]
+    },
+    {
+      "outlet": {
+        "outlet_key": "cl-rm-la-cisterna-comida-china-vicuna-mackenna-1076",
+        "brand_name": "Comida China",
+        "outlet_name": "Santiago",
+        "address": "Vicuña Mackenna 1076",
+        "comuna": "La Cisterna",
+        "region": "Región Metropolitana",
+        "postal_code": "7970000",
+        "identity_status": "platform_only"
+      },
+      "listing": {
+        "platform": "uber_eats",
+        "listing_id": "phOq1xR0RA2oALJPBH5IIg",
+        "listing_name": "Comida China (Santiago)",
+        "url": "https://www.ubereats.com/cl/store/comida-china-santiago/phOq1xR0RA2oALJPBH5IIg",
+        "platform_categories": ["Asiática", "Asiática fusión", "Coreana", "China", "Peruana", "Sushi", "Ambiente familiar", "Family Meals"],
+        "delivery_supported": true,
+        "pickup_supported": true
+      },
+      "menu_snapshot": {
+        "sections": ["Especialidades"],
+        "sample_items": [
+          {"name": "Arroz Chaufa Especial", "price_clp": 9400},
+          {"name": "Arroz Especial Venezolano", "price_clp": 9800},
+          {"name": "Arroz Chaufa Especial en Pote", "price_clp": 9400}
+        ]
+      },
+      "evidence": [
+        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/comida-china-santiago/phOq1xR0RA2oALJPBH5IIg", "observed_at": "2026-09-18"}
+      ]
+    },
+    {
+      "outlet": {
+        "outlet_key": "cl-rm-santiago-ruta-tercera-huerfanos-1466",
+        "brand_name": "Ruta Tercera Comida China",
+        "address": "Huérfanos 1466",
+        "comuna": "Santiago",
+        "region": "Región Metropolitana",
+        "postal_code": "8320000",
+        "public_contact": {
+          "phone": "+56225690610",
+          "website": "https://www.rutatercera.cl/"
+        },
+        "identity_status": "verified"
+      },
+      "listing": {
+        "platform": "uber_eats",
+        "listing_id": "jpD4VJT6Q2CM4QzvT4wO_Q",
+        "listing_name": "Ruta tercera Comida china",
+        "url": "https://www.ubereats.com/cl/store/ruta-tercera-comida-china/jpD4VJT6Q2CM4QzvT4wO_Q",
+        "platform_categories": ["Sushi", "Asiática", "China"],
+        "delivery_supported": true,
+        "pickup_supported": true
+      },
+      "menu_snapshot": {
+        "sections": ["Artículos destacados", "Colaciones", "Ofertas", "Frituras", "Menús", "Sopas", "Arroz y Fideos", "Familia Carnes", "Familia Pollos", "Familia Cerdos", "Chapsui", "Diente de Dragón", "Bebidas"],
+        "sample_items": [
+          {"name": "Colación B", "price_clp": 6950},
+          {"name": "Colación A", "price_clp": 6900},
+          {"name": "Arroz Chaufán + Mongoliana", "price_clp": 6300},
+          {"name": "Arrollado Primavera", "price_clp": 4740},
+          {"name": "Menú 2 Personas B", "price_clp": 19800},
+          {"name": "Carne Mongoliana", "price_clp": 10600},
+          {"name": "Costillar Cantonés", "price_clp": 10100},
+          {"name": "Chaumin Especial", "price_clp": 9900}
+        ]
+      },
+      "evidence": [
+        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/ruta-tercera-comida-china/jpD4VJT6Q2CM4QzvT4wO_Q", "observed_at": "2026-09-18"},
+        {"kind": "official_website", "url": "https://www.rutatercera.cl/", "observed_at": "2026-09-18"},
+        {"kind": "rappi", "url": "https://www.rappi.cl/restaurantes/900017583-ruta-tercera-comida-china", "observed_at": "2026-09-18"}
+      ]
+    },
+    {
+      "outlet": {
+        "outlet_key": "cl-rm-santiago-kirin-infante-1538",
+        "brand_name": "Comida China Asiatica Kirin",
+        "address": "Jose Manuel Infante 1538",
+        "comuna": "Santiago",
+        "region": "Región Metropolitana",
+        "postal_code": "7501144",
+        "identity_status": "platform_only"
+      },
+      "listing": {
+        "platform": "uber_eats",
+        "listing_id": "9AorfVjnXz28sF2RI5nUaQ",
+        "listing_name": "Comida China Asiatica Kirin",
+        "url": "https://www.ubereats.com/cl/store/comida-china-asiatica-kirin/9AorfVjnXz28sF2RI5nUaQ",
+        "platform_categories": ["Asiática fusión", "Asiática", "Coreana", "Pescados y mariscos", "Platos de arroz", "Mongola", "Sopas"],
+        "delivery_supported": true,
+        "pickup_supported": true
+      },
+      "menu_snapshot": {
+        "sections": ["Artículos destacados", "Colaciones"],
+        "sample_items": [
+          {"name": "Carne mongoliana c/arroz", "price_clp": 9900},
+          {"name": "Chaumin especial", "price_clp": 13500},
+          {"name": "Arroz chaufan especial", "price_clp": 10800},
+          {"name": "Costillar cantonés", "price_clp": 12800},
+          {"name": "Pollo chung san", "price_clp": 12800},
+          {"name": "Chapsui especial", "price_clp": 12850}
+        ]
+      },
+      "evidence": [
+        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/comida-china-asiatica-kirin/9AorfVjnXz28sF2RI5nUaQ", "observed_at": "2026-09-18"}
+      ]
+    }
+  ]
+}
