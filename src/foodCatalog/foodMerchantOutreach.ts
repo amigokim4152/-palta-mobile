@@ -3,6 +3,7 @@ import { canPromoteOutletIdentity } from './foodDataGovernance.js';
 
 export type FoodMerchantOutreachStatus =
   | 'not_ready'
+  | 'ready_for_identity_confirmation'
   | 'ready_to_contact'
   | 'contacted'
   | 'authorized'
@@ -63,6 +64,10 @@ function clean(value: string | undefined): string | undefined {
   return trimmed ? trimmed : undefined;
 }
 
+function requiresIdentityConfirmation(outlet: FoodOutletIdentity): boolean {
+  return outlet.identityStatus === 'needs_review' || outlet.identityStatus === 'possible_virtual_brand';
+}
+
 export function buildFoodMerchantOutreachCandidate(
   outlet: FoodOutletIdentity,
 ): FoodMerchantOutreachCandidate {
@@ -70,6 +75,11 @@ export function buildFoodMerchantOutreachCandidate(
   const phone = clean(outlet.publicContact?.phone);
   const website = clean(outlet.publicContact?.website);
   const hasReachableContact = Boolean(whatsapp || phone || website);
+  const status: FoodMerchantOutreachStatus = !hasReachableContact
+    ? 'not_ready'
+    : requiresIdentityConfirmation(outlet)
+      ? 'ready_for_identity_confirmation'
+      : 'ready_to_contact';
 
   return {
     outletKey: outlet.outletKey,
@@ -80,7 +90,7 @@ export function buildFoodMerchantOutreachCandidate(
     ...(whatsapp ? { whatsapp } : {}),
     ...(phone ? { phone } : {}),
     ...(website ? { website } : {}),
-    status: hasReachableContact ? 'ready_to_contact' : 'not_ready',
+    status,
     requestedScope: DEFAULT_FOOD_MERCHANT_AUTHORIZATION_SCOPE,
     sourceEvidence: outlet.evidence,
   };
@@ -114,5 +124,22 @@ export function buildSpanishFoodMerchantPermissionMessage(input: {
     '¿Nos autorizan a publicar y mantener en Palta los datos públicos del negocio: nombre, dirección, teléfono/WhatsApp, horario, nombres de productos del menú, precios y opciones de retiro/delivery?',
     'No utilizaremos fotos de otras plataformas. Más adelante ustedes podrán revisar y actualizar directamente su ficha.',
     'Si están de acuerdo, basta responder “Sí, autorizo”. Gracias.',
+  ].join('\n\n');
+}
+
+/**
+ * Use this before the authorization request when public sources conflict about
+ * the physical outlet. It asks the merchant to resolve the fact first instead
+ * of presenting an uncertain address as already established.
+ */
+export function buildSpanishFoodIdentityConfirmationMessage(input: {
+  brandName: string;
+  question: string;
+}): string {
+  return [
+    `Hola, somos Somos Palta. Estamos verificando los datos públicos de ${input.brandName} antes de preparar su ficha.`,
+    input.question,
+    '¿Nos pueden confirmar cuál es el dato correcto? No estamos recopilando fotos; solo queremos dejar correctos los datos del local.',
+    'Gracias.',
   ].join('\n\n');
 }
