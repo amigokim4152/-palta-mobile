@@ -1,3 +1,8 @@
+import {
+  parseBookLibraryDiscoveryV1,
+  type BookLibraryDiscoveryV1,
+} from '../bookLibrary/discoveryContract.js';
+
 export type FetchLike = (
   input: string,
   init?: {
@@ -172,6 +177,19 @@ export class PaltaApiClient {
       throw new Error('GET /v1/local/search payload missing items[]');
     }
     return payload.items as LocalSearchItem[];
+  }
+
+  async getBookLibraryDiscovery(input: {
+    workId?: string;
+    query?: string;
+    locale?: string;
+  } = {}): Promise<BookLibraryDiscoveryV1> {
+    const params = new URLSearchParams();
+    if (input.workId) params.set('work_id', input.workId);
+    if (input.query) params.set('q', input.query);
+    params.set('locale', input.locale ?? 'es-CL');
+    const payload = await this.request(`/v1/book-library/discovery?${params.toString()}`);
+    return parseBookLibraryDiscoveryV1(payload);
   }
 
   async getBusiness(businessId: string): Promise<BusinessApiDetail> {
