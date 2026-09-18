@@ -10,17 +10,19 @@ import type {
   TransitionMarketListingCommand,
   UpdateMarketListingCommand,
 } from '../../../../src/market/marketApiContract';
+import { assertMarketDiscoveryQuery } from '../../../../src/market/marketDiscovery';
 import {
   canTransitionMarketListing,
   isMarketListingPublic,
   type MarketListingStatus,
 } from '../../../../src/market/marketLifecycle';
-import type {
-  MarketListingRecord,
-  MarketPublicListing,
-  MarketTransactionListingSnapshot,
-  MarketTransactionRecord,
-  MarketTransactionReview,
+import {
+  marketListingVerticalOf,
+  type MarketListingRecord,
+  type MarketPublicListing,
+  type MarketTransactionListingSnapshot,
+  type MarketTransactionRecord,
+  type MarketTransactionReview,
 } from '../../../../src/market/marketPersistenceContract';
 import { marketPreviewListings } from './marketPreviewData';
 import { marketSellerTrustPreviewByListing } from './marketPreviewTrust';
@@ -60,6 +62,7 @@ function previewRecord(id: string): MarketListingRecord | undefined {
   return {
     id: item.id,
     sellerUserId: trust?.sellerActorId ?? `preview-seller:${item.id}`,
+    vertical: 'secondhand',
     title: item.title,
     description: item.description,
     category: item.category,
@@ -88,6 +91,8 @@ function transactionSnapshot(
   const firstMedia = listing.media[0];
   return {
     listingId: listing.id,
+    vertical: marketListingVerticalOf(listing),
+    ...(listing.sellerBusinessId ? { sellerBusinessId: listing.sellerBusinessId } : {}),
     title: listing.title,
     category: listing.category,
     tradeMode: listing.tradeMode,
@@ -103,6 +108,7 @@ function toPublicListing(record: MarketListingRecord): MarketPublicListing {
 
   return {
     id: record.id,
+    vertical: marketListingVerticalOf(record),
     title: record.title,
     description: record.description,
     category: record.category,
@@ -116,6 +122,7 @@ function toPublicListing(record: MarketListingRecord): MarketPublicListing {
     ...(record.publishedAt ? { publishedAt: record.publishedAt } : {}),
     seller: {
       sellerUserId: record.sellerUserId,
+      ...(record.sellerBusinessId ? { businessId: record.sellerBusinessId } : {}),
       displayName: preview?.sellerName ?? 'Tú',
       neighborhoodVerified: trust?.neighborhoodVerified ?? true,
       completedTrades: trust?.completedTrades ?? 0,
@@ -163,6 +170,7 @@ function sortDiscovery(
 
 const read: MarketReadPort = {
   async discover(query) {
+    assertMarketDiscoveryQuery(query);
     const normalized = query.query?.trim().toLocaleLowerCase('es-CL') ?? '';
     let items = allRecords()
       .filter(
@@ -171,9 +179,17 @@ const read: MarketReadPort = {
       )
       .map(toPublicListing)
       .filter((listing) => {
+        if (query.vertical && marketListingVerticalOf(listing) !== query.vertical) return false;
         if (query.category && listing.category !== query.category) return false;
         if (query.tradeMode && listing.tradeMode !== query.tradeMode) return false;
         if (query.comunaCode && listing.location.comunaCode !== query.comunaCode) {
+          return false;
+        }
+        if (query.areaRef && listing.location.areaRef !== query.areaRef) return false;
+        if (
+          query.maxDistanceKm !== undefined &&
+          (listing.distanceKm === undefined || listing.distanceKm > query.maxDistanceKm)
+        ) {
           return false;
         }
         if (
@@ -222,6 +238,8 @@ const mutation: MarketMutationPort = {
     const record: MarketListingRecord = {
       id,
       sellerUserId: PREVIEW_CURRENT_USER_ID,
+      ...(command.sellerBusinessId ? { sellerBusinessId: command.sellerBusinessId } : {}),
+      vertical: command.vertical ?? 'secondhand',
       title: command.title.trim(),
       description: command.description.trim(),
       category: command.category,

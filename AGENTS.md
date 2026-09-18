@@ -19,8 +19,13 @@ Before changing mobile-visible behavior, read the repository-wide contract:
 
 ## Product boundary
 
-Mercado v1 is neighborhood person-to-person goods: sell, give away, exchange and wanted posts.
-Vehicles, property and jobs/services are separate Palta verticals and must not be folded into Mercado merely because they can be listed.
+Mercado is the explicit transaction/listing-intent area. It includes secondhand/personal sales, vehicle listings, property sale/rent listings, and future local-produce/direct-trade listings.
+
+Negocios remains business/service discovery. A canonical Business and a Mercado Listing are never the same object. A Mercado listing may carry only a canonical Business id reference when the seller is acting for a business (for example, a real-estate agency and one of its property listings).
+
+Mercado discovery must support list and map projections without owning another map implementation. Public listing data must stay coarse and privacy-safe; exact addresses, raw seller coordinates and direct personal contact details do not belong in public Mercado payloads.
+
+Canonical Mercado policy is language-neutral. Display strings belong in localization/UI code, not policy definitions.
 
 ## Rules
 

@@ -3,6 +3,7 @@ import type {
   MarketTradeMode,
 } from './marketCatalog.js';
 import type { MarketListingStatus } from './marketLifecycle.js';
+import type { MarketVerticalKey } from './marketVerticalPolicy.js';
 
 export type MarketId = string;
 export type PaltaUserId = string;
@@ -26,6 +27,16 @@ export type MarketMediaRef = {
 export type MarketListingRecord = {
   id: MarketId;
   sellerUserId: PaltaUserId;
+  /**
+   * Optional reference to a canonical Negocios Business.
+   * Mercado never embeds or duplicates the Business object.
+   */
+  sellerBusinessId?: string;
+  /**
+   * Transitional compatibility: legacy Mercado rows without this field are
+   * interpreted as secondhand by marketListingVerticalOf(). New writes include it.
+   */
+  vertical?: MarketVerticalKey;
   title: string;
   description: string;
   category: Exclude<MarketCategoryKey, 'all'>;
@@ -43,6 +54,8 @@ export type MarketListingRecord = {
 
 export type MarketPublicSellerSummary = {
   sellerUserId: PaltaUserId;
+  /** Canonical Business reference only; never an embedded Business payload. */
+  businessId?: string;
   displayName: string;
   neighborhoodVerified: boolean;
   completedTrades: number;
@@ -51,7 +64,7 @@ export type MarketPublicSellerSummary = {
 
 export type MarketPublicListing = Omit<
   MarketListingRecord,
-  'sellerUserId' | 'version'
+  'sellerUserId' | 'sellerBusinessId' | 'version'
 > & {
   seller: MarketPublicSellerSummary;
   favoriteCount: number;
@@ -79,6 +92,8 @@ export type MarketTransactionStatus =
  */
 export type MarketTransactionListingSnapshot = {
   listingId: MarketId;
+  vertical?: MarketVerticalKey;
+  sellerBusinessId?: string;
   title: string;
   category: Exclude<MarketCategoryKey, 'all'>;
   tradeMode: MarketTradeMode;
@@ -132,6 +147,12 @@ export const MARKET_PUBLIC_LISTING_FORBIDDEN_FIELDS = [
   'authUserId',
 ] as const;
 
+export function marketListingVerticalOf(
+  listing: Pick<MarketListingRecord, 'vertical'>,
+): MarketVerticalKey {
+  return listing.vertical ?? 'secondhand';
+}
+
 export function assertMarketListingDraft(input: {
   title: string;
   description: string;
@@ -150,12 +171,12 @@ export function assertMarketListingDraft(input: {
   if (input.mediaAssetIds.length === 0 || input.mediaAssetIds.length > 10) {
     throw new Error('Market listing must contain 1-10 Media Core assets.');
   }
-  if (input.tradeMode === 'sale') {
+  if (input.tradeMode === 'sale' || input.tradeMode === 'rent') {
     if (!Number.isInteger(input.priceClp) || (input.priceClp ?? 0) < 0) {
-      throw new Error('Sale listings require a non-negative integer CLP price.');
+      throw new Error('Sale/rent listings require a non-negative integer CLP price.');
     }
   } else if (input.priceClp !== undefined) {
-    throw new Error('Only sale listings may persist priceClp.');
+    throw new Error('Only sale/rent listings may persist priceClp.');
   }
 }
 

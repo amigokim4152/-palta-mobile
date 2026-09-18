@@ -16,6 +16,7 @@ import type {
   UpdateMarketListingCommand,
 } from './marketApiContract.js';
 import type { MarketCategoryKey, MarketTradeMode } from './marketCatalog.js';
+import { assertMarketDiscoveryQuery } from './marketDiscovery.js';
 import type { MarketListingStatus } from './marketLifecycle.js';
 import type {
   MarketListingRecord,
@@ -29,6 +30,7 @@ import type {
   MarketTransactionReview,
   MarketTransactionStatus,
 } from './marketPersistenceContract.js';
+import type { MarketVerticalKey } from './marketVerticalPolicy.js';
 
 export type MarketHttpMethod = 'GET' | 'POST' | 'PATCH' | 'PUT';
 export type MarketHttpAuth = 'optional' | 'required';
@@ -76,7 +78,19 @@ const categories = new Set<Exclude<MarketCategoryKey, 'all'>>([
   'fashion',
   'hobby',
 ]);
-const tradeModes = new Set<MarketTradeMode>(['sale', 'free', 'exchange', 'wanted']);
+const tradeModes = new Set<MarketTradeMode>([
+  'sale',
+  'rent',
+  'free',
+  'exchange',
+  'wanted',
+]);
+const verticals = new Set<MarketVerticalKey>([
+  'secondhand',
+  'vehicles',
+  'property',
+  'local_produce',
+]);
 const reviewTags = new Set<MarketReviewTag>([
   'good_communication',
   'punctual',
@@ -178,6 +192,14 @@ function parseTradeMode(value: unknown, label: string): MarketTradeMode {
   return value as MarketTradeMode;
 }
 
+function parseVertical(value: unknown, label: string): MarketVerticalKey {
+  if (value === undefined || value === null || value === '') return 'secondhand';
+  if (typeof value !== 'string' || !verticals.has(value as MarketVerticalKey)) {
+    throw invalidResponse(`${label} contains an unknown Mercado vertical.`);
+  }
+  return value as MarketVerticalKey;
+}
+
 function parseListingStatus(value: unknown, label: string): MarketListingStatus {
   if (typeof value !== 'string' || !listingStatuses.has(value as MarketListingStatus)) {
     throw invalidResponse(`${label} contains an unknown listing status.`);
@@ -220,8 +242,10 @@ function parseMedia(value: unknown, label: string): MarketMediaRef[] {
 function parseSeller(value: unknown, label: string): MarketPublicSellerSummary {
   const object = asObject(value, label);
   const responseLabel = optionalString(object, 'response_label');
+  const businessId = optionalString(object, 'business_id');
   return {
     sellerUserId: requiredString(object, 'seller_user_id', label),
+    ...(businessId ? { businessId } : {}),
     displayName: requiredString(object, 'display_name', label),
     neighborhoodVerified: requiredBoolean(object, 'neighborhood_verified', label),
     completedTrades: requiredNumber(object, 'completed_trades', label),
@@ -233,9 +257,12 @@ export function parseMarketListingRecord(value: unknown): MarketListingRecord {
   const object = asObject(value, 'MarketListingRecord');
   const priceClp = optionalNumber(object, 'price_clp');
   const publishedAt = optionalString(object, 'published_at');
+  const sellerBusinessId = optionalString(object, 'seller_business_id');
   return {
     id: requiredString(object, 'id', 'MarketListingRecord'),
     sellerUserId: requiredString(object, 'seller_user_id', 'MarketListingRecord'),
+    ...(sellerBusinessId ? { sellerBusinessId } : {}),
+    vertical: parseVertical(object.vertical, 'MarketListingRecord.vertical'),
     title: requiredString(object, 'title', 'MarketListingRecord'),
     description: typeof object.description === 'string' ? object.description : '',
     category: parseCategory(object.category, 'MarketListingRecord.category'),
@@ -259,6 +286,7 @@ export function parseMarketPublicListing(value: unknown): MarketPublicListing {
   const distanceKm = optionalNumber(object, 'distance_km');
   return {
     id: requiredString(object, 'id', 'MarketPublicListing'),
+    vertical: parseVertical(object.vertical, 'MarketPublicListing.vertical'),
     title: requiredString(object, 'title', 'MarketPublicListing'),
     description: typeof object.description === 'string' ? object.description : '',
     category: parseCategory(object.category, 'MarketPublicListing.category'),
@@ -281,8 +309,11 @@ function parseSnapshot(value: unknown): MarketTransactionListingSnapshot {
   const object = asObject(value, 'MarketTransactionListingSnapshot');
   const priceClp = optionalNumber(object, 'price_clp');
   const mediaAssetId = optionalString(object, 'media_asset_id');
+  const sellerBusinessId = optionalString(object, 'seller_business_id');
   return {
     listingId: requiredString(object, 'listing_id', 'MarketTransactionListingSnapshot'),
+    vertical: parseVertical(object.vertical, 'MarketTransactionListingSnapshot.vertical'),
+    ...(sellerBusinessId ? { sellerBusinessId } : {}),
     title: requiredString(object, 'title', 'MarketTransactionListingSnapshot'),
     category: parseCategory(object.category, 'MarketTransactionListingSnapshot.category'),
     tradeMode: parseTradeMode(object.trade_mode, 'MarketTransactionListingSnapshot.trade_mode'),
@@ -355,6 +386,8 @@ function encodeLocation(location: MarketLocationSummary): Record<string, unknown
 
 function encodeCreateListing(command: CreateMarketListingCommand): Record<string, unknown> {
   return {
+    vertical: command.vertical ?? 'secondhand',
+    ...(command.sellerBusinessId ? { seller_business_id: command.sellerBusinessId } : {}),
     title: command.title,
     description: command.description,
     category: command.category,
@@ -453,14 +486,30 @@ export function createMarketHttpPorts(transport: MarketHttpTransport): {
 } {
   const read: MarketReadPort = {
     async discover(query: DiscoverMarketListingsQuery) {
+      assertMarketDiscoveryQuery(query);
+      const viewport = query.viewport;
       const payload = await expectSuccess(transport, {
         method: 'GET',
         path: '/v1/market/listings',
         auth: 'optional',
         query: {
+          ...(query.vertical ? { vertical: query.vertical } : {}),
           ...(query.category ? { category: query.category } : {}),
           ...(query.tradeMode ? { trade_mode: query.tradeMode } : {}),
           ...(query.comunaCode ? { comuna_code: query.comunaCode } : {}),
+          ...(query.areaRef ? { area_ref: query.areaRef } : {}),
+          ...(query.maxDistanceKm !== undefined
+            ? { max_distance_km: query.maxDistanceKm }
+            : {}),
+          ...(query.surface ? { surface: query.surface } : {}),
+          ...(viewport
+            ? {
+                viewport_north: viewport.north,
+                viewport_south: viewport.south,
+                viewport_east: viewport.east,
+                viewport_west: viewport.west,
+              }
+            : {}),
           ...(query.query ? { q: query.query } : {}),
           ...(query.sort ? { sort: query.sort } : {}),
           ...(query.cursor ? { cursor: query.cursor } : {}),

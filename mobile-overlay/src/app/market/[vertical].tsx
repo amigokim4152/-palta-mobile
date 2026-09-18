@@ -7,11 +7,12 @@ import {
 import { ScreenFrame } from '../../components/ScreenFrame';
 import { SectionHeading } from '../../components/common/SectionHeading';
 
+/** Display copy stays in the UI/localization layer, never canonical policy. */
 const FALLBACK_VERTICAL_TITLES: Record<MarketVerticalKey, string> = {
   secondhand: 'Usados',
   vehicles: 'Vehículos',
   property: 'Propiedades',
-  jobs_services: 'Empleos y servicios',
+  local_produce: 'Productos locales',
 };
 
 export default function MarketVerticalScreen() {
@@ -41,22 +42,18 @@ export default function MarketVerticalScreen() {
     >
       <View style={{ gap: 16 }}>
         <SectionHeading
-          title={
-            createMode
-              ? `Publicar en ${title}`
-              : `Explorar ${title}`
-          }
+          title={createMode ? `Publicar en ${title}` : `Explorar ${title}`}
           subtitle={
             createMode
-              ? 'El formulario será específico de esta categoría; no existe un “publicar” genérico.'
+              ? 'Cada tipo de publicación usa un formulario específico; no existe un “publicar” genérico.'
               : definition.mapUseful
-                ? 'Esta categoría puede usar el Map Core sin crear otro mapa.'
-                : 'Esta categoría prioriza lista y búsqueda.'
+                ? 'Lista y mapa comparten los mismos listings; el mapa usa Map Core.'
+                : 'Esta categoría prioriza lista y búsqueda y puede abrir mapa cuando aporte valor.'
           }
         />
         <Text style={{ opacity: 0.62 }}>
-          El contrato de datos del vertical todavía no está conectado. Esta pantalla
-          define la entrada correcta sin inventar publicaciones.
+          La entrada ya usa la política común de Mercado. Los formularios específicos se
+          conectan por vertical sin duplicar Business, Map, Messaging ni Care.
         </Text>
       </View>
     </ScreenFrame>

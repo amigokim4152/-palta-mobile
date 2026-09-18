@@ -13,6 +13,7 @@ import type {
   MarketTransactionReview,
   PaltaUserId,
 } from './marketPersistenceContract.js';
+import type { MarketVerticalKey } from './marketVerticalPolicy.js';
 
 export type MarketApiErrorCode =
   | 'AUTH_REQUIRED'
@@ -61,10 +62,25 @@ export type MarketTransactionView = MarketTransactionRecord & {
   counterparty?: MarketTransactionCounterpartySummary;
 };
 
+export type MarketMapViewport = {
+  north: number;
+  south: number;
+  east: number;
+  west: number;
+};
+
 export type DiscoverMarketListingsQuery = {
+  vertical?: MarketVerticalKey;
   category?: Exclude<MarketCategoryKey, 'all'>;
   tradeMode?: MarketTradeMode;
   comunaCode?: string;
+  /** Coarse Location Core area reference; never a raw home address. */
+  areaRef?: string;
+  /** Viewer-relative filter. The API computes distance without exposing coordinates. */
+  maxDistanceKm?: number;
+  /** Optional map viewport used for Map Core-backed discovery. */
+  viewport?: MarketMapViewport;
+  surface?: 'list' | 'map';
   query?: string;
   sort?: 'recent' | 'distance' | 'price_asc' | 'price_desc';
   cursor?: string;
@@ -72,6 +88,10 @@ export type DiscoverMarketListingsQuery = {
 };
 
 export type CreateMarketListingCommand = {
+  /** Legacy callers default to secondhand; new vertical flows should set this explicitly. */
+  vertical?: MarketVerticalKey;
+  /** Optional canonical Negocios Business reference. Never an embedded Business object. */
+  sellerBusinessId?: string;
   title: string;
   description: string;
   category: Exclude<MarketCategoryKey, 'all'>;
@@ -91,7 +111,7 @@ export type UpdateMarketListingCommand = {
     description?: string;
     category?: Exclude<MarketCategoryKey, 'all'>;
     tradeMode?: MarketTradeMode;
-    /** null explicitly clears a previous sale price. */
+    /** null explicitly clears a previous sale/rent price. */
     priceClp?: number | null;
     location?: MarketLocationSummary;
     mediaAssetIds?: string[];
