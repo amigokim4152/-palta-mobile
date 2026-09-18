@@ -45,6 +45,7 @@ export function VehicleListingDetailScreen() {
 
   const { vehicle, listing } = item;
   const saved = demoState.savedListingIds.includes(listing.id);
+  const publisherBusinessId = listing.publisherBusinessId;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: paltaTheme.color.canvas }}>
@@ -100,13 +101,13 @@ export function VehicleListingDetailScreen() {
             <Text style={{ fontSize: 12, color: listing.verifiedSeller ? paltaTheme.color.brandPrimary : paltaTheme.color.textMuted }}>
               {listing.verifiedSeller ? 'Identidad del vendedor verificada · demo' : 'Verificación pendiente · demo'}
             </Text>
-            {listing.publisherBusinessId ? (
+            {publisherBusinessId ? (
               <Pressable
                 onPress={() =>
                   router.push(
-                    listing.publisherBusinessId.startsWith('demo-business-auto-')
-                      ? `/autos/dealer/${encodeURIComponent(listing.publisherBusinessId)}`
-                      : `/business/${encodeURIComponent(listing.publisherBusinessId)}`,
+                    publisherBusinessId.startsWith('demo-business-auto-')
+                      ? `/autos/dealer/${encodeURIComponent(publisherBusinessId)}`
+                      : `/business/${encodeURIComponent(publisherBusinessId)}`,
                   )
                 }
                 style={{ marginTop: 6 }}
