@@ -1,0 +1,19 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "src/features/community/**/*.ts",
+    "src/features/community/**/*.tsx",
+    "src/app/(tabs)/community.tsx",
+    "src/app/community/**/*.ts",
+    "src/app/community/**/*.tsx",
+    "../src/community/**/*.ts",
+    "../src/api/paltaApiClient.ts",
+    "../src/api/paltaApiFactory.ts",
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts"
+  ],
+  "exclude": [
+    "src/**/*.template.ts",
+    "src/**/*.template.tsx"
+  ]
+}
