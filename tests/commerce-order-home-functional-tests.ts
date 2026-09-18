@@ -42,9 +42,12 @@ assert(
   }) === null,
   'Personal Home must not expose another customer order.',
 );
+
+const ownedPreparing = order('preparing');
+const { customerId: _customerId, ...anonymousPreparing } = ownedPreparing;
 assert(
   commerceOrderToFunctionalHome({
-    order: order('preparing', { customerId: undefined }),
+    order: anonymousPreparing,
     viewerCustomerId: 'customer-1',
     dataMode: 'live',
     observedAt: '2026-09-18T08:10:00.000Z',
