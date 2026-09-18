@@ -29,6 +29,8 @@ export function MarketMessageHandoffScreen() {
   const [listing, setListing] = useState<MarketPublicListing | null>();
   const [preset, setPreset] = useState<MarketMessagePreset>('availability');
   const [prepared, setPrepared] = useState(false);
+  const [opening, setOpening] = useState(false);
+  const [handoffError, setHandoffError] = useState<string | undefined>();
 
   useEffect(() => {
     if (!id || !runtime.read) {
@@ -59,6 +61,25 @@ export function MarketMessageHandoffScreen() {
     });
   }, [listing, preset]);
 
+  async function continueToMessages() {
+    if (!intent || opening) return;
+    setHandoffError(undefined);
+
+    if (!runtime.openMessageIntent) {
+      setPrepared(true);
+      return;
+    }
+
+    setOpening(true);
+    try {
+      await runtime.openMessageIntent(intent);
+    } catch {
+      setHandoffError('No pudimos abrir la conversación. Intenta nuevamente.');
+    } finally {
+      setOpening(false);
+    }
+  }
+
   if (listing === undefined) {
     return (
       <SafeAreaView style={styles.safeArea}>
@@ -76,7 +97,7 @@ export function MarketMessageHandoffScreen() {
           <Text style={styles.title}>No se puede iniciar el mensaje</Text>
           <Text style={styles.centerBody}>
             {runtime.mode === 'unavailable'
-              ? runtime.unavailableReason
+              ? 'Mercado no está disponible en este momento.'
               : 'La publicación ya no está disponible.'}
           </Text>
           <Pressable style={styles.primaryButton} onPress={() => router.back()}>
@@ -118,6 +139,7 @@ export function MarketMessageHandoffScreen() {
                 onPress={() => {
                   setPreset(item);
                   setPrepared(false);
+                  setHandoffError(undefined);
                 }}
                 style={[styles.presetCard, selected && styles.presetCardSelected]}
               >
@@ -134,35 +156,37 @@ export function MarketMessageHandoffScreen() {
           })}
         </View>
 
-        <View style={styles.coreBoundaryBox}>
-          <Text style={styles.coreBoundaryTitle}>Message Core</Text>
-          <Text style={styles.coreBoundaryBody}>
-            La conversación será una transacción vinculada a esta publicación. Mercado conserva el contexto; Mensajes conserva la conversación.
+        <View style={styles.contextHintBox}>
+          <Text style={styles.contextHintTitle}>Conversación vinculada al artículo</Text>
+          <Text style={styles.contextHintBody}>
+            El mensaje conservará esta publicación como contexto para que comprador y vendedor sepan de qué están hablando.
           </Text>
         </View>
 
-        {prepared ? (
+        {prepared && runtime.mode === 'development_preview' ? (
           <View style={styles.readyBox}>
-            <Text style={styles.readyTitle}>Solicitud preparada</Text>
-            <Text style={styles.readyBody}>
-              Contexto: listing · {intent.context.resourceId}
-            </Text>
-            <Text style={styles.readyBody}>Mensaje: {intent.initialText}</Text>
-            <Text style={styles.pendingText}>
-              La UI compartida de Mensajes sigue pendiente de integración. No se crea un chat paralelo dentro de Mercado.
-            </Text>
+            <Text style={styles.readyTitle}>Vista previa preparada</Text>
+            <Text style={styles.readyBody}>{intent.initialText}</Text>
+          </View>
+        ) : null}
+
+        {handoffError ? (
+          <View style={styles.errorBox}>
+            <Text style={styles.errorText}>{handoffError}</Text>
           </View>
         ) : null}
 
         <Pressable
-          onPress={() => setPrepared(true)}
+          disabled={opening}
+          onPress={continueToMessages}
           style={({ pressed }) => [
             styles.primaryButton,
             pressed && styles.primaryButtonPressed,
+            opening && styles.primaryButtonDisabled,
           ]}
         >
           <Text style={styles.primaryButtonText}>
-            {prepared ? 'Solicitud lista' : 'Continuar con Mensajes'}
+            {opening ? 'Abriendo…' : 'Continuar con Mensajes'}
           </Text>
         </Pressable>
       </View>
@@ -252,17 +276,17 @@ const styles = StyleSheet.create({
     color: paltaTheme.color.brandPrimary,
     fontWeight: '700',
   },
-  coreBoundaryBox: {
+  contextHintBox: {
     borderRadius: paltaTheme.radius.surface,
     backgroundColor: paltaTheme.color.surfaceMuted,
     padding: 14,
   },
-  coreBoundaryTitle: {
+  contextHintTitle: {
     color: paltaTheme.color.textPrimary,
     fontSize: 13,
     fontWeight: '800',
   },
-  coreBoundaryBody: {
+  contextHintBody: {
     marginTop: 4,
     color: paltaTheme.color.textSecondary,
     fontSize: 12,
@@ -286,11 +310,15 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 17,
   },
-  pendingText: {
-    marginTop: 8,
-    color: paltaTheme.color.textMuted,
-    fontSize: 11,
-    lineHeight: 16,
+  errorBox: {
+    borderRadius: paltaTheme.radius.control,
+    backgroundColor: paltaTheme.color.surfaceMuted,
+    padding: 12,
+  },
+  errorText: {
+    color: paltaTheme.color.danger,
+    fontSize: 12,
+    lineHeight: 17,
   },
   primaryButton: {
     minHeight: 52,
@@ -301,6 +329,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
   },
   primaryButtonPressed: { opacity: 0.84 },
+  primaryButtonDisabled: { opacity: 0.5 },
   primaryButtonText: { color: '#FFFFFF', fontSize: 15, fontWeight: '800' },
   center: {
     flex: 1,
