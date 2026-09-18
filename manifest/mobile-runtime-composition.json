@@ -37,6 +37,7 @@
       "ownership_baseline_sha": "1c2b3f00368f2084cb2b90812bd3771bbd3299b0",
       "owned_paths": [
         "mobile-overlay/src/features/business",
+        "mobile-overlay/src/features/neighborhood/reduceNeighborhood.ts",
         "mobile-overlay/src/components/business",
         "mobile-overlay/src/components/LocalResultCard.tsx",
         "mobile-overlay/src/components/map/NeighborhoodMap.tsx",
@@ -47,6 +48,7 @@
       ],
       "branch_owned_paths": [
         "mobile-overlay/src/features/business",
+        "mobile-overlay/src/features/neighborhood/reduceNeighborhood.ts",
         "mobile-overlay/src/components/business",
         "mobile-overlay/src/components/LocalResultCard.tsx",
         "mobile-overlay/src/components/map/NeighborhoodMap.tsx",
@@ -57,8 +59,10 @@
         "src/business",
         "tests/local-business-discovery-preview-tests.ts",
         "scripts/check-local-business-experience-shell.mjs",
+        "scripts/check-local-business-map-search.mjs",
         "scripts/check-local-business-screen-reference.mjs",
-        "scripts/check-mobile-runtime-shell.mjs"
+        "scripts/check-mobile-runtime-shell.mjs",
+        "package.json"
       ],
       "reviewed_contract_paths": [
         "src/business/localBusinessDiscoveryPreview.ts"
