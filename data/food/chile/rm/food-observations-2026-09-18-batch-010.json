@@ -1,0 +1,276 @@
+{
+  "dataset": "palta_food_observations_rm",
+  "observed_at": "2026-09-18",
+  "currency": "CLP",
+  "scope": "Región Metropolitana de Santiago",
+  "records": [
+    {
+      "outlet": {
+        "outlet_key": "cl-rm-pudahuel-dulcelatos-cerro-la-campana-1061",
+        "brand_name": "Heladería Dulcelatos",
+        "outlet_name": "Pudahuel",
+        "address": "Cerro La Campana 1061",
+        "comuna": "Pudahuel",
+        "region": "Región Metropolitana",
+        "postal_code": "9050317",
+        "identity_status": "platform_only"
+      },
+      "listing": {
+        "platform": "uber_eats",
+        "listing_id": "30-JU6TdVUS4-QsvK29T7A",
+        "listing_name": "Heladería Dulcelatos Pudahuel",
+        "url": "https://www.ubereats.com/cl/store/heladeria-dulcelatos-pudahuel/30-JU6TdVUS4-QsvK29T7A",
+        "platform_categories": ["Ice Cream & Frozen Yogurt", "Comida reconfortante", "Postres"],
+        "delivery_supported": true,
+        "pickup_supported": true
+      },
+      "menu_snapshot": {
+        "sections": ["Artículos destacados", "Helados", "Frappés", "Licuados", "Churros", "agregados", "Donas y Tortas"],
+        "sample_items": [
+          {"name": "Helado de Litro", "price_clp": 7800},
+          {"name": "Waffle", "price_clp": 7000},
+          {"name": "12 Churros + salsa", "price_clp": 5990},
+          {"name": "24 Churros + salsa", "price_clp": 10990},
+          {"name": "Frappé de Moka", "price_clp": 5200},
+          {"name": "Frappé de Oreo", "price_clp": 5200},
+          {"name": "Jugo natural", "price_clp": 2300},
+          {"name": "Malteada de Helado", "price_clp": 3600},
+          {"name": "Donas de Nutella", "price_clp": 2000},
+          {"name": "Mini Donas Surtidas", "price_clp": 2700}
+        ]
+      },
+      "evidence": [
+        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/heladeria-dulcelatos-pudahuel/30-JU6TdVUS4-QsvK29T7A", "observed_at": "2026-09-18"}
+      ]
+    },
+    {
+      "outlet": {
+        "outlet_key": "cl-rm-recoleta-pasteleria-la-colonia-mexico-692",
+        "brand_name": "Pastelería La Colonia",
+        "outlet_name": "Recoleta",
+        "address": "Av. México 692",
+        "comuna": "Recoleta",
+        "region": "Región Metropolitana",
+        "postal_code": "8420000",
+        "identity_status": "platform_only"
+      },
+      "listing": {
+        "platform": "uber_eats",
+        "listing_id": "rhdin9TnWB6E3_-i6Fx9_w",
+        "listing_name": "Pasteleria La Colonia - RECOLETA",
+        "url": "https://www.ubereats.com/cl/store/pasteleria-la-colonia-recoleta/rhdin9TnWB6E3_-i6Fx9_w",
+        "platform_categories": ["Desayuno y brunch", "Panadería", "Café y té"],
+        "delivery_supported": true,
+        "pickup_supported": true
+      },
+      "menu_snapshot": {
+        "sections": ["Artículos destacados", "Tortas", "Pasteles", "Sándwich", "Bollería", "Galletas", "Bebidas", "Helados"],
+        "sample_items": [
+          {"name": "Pastel Bizcocho Selva Negra", "price_clp": 6600},
+          {"name": "Postre Tres Leches", "price_clp": 7500},
+          {"name": "Pastel Hojarasca Amor", "price_clp": 6600},
+          {"name": "Pastel Kuchen Manzana Nuez", "price_clp": 4840},
+          {"name": "Pastel Cheesecake de Maracuyá", "price_clp": 6900},
+          {"name": "Croissant Huevo Jamón y Queso", "price_clp": 6700},
+          {"name": "Sándwich Jamón Palta", "price_clp": 6700},
+          {"name": "Mendocino", "price_clp": 2550}
+        ]
+      },
+      "evidence": [
+        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/pasteleria-la-colonia-recoleta/rhdin9TnWB6E3_-i6Fx9_w", "observed_at": "2026-09-18"}
+      ]
+    },
+    {
+      "outlet": {
+        "outlet_key": "cl-rm-recoleta-panaderia-fufu-antonia-lopez-de-bello-150",
+        "brand_name": "Panadería Fufu",
+        "address": "Antonia López De Bello 150",
+        "comuna": "Recoleta",
+        "region": "Región Metropolitana",
+        "postal_code": "8420481",
+        "identity_status": "platform_only"
+      },
+      "listing": {
+        "platform": "uber_eats",
+        "listing_id": "bmXmQ9pbRTqFKOnzs3BbOQ",
+        "listing_name": "Panadería Fufu",
+        "url": "https://www.ubereats.com/cl/store/panaderia-fufu/bmXmQ9pbRTqFKOnzs3BbOQ",
+        "platform_categories": ["Panadería", "Repostería", "Pasteles", "Postres", "Desayuno y brunch"],
+        "delivery_supported": true,
+        "pickup_supported": true,
+        "scheduled_orders_supported": true
+      },
+      "menu_snapshot": {
+        "sections": ["Artículos destacados", "Top 5", "Galletas Surtidas", "Pan", "Dulces Arabes", "Dulces Franceses", "Empanadas", "Varios", "Pasteles y Otros", "Tortas", "Market fufu", "Pastas y salsas", "Bebidas", "Menú"],
+        "sample_items": [
+          {"name": "Pan Pita", "price_clp": 2900},
+          {"name": "Bandeja de Dulces Árabes", "price_clp": 5500},
+          {"name": "Empanada de Pino", "price_clp": 3200},
+          {"name": "Pasta de hummus", "price_clp": 3900},
+          {"name": "Pasta de berenjena (babaganoush)", "price_clp": 3900},
+          {"name": "Hojas de Parra", "price_clp": 6900},
+          {"name": "Caja de Galletas", "price_clp": 4800},
+          {"name": "Torta Chocolate, Trufa y Nuez", "price_clp": 3900},
+          {"name": "Pan de campo blanco", "price_clp": 2900},
+          {"name": "Empanada Queso", "price_clp": 3200}
+        ]
+      },
+      "evidence": [
+        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/panaderia-fufu/bmXmQ9pbRTqFKOnzs3BbOQ", "observed_at": "2026-09-18"}
+      ]
+    },
+    {
+      "outlet": {
+        "outlet_key": "cl-rm-maipu-cafeteria-latte-corazon-hugo-bravo-20",
+        "brand_name": "Cafetería Latte Corazón",
+        "outlet_name": "Maipú",
+        "address": "Calle Arquitecto Hugo Bravo 20",
+        "comuna": "Maipú",
+        "region": "Región Metropolitana",
+        "postal_code": "9250000",
+        "identity_status": "platform_only"
+      },
+      "listing": {
+        "platform": "uber_eats",
+        "listing_id": "uWp5XqPYX4iJWzTWe1dn2g",
+        "listing_name": "Cafetería Latte Corazón Maipu (Santiago)",
+        "url": "https://www.ubereats.com/cl/store/cafeteria-latte-corazon-maipu-santiago/uWp5XqPYX4iJWzTWe1dn2g",
+        "platform_categories": ["Café y té", "Americana", "Desayuno y brunch"],
+        "delivery_supported": true,
+        "pickup_supported": true,
+        "scheduled_orders_supported": true
+      },
+      "menu_snapshot": {
+        "sections": ["Artículos destacados", "Sándwich (Croissant o Molde)", "Bebestibles", "Chocolates Calientes", "Té", "Café", "Pastelería", "Wafles Simples", "Wafles Adicionales", "Wafles Premium", "Fondue", "Croissant"],
+        "sample_items": [
+          {"name": "Fondue Chocolate Individual", "price_clp": 10990},
+          {"name": "Fondue Chocolate para 2", "price_clp": 17900},
+          {"name": "Latte Sabores 350 ml", "price_clp": 3900},
+          {"name": "Waffle Lotus", "price_clp": 9800},
+          {"name": "Sándwich Vegetariano", "price_clp": 7000},
+          {"name": "Mocaccino 350 ml", "price_clp": 3290},
+          {"name": "Pie de Limón", "price_clp": 3900},
+          {"name": "Brownie con Helado y Salsa", "price_clp": 4990},
+          {"name": "Café Helado 350 ml", "price_clp": 4500},
+          {"name": "Chai Latte 500 ml", "price_clp": 3490}
+        ]
+      },
+      "evidence": [
+        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/cafeteria-latte-corazon-maipu-santiago/uWp5XqPYX4iJWzTWe1dn2g", "observed_at": "2026-09-18"}
+      ]
+    },
+    {
+      "outlet": {
+        "outlet_key": "cl-rm-la-cisterna-mi-cafetal-mamina-11",
+        "brand_name": "Mi Cafetal",
+        "outlet_name": "La Cisterna",
+        "address": "Mamiña 11",
+        "comuna": "La Cisterna",
+        "region": "Región Metropolitana",
+        "postal_code": "7980572",
+        "identity_status": "platform_only"
+      },
+      "listing": {
+        "platform": "uber_eats",
+        "listing_id": "RIJj8EI7VhCkj2EpHu_32g",
+        "listing_name": "Mi cafetal (La Cisterna)",
+        "url": "https://www.ubereats.com/cl/store/mi-cafetal-la-cisterna/RIJj8EI7VhCkj2EpHu_32g",
+        "platform_categories": ["Café y té", "Desayuno y brunch", "Postres"],
+        "delivery_supported": true,
+        "pickup_supported": true,
+        "scheduled_orders_supported": true
+      },
+      "menu_snapshot": {
+        "sections": ["Artículos destacados", "Combos Imperdibles", "Cafés & Bebidas", "Postres & Galletería", "Salados & Panadería"],
+        "sample_items": [
+          {"name": "Cappuccino 8 oz", "price_clp": 3900},
+          {"name": "Cheesecake frutos rojos", "price_clp": 4600},
+          {"name": "Galletas Rizadas (110 gm)", "price_clp": 2900},
+          {"name": "Hojarasca de Manjar y Lúcuma", "price_clp": 4900},
+          {"name": "Aliado (Jamón y Queso)", "price_clp": 2900},
+          {"name": "Tostadas con Palta", "price_clp": 5900},
+          {"name": "Croissant de Pistacho", "price_clp": 3300},
+          {"name": "Kuchen", "price_clp": 3400},
+          {"name": "Promo Cappuccino y Muffin", "price_clp": 5500},
+          {"name": "Promo Cappuccino y Galletón", "price_clp": 5000}
+        ]
+      },
+      "evidence": [
+        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/mi-cafetal-la-cisterna/RIJj8EI7VhCkj2EpHu_32g", "observed_at": "2026-09-18"}
+      ]
+    },
+    {
+      "outlet": {
+        "outlet_key": "cl-rm-recoleta-pasteleria-geno-santos-dumont-642",
+        "brand_name": "Pastelería Geno",
+        "address": "Calle Santos Dumont 642",
+        "comuna": "Recoleta",
+        "region": "Región Metropolitana",
+        "postal_code": "8420000",
+        "identity_status": "platform_only"
+      },
+      "listing": {
+        "platform": "uber_eats",
+        "listing_id": "TzYbps2tRbuquF5iSJSx2g",
+        "listing_name": "Pastelería Geno (Santiago)",
+        "url": "https://www.ubereats.com/cl/store/pasteleria-geno-santiago/TzYbps2tRbuquF5iSJSx2g",
+        "platform_categories": ["Desayuno y brunch", "Postres", "Pasteles", "Panadería"],
+        "delivery_supported": true,
+        "pickup_supported": true
+      },
+      "menu_snapshot": {
+        "sections": ["Artículos destacados", "Ahorros exclusivos", "Pan", "Empanadas y Platos preparados", "Pasteles", "Tortas y kuchenes", "Coctelería"],
+        "sample_items": [
+          {"name": "Pan amasado 1 KG", "price_clp": 3600},
+          {"name": "Hallulas 1 KG", "price_clp": 3600},
+          {"name": "Selva negra", "price_clp": 3700},
+          {"name": "Tres leches", "price_clp": 3700},
+          {"name": "Sopaipillas de cóctel", "price_clp": 6000},
+          {"name": "Empanada carne picada", "price_clp": 3300},
+          {"name": "Pizzetas", "price_clp": 7500},
+          {"name": "Empanadas de Cóctel Napolitana", "price_clp": 5600, "reference_price_clp": 8000, "promotion_label": "-30%"},
+          {"name": "Amasado integral 1 KG", "price_clp": 3600},
+          {"name": "Pastel de Choclo", "price_clp": 6000}
+        ]
+      },
+      "evidence": [
+        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/pasteleria-geno-santiago/TzYbps2tRbuquF5iSJSx2g", "observed_at": "2026-09-18"}
+      ]
+    },
+    {
+      "outlet": {
+        "outlet_key": "cl-rm-maipu-flor-de-chile-cafe-avenida-chile-301",
+        "brand_name": "Flor De Chile Café",
+        "address": "Avenida Chile 301",
+        "comuna": "Maipú",
+        "region": "Región Metropolitana",
+        "postal_code": "9250000",
+        "identity_status": "platform_only"
+      },
+      "listing": {
+        "platform": "uber_eats",
+        "listing_id": "MRMfD3zOUrC26NzLyHnpxA",
+        "listing_name": "Flor De Chile Café (Santiago)",
+        "url": "https://www.ubereats.com/cl/store/flor-de-chile-cafe-santiago/MRMfD3zOUrC26NzLyHnpxA",
+        "platform_categories": ["Café y té", "Americana", "Desayuno y brunch"],
+        "delivery_supported": true,
+        "pickup_supported": true
+      },
+      "menu_snapshot": {
+        "sections": ["Empanadas", "Sándwiches", "Menú", "Bebidas", "Muffins"],
+        "sample_items": [
+          {"name": "Empanadita de Queso Pequeñas", "price_clp": 820},
+          {"name": "Empanada de Mechada y Queso", "price_clp": 2740},
+          {"name": "Sándwich de Jamón y Queso", "price_clp": 1920},
+          {"name": "Sándwich de Salame y Queso", "price_clp": 1920},
+          {"name": "3 Sopaipillas", "price_clp": 1370},
+          {"name": "Jugo Watts Tuttifrutilla (Fresa), Boca Ancha", "price_clp": 1780},
+          {"name": "Muffin de Chispas de Chocolate", "price_clp": 1920}
+        ]
+      },
+      "evidence": [
+        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/flor-de-chile-cafe-santiago/MRMfD3zOUrC26NzLyHnpxA", "observed_at": "2026-09-18"}
+      ]
+    }
+  ]
+}
