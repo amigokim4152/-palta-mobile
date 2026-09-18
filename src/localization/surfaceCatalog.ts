@@ -1,6 +1,9 @@
 import type { PaltaLocale } from './locales.js';
 
 export const SURFACE_ES = {
+  'async.loading': 'Cargando…',
+  'async.errorTitle': 'No pudimos actualizar esta información.',
+  'async.retry': 'Reintentar',
   'search.title': 'Buscar',
   'search.subtitle': 'Una búsqueda, múltiples tipos de resultado',
   'search.scope': 'Lugares · Negocios · Acciones públicas · Eventos · Mercado · Estado personal cuando corresponda',
@@ -19,6 +22,9 @@ export type SurfaceInterpolation = Record<string, string | number>;
 type SurfaceCatalog = Partial<Record<SurfaceKey, string>>;
 
 const KO: SurfaceCatalog = {
+  'async.loading': '불러오는 중…',
+  'async.errorTitle': '이 정보를 업데이트하지 못했습니다.',
+  'async.retry': '다시 시도',
   'search.title': '검색',
   'search.subtitle': '한 번의 검색으로 여러 종류의 결과를 찾습니다',
   'search.scope': '장소 · 동네업체 · 공공 서비스 · 행사 · 마켓 · 필요한 경우 개인 상태',
@@ -33,6 +39,9 @@ const KO: SurfaceCatalog = {
 };
 
 const EN: SurfaceCatalog = {
+  'async.loading': 'Loading…',
+  'async.errorTitle': 'We could not update this information.',
+  'async.retry': 'Try again',
   'search.title': 'Search',
   'search.subtitle': 'One search, multiple result types',
   'search.scope': 'Places · Businesses · Public services · Events · Market · Personal state when appropriate',
@@ -47,6 +56,9 @@ const EN: SurfaceCatalog = {
 };
 
 const ZH_HANS: SurfaceCatalog = {
+  'async.loading': '加载中…',
+  'async.errorTitle': '无法更新此信息。',
+  'async.retry': '重试',
   'search.title': '搜索',
   'search.subtitle': '一次搜索，多种结果类型',
   'search.scope': '地点 · 商家 · 公共服务 · 活动 · 市场 · 适用时的个人状态',
