@@ -50,6 +50,14 @@ export type HomeFunctionalItem = {
   action?: HomeAction;
   corrections?: HomeCorrectionReason[];
   source: HomeSourceMeta;
+  /** Same real-world event from multiple sources should share this key. */
+  dedupeKey?: string;
+  /** 0-4. Higher means it needs attention sooner. */
+  urgency?: number;
+  /** 0-4. Higher means the consequence matters more. */
+  importance?: number;
+  /** 0-1. Personal/context relevance, not engagement likelihood. */
+  relevance?: number;
 };
 
 export type HomeGlanceSignal = {
@@ -60,6 +68,7 @@ export type HomeGlanceSignal = {
   exceptional?: boolean;
   action?: HomeAction;
   source: HomeSourceMeta;
+  relevance?: number;
 };
 
 export type HomeContext = {
@@ -91,12 +100,32 @@ function isNonEmpty(value: string | undefined): boolean {
   return typeof value === 'string' && value.trim().length > 0;
 }
 
+function validateRange(
+  errors: string[],
+  label: string,
+  value: number | undefined,
+  min: number,
+  max: number,
+): void {
+  if (value === undefined) return;
+  if (!Number.isFinite(value) || value < min || value > max) {
+    errors.push(`${label} must be between ${min} and ${max}`);
+  }
+}
+
 export function validateHomeFunctionalItem(item: HomeFunctionalItem): string[] {
   const errors: string[] = [];
 
   if (!isNonEmpty(item.id)) errors.push('item.id is required');
   if (!isNonEmpty(item.title)) errors.push('item.title is required');
   if (!isNonEmpty(item.source.domain)) errors.push('item.source.domain is required');
+  if (item.dedupeKey !== undefined && !isNonEmpty(item.dedupeKey)) {
+    errors.push('item.dedupeKey must be non-empty when present');
+  }
+
+  validateRange(errors, 'item.urgency', item.urgency, 0, 4);
+  validateRange(errors, 'item.importance', item.importance, 0, 4);
+  validateRange(errors, 'item.relevance', item.relevance, 0, 1);
 
   if (item.source.mode === 'unavailable') {
     errors.push('unavailable source items must not be admitted to Home');
@@ -170,6 +199,7 @@ export function validateHomeFunctionalPayload(payload: HomeFunctionalPayload): s
     if (!isNonEmpty(signal.label)) errors.push(`${signal.id}: glance.label is required`);
     if (!isNonEmpty(signal.value)) errors.push(`${signal.id}: glance.value is required`);
     if (!isNonEmpty(signal.source.domain)) errors.push(`${signal.id}: glance.source.domain is required`);
+    validateRange(errors, `${signal.id}: glance.relevance`, signal.relevance, 0, 1);
     if (signal.source.mode === 'unavailable') {
       errors.push(`${signal.id}: unavailable glance signals must not be admitted to Home`);
     }
