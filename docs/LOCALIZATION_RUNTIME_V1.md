@@ -1,5 +1,102 @@
 # Palta Localization Runtime V1
 
+## Mandatory developer directive
+
+This document is a **cross-domain implementation contract**, not a feature note. Any branch that adds or changes user-visible UI, API display fields, search, notifications, messages, public data, business data, Community, Market, Care, Health, Transport, or future Palta modules must follow these rules.
+
+Before implementing a new surface or data contract, read this document first. Do not create a feature-local language architecture that conflicts with it.
+
+### Non-negotiable rules
+
+1. **Language and region are independent.**
+   - Display language may be `es-CL`, `ko`, `en`, or `zh-Hans`.
+   - Chile context remains `region=CL`, `timezone=America/Santiago`, `currency=CLP` unless a domain explicitly defines another jurisdiction.
+   - Never infer country, eligibility, currency, policy, or legal jurisdiction from UI language.
+
+2. **Canonical data is language-neutral and stable.**
+   - Routing, storage, analytics, filtering, permissions, events, Care state, and business logic use canonical IDs/keys/enums.
+   - Translated text is presentation data, never the canonical identity of an entity or state.
+   - Do not create one business, event, benefit, place, Care item, notification event, or Market policy object per language.
+
+3. **No hard-coded user-facing copy in screens.**
+   - Static UI copy must resolve through the shared localization catalogs.
+   - Feature modules may add typed catalog keys, but may not create a second locale provider or independent locale persistence.
+   - Avoid translated-fragment concatenation. Use named interpolation placeholders so word order can vary by language.
+
+4. **Use `canonical key + localized label` for structured display metadata.**
+   - Example: `category_key` + `category_label`, `entity_type` + `entity_type_label`, `opening_status` + `opening_status_label`.
+   - Canonical keys must remain available even when localized labels are present.
+   - A missing translation must never remove the underlying result.
+
+5. **Preserve originals.**
+   - Business names, venue names, organization names, event names, user posts, reviews, messages, and other proper/user-entered text remain in source form unless an explicit translation workflow exists.
+   - Translated content must not overwrite the original.
+   - When machine translation is introduced for dynamic content, the original must remain retrievable and the translation must be treated as a derived representation.
+
+6. **Dynamic content translation belongs at the content boundary, not inside arbitrary UI components.**
+   - UI chrome and known enum/taxonomy labels use local catalogs.
+   - Server/editorial/public/UGC content uses structured translations or a shared translation service/cache when that domain supports it.
+   - Do not scatter AI translation calls across screens.
+
+7. **Search is multilingual by meaning, not only by literal text.**
+   - A user may search in Korean, Spanish, English, or Chinese while the canonical Chile data is Spanish or language-neutral.
+   - Search normalization/synonyms/semantic mapping must translate user intent into canonical search concepts without changing canonical records.
+   - Do not maintain separate search indexes solely because the UI language differs unless the Search architecture explicitly requires it.
+
+8. **Events and notifications are created once, localized when presented.**
+   - One canonical event should drive Home, Care, notification, status, and follow-up flows.
+   - Do not duplicate an event per language.
+   - Notification title/body may be rendered or selected by the recipient locale at delivery/display time.
+
+9. **Raw technical errors are never user copy.**
+   - Keep diagnostic error details for logs/debugging.
+   - User-facing error/loading/retry states must use shared localized copy.
+   - Never expose raw `Error.message`, provider errors, SQL/API messages, or stack-related text directly in UI.
+
+10. **Fallback is graceful and deterministic.**
+    - Prefer the requested locale where a localized value exists.
+    - Otherwise follow the domain contract and ultimately fall back to canonical/source text or `es-CL`.
+    - Missing translation is not a reason for blank screens, dropped cards, or failed actions.
+
+11. **Locale state is shared application state.**
+    - Use the existing Localization Provider/runtime.
+    - Account preference, pre-auth explicit choice, device locale, and fallback order defined below remain the single locale-resolution path.
+    - New modules must consume this state; they must not own a competing locale state.
+
+12. **New domains must extend this contract rather than bypass it.**
+    - If a new domain needs translated fields, add them to that domain's canonical contract as additive presentation fields or translation objects.
+    - Do not invent speculative duplicate domain models only for translation.
+    - If a localization requirement cannot fit this model, update this document and shared localization runtime deliberately before shipping the exception.
+
+### Required implementation pattern for every new feature
+
+When adding a new Palta feature or surface, apply this sequence:
+
+`canonical domain model -> locale-aware presentation fields/resolver -> shared locale state -> localized UI -> fallback -> verification`
+
+At minimum, check:
+
+- Is every user-visible static string coming from a catalog/resolver?
+- Are canonical IDs/keys/enums unchanged by language?
+- Are region/timezone/currency independent from language?
+- Are proper names and originals preserved?
+- Are translated fields additive rather than destructive?
+- Can the feature still render when a translation is missing?
+- Are raw backend/provider errors hidden from users?
+- If search, message, notification, or dynamic content is involved, does it use the shared cross-domain localization boundary rather than a feature-local translation path?
+
+### Definition of done for localization
+
+A feature is not localization-complete merely because its buttons were translated. It is complete only when:
+
+- all supported launch locales can enter the surface without broken navigation or missing required UI;
+- canonical behavior is identical across languages;
+- locale changes alter presentation, not jurisdiction or stored entity identity;
+- source/original content is retained where required;
+- fallback behavior is tested;
+- relevant typecheck/tests/smoke checks pass;
+- no new duplicate locale provider, locale store, translated canonical enum, or raw technical error exposure was introduced.
+
 ## Status
 
 Source branch: `integration/localization-runtime-v1`.
