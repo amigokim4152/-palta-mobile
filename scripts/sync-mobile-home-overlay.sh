@@ -18,12 +18,9 @@ backup="/tmp/palta-home-backup-$(date +%Y%m%d-%H%M%S)"
 mkdir -p "$backup"
 
 files=(
-  "app/_layout.tsx"
   "app/(tabs)/_layout.tsx"
   "app/(tabs)/index.tsx"
   "app/(tabs)/home.tsx"
-  "app/search/index.tsx"
-  "app/context/[contextId].tsx"
   "features/home/HomeScreen.tsx"
   "components/HomeCandidateCard.tsx"
   "components/ScreenFrame.tsx"
@@ -45,6 +42,6 @@ for rel in "${files[@]}"; do
   cp "$src" "$dst"
 done
 
-echo "Home overlay and Home-linked routes synced to apps/mobile/src."
+echo "Home overlay synced to apps/mobile/src."
 echo "Backup of replaced files: $backup"
 echo "No branch switch, merge, delete, dependency install, or unrelated file mutation was performed."
