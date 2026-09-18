@@ -8,11 +8,16 @@ import {
   REAL_ESTATE_PUBLISHER_LABELS,
   REAL_ESTATE_TRANSACTION_LABELS,
 } from '../../../../src/realEstate/realEstateDiscovery';
+import type {
+  RealEstateContextVerification,
+  RealEstateNearbyRef,
+} from '../../../../src/realEstate/realEstateContext';
 import { PaltaButton } from '../../components/common/PaltaButton';
 import { paltaTheme } from '../../theme/paltaTheme';
 import { findPropertyDetailDemo } from './propertyDetailDemoData';
 import { SaveRealEstateSearchButton } from './SaveRealEstateSearchButton';
 import { useRealEstateListing } from './useRealEstateListing';
+import { useRealEstatePropertyContext } from './useRealEstatePropertyContext';
 import { useSavedRealEstateListings } from './useSavedRealEstateListings';
 
 function Surface({ children }: { children: ReactNode }) {
@@ -40,10 +45,32 @@ function Pill({ label }: { label: string }) {
   );
 }
 
+function evidenceLabel(verification: RealEstateContextVerification): string {
+  switch (verification) {
+    case 'verified':
+      return 'Verificado';
+    case 'corroborated':
+      return 'Corroborado';
+    case 'needs_verification':
+      return 'Por verificar';
+    case 'demo':
+      return 'Dato de prueba';
+  }
+}
+
+function nearbyMeta(item: RealEstateNearbyRef): string {
+  return [
+    item.walkingMinutes !== undefined ? `${item.walkingMinutes} min a pie` : undefined,
+    item.distanceMeters !== undefined ? `${new Intl.NumberFormat('es-CL').format(item.distanceMeters)} m` : undefined,
+    evidenceLabel(item.evidence.verification),
+  ].filter(Boolean).join(' · ');
+}
+
 export function PropertyListingDetailScreen() {
   const params = useLocalSearchParams<{ listingId?: string }>();
   const listingId = typeof params.listingId === 'string' ? params.listingId : '';
   const { listing: item, loading, error } = useRealEstateListing(listingId);
+  const propertyContext = useRealEstatePropertyContext(item?.property.id ?? '');
   const savedListings = useSavedRealEstateListings();
   const detail = findPropertyDetailDemo(listingId);
 
@@ -71,6 +98,7 @@ export function PropertyListingDetailScreen() {
 
   const currentItem = item;
   const { listing, property } = currentItem;
+  const context = propertyContext.context;
   const isSaved = savedListings.isSaved(listing.id);
 
   async function shareListing() {
@@ -153,31 +181,51 @@ export function PropertyListingDetailScreen() {
             </View>
           </Surface>
 
-          {detail?.building ? (
+          {context?.building ? (
             <Surface>
               <Text style={{ fontSize: 17, fontWeight: '900', color: paltaTheme.color.textPrimary }}>Edificio / condominio</Text>
-              <Text style={{ fontSize: 15, fontWeight: '800', color: paltaTheme.color.textPrimary }}>{detail.building.name}</Text>
+              <Text style={{ fontSize: 15, fontWeight: '800', color: paltaTheme.color.textPrimary }}>
+                {context.building.building.name ?? 'Edificio sin nombre confirmado'}
+              </Text>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-                {detail.building.yearBuilt ? <Pill label={`${detail.building.yearBuilt}`} /> : null}
-                {detail.building.floors ? <Pill label={`${detail.building.floors} pisos`} /> : null}
-                {detail.building.units ? <Pill label={`${detail.building.units} unidades`} /> : null}
+                {context.building.yearBuilt !== undefined ? <Pill label={`${context.building.yearBuilt}`} /> : null}
+                {context.building.floors !== undefined ? <Pill label={`${context.building.floors} pisos`} /> : null}
+                {context.building.unitCount !== undefined ? <Pill label={`${context.building.unitCount} unidades`} /> : null}
               </View>
-              {detail.building.parkingNote ? <Text style={{ fontSize: 13, color: paltaTheme.color.textSecondary }}>{detail.building.parkingNote}</Text> : null}
-              <Text style={{ fontSize: 10, color: paltaTheme.color.textMuted }}>Datos demo hasta conectar una fuente verificable de edificio.</Text>
+              <Text style={{ fontSize: 11, color: paltaTheme.color.textMuted }}>
+                {evidenceLabel(context.building.evidence.verification)} · ID canónico {context.building.building.id}
+              </Text>
             </Surface>
           ) : null}
 
           <Surface>
             <Text style={{ fontSize: 17, fontWeight: '900', color: paltaTheme.color.textPrimary }}>Ubicación y entorno</Text>
             <Text style={{ color: paltaTheme.color.textSecondary }}>{property.address.displayAddress ?? `${currentItem.comuna}, Chile`}</Text>
-            {detail?.nearby?.map((nearby) => (
-              <View key={nearby.label} style={{ flexDirection: 'row', justifyContent: 'space-between', gap: paltaTheme.spacing.md }}>
-                <Text style={{ fontSize: 13, fontWeight: '800', color: paltaTheme.color.textPrimary }}>{nearby.label}</Text>
-                <Text style={{ flex: 1, textAlign: 'right', fontSize: 12, color: paltaTheme.color.textMuted }}>{nearby.detail}</Text>
+            {propertyContext.loading ? (
+              <Text style={{ fontSize: 12, color: paltaTheme.color.textMuted }}>Cargando contexto cercano…</Text>
+            ) : null}
+            {propertyContext.error ? (
+              <Text style={{ fontSize: 12, color: paltaTheme.color.textMuted }}>
+                No pudimos actualizar el contexto cercano. El aviso principal sigue disponible.
+              </Text>
+            ) : null}
+            {context?.nearby.map((nearby) => (
+              <View key={`${nearby.sourceCore}:${nearby.entityId}`} style={{ flexDirection: 'row', justifyContent: 'space-between', gap: paltaTheme.spacing.md }}>
+                <Text style={{ flex: 1, fontSize: 13, fontWeight: '800', color: paltaTheme.color.textPrimary }}>
+                  {nearby.displayLabel ?? nearby.kind}
+                </Text>
+                <Text style={{ flex: 1, textAlign: 'right', fontSize: 12, color: paltaTheme.color.textMuted }}>
+                  {nearbyMeta(nearby)}
+                </Text>
               </View>
             ))}
+            {!propertyContext.loading && !propertyContext.error && !context?.nearby.length ? (
+              <Text style={{ fontSize: 12, color: paltaTheme.color.textMuted }}>
+                Aún no hay contexto cercano verificado para esta propiedad.
+              </Text>
+            ) : null}
             <Text style={{ fontSize: 12, lineHeight: 18, color: paltaTheme.color.textMuted }}>
-              Metro, Red bus, colegios, salud, parques, comercio y tiempos de traslado se resolverán desde los cores compartidos de Palta, no desde copias dentro del aviso.
+              Metro, Red bus, colegios, salud, parques y comercio se referencian desde los cores compartidos de Palta; Propiedades no duplica esas entidades.
             </Text>
             <PaltaButton label="Ver en el mapa" variant="secondary" onPress={() => router.push('/propiedades/map')} />
           </Surface>
