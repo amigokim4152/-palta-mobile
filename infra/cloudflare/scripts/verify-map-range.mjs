@@ -12,6 +12,7 @@ function assert(condition, message) {
 const origin = base.replace(/\/$/, '');
 const manifestUrl = `${origin}/maps/cl/manifest.json`;
 const styleUrl = `${origin}/maps/cl/style.json`;
+const metadataUrl = `${origin}/maps/cl/metadata.json`;
 const mapUrl = `${origin}/maps/cl/basemap.pmtiles`;
 
 const manifestResponse = await fetch(manifestUrl);
@@ -24,6 +25,7 @@ assert(manifest.country === 'CL', 'Manifest country must be CL');
 assert(typeof manifest.version === 'string', 'Manifest version missing');
 assert(manifest.pmtiles_url === mapUrl, 'Manifest PMTiles URL mismatch');
 assert(manifest.style_url === styleUrl, 'Manifest style URL mismatch');
+assert(manifest.metadata_url === metadataUrl, 'Manifest metadata URL mismatch');
 
 const styleResponse = await fetch(styleUrl);
 assert(styleResponse.status === 200, `Style expected 200, got ${styleResponse.status}`);
@@ -34,6 +36,21 @@ assert(
   style.sources?.chile?.url === `pmtiles://${mapUrl}`,
   'Style PMTiles source mismatch',
 );
+
+const metadataResponse = await fetch(metadataUrl);
+assert(
+  metadataResponse.status === 200,
+  `Metadata expected 200, got ${metadataResponse.status}`,
+);
+const metadata = await metadataResponse.json();
+assert(metadata.country === 'CL', 'Metadata country must be CL');
+assert(metadata.pmtiles_version === 3, 'PMTiles version must be 3');
+assert(Array.isArray(metadata.bounds), 'PMTiles bounds missing');
+assert(Array.isArray(metadata.center), 'PMTiles center missing');
+
+const vectorLayers = Array.isArray(metadata.metadata?.vector_layers)
+  ? metadata.metadata.vector_layers.map((layer) => layer?.id).filter(Boolean)
+  : [];
 
 const head = await fetch(mapUrl, { method: 'HEAD' });
 assert(head.status === 200, `HEAD expected 200, got ${head.status}`);
@@ -78,11 +95,18 @@ console.log(
   JSON.stringify(
     {
       version: manifest.version,
+      styleVersion: manifest.style_version,
       manifestUrl,
       styleUrl,
+      metadataUrl,
       mapUrl,
       immutableUrl: manifest.immutable_version_url,
       fullSize,
+      minZoom: metadata.min_zoom,
+      maxZoom: metadata.max_zoom,
+      bounds: metadata.bounds,
+      center: metadata.center,
+      vectorLayers,
       firstRange: range.headers.get('content-range'),
       suffixRange: suffix.headers.get('content-range'),
     },
