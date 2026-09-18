@@ -25,13 +25,13 @@ function eyebrowKey(kind: string): UiKey {
 
 export function HomeScreen() {
   const adaptive = useAdaptiveExperience();
-  const { t } = useLocalization();
+  const { locale, t } = useLocalization();
   const loadHome = useCallback(async () => {
     if (mobileRuntime.status !== 'ready') {
       throw new Error(mobileRuntime.message);
     }
-    return mobileRuntime.client.getHome();
-  }, []);
+    return mobileRuntime.client.getHome(locale);
+  }, [locale]);
 
   const { state, refresh } = useAsyncResource(loadHome, {
     isEmpty: (data) => data.items.length === 0,
