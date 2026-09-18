@@ -20,6 +20,7 @@ cd "$ROOT"
 
 APP_DIR="$ROOT/apps/mobile"
 [ -f "$APP_DIR/package.json" ] || fail "Existing Expo app not found at $APP_DIR."
+command -v node >/dev/null 2>&1 || fail "Required command not found: node"
 
 info "Fetching $TARGET_BRANCH without switching your current branch..."
 git fetch origin "$TARGET_BRANCH:refs/remotes/origin/$TARGET_BRANCH" >/dev/null
@@ -59,10 +60,46 @@ sync_ref_file() {
   rm -f "$TMP_SOURCE"
 }
 
-sync_ref_file \
-  "mobile-overlay/src/features/home/HomeScreen.tsx" \
-  "$APP_DIR/src/features/home/HomeScreen.tsx" \
-  "runtime Home screen"
+sync_mobile_home_screen() {
+  SOURCE_PATH="mobile-overlay/src/features/home/HomeScreen.tsx"
+  DEST_PATH="$APP_DIR/src/features/home/HomeScreen.tsx"
+  LABEL="runtime Home screen"
+
+  git cat-file -e "$REF:$SOURCE_PATH" 2>/dev/null || fail "Home source missing: $SOURCE_PATH"
+  TMP_SOURCE="$(mktemp /tmp/palta-home-screen.XXXXXX)"
+  git show "$REF:$SOURCE_PATH" > "$TMP_SOURCE"
+
+  node - "$TMP_SOURCE" <<'NODE'
+const fs = require('node:fs');
+const file = process.argv[2];
+let source = fs.readFileSync(file, 'utf8');
+const repoPrefix = '../../../../src/home/';
+const appPrefix = '../../../../../src/home/';
+if (!source.includes(repoPrefix)) {
+  console.error('Expected repository Home import prefix was not found.');
+  process.exit(1);
+}
+source = source.split(repoPrefix).join(appPrefix);
+fs.writeFileSync(file, source);
+NODE
+
+  mkdir -p "$(dirname "$DEST_PATH")"
+  if [ -f "$DEST_PATH" ] && ! cmp -s "$TMP_SOURCE" "$DEST_PATH"; then
+    ensure_backup_dir
+    cp "$DEST_PATH" "$BACKUP_DIR/mobile-overlay_src_features_home_HomeScreen.tsx"
+    info "Backed up previous $LABEL to $BACKUP_DIR/mobile-overlay_src_features_home_HomeScreen.tsx"
+  fi
+
+  if [ ! -f "$DEST_PATH" ] || ! cmp -s "$TMP_SOURCE" "$DEST_PATH"; then
+    cp "$TMP_SOURCE" "$DEST_PATH"
+    info "Applied $LABEL with apps/mobile import paths."
+  else
+    info "$LABEL is already present with apps/mobile import paths."
+  fi
+  rm -f "$TMP_SOURCE"
+}
+
+sync_mobile_home_screen
 
 sync_ref_file \
   "mobile-overlay/src/components/home/ActionSurface.tsx" \
@@ -93,6 +130,16 @@ sync_ref_file \
   "src/home/homeRuntimeContract.ts" \
   "$ROOT/src/home/homeRuntimeContract.ts" \
   "Home runtime contract"
+
+sync_ref_file \
+  "src/home/selectHomeDisplayItems.ts" \
+  "$ROOT/src/home/selectHomeDisplayItems.ts" \
+  "Home display selection"
+
+sync_ref_file \
+  "src/ui/contentDensity.ts" \
+  "$ROOT/src/ui/contentDensity.ts" \
+  "Home content density policy"
 
 sync_ref_file \
   "src/home/homeSourceContract.ts" \
@@ -143,6 +190,16 @@ sync_ref_file \
   "src/home/adapters/publicLifeNewsHomeAdapters.ts" \
   "$ROOT/src/home/adapters/publicLifeNewsHomeAdapters.ts" \
   "Public-life and news Home adapters"
+
+[ -f "$ROOT/src/home/homeRuntimeContract.ts" ] || fail "Synced Home runtime contract is missing."
+[ -f "$ROOT/src/home/selectHomeDisplayItems.ts" ] || fail "Synced Home display selector is missing."
+if grep -Fq "../../../../src/home/" "$APP_DIR/src/features/home/HomeScreen.tsx"; then
+  fail "HomeScreen still contains repository-only import paths after mobile sync."
+fi
+if ! grep -Fq "../../../../../src/home/" "$APP_DIR/src/features/home/HomeScreen.tsx"; then
+  fail "HomeScreen mobile import paths were not applied."
+fi
+info "Verified HomeScreen shared imports for apps/mobile."
 
 sync_ref_file \
   "dev/mock-api/live-weather.mjs" \
