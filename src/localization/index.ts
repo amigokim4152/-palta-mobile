@@ -39,6 +39,12 @@ export {
 } from './careCatalog.js';
 
 export {
+  NEIGHBORHOOD_ES,
+  neighborhoodT,
+  type NeighborhoodCopyKey,
+} from './neighborhoodCatalog.js';
+
+export {
   SURFACE_ES,
   surfaceT,
   type SurfaceInterpolation,
