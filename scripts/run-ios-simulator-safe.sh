@@ -11,6 +11,8 @@ for cmd in git node npm xcrun xcodebuild open lsof; do command -v "$cmd" >/dev/n
 NODE_MAJOR="$(node -e "process.stdout.write(process.versions.node.split('.')[0])")"; [ "$NODE_MAJOR" -ge 22 ] || fail "Node 22+ required; found $(node -v)."
 ROOT="$(git rev-parse --show-toplevel 2>/dev/null || true)"; [ -n "$ROOT" ] || fail "Run this from inside the Palta git repository."; cd "$ROOT"
 APP_DIR="$ROOT/apps/mobile"
+CONFIG_SOURCE="$ROOT/mobile-overlay/app.config.v2.7.template.ts"
+CONFIG_DEST="$APP_DIR/app.config.ts"
 
 if [ ! -f "$APP_DIR/package.json" ]; then
   if [ -d "$APP_DIR" ]; then
@@ -31,6 +33,16 @@ if [ ! -f "$APP_DIR/package.json" ]; then
   fi
 fi
 info "Using mobile runtime: $APP_DIR"
+
+# Expo cannot mutate a dynamic app.config.ts during `expo install`. Sync the
+# canonical Palta config first so required native plugins are already declared.
+[ -f "$CONFIG_SOURCE" ] || fail "Canonical Expo config missing: $CONFIG_SOURCE"
+mkdir -p "$APP_DIR"
+if [ ! -f "$CONFIG_DEST" ] || ! cmp -s "$CONFIG_SOURCE" "$CONFIG_DEST"; then
+  cp "$CONFIG_SOURCE" "$CONFIG_DEST"
+  info "Canonical Expo config synced before dependency reconciliation."
+fi
+
 cd "$APP_DIR"
 export npm_config_legacy_peer_deps=true
 npx expo install expo-router expo-location expo-sqlite expo-secure-store expo-notifications expo-haptics expo-speech >/tmp/palta-expo-install.log 2>&1 || { cat /tmp/palta-expo-install.log >&2; fail "Expo dependency reconciliation failed."; }
