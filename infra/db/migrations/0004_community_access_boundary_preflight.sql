@@ -1,5 +1,5 @@
 -- PALTA COMMUNITY ACCESS BOUNDARY PREFLIGHT
--- STATUS: READY FOR palta-dev
+-- STATUS: APPLIED + VERIFIED ON palta-dev (2026-09-18)
 -- Primary v1 target: Supabase Postgres.
 -- Reads and mutations are mediated by the Palta API. No direct mobile writes.
 
