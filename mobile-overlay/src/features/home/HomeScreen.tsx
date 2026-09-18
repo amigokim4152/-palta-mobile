@@ -24,6 +24,32 @@ function greetingForNow(now = new Date()): string {
   return 'Buenas noches';
 }
 
+function localDateKey(value: Date): string {
+  return `${value.getFullYear()}-${value.getMonth()}-${value.getDate()}`;
+}
+
+function formatScheduledAt(value?: string, now = new Date()): string | undefined {
+  if (!value) return undefined;
+  const scheduled = new Date(value);
+  if (!Number.isFinite(scheduled.getTime())) return undefined;
+
+  const time = scheduled.toLocaleTimeString('es-CL', {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+  if (localDateKey(scheduled) === localDateKey(now)) return `Hoy · ${time}`;
+
+  const tomorrow = new Date(now);
+  tomorrow.setDate(now.getDate() + 1);
+  if (localDateKey(scheduled) === localDateKey(tomorrow)) return `Mañana · ${time}`;
+
+  const date = scheduled.toLocaleDateString('es-CL', {
+    day: 'numeric',
+    month: 'short',
+  });
+  return `${date} · ${time}`;
+}
+
 function SectionLabel({ children }: { children: string }) {
   return (
     <Text
@@ -60,16 +86,34 @@ export function HomeScreen() {
     [data?.items],
   );
 
-  const primary = selection.items.find(
-    (item) => item.kind === 'action' || item.kind === 'alert',
-  ) ?? selection.items.find((item) => item.kind === 'status');
+  const primary =
+    selection.items.find(
+      (item) => item.kind === 'action' || item.kind === 'alert',
+    ) ??
+    selection.items.find(
+      (item) => item.kind === 'status' && !item.scheduled_at,
+    );
 
   const secondaryStatus = selection.items.filter(
-    (item) => item.kind === 'status' && item.id !== primary?.id,
+    (item) =>
+      item.kind === 'status' &&
+      !item.scheduled_at &&
+      item.id !== primary?.id,
   );
+
+  const upcomingItems = selection.items
+    .filter((item) => item.kind === 'status' && Boolean(item.scheduled_at))
+    .sort(
+      (a, b) =>
+        Date.parse(a.scheduled_at ?? '') - Date.parse(b.scheduled_at ?? ''),
+    );
+
   const todayItems = selection.items.filter(
-    (item) => item.kind === 'useful_today' || item.kind === 'content',
+    (item) =>
+      !item.scheduled_at &&
+      (item.kind === 'useful_today' || item.kind === 'content'),
   );
+
   const hasDemoData =
     data?.source_state?.some((item) => item.data_mode === 'demo') ?? false;
 
@@ -82,7 +126,13 @@ export function HomeScreen() {
       if (!item.action_target) return;
 
       if (item.action_kind === 'external') {
-        await Linking.openURL(item.action_target);
+        try {
+          if (await Linking.canOpenURL(item.action_target)) {
+            await Linking.openURL(item.action_target);
+          }
+        } catch {
+          // Source remains visible; a temporary OS/browser failure must not crash Home.
+        }
         return;
       }
 
@@ -202,6 +252,33 @@ export function HomeScreen() {
                       ? item.care_track_id
                         ? 'Ver seguimiento'
                         : item.action_label
+                      : undefined
+                  }
+                  onPress={
+                    hasAction(item) ? () => void openItem(item) : undefined
+                  }
+                />
+              ))}
+            </View>
+          ) : null}
+
+          {upcomingItems.length > 0 ? (
+            <View>
+              <SectionLabel>PRÓXIMO</SectionLabel>
+              {upcomingItems.map((item) => (
+                <SummaryListRow
+                  key={item.id}
+                  title={item.title}
+                  meta={formatScheduledAt(item.scheduled_at)}
+                  detail={
+                    adaptive.textScaleClass === 'accessibility'
+                      ? undefined
+                      : item.body
+                  }
+                  stackMeta={!adaptive.layout.allowHorizontalMetadataCompression}
+                  explicitActionLabel={
+                    hasAction(item) && adaptive.layout.preferTextLabelsOverIconOnly
+                      ? item.action_label ?? 'Ver detalle'
                       : undefined
                   }
                   onPress={
