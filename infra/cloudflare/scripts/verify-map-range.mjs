@@ -1,6 +1,6 @@
 const base = process.argv[2];
 const expectedStyleVersion =
-  process.env.PALTA_EXPECTED_MAP_STYLE_VERSION ?? 'palta-v1.7';
+  process.env.PALTA_EXPECTED_MAP_STYLE_VERSION ?? 'palta-v1.8';
 
 if (!base) {
   console.error('Usage: node verify-map-range.mjs https://host.example');
@@ -79,7 +79,10 @@ for (const id of [
   'road-labels',
   'road-labels-local',
   'water-labels',
+  'poi-labels-anchor',
   'poi-labels',
+  'landuse-health',
+  'landuse-education',
   'roads-highway-casing',
   'roads-highway-fill',
   'roads-primary-casing',
@@ -171,18 +174,54 @@ assert(
   'Place labels must preserve locality priority',
 );
 
+const anchorPoiLabels = layers.find((layer) => layer?.id === 'poi-labels-anchor');
+const anchorPoiFilter = JSON.stringify(anchorPoiLabels?.filter ?? null);
+for (const value of [
+  'hospital',
+  'school',
+  'townhall',
+  'station',
+  'supermarket',
+]) {
+  assert(anchorPoiFilter.includes(value), `Anchor POI labels missing ${value}`);
+}
+assert(
+  Number(anchorPoiLabels?.minzoom) <= 12.5,
+  `Neighborhood anchors appear too late: ${anchorPoiLabels?.minzoom}`,
+);
+assert(
+  anchorPoiLabels?.layout?.['symbol-sort-key'] !== undefined,
+  'Anchor POIs must preserve source importance ranking',
+);
+
 const poiLabels = layers.find((layer) => layer?.id === 'poi-labels');
 const poiFilter = JSON.stringify(poiLabels?.filter ?? null);
-assert(poiFilter.includes('hospital'), 'Context POI labels must include hospitals');
-assert(poiFilter.includes('school'), 'Context POI labels must include schools');
+for (const value of ['clinic', 'library', 'post_office']) {
+  assert(poiFilter.includes(value), `Secondary POI labels missing ${value}`);
+}
 assert(
   !poiFilter.includes('restaurant') && !poiFilter.includes('cafe'),
   'Basemap POI labels must not compete with Palta business discovery',
 );
 assert(
-  Number(poiLabels?.minzoom) >= 15.2,
-  `POI labels must wait until close zoom: ${poiLabels?.minzoom}`,
+  !poiFilter.includes('hospital') && !poiFilter.includes('school'),
+  'Anchor POIs must not be duplicated in secondary POI labels',
 );
+assert(
+  Number(poiLabels?.minzoom) >= 14.4,
+  `Secondary POI labels appear too early: ${poiLabels?.minzoom}`,
+);
+
+const healthLanduse = layers.find((layer) => layer?.id === 'landuse-health');
+assert(
+  JSON.stringify(healthLanduse?.filter ?? null).includes('hospital'),
+  'Health landuse context must include hospital areas',
+);
+const educationLanduse = layers.find((layer) => layer?.id === 'landuse-education');
+const educationFilter = JSON.stringify(educationLanduse?.filter ?? null);
+for (const value of ['school', 'college', 'university']) {
+  assert(educationFilter.includes(value), `Education landuse missing ${value}`);
+}
 
 const fontHead = await fetch(fontUrl, { method: 'HEAD' });
 assert(fontHead.status === 200, `Font HEAD expected 200, got ${fontHead.status}`);
@@ -309,12 +348,18 @@ console.log(
         'roads-secondary-fill',
         'roads-tertiary-fill',
       ],
+      neighborhoodContextLayers: [
+        'landuse-health',
+        'landuse-education',
+        'poi-labels-anchor',
+      ],
       labelLayers: [
         'place-labels',
         'road-labels-highway',
         'road-labels',
         'road-labels-local',
         'water-labels',
+        'poi-labels-anchor',
         'poi-labels',
       ],
       firstRange: range.headers.get('content-range'),
