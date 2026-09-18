@@ -76,10 +76,12 @@ export const HOME_CAPABILITIES: readonly HomeCapabilityDefinition[] = [
 
   { key: 'today.municipal_benefit', surface: 'useful_today', ownerCore: 'Public-Life', status: 'adapter_ready', demoRequired: true, description: 'Relevant verified benefit/service.' },
   { key: 'today.community_notice', surface: 'useful_today', ownerCore: 'Community/School', status: 'adapter_ready', demoRequired: true, description: 'Important joined-space announcement.' },
+  { key: 'today.palta_notice', surface: 'useful_today', ownerCore: 'Palta Notice', status: 'primitive_ready', demoRequired: true, description: 'Public Palta operating notice, distinct from a private user notification.' },
   { key: 'today.local_news', surface: 'useful_today', ownerCore: 'News', status: 'adapter_ready', demoRequired: true, description: 'Recent relevant local news.' },
   { key: 'today.exchange_rate', surface: 'useful_today', ownerCore: 'Economy/Shared Data', status: 'adapter_ready', demoRequired: true, description: 'Headline exchange rate such as USD/CLP from a shared national snapshot.' },
   { key: 'today.uf', surface: 'useful_today', ownerCore: 'Economy/Shared Data', status: 'adapter_ready', demoRequired: true, description: 'Current UF reference value from a shared national snapshot.' },
   { key: 'today.food_prices', surface: 'useful_today', ownerCore: 'Food/ODEPA', status: 'adapter_ready', demoRequired: true, description: 'Relevant public food-price reference, separate from seasonality.' },
+  { key: 'today.nearby_food_available', surface: 'useful_today', ownerCore: 'Food/Commerce', status: 'pending_core', demoRequired: true, description: 'Time-aware nearby food options that are actually orderable now; lunch, take-home or delivery.' },
   { key: 'today.fuel_nearby', surface: 'useful_today', ownerCore: 'Fuel/CNE', status: 'adapter_ready', demoRequired: true, description: 'Nearby fuel price/change information from the canonical fuel source.' },
   { key: 'today.traffic_commute', surface: 'useful_today', ownerCore: 'Traffic/Mobility', status: 'adapter_ready', demoRequired: true, description: 'Meaningful commute delay or route-status signal.' },
   { key: 'today.vehicle_restriction', surface: 'useful_today', ownerCore: 'Environment/Vehicle', status: 'adapter_ready', demoRequired: true, description: 'RM vehicle restriction when active and relevant to the user vehicle.' },
