@@ -37,6 +37,12 @@ const careTracks = new Map([
   }],
 ]);
 
+const profileState = {
+  preferred_language: 'es-CL',
+  timezone: 'America/Santiago',
+  country_code: 'CL',
+};
+
 const notificationItems = [
   {
     id: 'notification-care-demo-1',
@@ -66,7 +72,7 @@ function json(res, status, body) {
     'Cache-Control': 'no-store',
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Authorization, Content-Type, Idempotency-Key',
-    'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
+    'Access-Control-Allow-Methods': 'GET,POST,PATCH,OPTIONS',
   });
   res.end(payload);
 }
@@ -80,6 +86,13 @@ async function readJson(req) {
 
 function isoAfter(ms) {
   return new Date(Date.now() + ms).toISOString();
+}
+
+function normalizePreferredName(value) {
+  if (value === null || value === undefined) return undefined;
+  if (typeof value !== 'string') return null;
+  const normalized = value.trim().replace(/\s+/g, ' ');
+  return normalized.length > 0 ? normalized : undefined;
 }
 
 function buildNotificationResponse() {
@@ -238,11 +251,28 @@ const server = http.createServer(async (req, res) => {
     const url = new URL(req.url, `http://${req.headers.host ?? `${host}:${port}`}`);
 
     if (req.method === 'GET' && url.pathname === '/health') {
-      return json(res, 200, { ok: true, service: 'palta-mock-api', version: '0.3.0' });
+      return json(res, 200, { ok: true, service: 'palta-mock-api', version: '0.4.0' });
     }
 
     if (req.method === 'GET' && url.pathname === '/v1/home') {
       return json(res, 200, buildFunctionalHomeMock());
+    }
+
+    if (req.method === 'GET' && url.pathname === '/v1/profile') {
+      return json(res, 200, profileState);
+    }
+
+    if (req.method === 'PATCH' && url.pathname === '/v1/profile') {
+      const body = await readJson(req);
+      if (Object.prototype.hasOwnProperty.call(body, 'preferred_name')) {
+        const preferredName = normalizePreferredName(body.preferred_name);
+        if (preferredName === null) {
+          return json(res, 400, { error: 'preferred_name_must_be_string_or_null' });
+        }
+        if (preferredName) profileState.preferred_name = preferredName;
+        else delete profileState.preferred_name;
+      }
+      return json(res, 200, profileState);
     }
 
     if (req.method === 'GET' && url.pathname === '/v1/notifications') {
