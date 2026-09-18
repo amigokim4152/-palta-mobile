@@ -1,5 +1,7 @@
 # AT-HOME INFRASTRUCTURE CHECKLIST v1
 
+> Runtime/storage authority: `docs/PALTA_PLATFORM_RUNTIME_FOUNDATION_V1.md` and `config/runtime-environments.v1.json` now supersede this checklist for service ownership, environment separation, API boundary and resource IDs. This file remains the low-cost execution checklist.
+
 Do in this order. Do not buy paid plans until the related gate fails.
 
 ## A. GitHub — first
@@ -19,25 +21,27 @@ Do in this order. Do not buy paid plans until the related gate fails.
 - Do not subscribe to Starter until Free build limits or queue actually blocks work.
 
 ## C. Supabase
-Current connector check: connected, **Free organization verified, 0 projects, new project quote USD 0/month**.
+Current connector check on 2026-09-17: connected, one accessible organization (`kimeuisin@gmail.com's Org`), **0 projects**.
 
 When ready:
-- Choose the correct Supabase organization.
-- Create one development project.
-- Region preference for Chile pilot: evaluate `sa-east-1` latency/availability at creation time.
-- Enable PostGIS.
-- Keep RLS on for user/private tables.
-- Public canonical data and private personal data must use separate policies/schemas.
+- Use the explicitly approved Supabase organization.
+- Create one development project only after current cost is shown and explicitly confirmed.
+- Region target for Chile pilot: `sa-east-1` unless the live creation-time constraints require another documented choice.
+- Enable PostGIS only when a canonical feature actually requires DB-side geospatial queries; public map tiles remain outside transactional DB.
+- Keep RLS on for exposed/user/private tables and use least-privilege server roles.
+- Public canonical data and private personal data must use separate access policies/boundaries.
 - Do not place service-role secrets in Expo client env.
+- Mobile uses Supabase Auth/publishable credentials only where defined by the runtime foundation; money/fiscal/provider operations go through Palta API/worker boundaries.
 
-No production upgrade yet.
+No production project/upgrade yet.
 
 ## D. Cloudflare
 - Confirm existing account/project access.
-- Verify Workers, R2 buckets, routes, and secrets.
+- Verify Workers, R2 buckets, routes, Hyperdrive bindings, Queues and secret/KMS boundary.
 - Keep public/static canonical release in R2.
-- Keep provider credentials behind Workers/collectors, not in mobile client.
+- Keep provider credentials behind Workers/payment secret boundary, not in mobile client.
 - Confirm current map/data endpoints before wiring mobile.
+- Record actual DEV/STAGING/PROD resource identifiers in `config/runtime-environments.v1.json`; do not leave them only in personal notes.
 
 ## E. Push
 - Start with Expo Push Service.
@@ -58,9 +62,9 @@ No production upgrade yet.
 - Keep marketing and transactional email separated.
 
 ## H. Reserved, not active
-- Neon: DB fallback. Account connected, Free org `kim`, 0 projects, São Paulo available; do not create unless fallback becomes justified.
+- Neon: PostgreSQL portability/fallback option. Current connected account check on 2026-09-17 found **0 projects**; do not create unless fallback/migration testing becomes justified.
 - Clerk: alternative Auth.
 - Meilisearch/Algolia: later search scaling.
 - OneSignal: later lifecycle messaging.
 
-This checklist intentionally reduces initial accounts and monthly fixed cost.
+This checklist intentionally reduces initial accounts and monthly fixed cost. Service ownership and production gates are defined by the runtime foundation contract.
