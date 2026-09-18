@@ -18,6 +18,14 @@ const config: ExpoConfig = {
         isAndroidForegroundServiceEnabled: false,
       },
     ],
+    [
+      'expo-build-properties',
+      {
+        ios: {
+          enableSceneSupport: true,
+        },
+      },
+    ],
     '@maplibre/maplibre-react-native',
   ],
   ios: {
