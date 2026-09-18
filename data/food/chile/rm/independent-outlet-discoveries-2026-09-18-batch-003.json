@@ -1,0 +1,133 @@
+{
+  "dataset": "palta_food_independent_outlet_discoveries_rm",
+  "observed_at": "2026-09-18",
+  "policy": {
+    "factual_fields_only": true,
+    "collect_images": false,
+    "merchant_authorization_status": "pending",
+    "live_publish_allowed": false
+  },
+  "records": [
+    {
+      "outlet_key": "cl-rm-la-florida-el-chavin-san-jose-de-la-estrella-850",
+      "brand_name": "El Chavín",
+      "outlet_name": "La Florida",
+      "address": "Av. San José de la Estrella 850",
+      "comuna": "La Florida",
+      "identity_status": "verified",
+      "public_contact": {"whatsapp": "+56961956012", "website": "https://www.elchavin.cl/"},
+      "evidence": [{"kind": "official_website", "url": "https://www.elchavin.cl/", "observed_at": "2026-09-18"}]
+    },
+    {
+      "outlet_key": "cl-rm-la-florida-chi-sushi-san-jose-de-la-estrella-392",
+      "brand_name": "Chi Sushi",
+      "outlet_name": "La Florida",
+      "address": "Av. San José de la Estrella 392 Poniente",
+      "comuna": "La Florida",
+      "identity_status": "verified",
+      "public_contact": {"whatsapp": "+56976085098", "website": "https://www.chisushi.cl/"},
+      "evidence": [{"kind": "official_website", "url": "https://www.chisushi.cl/", "observed_at": "2026-09-18"}]
+    },
+    {
+      "outlet_key": "cl-rm-la-florida-jardin-chino-enrique-olivares-1358",
+      "brand_name": "Jardín Chino",
+      "outlet_name": "La Florida",
+      "address": "Enrique Olivares 1358",
+      "comuna": "La Florida",
+      "identity_status": "verified",
+      "public_contact": {"phone": "+56222971768", "whatsapp": "+56977291522", "website": "https://comidachinajardinchino.cl/"},
+      "evidence": [{"kind": "official_website", "url": "https://comidachinajardinchino.cl/", "observed_at": "2026-09-18"}]
+    },
+    {
+      "outlet_key": "cl-rm-la-florida-fuente-lircay-rojas-magallanes-0698",
+      "brand_name": "Fuente Lircay",
+      "outlet_name": "La Florida",
+      "address": "Rojas Magallanes 0698",
+      "comuna": "La Florida",
+      "identity_status": "verified",
+      "public_contact": {"whatsapp": "+56963868360", "website": "https://fuentelircay.cl/"},
+      "evidence": [{"kind": "official_website", "url": "https://fuentelircay.cl/", "observed_at": "2026-09-18"}]
+    },
+    {
+      "outlet_key": "cl-rm-puente-alto-illadi-sushi-camilo-henriquez-3889-local-7",
+      "brand_name": "Illadi Sushi",
+      "outlet_name": "Puente Alto",
+      "address": "Av. Camilo Henríquez 3889, Local 7",
+      "comuna": "Puente Alto",
+      "identity_status": "verified",
+      "public_contact": {"phone": "+56935919441", "whatsapp": "+56935919441", "website": "https://www.illadi.cl/"},
+      "evidence": [{"kind": "official_website", "url": "https://www.illadi.cl/", "observed_at": "2026-09-18"}]
+    },
+    {
+      "outlet_key": "cl-rm-puente-alto-dlima-heyi-concha-y-toro-950",
+      "brand_name": "D'Lima - Restaurant HE YI",
+      "outlet_name": "Puente Alto",
+      "address": "Av. Concha y Toro 950",
+      "comuna": "Puente Alto",
+      "identity_status": "verified",
+      "public_contact": {"whatsapp": "+56998882884", "website": "https://www.restaurantesheyi.cl/DLima"},
+      "evidence": [{"kind": "official_website", "url": "https://www.restaurantesheyi.cl/DLima", "observed_at": "2026-09-18"}]
+    },
+    {
+      "outlet_key": "cl-rm-macul-heyi-macul-4723",
+      "brand_name": "Restaurant HE YI",
+      "outlet_name": "Macul",
+      "address": "Av. Macul 4723",
+      "comuna": "Macul",
+      "identity_status": "verified",
+      "public_contact": {"phone": "+56224543388", "website": "https://www.restaurantesheyi.cl/DLima"},
+      "evidence": [{"kind": "official_website", "url": "https://www.restaurantesheyi.cl/DLima", "observed_at": "2026-09-18"}]
+    },
+    {
+      "outlet_key": "cl-rm-san-bernardo-heyi-ohiggins-440",
+      "brand_name": "Restaurant HE YI",
+      "outlet_name": "San Bernardo",
+      "address": "O'Higgins 440",
+      "comuna": "San Bernardo",
+      "identity_status": "verified",
+      "public_contact": {"phone": "+56228583359", "website": "https://www.restaurantesheyi.cl/DLima"},
+      "evidence": [{"kind": "official_website", "url": "https://www.restaurantesheyi.cl/DLima", "observed_at": "2026-09-18"}]
+    },
+    {
+      "outlet_key": "cl-rm-puente-alto-ciudad-oriental-jorge-ross-ossa-923",
+      "brand_name": "Ciudad Oriental",
+      "outlet_name": "Puente Alto",
+      "address": "Av. Jorge Ross Ossa 923",
+      "comuna": "Puente Alto",
+      "identity_status": "verified",
+      "public_contact": {"phone": "+56227275648", "whatsapp": "+56940159284", "website": "https://ciudadoriental.cl/"},
+      "evidence": [{"kind": "official_website", "url": "https://ciudadoriental.cl/nosotros/", "observed_at": "2026-09-18"}]
+    },
+    {
+      "outlet_key": "cl-rm-puente-alto-el-duo-express-camilo-henriquez-3623",
+      "brand_name": "El Dúo Express",
+      "outlet_name": "Puente Alto",
+      "address": "Av. Camilo Henríquez 3623",
+      "comuna": "Puente Alto",
+      "identity_status": "verified",
+      "public_contact": {"phone": "+56937444942", "whatsapp": "+56937444942", "website": "https://restaurantelduo.cl/"},
+      "evidence": [{"kind": "official_website", "url": "https://restaurantelduo.cl/", "observed_at": "2026-09-18"}]
+    },
+    {
+      "outlet_key": "cl-rm-puente-alto-ruta78-independencia-043",
+      "brand_name": "Ruta78",
+      "outlet_name": "Puente Alto",
+      "address": "Independencia 043",
+      "comuna": "Puente Alto",
+      "identity_status": "verified",
+      "public_contact": {"whatsapp": "+56939372038", "website": "https://ruta78.cl/"},
+      "evidence": [{"kind": "official_website", "url": "https://ruta78.cl/", "observed_at": "2026-09-18"}]
+    },
+    {
+      "outlet_key": "cl-rm-maipu-sabor-a-peru-sur-1207-local-ab",
+      "brand_name": "Sabor a Perú Maipú",
+      "outlet_name": "Maipú",
+      "address": "Av. Sur 1207, Local A-B",
+      "comuna": "Maipú",
+      "identity_status": "needs_review",
+      "identity_note": "Official site lists Av. Sur 1207 Local A-B. An independently verified Delivery Sushi Maipú outlet is also recorded at Av. Sur 1207 Local A. Merchant confirmation is required to resolve current co-location/outlet identity before live publication.",
+      "public_contact": {"phone": "+56233152069", "whatsapp": "+56957035557", "website": "https://www.restaurantsaboraperu.cl/"},
+      "evidence": [{"kind": "official_website", "url": "https://www.restaurantsaboraperu.cl/", "observed_at": "2026-09-18"}]
+    }
+  ]
+}
