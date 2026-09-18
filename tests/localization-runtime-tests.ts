@@ -45,6 +45,14 @@ assert(t('nav.home', 'ko') === '홈', 'Korean tab label should resolve.');
 assert(t('nav.home', 'en') === 'Home', 'English tab label should resolve.');
 assert(t('nav.home', 'zh-Hans') === '首页', 'Chinese tab label should resolve.');
 assert(t('nav.home', 'es-CL') === 'Inicio', 'Spanish tab label should remain canonical.');
+assert(
+  t('home.showMore', 'ko', { count: 3 }) === '3개 더 보기',
+  'Korean UI interpolation should preserve locale-specific word order.',
+);
+assert(
+  t('home.showMore', 'es-CL', { count: 3 }) === 'Ver 3 más',
+  'Spanish UI interpolation should resolve runtime values.',
+);
 
 const content = {
   original: 'Hoy cerramos a las 18:00.',
