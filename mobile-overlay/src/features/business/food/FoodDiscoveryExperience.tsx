@@ -9,6 +9,13 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import type { LocalSearchItem } from '../../../../../src/api/paltaApiClient';
+import type { FoodFulfillmentProfile } from '../../../../../src/business/foodFulfillment';
+import {
+  matchesFoodFulfillmentFilter,
+  projectFoodFulfillmentDiscovery,
+  type FoodFulfillmentFilter,
+} from '../../../../../src/business/foodFulfillmentDiscovery';
 import {
   FOOD_VERTICAL_CATEGORIES,
   buildFoodVerticalQuery,
@@ -19,9 +26,7 @@ import {
   localBusinessConsumerCategoryLabel,
   readLocalBusinessDiscoveryPreview,
 } from '../../../../../src/business/localBusinessDiscoveryPreview';
-import {
-  projectLocalBusinesses,
-} from '../../../../../src/business/localBusinessDiscovery';
+import { projectLocalBusinesses } from '../../../../../src/business/localBusinessDiscovery';
 import { ErrorState, LoadingState } from '../../../components/AsyncStateBlock';
 import { FilterChip } from '../../../components/common/FilterChip';
 import { expoLocationAdapter } from '../../../adapters/expoLocationAdapter';
@@ -34,6 +39,14 @@ import {
   writeLocalBusinessDiscoveryCache,
 } from '../localBusinessDiscoveryCache';
 import { paltaTheme } from '../../../theme/paltaTheme';
+
+type FoodSearchItem = LocalSearchItem & {
+  food_fulfillment?: FoodFulfillmentProfile;
+};
+
+type FoodCardItem = FoodSearchItem & {
+  preview: ReturnType<typeof readLocalBusinessDiscoveryPreview>;
+};
 
 const SANTIAGO_EXPLORATION_ORIGIN = {
   latitude: -33.4489,
@@ -54,6 +67,14 @@ function formatFoodStatus(state?: string): string | undefined {
   if (state === 'seasonal_closed') return 'Cerrado por temporada';
   if (state === 'unknown_or_stale') return 'Horario por confirmar';
   return undefined;
+}
+
+function fulfillmentInput(item: FoodCardItem) {
+  return {
+    ...(item.food_fulfillment ? { profile: item.food_fulfillment } : {}),
+    serviceLabels: item.preview.serviceLabels,
+    ...(item.distance_m !== undefined ? { distanceM: item.distance_m } : {}),
+  };
 }
 
 function FoodSearchBar({
@@ -118,20 +139,13 @@ function FoodResultCard({
   item,
   onPress,
 }: {
-  item: {
-    entity_id: string;
-    name: string;
-    category_key?: string;
-    distance_m?: number;
-    operational_state?: string;
-    verification_status?: string;
-    preview: ReturnType<typeof readLocalBusinessDiscoveryPreview>;
-  };
+  item: FoodCardItem;
   onPress: () => void;
 }) {
   const categoryLabel = localBusinessConsumerCategoryLabel(item.category_key);
   const status = formatFoodStatus(item.operational_state);
   const distance = formatDistance(item.distance_m);
+  const fulfillment = projectFoodFulfillmentDiscovery(fulfillmentInput(item));
 
   return (
     <Pressable
@@ -193,6 +207,26 @@ function FoodResultCard({
         <Text style={{ fontSize: 13, color: paltaTheme.color.textSecondary }}>
           {[status, categoryLabel, distance].filter(Boolean).join(' · ') || 'Comida cerca de ti'}
         </Text>
+
+        {fulfillment.labels.length ? (
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+            {fulfillment.labels.map((label) => (
+              <View
+                key={label}
+                style={{
+                  paddingHorizontal: 9,
+                  paddingVertical: 6,
+                  borderRadius: paltaTheme.radius.pill,
+                  backgroundColor: paltaTheme.color.brandSoft,
+                }}
+              >
+                <Text style={{ fontSize: 12, fontWeight: '800', color: paltaTheme.color.brandPrimary }}>
+                  {label}
+                </Text>
+              </View>
+            ))}
+          </View>
+        ) : null}
 
         {item.preview.serviceLabels.length ? (
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
@@ -310,6 +344,7 @@ export function FoodDiscoveryExperience() {
   const [draftQuery, setDraftQuery] = useState('');
   const [submittedQuery, setSubmittedQuery] = useState('');
   const [openNowOnly, setOpenNowOnly] = useState(false);
+  const [fulfillmentFilter, setFulfillmentFilter] = useState<FoodFulfillmentFilter>('any');
   const [locationBusy, setLocationBusy] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
 
@@ -356,21 +391,24 @@ export function FoodDiscoveryExperience() {
 
   const businesses = useMemo(() => {
     const projected = projectLocalBusinesses(
-      (state.data ?? []).map((item) => ({
-        entityId: item.entity_id,
-        entityType: item.entity_type,
-        name: item.name,
-        ...(item.category_key ? { categoryKey: item.category_key } : {}),
-        ...(item.distance_m !== undefined ? { distanceM: item.distance_m } : {}),
-        ...(item.verification_status ? { verificationStatus: item.verification_status } : {}),
-        ...(item.operational_state ? { operationalState: item.operational_state } : {}),
-        ...(item.operational_confirmed_at
-          ? { operationalConfirmedAt: item.operational_confirmed_at }
-          : {}),
-        ...(item.location ? { location: item.location } : {}),
-        preview: readLocalBusinessDiscoveryPreview(item),
-        source: item,
-      })),
+      (state.data ?? []).map((rawItem) => {
+        const item = rawItem as FoodSearchItem;
+        return {
+          entityId: item.entity_id,
+          entityType: item.entity_type,
+          name: item.name,
+          ...(item.category_key ? { categoryKey: item.category_key } : {}),
+          ...(item.distance_m !== undefined ? { distanceM: item.distance_m } : {}),
+          ...(item.verification_status ? { verificationStatus: item.verification_status } : {}),
+          ...(item.operational_state ? { operationalState: item.operational_state } : {}),
+          ...(item.operational_confirmed_at
+            ? { operationalConfirmedAt: item.operational_confirmed_at }
+            : {}),
+          ...(item.location ? { location: item.location } : {}),
+          preview: readLocalBusinessDiscoveryPreview(item),
+          source: item,
+        };
+      }),
       { openNowOnly },
     );
 
@@ -382,11 +420,15 @@ export function FoodDiscoveryExperience() {
           serviceLabels: item.preview?.serviceLabels,
         }),
       )
-      .map((item) => ({
-        ...item.source,
-        preview: item.preview ?? readLocalBusinessDiscoveryPreview(item.source),
-      }));
-  }, [state.data, openNowOnly]);
+      .map((item) => {
+        const source = item.source as FoodSearchItem;
+        return {
+          ...source,
+          preview: item.preview ?? readLocalBusinessDiscoveryPreview(source),
+        } satisfies FoodCardItem;
+      })
+      .filter((item) => matchesFoodFulfillmentFilter(fulfillmentFilter, fulfillmentInput(item)));
+  }, [state.data, openNowOnly, fulfillmentFilter]);
 
   async function useMyLocation() {
     setLocationBusy(true);
@@ -412,6 +454,10 @@ export function FoodDiscoveryExperience() {
   function exploreSantiago() {
     setLocationError(null);
     dispatch({ type: 'set_effective_location', location: SANTIAGO_EXPLORATION_ORIGIN });
+  }
+
+  function toggleFulfillmentFilter(next: Exclude<FoodFulfillmentFilter, 'any'>) {
+    setFulfillmentFilter((current) => (current === next ? 'any' : next));
   }
 
   if (!neighborhood.effectiveLocation) {
@@ -501,13 +547,14 @@ export function FoodDiscoveryExperience() {
             ))}
           </ScrollView>
 
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{
+              gap: paltaTheme.spacing.xs,
               paddingHorizontal: paltaTheme.spacing.md,
               paddingTop: paltaTheme.spacing.xs,
+              alignItems: 'center',
             }}
           >
             <FilterChip
@@ -515,7 +562,20 @@ export function FoodDiscoveryExperience() {
               selected={openNowOnly}
               onPress={() => setOpenNowOnly((current) => !current)}
             />
-            <Text style={{ fontSize: 12, color: paltaTheme.color.textMuted }}>
+            <FilterChip
+              label="Delivery"
+              selected={fulfillmentFilter === 'delivery'}
+              onPress={() => toggleFulfillmentFilter('delivery')}
+            />
+            <FilterChip
+              label="Retiro"
+              selected={fulfillmentFilter === 'pickup'}
+              onPress={() => toggleFulfillmentFilter('pickup')}
+            />
+          </ScrollView>
+
+          <View style={{ paddingHorizontal: paltaTheme.spacing.md, paddingTop: paltaTheme.spacing.xs }}>
+            <Text style={{ fontSize: 12, textAlign: 'right', color: paltaTheme.color.textMuted }}>
               {businesses.length} {businesses.length === 1 ? 'opción' : 'opciones'}
             </Text>
           </View>
@@ -548,7 +608,7 @@ export function FoodDiscoveryExperience() {
                 No encontramos opciones aquí
               </Text>
               <Text style={{ lineHeight: 20, color: paltaTheme.color.textSecondary }}>
-                Prueba otro tipo de comida, cambia la búsqueda o quita “Abiertos ahora”.
+                Prueba otro tipo de comida o quita algún filtro. Delivery y retiro solo muestran opciones confirmadas.
               </Text>
             </View>
           ) : null}
