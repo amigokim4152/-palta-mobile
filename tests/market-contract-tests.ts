@@ -20,6 +20,10 @@ import {
   type MarketListingRecord,
   type MarketTransactionRecord,
 } from '../src/market/marketPersistenceContract.js';
+import {
+  buildMarketHideListingIntent,
+  buildMarketReportListingIntent,
+} from '../src/market/marketSafetyIntent.js';
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
@@ -130,6 +134,23 @@ assert(messageIntent.conversationType === 'transaction', 'Mercado must use trans
 assert(messageIntent.context.relation === 'listing', 'Mercado message context must remain listing-bound.');
 assert(messageIntent.context.resourceId === listing.id, 'Message intent must carry listing id.');
 
+const hideIntent = buildMarketHideListingIntent({
+  listingId: listing.id,
+  sellerActorId: sellerId,
+});
+assert(hideIntent.action === 'hide_listing', 'Mercado hide must use the shared safety handoff action.');
+assert(hideIntent.subject.listingId === listing.id, 'Hide intent must carry listing id.');
+assert(hideIntent.subject.sellerActorId === sellerId, 'Hide intent must preserve seller actor context.');
+
+const reportIntent = buildMarketReportListingIntent({
+  listingId: listing.id,
+  sellerActorId: sellerId,
+  reason: 'suspected_scam',
+});
+assert(reportIntent.action === 'report_listing', 'Mercado report must use the shared safety handoff action.');
+assert(reportIntent.reason === 'suspected_scam', 'Report intent must carry a structured safety reason.');
+assert(reportIntent.subject.resourceType === 'market_listing', 'Safety intent must remain listing-scoped.');
+
 assertMarketListingDraft({
   title: listing.title,
   description: listing.description,
@@ -159,4 +180,4 @@ assertThrows(
   'Free listing must not persist a sale price.',
 );
 
-console.log('PASS: Mercado lifecycle, privacy, transaction snapshot and Message Core handoff contracts');
+console.log('PASS: Mercado lifecycle, privacy, transaction snapshot, Message Core and Safety handoff contracts');
