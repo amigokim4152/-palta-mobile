@@ -6,7 +6,7 @@ Base: `integration/repository-normalization-v1`
 
 ## Purpose
 
-This is the executable completion path for Somos Palta. A feature is not complete because a document, contract, type, screen, or mock exists. It is complete only when Golden User 001 can use it in the mobile runtime and the state survives the required persistence/re-entry checks.
+This is the executable completion path for Somos Palta. A feature is complete only when Golden User 001 can use it in the mobile runtime and the required canonical persistence, permissions, and re-entry checks have been proven.
 
 ## Completion states
 
@@ -16,28 +16,26 @@ Every gate uses exactly one of these states:
 - `CORE_CODE` — provider-neutral/core implementation exists but is not proven in the mobile runtime.
 - `RUNTIME_CONNECTED` — runtime adapter/provider is connected, but the complete user flow is not yet proven.
 - `USER_FLOW_WORKING` — the user can complete the interaction in the app.
-- `E2E_VERIFIED` — the interaction, canonical persistence, app restart/session restoration, permissions, and downstream linkage are verified.
-- `BLOCKED` — the next Golden User action cannot proceed.
+- `E2E_VERIFIED` — interaction, canonical persistence, restart/session restoration, permissions, and downstream linkage are verified.
+- `BLOCKED` — the next Golden User action cannot proceed because of a known unresolved blocker.
 
-Only `E2E_VERIFIED` advances the Golden User to the next gate.
+Only `E2E_VERIFIED` advances Golden User 001 to the next gate.
 
 ## Golden User 001
 
-Golden User 001 is a synthetic development identity. It must never use a real citizen's RUT, phone number, private address, health record, or third-party OAuth identity as fixture data.
+Golden User 001 is a synthetic development identity. It must never use a real citizen's RUT, phone number, private address, health record, or unrelated third-party identity as fixture data.
 
-Stable test identity namespace:
+Stable test namespace:
 
 - persona id: `golden-user-001`
 - fixture marker: `synthetic=true`
 - environment: development/test only
 
-The persona is intentionally enriched only as each gate is reached. Do not pre-seed future-domain data to make later screens appear complete.
-
 ## Gate order
 
 | Gate | User action | Current state | Advance condition |
 |---|---|---|---|
-| 01 Auth | Open app, create/sign in, leave app, return, sign out/in | `BLOCKED` | Same Palta identity/session is restored and account row is accessible under owner RLS |
+| 01 Auth | Open app, create/sign in, leave app, return, sign out/in | `RUNTIME_CONNECTED` | Same Palta identity/session is restored and account row is accessible under owner RLS |
 | 02 Core profile | Set minimum profile/locale/timezone | `NOT_STARTED` | Save, restart, restore, edit |
 | 03 Location context | Set/deny current location and set home comuna separately | `NOT_STARTED` | Current vs home location remain distinct and persist |
 | 04 Home | Enter Home as new/minimal user | `NOT_STARTED` | Correct sparse Home, no filler, correct private cards |
@@ -53,67 +51,56 @@ The persona is intentionally enriched only as each gate is reached. Do not pre-s
 | 14 Transport/map | Use map/journey context | `NOT_STARTED` | Native MapLibre + production data endpoints work |
 | 15 Care/Event/follow-up | Wait/deadline/result/follow-up | `NOT_STARTED` | Event returns to correct Home/action state |
 
-## Gate 01 findings — 2026-09-18
+## Gate 01 current state — 2026-09-18
 
-Verified current facts:
+Gate 01 moved from `BLOCKED` to `RUNTIME_CONNECTED` after the missing integration boundaries were filled.
 
-1. The canonical mobile repository is `amigokim4152/palta-mobile`.
-2. `main` is intentionally a minimal baseline; implementation work lives on `integration/*` branches.
-3. Versioned mobile UI lives in `mobile-overlay/src`; generated runtime source must not become a second UI source of truth.
-4. `integration/repository-normalization-v1` currently has only `src/auth/authCoordinator.ts` in `src/auth`, while the earlier `integration/auth-profile-core-v1` contains additional account/identity/session/resolver implementation. The branches therefore require reconciliation rather than assuming Auth Core is fully present in the normalized branch.
-5. A real Supabase project named `palta-dev` exists and is ACTIVE_HEALTHY in `sa-east-1`.
-6. The development database already contains `public.palta_account`; RLS is enabled and owner SELECT/UPDATE policies exist.
-7. `palta_account` currently contains zero rows at the time of this check.
-8. The normalized mobile route tree has no dedicated Auth route/screen and RootLayout has no Auth/session provider.
-9. `.env.example` already reserves `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, but the example does not configure values.
+Verified implementation/data facts:
 
-Conclusion: Gate 01 is not complete. Database groundwork exists, but mobile Auth provider/session/UI/account bootstrap are not yet proven end-to-end.
+1. mobile UI Source of Truth remains `mobile-overlay/src`; generated runtime remains generated
+2. Apple, Google, and email passwordless controls plus loading/error/retry/logout states are connected
+3. Supabase session persistence uses Expo SecureStore and PKCE callback handling
+4. mobile uses a publishable key only; privileged-key patterns are guarded by CI
+5. Auth/Profile Core concepts were reconciled without restoring the older competing persistence model
+6. raw provider subject, Supabase `AuthBrokerUserId`, and canonical `PaltaUserId` are explicit separate identity layers
+7. `palta-dev` now has server-owned canonical `palta_account` bootstrap from `auth.users`
+8. client INSERT on `palta_account` remains denied
+9. real `palta-dev` transaction/RLS test proved user A cannot read user B account
+10. generic Postgres migration preflight, root verify/tests, and generated Expo runtime typecheck all pass
 
-## Gate 01 required work
+Successful implementation verification runs:
 
-Do not redesign authentication. Reuse the existing auth/profile contracts and current Supabase project.
+- Core Check: `35335051087`
+- Core CI + PostgreSQL preflight: `35335051144`
+- Mobile Runtime Shell: `35335051197`
 
-User-touchable minimum surface:
+What remains `NOT VERIFIED` is the live mobile/provider cycle itself: fresh signed-out launch, real login, kill/relaunch restoration, logout, and login again to the same canonical account.
 
-- startup session check
-- Sign in with Apple button
-- Continue with Google button
-- Continue with email button
-- loading state
-- provider/configuration error state
-- retry
-- sign out
-- session-expired state
-- account recovery/re-entry path appropriate to the chosen email method
+Therefore Gate 01 is **not** `E2E_VERIFIED`, and Gate 02 must not start yet.
 
-Runtime requirements:
+## Gate 01 next executable sequence
 
-- Supabase client behind an Auth adapter/provider boundary
-- publishable key only in the mobile client; never service-role/secret keys
-- secure mobile session persistence
-- stable `paltaUserId`; provider subject is not the canonical application identity
-- first successful identity resolution bootstraps/locates the Palta account
-- app restart restores the same user
-- logout clears local session
-- second login resolves the same account
-- RLS proves one authenticated user cannot read another user's account
-- failure/unavailable provider must be visible to the user instead of silently entering Home
+1. launch the generated mobile runtime against `palta-dev`
+2. verify the Auth surface appears with no valid session
+3. complete the selected Golden User provider login
+4. confirm the canonical `PaltaUserId`
+5. terminate and relaunch the app; confirm the same session/account
+6. logout and confirm return to Auth
+7. login again and confirm the same `PaltaUserId`
+8. exercise the remaining configured providers and confirm they do not create unintended duplicate Palta accounts
+9. change Gate 01 to `E2E_VERIFIED` only after the evidence is recorded
+
+If a provider/configuration/deep-link error occurs, stop at that exact failure and fix only that Gate 01 blocker.
 
 ## Gate discipline
 
 When a gate blocks:
 
-1. Stop Golden User progression.
-2. Record the exact break here.
-3. Fix only the blocker and its required integration boundary.
-4. Verify on development runtime/data.
-5. Mark `E2E_VERIFIED` only with evidence.
-6. Continue to the next gate.
+1. stop Golden User progression
+2. record the exact break
+3. fix only the blocker and its integration boundary
+4. verify on development runtime/data
+5. mark `E2E_VERIFIED` only with evidence
+6. continue to the next gate
 
-Do not jump ahead to Pets, POS, Community, or final visual polish while Gate 01 is blocked.
-
-## Visual rule during Golden User execution
-
-The UI may be visually rough. It may not be functionally incomplete.
-
-Use the existing Palta design tokens/components where convenient, but defer final typography, illustration, motion, spacing polish, and brand refinement until the Golden User can complete the functional path. The final design pass must not invent missing actions; all required actions should already exist before visual consolidation.
+Do not jump ahead to Pets, POS, Community, or visual polish while Gate 01 remains below `E2E_VERIFIED`.
