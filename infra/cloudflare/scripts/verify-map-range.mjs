@@ -231,9 +231,6 @@ async function getAssetSize(url, label) {
     return { size: headSize, headers: head.headers };
   }
 
-  // Some runtimes omit Content-Length from HEAD responses even though the
-  // production edge exposes it to other HTTP clients. Fall back to a one-byte
-  // Range request; Content-Range carries the authoritative full object size.
   const ranged = await fetch(url, { headers: { Range: 'bytes=0-0' } });
   assert(ranged.status === 206, `${label} range expected 206, got ${ranged.status}`);
   const contentRange = ranged.headers.get('content-range') ?? '';
@@ -251,7 +248,7 @@ const fontSize = fontAsset.size;
 assert(fontSize === 2049096, `Unexpected Noto Sans size: ${fontSize}`);
 const fontContentType = fontAsset.headers.get('content-type') ?? '';
 assert(
-  /font\\/ttf|application\\/x-font-ttf|application\\/octet-stream/i.test(fontContentType),
+  /font\/ttf|application\/x-font-ttf|application\/octet-stream/i.test(fontContentType),
   `Unexpected Noto Sans Content-Type: ${fontContentType}`,
 );
 
