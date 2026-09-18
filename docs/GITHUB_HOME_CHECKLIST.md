@@ -1,16 +1,23 @@
-# GitHub Home Checklist
+# GitHub Repository Checklist
 
-When GitHub access is working again, do not improvise. Use this order.
+Use this order. Do not improvise across concurrent Palta integration branches.
 
 1. Fetch `main`; confirm it is still the minimal baseline and record SHA.
-2. Fetch `integration/foundation-authorization-policy-v1`; record SHA and tree before changes.
-3. Do not merge `main`.
-4. Add/compare the Foundation freeze candidate first; do not duplicate files already present.
-5. Add this `palta-app-prep-v1` staging under an implementation/core location appropriate to the repository, not as a second source-of-truth Foundation.
-6. Clean install dependencies in CI-capable environment.
-7. Run typecheck and core tests. Environment failure = NOT VERIFIED.
-8. Only then bootstrap Expo SDK 57 native shell if the repo does not already have a conflicting mobile runtime.
-9. Run app shell on a real iOS/Android development build before MapLibre integration.
-10. Add MapLibre through its Expo config plugin and re-build native development client; Expo Go is not a valid MapLibre verification environment.
-11. Implement the first Local Business vertical slice from `FIRST_VERTICAL_SLICE.md`.
+2. Fetch the integration branch being worked on; record SHA and tree before changes.
+3. Do not merge `main` without an explicit verified merge decision.
+4. Compare existing files before adding anything; do not duplicate Foundation/Core source-of-truth material.
+5. Use `palta-mobile` as the repository/package identity. Do not introduce `palta-app-prep-*` as a current identifier.
+6. Clean-install dependencies in a CI-capable environment.
+7. Run typecheck, core tests, provider-independence checks, and database preflight where applicable. Environment failure = `NOT VERIFIED`.
+8. Keep Expo/native runtime work separated from provider-neutral core contracts.
+9. Verify the app shell on a real iOS/Android development build before treating native MapLibre behavior as verified. Expo Go is not a valid MapLibre verification environment.
+10. Preserve canonical mobile identifiers: `Palta`, `palta`, and `cl.somospalta.app`.
+11. After the GitHub repository is renamed from `-palta-mobile` to `palta-mobile`, follow `REPOSITORY_RENAME_RUNBOOK.md` and verify local remotes, CI, deployment integrations, callbacks, and repository references.
 12. Run Foundation + mobile quality regression before any merge decision.
+
+## Merge discipline
+
+- `main` stays untouched until integration verification and an explicit merge decision.
+- Typecheck/test failure is `FAIL`.
+- Environment/tooling that cannot be run is `NOT VERIFIED`, never `PASS`.
+- Do not use screenshots or static UI alone as evidence that Foundation/Core integration is correct.
