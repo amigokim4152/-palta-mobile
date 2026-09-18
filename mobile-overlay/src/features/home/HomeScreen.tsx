@@ -49,7 +49,7 @@ export function HomeScreen() {
       ) : null}
 
       {state.status === 'error' && !state.data ? (
-        <ErrorState message={state.message} onRetry={() => void refresh()} />
+        <ErrorState onRetry={() => void refresh()} />
       ) : null}
 
       {state.status === 'empty' ? (
@@ -122,7 +122,7 @@ export function HomeScreen() {
       ) : null}
 
       {state.status === 'error' && state.data ? (
-        <ErrorState message={state.message} onRetry={() => void refresh()} />
+        <ErrorState onRetry={() => void refresh()} />
       ) : null}
     </ScreenFrame>
   );
