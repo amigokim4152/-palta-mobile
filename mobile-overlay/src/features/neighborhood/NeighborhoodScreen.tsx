@@ -53,11 +53,13 @@ export function NeighborhoodScreen() {
       latitude: searchPoint.latitude,
       longitude: searchPoint.longitude,
       query: neighborhood.query || undefined,
+      locale,
     });
   }, [
     searchPoint?.latitude,
     searchPoint?.longitude,
     neighborhood.query,
+    locale,
   ]);
 
   const { state, refresh } = useAsyncResource(loadResults, {
@@ -310,7 +312,7 @@ export function NeighborhoodScreen() {
               key={item.entity_id}
               name={item.name}
               meta={[
-                item.category_key,
+                item.category_label ?? item.category_key,
                 item.verification_status === 'verified'
                   ? t('common.verified')
                   : undefined,
