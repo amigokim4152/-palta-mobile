@@ -24,8 +24,9 @@ Implementation precedence when wording differs:
 These repository documents are mandatory execution rules for feature development where applicable. Feature branches must consume them rather than recreating competing local architecture.
 
 - `docs/LOCALIZATION_RUNTIME_V1.md` — **mandatory for every user-visible surface and every domain exposing localized data.** Language is independent from Chile region/jurisdiction; canonical data remains language-neutral; static UI copy uses shared catalogs; translations are additive presentation data; originals are preserved; events/notifications are not duplicated per language; raw technical errors are never user copy.
+- `docs/DATA_SOURCE_GOVERNANCE_V1.md` — **mandatory for every collector, import, research workflow, Local Business ingestion path, public-data source, market/catalog ingestion path, and future country-layer data source.** Discovery is not canonical evidence. Third-party platforms may be discovery/research signals without being allowed canonical bulk-ingestion sources. Factual fields must be independently verified from a permitted source, provenance/rights metadata must be retained, and photos/reviews/platform prose or unclear personal contact data must not be copied into the canonical public dataset without an explicit permitted basis.
 - Other domain-specific contracts in `docs/` remain authoritative for their implementation boundary unless superseded by a higher-precedence source or an explicit current user decision.
 
-When adding a new module, developers must check relevant cross-domain contracts before creating new providers, stores, canonical enums, API fields, persistence, or presentation rules.
+When adding a new module, developers must check relevant cross-domain contracts before creating new providers, stores, canonical enums, API fields, persistence, collection jobs, import pipelines, or presentation rules.
 
 Do not copy large source documents into the application repository. Keep small executable contracts/tests in code and link back to the authoritative source.
