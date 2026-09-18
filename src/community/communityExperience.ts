@@ -22,6 +22,7 @@ export type SchoolStructuredItem = {
   actionRequired: boolean;
   sensitive: boolean;
   dueLabel?: string;
+  dueAt?: string;
 };
 
 export const SCHOOL_FLOW_ORDER: readonly SchoolFlowStage[] = [

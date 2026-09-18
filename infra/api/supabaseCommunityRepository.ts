@@ -12,6 +12,7 @@ import {
   membershipStateForJoin,
   transitionCommunityMembership,
 } from '../../src/community/communityMembershipLifecycle.js';
+import type { SchoolStructuredContentDraft } from '../../src/community/schoolStructuredContent.js';
 
 export type SqlQueryResult<Row = Record<string, unknown>> = { rows: Row[] };
 export interface SqlTransaction { query<Row = Record<string, unknown>>(sql: string, params?: readonly unknown[]): Promise<SqlQueryResult<Row>>; }
@@ -106,11 +107,46 @@ class SupabaseCommunityTransaction implements CommunityRepositoryTransaction {
         order by effective_from asc nulls last, created_at asc`,
       [spaceId, userId],
     );
-    return {
-      currentRoleKey: actor?.roleKey ?? 'member',
-      pending: pending.rows,
-      active: active.rows,
-    };
+    return { currentRoleKey: actor?.roleKey ?? 'member', pending: pending.rows, active: active.rows };
+  }
+
+  async getSchoolItems(userId: string, spaceId: string): Promise<unknown[]> {
+    const result = await this.tx.query(
+      `select i.id::text as id,
+              i.post_id::text as "postId",
+              i.stage,
+              i.title,
+              i.detail,
+              case
+                when ack.id is not null then 'acknowledged'
+                when i.stage = 'announcement' and not i.action_required then 'done'
+                else 'pending'
+              end as status,
+              (i.action_required and ack.id is null) as "actionRequired",
+              i.sensitive,
+              i.due_at as "dueAt"
+         from community_school_item i
+         join community_post p on p.id = i.post_id and p.community_space_id = i.community_space_id
+         join community_membership viewer on viewer.community_space_id = i.community_space_id
+           and viewer.user_id = $1 and viewer.state = 'active'
+           and (viewer.effective_to is null or viewer.effective_to > now())
+         left join community_reaction ack on ack.community_space_id = i.community_space_id
+           and ack.actor_user_id = $1 and ack.target_type = 'post'
+           and ack.target_id = i.post_id and ack.reaction_key = 'acknowledged'
+        where i.community_space_id = $2
+          and (i.recipient_user_id is null or i.recipient_user_id = $1)
+          and p.content_state = 'published' and p.moderation_state = 'visible'
+        order by case i.stage
+          when 'announcement' then 1
+          when 'schedule' then 2
+          when 'supplies' then 3
+          when 'child_notice' then 4
+          else 99 end,
+          i.due_at asc nulls last,
+          i.created_at desc`,
+      [userId, spaceId],
+    );
+    return result.rows;
   }
 
   async joinSpace(input: { userId: string; spaceId: string }): Promise<{ state: 'active' | 'pending' }> {
@@ -167,13 +203,8 @@ class SupabaseCommunityTransaction implements CommunityRepositoryTransaction {
     ));
     if (!actor) throw new Error('COMMUNITY_MEMBERSHIP_MANAGE_FORBIDDEN');
 
-    const target = oneOrNull(await this.tx.query<{
-      state: CommunityMembershipRecordState;
-      roleKey: CommunityMemberRole;
-    }>(
-      `select state, role_key as "roleKey"
-         from community_membership
-        where id=$1 and community_space_id=$2`,
+    const target = oneOrNull(await this.tx.query<{ state: CommunityMembershipRecordState; roleKey: CommunityMemberRole }>(
+      `select state, role_key as "roleKey" from community_membership where id=$1 and community_space_id=$2`,
       [input.membershipId, input.spaceId],
     ));
     if (!target) throw new Error('COMMUNITY_MEMBERSHIP_INVALID_TRANSITION');
@@ -201,6 +232,46 @@ class SupabaseCommunityTransaction implements CommunityRepositoryTransaction {
       [transition.state, transition.roleKey, transition.decidedAt, input.actorUserId, input.membershipId, input.spaceId, target.state],
     );
     if (result.rows.length === 0) throw new Error('COMMUNITY_MEMBERSHIP_INVALID_TRANSITION');
+  }
+
+  async createSchoolItem(input: {
+    actorUserId: string;
+    spaceId: string;
+    draft: SchoolStructuredContentDraft;
+  }): Promise<{ id: string }> {
+    if (input.draft.recipientUserId) {
+      const recipient = oneOrNull(await this.tx.query(
+        `select id from community_membership
+          where community_space_id=$1 and user_id=$2 and state='active'
+            and (effective_to is null or effective_to > now())`,
+        [input.spaceId, input.draft.recipientUserId],
+      ));
+      if (!recipient) throw new Error('SCHOOL_ITEM_RECIPIENT_NOT_ACTIVE');
+    }
+
+    const result = await this.tx.query<{ id: string }>(
+      `insert into community_school_item
+        (community_space_id,post_id,stage,title,detail,action_required,sensitive,recipient_user_id,due_at,created_by_user_id,created_at,updated_at)
+       select $1,p.id,$3,$4,$5,$6,$7,$8::uuid,$9::timestamptz,$10,now(),now()
+         from community_post p
+        where p.id=$2 and p.community_space_id=$1
+        returning id::text as id`,
+      [
+        input.spaceId,
+        input.draft.postId,
+        input.draft.stage,
+        input.draft.title.trim(),
+        input.draft.detail.trim(),
+        input.draft.actionRequired,
+        input.draft.sensitive,
+        input.draft.recipientUserId ?? null,
+        input.draft.dueAt ?? null,
+        input.actorUserId,
+      ],
+    );
+    const created = oneOrNull(result);
+    if (!created) throw new Error('SCHOOL_ITEM_SOURCE_POST_INVALID');
+    return created;
   }
 
   async addComment(input: { userId: string; spaceId: string; postId: string; body: string }): Promise<void> {

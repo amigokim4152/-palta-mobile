@@ -2,6 +2,8 @@ import type {
   CommunityMemberRole,
   CommunityMembershipDecision,
 } from '../../src/community/communityMembershipLifecycle.js';
+import type { SchoolStructuredContentDraft } from '../../src/community/schoolStructuredContent.js';
+import { validateSchoolStructuredContentDraft } from '../../src/community/schoolStructuredContent.js';
 
 export type AuthenticatedPaltaIdentity = {
   paltaUserId: string;
@@ -19,6 +21,7 @@ export type CommunityRepositoryTransaction = {
   getSpace(userId: string, spaceId: string): Promise<unknown | null>;
   getThread(userId: string, spaceId: string, postId: string): Promise<unknown | null>;
   getMembershipManagement(userId: string, spaceId: string): Promise<unknown>;
+  getSchoolItems(userId: string, spaceId: string): Promise<unknown[]>;
   joinSpace(input: { userId: string; spaceId: string }): Promise<{ state: 'active' | 'pending' }>;
   setMembershipDecision(input: {
     actorUserId: string;
@@ -27,6 +30,11 @@ export type CommunityRepositoryTransaction = {
     decision: CommunityMembershipDecision;
     roleKey?: CommunityMemberRole;
   }): Promise<void>;
+  createSchoolItem(input: {
+    actorUserId: string;
+    spaceId: string;
+    draft: SchoolStructuredContentDraft;
+  }): Promise<{ id: string }>;
   addComment(input: { userId: string; spaceId: string; postId: string; body: string }): Promise<void>;
   setReaction(input: { userId: string; spaceId: string; postId: string; reactionKey: string }): Promise<void>;
   findMutationReceipt(input: { userId: string; idempotencyKey: string }): Promise<{ operationKey: string; resourceId?: string } | null>;
@@ -70,6 +78,11 @@ export class CommunityApiService {
   async getMembershipManagement(context: CommunityRequestContext, spaceId: string): Promise<unknown> {
     await this.authorization.assertCanManageMemberships({ userId: context.identity.paltaUserId, spaceId });
     return this.repository.transaction((tx) => tx.getMembershipManagement(context.identity.paltaUserId, spaceId));
+  }
+
+  async getSchoolItems(context: CommunityRequestContext, spaceId: string): Promise<unknown[]> {
+    await this.authorization.assertCanReadSpace({ userId: context.identity.paltaUserId, spaceId });
+    return this.repository.transaction((tx) => tx.getSchoolItems(context.identity.paltaUserId, spaceId));
   }
 
   async joinSpace(context: CommunityRequestContext, spaceId: string): Promise<void> {
@@ -120,6 +133,34 @@ export class CommunityApiService {
     });
   }
 
+  async createSchoolItem(
+    context: CommunityRequestContext,
+    spaceId: string,
+    draft: SchoolStructuredContentDraft,
+  ): Promise<void> {
+    const validation = validateSchoolStructuredContentDraft(draft);
+    if (!validation.ok) throw new Error(validation.code);
+    await this.authorization.assertCanManageMemberships({ userId: context.identity.paltaUserId, spaceId });
+    await this.mutate(context, 'community.school_item.create', draft.postId, async (tx) => {
+      const created = await tx.createSchoolItem({
+        actorUserId: context.identity.paltaUserId,
+        spaceId,
+        draft,
+      });
+      await tx.appendOutbox({
+        eventType: 'community.school_item.changed',
+        aggregateType: 'community_school_item',
+        aggregateId: created.id,
+        payload: {
+          spaceId,
+          postId: draft.postId,
+          stage: draft.stage,
+          recipientScoped: Boolean(draft.recipientUserId),
+        },
+      });
+    });
+  }
+
   async addComment(context: CommunityRequestContext, spaceId: string, postId: string, body: string): Promise<void> {
     await this.authorization.assertCanComment({ userId: context.identity.paltaUserId, spaceId, postId });
     await this.mutate(context, 'community.comment.create', postId, async (tx) => {
@@ -159,9 +200,7 @@ export class CommunityApiService {
           idempotencyKey: context.idempotencyKey,
         });
         if (receipt) {
-          if (receipt.operationKey !== operationKey) {
-            throw new Error('IDEMPOTENCY_KEY_OPERATION_CONFLICT');
-          }
+          if (receipt.operationKey !== operationKey) throw new Error('IDEMPOTENCY_KEY_OPERATION_CONFLICT');
           return;
         }
       }

@@ -13,6 +13,8 @@ export type CommunityKind = 'school' | 'church' | 'neighborhood' | 'interest' | 
 export type CommunityMembershipState = 'active' | 'pending' | 'none' | 'invite_required';
 export type CommunityMembershipRoleKey = 'member' | 'guardian' | 'student' | 'teacher' | 'staff' | 'leader' | 'admin';
 export type CommunityMembershipDecision = 'approve' | 'reject' | 'end';
+export type CommunitySchoolFlowStage = 'announcement' | 'schedule' | 'supplies' | 'child_notice';
+export type CommunitySchoolItemStatus = 'pending' | 'acknowledged' | 'done';
 export type CommunityApiCard = { id: string; name: string; kind: CommunityKind; meta: string; unreadCount: number; actionRequiredCount: number };
 export type CommunityApiFeedItem = { id: string; communityId: string; communityName: string; kind: CommunityKind; author: string; timeLabel: string; body: string; announcement: boolean; commentCount: number; reactionCount: number };
 export type CommunityApiTab = { communities: CommunityApiCard[]; discover: CommunityApiCard[]; feed: CommunityApiFeedItem[] };
@@ -23,6 +25,8 @@ export type CommunityApiThread = { communityName: string; post: CommunityApiPost
 export type CommunityApiPendingMembership = { membershipId: string; memberLabel: string; requestedRoleKey: CommunityMembershipRoleKey; requestedAt?: string };
 export type CommunityApiActiveMembership = { membershipId: string; memberLabel: string; roleKey: CommunityMembershipRoleKey; effectiveFrom?: string; isSelf?: boolean };
 export type CommunityApiMembershipManagement = { currentRoleKey: CommunityMembershipRoleKey; pending: CommunityApiPendingMembership[]; active: CommunityApiActiveMembership[] };
+export type CommunityApiSchoolItem = { id: string; postId: string; stage: CommunitySchoolFlowStage; title: string; detail: string; status: CommunitySchoolItemStatus; actionRequired: boolean; sensitive: boolean; dueAt?: string };
+export type CreateCommunitySchoolItemInput = { postId: string; stage: CommunitySchoolFlowStage; title: string; detail: string; actionRequired: boolean; sensitive: boolean; dueAt?: string; recipientUserId?: string };
 
 export type PaltaApiClientOptions = { baseUrl: string; fetch: FetchLike; getAccessToken?: () => Promise<string | null> };
 function joinUrl(baseUrl: string, path: string): string { return `${baseUrl.replace(/\/$/, '')}${path.startsWith('/') ? path : `/${path}`}`; }
@@ -63,6 +67,8 @@ export class PaltaApiClient {
   async joinCommunitySpace(spaceId: string): Promise<void> { await this.request(`/v1/community/spaces/${encodeURIComponent(spaceId)}/join`, { method: 'POST' }); }
   async getCommunityMembershipManagement(spaceId: string): Promise<CommunityApiMembershipManagement> { const result = expectObject(await this.request(`/v1/community/spaces/${encodeURIComponent(spaceId)}/memberships`), 'GET /v1/community/spaces/{id}/memberships'); expectArray(result.pending, 'Community pending memberships'); expectArray(result.active, 'Community active memberships'); if (typeof result.currentRoleKey !== 'string') throw new Error('Community membership management missing currentRoleKey'); return result as CommunityApiMembershipManagement; }
   async updateCommunityMembership(input: { spaceId: string; membershipId: string; action: CommunityMembershipDecision; roleKey?: CommunityMembershipRoleKey }): Promise<void> { await this.request(`/v1/community/spaces/${encodeURIComponent(input.spaceId)}/memberships/${encodeURIComponent(input.membershipId)}`, { method: 'PATCH', body: { action: input.action, ...(input.roleKey ? { roleKey: input.roleKey } : {}) } }); }
+  async getCommunitySchoolItems(spaceId: string): Promise<CommunityApiSchoolItem[]> { const result = expectObject(await this.request(`/v1/community/spaces/${encodeURIComponent(spaceId)}/school-items`), 'GET /v1/community/spaces/{id}/school-items'); expectArray(result.items, 'Community school items'); return result.items as CommunityApiSchoolItem[]; }
+  async createCommunitySchoolItem(spaceId: string, input: CreateCommunitySchoolItemInput): Promise<void> { await this.request(`/v1/community/spaces/${encodeURIComponent(spaceId)}/school-items`, { method: 'POST', body: input }); }
   async addCommunityComment(spaceId: string, postId: string, body: string): Promise<void> { await this.request(`/v1/community/spaces/${encodeURIComponent(spaceId)}/posts/${encodeURIComponent(postId)}/comments`, { method: 'POST', body: { body } }); }
   async reactToCommunityPost(spaceId: string, postId: string, reactionKey: string): Promise<void> { await this.request(`/v1/community/spaces/${encodeURIComponent(spaceId)}/posts/${encodeURIComponent(postId)}/reactions`, { method: 'POST', body: { reactionKey } }); }
 }

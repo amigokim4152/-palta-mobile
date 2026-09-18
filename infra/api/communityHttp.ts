@@ -3,6 +3,7 @@ import type {
   CommunityMemberRole,
   CommunityMembershipDecision,
 } from '../../src/community/communityMembershipLifecycle.js';
+import type { SchoolFlowStage } from '../../src/community/communityExperience.js';
 
 export interface CommunityIdentityResolver {
   resolve(request: Request): Promise<CommunityRequestContext['identity'] | null>;
@@ -10,6 +11,7 @@ export interface CommunityIdentityResolver {
 
 const MEMBERSHIP_ACTIONS = new Set<CommunityMembershipDecision>(['approve', 'reject', 'end']);
 const MEMBERSHIP_ROLES = new Set<CommunityMemberRole>(['member', 'guardian', 'student', 'teacher', 'staff', 'leader', 'admin']);
+const SCHOOL_ITEM_STAGES = new Set<SchoolFlowStage>(['announcement', 'schedule', 'supplies', 'child_notice']);
 
 function json(body: unknown, status = 200): Response {
   return Response.json(body, { status, headers: { 'Cache-Control': 'no-store' } });
@@ -64,6 +66,30 @@ export async function handleCommunityRequest(input: {
           return new Response(null, { status: 204 });
         }
       }
+      if (segments[4] === 'school-items' && segments.length === 5) {
+        if (request.method === 'GET') return json({ items: await service.getSchoolItems(context, spaceId) });
+        if (request.method === 'POST') {
+          const payload = (await request.json()) as Record<string, unknown>;
+          if (typeof payload.postId !== 'string' || !payload.postId.trim()) return json({ error: 'SCHOOL_ITEM_POST_REQUIRED' }, 400);
+          if (typeof payload.stage !== 'string' || !SCHOOL_ITEM_STAGES.has(payload.stage as SchoolFlowStage)) return json({ error: 'SCHOOL_ITEM_STAGE_INVALID' }, 400);
+          if (typeof payload.title !== 'string' || !payload.title.trim()) return json({ error: 'SCHOOL_ITEM_TITLE_REQUIRED' }, 400);
+          if (typeof payload.detail !== 'string' || !payload.detail.trim()) return json({ error: 'SCHOOL_ITEM_DETAIL_REQUIRED' }, 400);
+          if (typeof payload.actionRequired !== 'boolean' || typeof payload.sensitive !== 'boolean') return json({ error: 'SCHOOL_ITEM_FLAGS_REQUIRED' }, 400);
+          if (payload.dueAt !== undefined && typeof payload.dueAt !== 'string') return json({ error: 'SCHOOL_ITEM_INVALID_DUE_AT' }, 400);
+          if (payload.recipientUserId !== undefined && typeof payload.recipientUserId !== 'string') return json({ error: 'SCHOOL_ITEM_PRIVATE_RECIPIENT_REQUIRED' }, 400);
+          await service.createSchoolItem(context, spaceId, {
+            postId: payload.postId,
+            stage: payload.stage as SchoolFlowStage,
+            title: payload.title,
+            detail: payload.detail,
+            actionRequired: payload.actionRequired,
+            sensitive: payload.sensitive,
+            ...(typeof payload.dueAt === 'string' ? { dueAt: payload.dueAt } : {}),
+            ...(typeof payload.recipientUserId === 'string' ? { recipientUserId: payload.recipientUserId } : {}),
+          });
+          return new Response(null, { status: 204 });
+        }
+      }
       if (segments[4] === 'posts' && segments[5]) {
         const postId = decodeURIComponent(segments[5]);
         if (request.method === 'GET' && segments.length === 6) {
@@ -91,7 +117,8 @@ export async function handleCommunityRequest(input: {
     if (error.message === 'IDEMPOTENCY_KEY_OPERATION_CONFLICT' || error.message === 'COMMUNITY_MEMBERSHIP_INVALID_TRANSITION') return json({ error: error.message }, 409);
     if (error.message === 'COMMUNITY_SPACE_NOT_FOUND') return json({ error: 'NOT_FOUND' }, 404);
     if (error.message === 'COMMUNITY_INVITE_REQUIRED' || error.message === 'COMMUNITY_MEMBERSHIP_BLOCKED' || error.message === 'COMMUNITY_MEMBERSHIP_MANAGE_FORBIDDEN' || error.message === 'COMMUNITY_MEMBERSHIP_ROLE_ASSIGN_FORBIDDEN') return json({ error: error.message }, 403);
-    if (error.message === 'COMMUNITY_MEMBERSHIP_ROLE_REQUIRED') return json({ error: error.message }, 400);
+    if (error.message === 'SCHOOL_ITEM_RECIPIENT_NOT_ACTIVE' || error.message === 'SCHOOL_ITEM_SOURCE_POST_INVALID') return json({ error: error.message }, 409);
+    if (error.message === 'COMMUNITY_MEMBERSHIP_ROLE_REQUIRED' || error.message.startsWith('SCHOOL_ITEM_')) return json({ error: error.message }, 400);
     throw error;
   }
 }

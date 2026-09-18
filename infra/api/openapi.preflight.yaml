@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Palta Mobile API Preflight
-  version: 0.2.2
+  version: 0.2.3
   description: Development contract for Palta mobile vertical slices. This is not a production API freeze.
 servers:
   - url: https://api.somospalta.cl
@@ -137,6 +137,44 @@ paths:
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+  /v1/community/spaces/{spaceId}/school-items:
+    get:
+      security: [{ bearerAuth: [] }]
+      summary: List structured school items visible to the authenticated active member
+      description: Group items and recipient-scoped items are filtered server-side. A private child notice is never returned to another member.
+      parameters: [{ $ref: "#/components/parameters/SpaceId" }]
+      responses:
+        "200": { description: Structured school items with acknowledgement state derived from Community reactions }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    post:
+      security: [{ bearerAuth: [] }]
+      summary: Attach structured school meaning to an existing Community post
+      description: Authorized managers may create schedule, supplies, announcement, or recipient-scoped child items. child_notice requires sensitive=true and a recipientUserId.
+      parameters: [{ $ref: "#/components/parameters/SpaceId" }, { $ref: "#/components/parameters/IdempotencyKey" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [postId, stage, title, detail, actionRequired, sensitive]
+              properties:
+                postId: { type: string, format: uuid }
+                stage: { type: string, enum: [announcement, schedule, supplies, child_notice] }
+                title: { type: string, minLength: 1, maxLength: 240 }
+                detail: { type: string, minLength: 1, maxLength: 2000 }
+                actionRequired: { type: boolean }
+                sensitive: { type: boolean }
+                dueAt: { type: string, format: date-time }
+                recipientUserId: { type: string, format: uuid }
+      responses:
+        "204": { description: Structured school item created }
+        "400": { description: Invalid structured school item }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
         "409": { $ref: "#/components/responses/Conflict" }
   /v1/community/spaces/{spaceId}/posts/{postId}/comments:
     post:
