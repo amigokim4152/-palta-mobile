@@ -1,0 +1,104 @@
+{
+  "dataset": "palta_food_menu_corroborations_rm",
+  "observed_at": "2026-09-18",
+  "policy": {
+    "factual_fields_only": true,
+    "collect_images": false,
+    "collect_reviews": false,
+    "collect_ratings": false,
+    "collect_long_descriptions": false
+  },
+  "records": [
+    {
+      "outlet_key": "cl-rm-san-miguel-green-lab-dresden-4238",
+      "menu_scope": "brand_catalog_requires_outlet_freshness_check",
+      "source": {"kind": "official_website", "url": "https://www.greenlabchile.cl/pedir", "observed_at": "2026-09-18"},
+      "sections": ["Novedades", "Arma a tu Gusto", "Classics", "Sandwich", "Cremas y Sopas", "Acompañamientos", "Combos", "Postres", "Bebestible frio"],
+      "items": [
+        {"name": "Chilenito 2.0", "price_clp": 6990},
+        {"name": "Crunchy Oriental", "price_clp": 6990},
+        {"name": "Arma tu Bowl", "price_clp": 8490, "price_kind": "from"},
+        {"name": "Arma tu Ensalada", "price_clp": 8490, "price_kind": "from"},
+        {"name": "Arma tu Snack Bowl", "price_clp": 5490, "price_kind": "from"},
+        {"name": "Arma tu Wrap", "price_clp": 8490, "price_kind": "from"},
+        {"name": "Classic Carne mechada", "price_clp": 7890},
+        {"name": "Classic Falafel", "price_clp": 7890},
+        {"name": "Korean Spicy", "price_clp": 7690},
+        {"name": "Combo Korean Spicy", "price_clp": 10330},
+        {"name": "Crema Tomate", "price_clp": 2990},
+        {"name": "Crema Zapallo", "price_clp": 2990}
+      ]
+    },
+    {
+      "outlet_key": "cl-rm-providencia-rishtedar-holanda-160",
+      "menu_scope": "outlet_selected_providencia",
+      "source": {"kind": "official_website", "url": "https://rishtedar.cl/order", "observed_at": "2026-09-18"},
+      "sections": ["Entradas", "Vegetariano", "Pollo", "Pescados y Mariscos", "Cordero", "Del Tandoor", "Rishtedar 305", "Pan Naan", "Arroces & Biryanis", "Postres", "Menú Kids", "Bebidas"],
+      "items": [
+        {"name": "Empanadas de Butter Chicken", "price_clp": 12400},
+        {"name": "Goa Chilly Bengan", "price_clp": 6900},
+        {"name": "Murgh Tikka", "price_clp": 9700},
+        {"name": "Samosas", "price_clp": 8400},
+        {"name": "Basmati Rice", "price_clp": 4500},
+        {"name": "Jheenga Biryani", "price_clp": 18100},
+        {"name": "Murgh Biryani", "price_clp": 16900},
+        {"name": "Veg Biryani", "price_clp": 14900},
+        {"name": "Gulab Jamun", "price_clp": 5900},
+        {"name": "Kulfi", "price_clp": 5900}
+      ]
+    },
+    {
+      "brand_name": "Meraki Sushi",
+      "menu_scope": "brand_catalog_requires_outlet_freshness_check",
+      "source": {"kind": "official_website", "url": "https://www.merakisushi.cl/pedir/category/6TQhTZtCK7cpv98Dj", "observed_at": "2026-09-18"},
+      "sections": ["Carta"],
+      "items": [
+        {"name": "Ceviche Roll", "price_clp": 11990},
+        {"name": "Ebi Furay Spicy", "price_clp": 8990},
+        {"name": "Lomo Huanca", "price_clp": 11990},
+        {"name": "Roll 30 Salmón queso cebollín (palta)", "price_clp": 6490},
+        {"name": "Roll 31 Pollo teriyaki queso cebollín (palta)", "price_clp": 6490},
+        {"name": "Roll 32 Pollo queso cebollín (palta)", "price_clp": 6490},
+        {"name": "Roll 33 Camarón queso cebollín (palta)", "price_clp": 6490},
+        {"name": "Sake Acevichado", "price_clp": 8990},
+        {"name": "Tori Huanca", "price_clp": 9990}
+      ]
+    },
+    {
+      "outlet_key": "cl-rm-maipu-cafeteria-latte-corazon-hugo-bravo-20",
+      "menu_scope": "official_site_product_sample_no_price",
+      "source": {"kind": "official_website", "url": "https://lattecorazon.cl/", "observed_at": "2026-09-18"},
+      "items": [
+        {"name": "Fondue para 2"},
+        {"name": "Croissant Corazón"},
+        {"name": "Waffle de Nutella"},
+        {"name": "Waffle de Chocolate"}
+      ]
+    },
+    {
+      "outlet_key": "cl-rm-recoleta-pasteleria-la-colonia-mexico-692",
+      "menu_scope": "official_brand_catalog_requires_outlet_freshness_check",
+      "source": {"kind": "official_website", "url": "https://pastelerialacolonia.cl/", "observed_at": "2026-09-18"},
+      "items": [
+        {"name": "Frutos del Bosque", "price_min_clp": 36850, "price_max_clp": 44200},
+        {"name": "Selva negra", "price_min_clp": 26800, "price_max_clp": 44200},
+        {"name": "Torta de Naranja", "price_min_clp": 36850, "price_max_clp": 44500},
+        {"name": "Torta 4 Leches", "price_min_clp": 26800, "price_max_clp": 44200},
+        {"name": "Torta Amor", "price_min_clp": 26800, "price_max_clp": 44200}
+      ]
+    },
+    {
+      "outlet_key": "cl-rm-recoleta-pasteleria-geno-santos-dumont-642",
+      "menu_scope": "official_site_product_sample_no_price",
+      "source": {"kind": "other_public_source", "url": "https://orion-genopasteleria-stio.cluster2.hgsitebuilder.com/tortas", "observed_at": "2026-09-18"},
+      "items": [
+        {"name": "Brazo Reina Chocolate"},
+        {"name": "Brazo Reina Coco"},
+        {"name": "Torta Helada de Frutilla Crema"},
+        {"name": "Torta Helada Lúcuma Crema"},
+        {"name": "Torta Selva Negra"},
+        {"name": "Mil Hojas Chocolate"}
+      ]
+    }
+  ]
+}
