@@ -2,10 +2,12 @@ import { mergeHomeSources } from '../src/home/mergeHomeSources.js';
 import { projectHomeApiItem } from '../src/home/homeApiProjection.js';
 import { WeatherHomeAdapter } from '../src/home/adapters/weatherHomeAdapter.js';
 import { MobilityHomeAdapter } from '../src/home/adapters/mobilityHomeAdapter.js';
+import { journeyToHome } from '../src/home/adapters/journeyHomeBridge.js';
 import {
   municipalToHome,
   newsToHome,
 } from '../src/home/adapters/publicLifeNewsHomeAdapters.js';
+import type { JourneyResponse } from '../src/journey/journeyContract.js';
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
@@ -57,6 +59,82 @@ const liveMobility = new MobilityHomeAdapter().toHome({
 });
 assert(liveMobility.glance?.some((item) => item.id === 'bus-405'), 'Relevant live bus ETA should enter glance.');
 assert(liveMobility.items?.some((item) => item.kind === 'action'), 'Imminent relevant departure should become an action.');
+
+const scheduledJourney: JourneyResponse = {
+  status: 'GREEN',
+  departure_time: '2026-09-17T15:20:00.000Z',
+  origin: { lat: -33.385, lon: -70.575 },
+  destination: { lat: -33.437, lon: -70.65 },
+  public_modes: ['auto', 'transit', 'bicycle', 'pedestrian'],
+  results: {
+    auto: { status: 'NO_ROUTE', options: [] },
+    transit: {
+      status: 'OK',
+      options: [
+        {
+          mode: 'transit',
+          duration_seconds: 2400,
+          distance_meters: 11000,
+          transfers: 1,
+          realtime: false,
+          source: 'journey-core',
+          legs: [
+            {
+              mode: 'walk',
+              duration_seconds: 300,
+              distance_meters: 350,
+              realtime: false,
+            },
+            {
+              mode: 'bus',
+              duration_seconds: 900,
+              distance_meters: 5500,
+              route_id: '405',
+              route_name: '405',
+              provider: 'DTPM',
+              realtime: false,
+            },
+            {
+              mode: 'metro',
+              duration_seconds: 900,
+              distance_meters: 4800,
+              route_id: 'L1',
+              route_name: 'L1',
+              provider: 'Metro',
+              realtime: false,
+            },
+          ],
+        },
+      ],
+    },
+    bicycle: { status: 'NO_ROUTE', options: [] },
+    pedestrian: { status: 'NO_ROUTE', options: [] },
+  },
+};
+
+const journeyHome = journeyToHome(
+  {
+    response: scheduledJourney,
+    observedAt: now.toISOString(),
+    expiresAt: '2026-09-17T15:10:00.000Z',
+    destinationLabel: 'Santiago Centro',
+    relevantNow: true,
+    actionTarget: '/journey/current',
+  },
+  now,
+);
+assert(journeyHome.data_mode === 'scheduled', 'Scheduled Journey result must not be labelled live.');
+assert((journeyHome.glance?.length ?? 0) === 0, 'Journey duration must not masquerade as stop-arrival glance ETA.');
+assert(journeyHome.items?.[0]?.kind === 'action', 'A relevant near-departure Journey may become a Home action.');
+assert(journeyHome.items?.[0]?.body?.includes('405 → L1'), 'Journey Home bridge should preserve useful normalized route names.');
+assert(!journeyHome.items?.[0]?.body?.toLowerCase().includes('llega'), 'Journey bridge must not claim a bus arrival ETA.');
+
+const unavailableJourney = journeyToHome({
+  observedAt: now.toISOString(),
+  relevantNow: true,
+});
+assert(unavailableJourney.data_mode === 'unavailable', 'Missing Journey result must be explicit unavailable.');
+assert((unavailableJourney.items?.length ?? 0) === 0, 'Missing Journey result must not create transport timing cards.');
 
 const publicLife = municipalToHome({
   dataMode: 'scheduled',
@@ -149,7 +227,7 @@ const expiredWeather = new WeatherHomeAdapter().toHome({
 });
 
 const merged = mergeHomeSources(
-  [expiredWeather, weather, liveMobility, publicLife, news],
+  [expiredWeather, weather, liveMobility, journeyHome, publicLife, news],
   { now, maxGlance: 4 },
 );
 assert(merged.locality_label === 'Vitacura', 'Home should preserve a current locality label.');
