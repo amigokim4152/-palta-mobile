@@ -33,6 +33,7 @@ type Env = {
 const DEFAULT_MAP_VERSION = '2026.09.17.1';
 const DEFAULT_MAP_OBJECT_KEY =
   'palta/cl/maps/basemap/versions/2026.09.17.1/basemap.pmtiles';
+const MAP_STYLE_VERSION = 'palta-v1.1';
 
 function corsHeaders(): Headers {
   return new Headers({
@@ -71,11 +72,12 @@ function contentRange(
     };
   }
 
-  // Cloudflare R2 can omit offset when a ranged read starts at byte 0,
-  // and it can omit length when the request means "from offset to EOF".
   const offset = Math.min(Math.max(range.offset ?? 0, 0), total);
   const requestedLength = range.length ?? Math.max(total - offset, 0);
-  const length = Math.min(Math.max(requestedLength, 0), Math.max(total - offset, 0));
+  const length = Math.min(
+    Math.max(requestedLength, 0),
+    Math.max(total - offset, 0),
+  );
   const end = length > 0 ? offset + length - 1 : offset;
 
   return {
@@ -91,6 +93,7 @@ function buildChileStyle(origin: string, version: string) {
     metadata: {
       'palta:country': 'CL',
       'palta:map-version': version,
+      'palta:style-version': MAP_STYLE_VERSION,
     },
     center: [-70.65, -33.45],
     zoom: 10,
@@ -105,35 +108,65 @@ function buildChileStyle(origin: string, version: string) {
       {
         id: 'background',
         type: 'background',
-        paint: { 'background-color': '#F6F4EF' },
+        paint: { 'background-color': '#F7F8F4' },
       },
       {
         id: 'earth',
         type: 'fill',
         source: 'chile',
         'source-layer': 'earth',
-        paint: { 'fill-color': '#F6F4EF' },
+        paint: { 'fill-color': '#F7F8F4' },
       },
       {
         id: 'landcover',
         type: 'fill',
         source: 'chile',
         'source-layer': 'landcover',
-        paint: { 'fill-color': '#E6EEDF', 'fill-opacity': 0.72 },
+        paint: {
+          'fill-color': '#E4EFDF',
+          'fill-opacity': 0.82,
+        },
       },
       {
         id: 'landuse',
         type: 'fill',
         source: 'chile',
         'source-layer': 'landuse',
-        paint: { 'fill-color': '#ECE9E0', 'fill-opacity': 0.58 },
+        paint: {
+          'fill-color': '#F0EEE7',
+          'fill-opacity': 0.72,
+        },
+      },
+      {
+        id: 'landuse-green',
+        type: 'fill',
+        source: 'chile',
+        'source-layer': 'landuse',
+        filter: [
+          'match',
+          ['get', 'class'],
+          [
+            'park',
+            'garden',
+            'grass',
+            'recreation_ground',
+            'cemetery',
+            'pitch',
+          ],
+          true,
+          false,
+        ],
+        paint: {
+          'fill-color': '#DCEBD5',
+          'fill-opacity': 0.88,
+        },
       },
       {
         id: 'water',
         type: 'fill',
         source: 'chile',
         'source-layer': 'water',
-        paint: { 'fill-color': '#BCDCE8' },
+        paint: { 'fill-color': '#B9DCE9' },
       },
       {
         id: 'boundaries',
@@ -141,9 +174,44 @@ function buildChileStyle(origin: string, version: string) {
         source: 'chile',
         'source-layer': 'boundaries',
         paint: {
-          'line-color': '#C6C1B6',
-          'line-width': 0.9,
-          'line-opacity': 0.8,
+          'line-color': '#AEB7AF',
+          'line-width': [
+            'interpolate',
+            ['linear'],
+            ['zoom'],
+            4,
+            0.45,
+            8,
+            0.7,
+            12,
+            1,
+          ],
+          'line-opacity': 0.55,
+        },
+      },
+      {
+        id: 'roads-casing',
+        type: 'line',
+        source: 'chile',
+        'source-layer': 'roads',
+        paint: {
+          'line-color': '#D4D9D2',
+          'line-width': [
+            'interpolate',
+            ['linear'],
+            ['zoom'],
+            5,
+            0.7,
+            8,
+            1,
+            12,
+            1.8,
+            14,
+            3.2,
+            17,
+            6.4,
+          ],
+          'line-opacity': 0.94,
         },
       },
       {
@@ -152,7 +220,7 @@ function buildChileStyle(origin: string, version: string) {
         source: 'chile',
         'source-layer': 'roads',
         paint: {
-          'line-color': '#C8C3B8',
+          'line-color': '#FFFFFF',
           'line-width': [
             'interpolate',
             ['linear'],
@@ -160,14 +228,45 @@ function buildChileStyle(origin: string, version: string) {
             5,
             0.35,
             8,
-            0.6,
+            0.65,
             12,
-            1.1,
+            1.25,
             14,
-            2.2,
+            2.4,
             17,
             5,
           ],
+          'line-opacity': 0.98,
+        },
+      },
+      {
+        id: 'roads-major',
+        type: 'line',
+        source: 'chile',
+        'source-layer': 'roads',
+        filter: [
+          'match',
+          ['get', 'class'],
+          ['motorway', 'trunk', 'primary'],
+          true,
+          false,
+        ],
+        paint: {
+          'line-color': '#F6E9A9',
+          'line-width': [
+            'interpolate',
+            ['linear'],
+            ['zoom'],
+            6,
+            0.7,
+            10,
+            1.4,
+            13,
+            2.5,
+            16,
+            4.6,
+          ],
+          'line-opacity': 0.95,
         },
       },
       {
@@ -177,8 +276,9 @@ function buildChileStyle(origin: string, version: string) {
         'source-layer': 'buildings',
         minzoom: 13,
         paint: {
-          'fill-color': '#D7D1C6',
-          'fill-outline-color': '#C5BFB4',
+          'fill-color': '#DDD9D0',
+          'fill-opacity': 0.86,
+          'fill-outline-color': '#CCC8BE',
         },
       },
     ],
@@ -191,6 +291,7 @@ function buildManifest(origin: string, objectKey: string, version: string) {
     country: 'CL',
     status: 'production',
     version,
+    style_version: MAP_STYLE_VERSION,
     object_key: objectKey,
     style_url: `${origin}/maps/cl/style.json`,
     pmtiles_url: `${origin}/maps/cl/basemap.pmtiles`,
@@ -277,6 +378,7 @@ export default {
           country: 'CL',
           mapObjectKey: objectKey,
           mapVersion: version,
+          mapStyleVersion: MAP_STYLE_VERSION,
           mapManifestPath: '/maps/cl/manifest.json',
           mapStylePath: '/maps/cl/style.json',
         },
@@ -320,7 +422,6 @@ export default {
       return serveMapObject(request, env, immutableKey);
     }
 
-    // Compatibility aliases while existing clients migrate.
     if (url.pathname === '/maps/style.json') {
       return serveJson(request, buildChileStyle(url.origin, version));
     }
