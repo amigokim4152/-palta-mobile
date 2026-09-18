@@ -15,6 +15,11 @@ import {
   marketListingStatusMeta,
 } from '../../../../src/market/marketLifecycle';
 import type { MarketPublicListing } from '../../../../src/market/marketPersistenceContract';
+import {
+  buildMarketHideListingIntent,
+  buildMarketReportListingIntent,
+  type MarketSafetyReportReason,
+} from '../../../../src/market/marketSafetyIntent';
 import { paltaTheme } from '../../theme/paltaTheme';
 import { getMarketRuntime } from './marketRuntime';
 
@@ -26,6 +31,18 @@ function formatPrice(listing: MarketPublicListing) {
   return `$${new Intl.NumberFormat('es-CL').format(listing.priceClp)}`;
 }
 
+const reportReasonLabels: Array<{
+  reason: MarketSafetyReportReason;
+  label: string;
+}> = [
+  { reason: 'suspected_scam', label: 'Posible estafa' },
+  { reason: 'prohibited_item', label: 'Artículo no permitido' },
+  { reason: 'spam', label: 'Spam o publicación repetida' },
+  { reason: 'misleading_listing', label: 'Información engañosa' },
+  { reason: 'harassment', label: 'Acoso o comportamiento inapropiado' },
+  { reason: 'other', label: 'Otro motivo' },
+];
+
 export function ListingDetailRuntimeScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const runtime = useMemo(() => getMarketRuntime(), []);
@@ -33,6 +50,7 @@ export function ListingDetailRuntimeScreen() {
   const [favorite, setFavorite] = useState(false);
   const [favoriteCount, setFavoriteCount] = useState(0);
   const [savingFavorite, setSavingFavorite] = useState(false);
+  const [safetyBusy, setSafetyBusy] = useState(false);
   const [error, setError] = useState<string | undefined>();
 
   useEffect(() => {
@@ -79,6 +97,75 @@ export function ListingDetailRuntimeScreen() {
     } finally {
       setSavingFavorite(false);
     }
+  }
+
+  async function hideListing() {
+    if (!listing || safetyBusy) return;
+    setSafetyBusy(true);
+    try {
+      if (runtime.handleSafetyIntent) {
+        await runtime.handleSafetyIntent(
+          buildMarketHideListingIntent({
+            listingId: listing.id,
+            sellerActorId: listing.seller.sellerUserId,
+          }),
+        );
+      } else if (runtime.mode !== 'development_preview') {
+        Alert.alert('Mercado', 'No pudimos ocultar esta publicación en este momento.');
+        return;
+      }
+      router.back();
+    } catch {
+      Alert.alert('Mercado', 'No pudimos ocultar esta publicación. Intenta nuevamente.');
+    } finally {
+      setSafetyBusy(false);
+    }
+  }
+
+  async function reportListing(reason: MarketSafetyReportReason) {
+    if (!listing || safetyBusy) return;
+    setSafetyBusy(true);
+    try {
+      if (runtime.handleSafetyIntent) {
+        await runtime.handleSafetyIntent(
+          buildMarketReportListingIntent({
+            listingId: listing.id,
+            sellerActorId: listing.seller.sellerUserId,
+            reason,
+          }),
+        );
+      } else if (runtime.mode !== 'development_preview') {
+        Alert.alert('Mercado', 'No pudimos enviar el reporte en este momento.');
+        return;
+      }
+      Alert.alert('Gracias', 'Recibimos tu reporte.');
+    } catch {
+      Alert.alert('Mercado', 'No pudimos enviar el reporte. Intenta nuevamente.');
+    } finally {
+      setSafetyBusy(false);
+    }
+  }
+
+  function openReportMenu() {
+    Alert.alert(
+      'Reportar publicación',
+      'Selecciona el motivo que mejor describa el problema.',
+      [
+        ...reportReasonLabels.map(({ reason, label }) => ({
+          text: label,
+          onPress: () => void reportListing(reason),
+        })),
+        { text: 'Cancelar', style: 'cancel' as const },
+      ],
+    );
+  }
+
+  function openSafetyMenu() {
+    Alert.alert('Publicación', undefined, [
+      { text: 'Ocultar publicación', onPress: () => void hideListing() },
+      { text: 'Reportar', style: 'destructive', onPress: openReportMenu },
+      { text: 'Cancelar', style: 'cancel' },
+    ]);
   }
 
   if (listing === undefined) {
@@ -129,13 +216,8 @@ export function ListingDetailRuntimeScreen() {
             </Text>
           </Pressable>
           <Pressable
-            onPress={() =>
-              Alert.alert('Publicación', undefined, [
-                { text: 'Ocultar publicación' },
-                { text: 'Reportar', style: 'destructive' },
-                { text: 'Cancelar', style: 'cancel' },
-              ])
-            }
+            disabled={safetyBusy}
+            onPress={openSafetyMenu}
             style={styles.circleButton}
           >
             <Text style={styles.iconText}>⋯</Text>
