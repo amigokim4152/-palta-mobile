@@ -2,23 +2,61 @@ import { useCallback, useMemo } from 'react';
 import { router } from 'expo-router';
 import { Text, View } from 'react-native';
 import { useAdaptiveExperience } from '../../accessibility/useAdaptiveExperience';
-import { HomeCandidateCard } from '../../components/HomeCandidateCard';
+import { ActionSurface } from '../../components/home/ActionSurface';
+import {
+  GlanceCluster,
+  type GlanceItem,
+} from '../../components/home/GlanceCluster';
+import { SummaryListRow } from '../../components/home/SummaryListRow';
 import {
   EmptyState,
   ErrorState,
   LoadingState,
 } from '../../components/AsyncStateBlock';
-import { SectionHeading } from '../../components/common/SectionHeading';
 import { ScreenFrame } from '../../components/ScreenFrame';
 import { useAsyncResource } from '../../hooks/useAsyncResource';
 import { mobileRuntime } from '../../services/paltaClient';
+import { paltaTheme } from '../../theme/paltaTheme';
 import { selectHomeDisplayItems } from '../../../../src/home/selectHomeDisplayItems';
 
-function eyebrow(kind: string): string {
-  if (kind === 'action' || kind === 'alert') return 'AHORA';
-  if (kind === 'status') return 'EN CURSO';
-  if (kind === 'content') return 'PARA HOY';
-  return 'HOY';
+type RuntimeHomeData = {
+  items: Array<{
+    id: string;
+    kind: 'action' | 'status' | 'alert' | 'useful_today' | 'content';
+    title: string;
+    body?: string;
+    source_domain: string;
+    delivery: 'home' | 'home_notify' | 'urgent';
+    care_track_id?: string;
+    related_entity_id?: string;
+  }>;
+  generated_at?: string;
+  locality_label?: string;
+  glance?: GlanceItem[];
+};
+
+function greetingForNow(now = new Date()): string {
+  const hour = now.getHours();
+  if (hour < 12) return 'Buenos días';
+  if (hour < 20) return 'Buenas tardes';
+  return 'Buenas noches';
+}
+
+function SectionLabel({ children }: { children: string }) {
+  return (
+    <Text
+      allowFontScaling
+      style={{
+        marginBottom: 4,
+        fontSize: 12,
+        letterSpacing: 0.7,
+        fontWeight: '800',
+        color: paltaTheme.color.textMuted,
+      }}
+    >
+      {children}
+    </Text>
+  );
 }
 
 export function HomeScreen() {
@@ -34,10 +72,30 @@ export function HomeScreen() {
     isEmpty: (data) => data.items.length === 0,
   });
 
+  const data = state.data as RuntimeHomeData | undefined;
   const selection = useMemo(
-    () => selectHomeDisplayItems(state.data?.items ?? []),
-    [state.data?.items],
+    () => selectHomeDisplayItems(data?.items ?? []),
+    [data?.items],
   );
+
+  const primary = selection.items.find(
+    (item) => item.kind === 'action' || item.kind === 'alert',
+  ) ?? selection.items.find((item) => item.kind === 'status');
+
+  const secondaryStatus = selection.items.filter(
+    (item) => item.kind === 'status' && item.id !== primary?.id,
+  );
+  const todayItems = selection.items.filter(
+    (item) => item.kind === 'useful_today' || item.kind === 'content',
+  );
+
+  const openCare = useCallback((careTrackId?: string) => {
+    if (!careTrackId) return;
+    router.push(`/care/${encodeURIComponent(careTrackId)}`);
+  }, []);
+
+  const primaryLabel =
+    primary?.kind === 'action' || primary?.kind === 'alert' ? 'AHORA' : 'EN CURSO';
 
   return (
     <ScreenFrame title="Palta" subtitle="Tu vida, más cerca">
@@ -49,70 +107,119 @@ export function HomeScreen() {
         <ErrorState message={state.message} onRetry={() => void refresh()} />
       ) : null}
 
-      {state.status === 'empty' ? (
-        <EmptyState
-          title="Nada urgente por ahora"
-          body="Palta no necesita llenar la pantalla si no hay nada útil que mostrar."
-        />
-      ) : null}
-
-      {selection.items.length > 0 ? (
-        <View style={{ gap: 2 }}>
-          <SectionHeading
-            title="Para ti, ahora"
-            subtitle="Primero lo que requiere atención; después lo que realmente ayuda hoy."
-          />
-
-          {selection.items
-            .slice(
-              0,
-              adaptive.textScaleClass === 'accessibility'
-                ? Math.min(selection.items.length, 4)
-                : selection.items.length,
-            )
-            .map((item) => (
-            <HomeCandidateCard
-              key={item.id}
-              eyebrow={eyebrow(item.kind)}
-              title={item.title}
-              body={item.body}
-              actionLabel={
-                item.care_track_id ? 'Ver seguimiento' : undefined
-              }
-              onPress={
-                item.care_track_id
-                  ? () =>
-                      router.push(
-                        `/care/${encodeURIComponent(item.care_track_id!)}`,
-                      )
-                  : undefined
-              }
-            />
-          ))}
-
-          {adaptive.textScaleClass === 'accessibility' &&
-          selection.items.length > 4 ? (
+      {data ? (
+        <View style={{ gap: 28 }}>
+          <View>
             <Text
               allowFontScaling
               style={{
-                paddingVertical: 14,
+                fontSize: 28,
+                lineHeight: 35,
                 fontWeight: '700',
+                color: paltaTheme.color.textPrimary,
               }}
             >
-              Ver {selection.items.length - 4} más
+              {greetingForNow()}
             </Text>
+            <Text
+              allowFontScaling
+              style={{
+                marginTop: 3,
+                color: paltaTheme.color.textSecondary,
+              }}
+            >
+              {data.locality_label ?? 'Tu zona'}
+            </Text>
+          </View>
+
+          {data.glance && data.glance.length > 0 ? (
+            <GlanceCluster
+              items={data.glance}
+              columns={adaptive.layout.columns}
+              maxItems={adaptive.layout.maxInitialGlanceItems}
+            />
           ) : null}
 
-          {selection.showQuietEndState ? (
+          {primary ? (
+            <View>
+              <SectionLabel>{primaryLabel}</SectionLabel>
+              <ActionSurface
+                eyebrow={primary.kind === 'alert' ? 'IMPORTANTE' : undefined}
+                title={primary.title}
+                body={primary.body}
+                actionLabel={primary.care_track_id ? 'Ver seguimiento' : 'Ver detalle'}
+                onPress={
+                  primary.care_track_id
+                    ? () => openCare(primary.care_track_id)
+                    : undefined
+                }
+              />
+            </View>
+          ) : null}
+
+          {secondaryStatus.length > 0 ? (
+            <View>
+              <SectionLabel>EN CURSO</SectionLabel>
+              {secondaryStatus.map((item) => (
+                <SummaryListRow
+                  key={item.id}
+                  title={item.title}
+                  detail={item.body}
+                  stackMeta={!adaptive.layout.allowHorizontalMetadataCompression}
+                  explicitActionLabel={
+                    item.care_track_id && adaptive.layout.preferTextLabelsOverIconOnly
+                      ? 'Ver seguimiento'
+                      : undefined
+                  }
+                  onPress={
+                    item.care_track_id
+                      ? () => openCare(item.care_track_id)
+                      : undefined
+                  }
+                />
+              ))}
+            </View>
+          ) : null}
+
+          {todayItems.length > 0 ? (
+            <View>
+              <SectionLabel>PARA HOY</SectionLabel>
+              {todayItems.map((item) => (
+                <SummaryListRow
+                  key={item.id}
+                  title={item.title}
+                  detail={
+                    adaptive.textScaleClass === 'accessibility'
+                      ? undefined
+                      : item.body
+                  }
+                  stackMeta={!adaptive.layout.allowHorizontalMetadataCompression}
+                  explicitActionLabel={
+                    adaptive.layout.preferTextLabelsOverIconOnly ? 'Ver' : undefined
+                  }
+                />
+              ))}
+            </View>
+          ) : null}
+
+          {selection.items.length === 0 ? (
+            <EmptyState
+              title="Nada urgente por ahora"
+              body="Palta no necesita llenar la pantalla si no hay nada útil que mostrar."
+            />
+          ) : null}
+
+          {selection.showQuietEndState && selection.items.length > 0 ? (
             <Text
               allowFontScaling
               style={{
-                paddingVertical: 20,
-                opacity: 0.55,
+                paddingBottom: 24,
                 fontSize: 13,
+                lineHeight: 19,
+                color: paltaTheme.color.textMuted,
               }}
             >
-              Eso es todo lo útil por ahora.
+              Nada más requiere tu atención por ahora.
             </Text>
           ) : null}
         </View>
