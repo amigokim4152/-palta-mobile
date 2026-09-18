@@ -15,8 +15,10 @@ export function AuthGate({ children }: { children: ReactNode }) {
     state,
     capabilities,
     busy,
+    goldenUserEnabled,
     signInWithEmail,
     signInWithOAuth,
+    signInAsGoldenUser,
     signOut,
     retry,
   } = useAuthRuntime();
@@ -38,7 +40,9 @@ export function AuthGate({ children }: { children: ReactNode }) {
         {children}
         {showGate01Evidence ? (
           <View style={styles.evidencePanel}>
-            <Text style={styles.evidenceTitle}>Gate 01 · 개발 검증</Text>
+            <Text style={styles.evidenceTitle}>
+              Gate 01 · 개발 검증{goldenUserEnabled ? ' · Golden User 001' : ''}
+            </Text>
             <Text style={styles.evidenceLabel}>Palta ID</Text>
             <Text selectable style={styles.evidenceValue}>
               {state.session.paltaUserId}
@@ -98,6 +102,24 @@ export function AuthGate({ children }: { children: ReactNode }) {
               {state.email} 주소로 로그인 링크를 보냈습니다. 같은 기기에서 링크를
               열면 Palta로 돌아옵니다.
             </Text>
+          </View>
+        ) : null}
+
+        {goldenUserEnabled ? (
+          <View style={styles.goldenBox}>
+            <Text style={styles.goldenTitle}>개발 테스트</Text>
+            <Text style={styles.goldenHelper}>
+              실제 Supabase Auth·세션·RLS·Palta 계정을 통과하는 합성 사용자입니다.
+            </Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Golden User 001로 테스트 로그인"
+              disabled={busy}
+              onPress={() => void signInAsGoldenUser()}
+              style={[styles.goldenButton, busy && styles.disabled]}
+            >
+              <Text style={styles.goldenButtonText}>Golden User 001로 테스트 로그인</Text>
+            </Pressable>
           </View>
         ) : null}
 
@@ -237,6 +259,25 @@ const styles = StyleSheet.create({
     backgroundColor: '#F1F5EC',
   },
   noticeText: { color: '#32452E' },
+  goldenBox: {
+    gap: 8,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#B8B8AD',
+    borderRadius: 12,
+    backgroundColor: '#F5F5F0',
+  },
+  goldenTitle: { fontSize: 12, fontWeight: '700', letterSpacing: 0.4 },
+  goldenHelper: { fontSize: 12, lineHeight: 17, color: '#62625B' },
+  goldenButton: {
+    minHeight: 46,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 10,
+    backgroundColor: '#2F382A',
+    paddingHorizontal: 12,
+  },
+  goldenButtonText: { color: '#FFFFFF', fontWeight: '700' },
   evidencePanel: {
     position: 'absolute',
     left: 12,
