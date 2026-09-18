@@ -42,8 +42,8 @@ export function MapResultSheet({
   const heights = useMemo<Record<ResultSheetSnap, number>>(
     () => ({
       peek: clamp(windowHeight * 0.20, 150, 190),
-      half: clamp(windowHeight * 0.34, 240, 330),
-      full: clamp(windowHeight * 0.48, 330, 520),
+      half: clamp(windowHeight * 0.38, 260, 350),
+      full: clamp(windowHeight * 0.62, 390, 580),
     }),
     [windowHeight],
   );
