@@ -39,6 +39,27 @@ const SANTIAGO_EXPLORATION_ORIGIN = {
 const FILTER_OPEN_NOW = 'local_business:open_now';
 const FILTER_VERIFIED = 'local_business:verified';
 
+type DiscoveryVisual = {
+  imageUrl?: string;
+  serviceLabels: string[];
+  highlight?: string;
+};
+
+function discoveryVisual(value: unknown): DiscoveryVisual {
+  if (!value || typeof value !== 'object') return { serviceLabels: [] };
+  const row = value as Record<string, unknown>;
+  const imageUrl = typeof row.image_url === 'string' ? row.image_url : undefined;
+  const serviceLabels = Array.isArray(row.service_labels)
+    ? row.service_labels.filter((item): item is string => typeof item === 'string').slice(0, 2)
+    : [];
+  const highlight = typeof row.highlight === 'string' ? row.highlight : undefined;
+  return {
+    ...(imageUrl ? { imageUrl } : {}),
+    serviceLabels,
+    ...(highlight ? { highlight } : {}),
+  };
+}
+
 function isEmptyResults(items: readonly unknown[]) {
   return items.length === 0;
 }
@@ -105,10 +126,7 @@ function SearchBar({
         borderColor: paltaTheme.color.divider,
       }}
     >
-      <Text
-        accessibilityElementsHidden
-        style={{ fontSize: 19, color: paltaTheme.color.textMuted }}
-      >
+      <Text accessibilityElementsHidden style={{ fontSize: 19, color: paltaTheme.color.textMuted }}>
         ⌕
       </Text>
       <TextInput
@@ -135,14 +153,10 @@ function SearchBar({
           alignItems: 'center',
           paddingHorizontal: paltaTheme.spacing.sm,
           borderRadius: paltaTheme.radius.control,
-          backgroundColor: pressed
-            ? paltaTheme.color.brandMid
-            : paltaTheme.color.brandPrimary,
+          backgroundColor: pressed ? paltaTheme.color.brandMid : paltaTheme.color.brandPrimary,
         })}
       >
-        <Text style={{ color: paltaTheme.color.surface, fontWeight: '800' }}>
-          Buscar
-        </Text>
+        <Text style={{ color: paltaTheme.color.surface, fontWeight: '800' }}>Buscar</Text>
       </Pressable>
     </View>
   );
@@ -199,9 +213,7 @@ function EmptyLocationStart({
           justifyContent: 'center',
           paddingHorizontal: paltaTheme.spacing.md,
           borderRadius: paltaTheme.radius.surface,
-          backgroundColor: pressed
-            ? paltaTheme.color.brandMid
-            : paltaTheme.color.brandPrimary,
+          backgroundColor: pressed ? paltaTheme.color.brandMid : paltaTheme.color.brandPrimary,
           opacity: locationBusy ? 0.6 : 1,
         })}
       >
@@ -217,9 +229,7 @@ function EmptyLocationStart({
           justifyContent: 'center',
           paddingHorizontal: paltaTheme.spacing.md,
           borderRadius: paltaTheme.radius.surface,
-          backgroundColor: pressed
-            ? paltaTheme.color.surfaceMuted
-            : paltaTheme.color.surface,
+          backgroundColor: pressed ? paltaTheme.color.surfaceMuted : paltaTheme.color.surface,
         })}
       >
         <Text style={{ fontSize: 16, fontWeight: '800', color: paltaTheme.color.textPrimary }}>
@@ -230,9 +240,7 @@ function EmptyLocationStart({
         </Text>
       </Pressable>
 
-      {locationError ? (
-        <Text style={{ color: paltaTheme.color.textSecondary }}>{locationError}</Text>
-      ) : null}
+      {locationError ? <Text style={{ color: paltaTheme.color.textSecondary }}>{locationError}</Text> : null}
     </View>
   );
 }
@@ -261,9 +269,7 @@ export function BusinessDiscoveryExperience() {
 
   const cachedResults = useMemo(
     () =>
-      discoveryCacheKey
-        ? readLocalBusinessDiscoveryCache(discoveryCacheKey)
-        : undefined,
+      discoveryCacheKey ? readLocalBusinessDiscoveryCache(discoveryCacheKey) : undefined,
     [discoveryCacheKey],
   );
 
@@ -277,12 +283,7 @@ export function BusinessDiscoveryExperience() {
     });
     if (discoveryCacheKey) writeLocalBusinessDiscoveryCache(discoveryCacheKey, items);
     return items;
-  }, [
-    searchPoint?.latitude,
-    searchPoint?.longitude,
-    neighborhood.query,
-    discoveryCacheKey,
-  ]);
+  }, [searchPoint?.latitude, searchPoint?.longitude, neighborhood.query, discoveryCacheKey]);
 
   const { state, refresh } = useAsyncResource(loadResults, {
     enabled: searchPoint !== null,
@@ -298,12 +299,8 @@ export function BusinessDiscoveryExperience() {
         name: item.name,
         ...(item.category_key ? { categoryKey: item.category_key } : {}),
         ...(item.distance_m !== undefined ? { distanceM: item.distance_m } : {}),
-        ...(item.verification_status
-          ? { verificationStatus: item.verification_status }
-          : {}),
-        ...(item.operational_state
-          ? { operationalState: item.operational_state }
-          : {}),
+        ...(item.verification_status ? { verificationStatus: item.verification_status } : {}),
+        ...(item.operational_state ? { operationalState: item.operational_state } : {}),
         ...(item.operational_confirmed_at
           ? { operationalConfirmedAt: item.operational_confirmed_at }
           : {}),
@@ -319,6 +316,7 @@ export function BusinessDiscoveryExperience() {
     () => businesses.find((item) => item.entity_id === neighborhood.selectedEntityId),
     [businesses, neighborhood.selectedEntityId],
   );
+  const selectedVisual = useMemo(() => discoveryVisual(selectedBusiness), [selectedBusiness]);
 
   const mapFeatures = useMemo<MapFeature[]>(
     () =>
@@ -376,9 +374,7 @@ export function BusinessDiscoveryExperience() {
       const point = await expoLocationAdapter.getCurrentPosition();
       dispatch({ type: 'set_effective_location', location: point });
     } catch (error) {
-      setLocationError(
-        error instanceof Error ? error.message : 'No pudimos obtener tu ubicación.',
-      );
+      setLocationError(error instanceof Error ? error.message : 'No pudimos obtener tu ubicación.');
     } finally {
       setLocationBusy(false);
     }
@@ -393,10 +389,7 @@ export function BusinessDiscoveryExperience() {
     return (
       <BusinessDiscoveryShell
         rightAction={
-          <BusinessHeaderAction
-            label="Mi negocio"
-            onPress={() => router.push('/business/register')}
-          />
+          <BusinessHeaderAction label="Mi negocio" onPress={() => router.push('/business/register')} />
         }
       >
         <EmptyLocationStart
@@ -430,12 +423,10 @@ export function BusinessDiscoveryExperience() {
               formatOperationalState(selectedBusiness.operational_state, selectedBusiness.next_open_at),
               selectedBusiness.verification_status === 'verified' ? 'Verificado' : undefined,
             ].filter(Boolean).join(' · ')}
-            distance={selectedBusiness.location
-              ? formatDistance(selectedBusiness.distance_m)
-              : 'Zona de atención'}
-            imageUrl={selectedBusiness.image_url}
-            serviceLabels={selectedBusiness.service_labels}
-            highlight={selectedBusiness.highlight}
+            distance={selectedBusiness.location ? formatDistance(selectedBusiness.distance_m) : 'Zona de atención'}
+            imageUrl={selectedVisual.imageUrl}
+            serviceLabels={selectedVisual.serviceLabels}
+            highlight={selectedVisual.highlight}
             onPress={() => openBusiness(selectedBusiness.entity_id)}
           />
         </View>
@@ -473,21 +464,24 @@ export function BusinessDiscoveryExperience() {
 
       {businesses
         .filter((item) => item.entity_id !== selectedBusiness?.entity_id)
-        .map((item) => (
-          <LocalResultCard
-            key={item.entity_id}
-            name={item.name}
-            meta={[
-              formatOperationalState(item.operational_state, item.next_open_at),
-              item.verification_status === 'verified' ? 'Verificado' : undefined,
-            ].filter(Boolean).join(' · ')}
-            distance={item.location ? formatDistance(item.distance_m) : 'Zona de atención'}
-            imageUrl={item.image_url}
-            serviceLabels={item.service_labels}
-            highlight={item.highlight}
-            onPress={() => openBusiness(item.entity_id)}
-          />
-        ))}
+        .map((item) => {
+          const visual = discoveryVisual(item);
+          return (
+            <LocalResultCard
+              key={item.entity_id}
+              name={item.name}
+              meta={[
+                formatOperationalState(item.operational_state, item.next_open_at),
+                item.verification_status === 'verified' ? 'Verificado' : undefined,
+              ].filter(Boolean).join(' · ')}
+              distance={item.location ? formatDistance(item.distance_m) : 'Zona de atención'}
+              imageUrl={visual.imageUrl}
+              serviceLabels={visual.serviceLabels}
+              highlight={visual.highlight}
+              onPress={() => openBusiness(item.entity_id)}
+            />
+          );
+        })}
 
       {state.status === 'error' && state.data ? (
         <ErrorState message={state.message} onRetry={() => void refresh()} />
@@ -498,32 +492,19 @@ export function BusinessDiscoveryExperience() {
   return (
     <BusinessDiscoveryShell
       leftAction={
-        <BusinessHeaderAction
-          label="Siguiendo"
-          onPress={() => router.push('/local-businesses/following')}
-        />
+        <BusinessHeaderAction label="Siguiendo" onPress={() => router.push('/local-businesses/following')} />
       }
       rightAction={
-        <BusinessHeaderAction
-          label="Mi negocio"
-          onPress={() => router.push('/business/register')}
-        />
+        <BusinessHeaderAction label="Mi negocio" onPress={() => router.push('/business/register')} />
       }
     >
       <View style={{ flex: 1, paddingHorizontal: paltaTheme.spacing.md }}>
-        <SearchBar
-          value={draftQuery}
-          onChangeText={setDraftQuery}
-          onSubmit={() => submitSearch()}
-        />
+        <SearchBar value={draftQuery} onChangeText={setDraftQuery} onSubmit={() => submitSearch()} />
 
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{
-            gap: paltaTheme.spacing.xs,
-            paddingVertical: paltaTheme.spacing.sm,
-          }}
+          contentContainerStyle={{ gap: paltaTheme.spacing.xs, paddingVertical: paltaTheme.spacing.sm }}
         >
           {LOCAL_BUSINESS_SHORTCUTS.map((shortcut) => (
             <FilterChip
@@ -617,9 +598,7 @@ export function BusinessDiscoveryExperience() {
                 justifyContent: 'center',
                 paddingHorizontal: paltaTheme.spacing.md,
                 borderRadius: paltaTheme.radius.pill,
-                backgroundColor: pressed
-                  ? paltaTheme.color.surfaceMuted
-                  : paltaTheme.color.surface,
+                backgroundColor: pressed ? paltaTheme.color.surfaceMuted : paltaTheme.color.surface,
                 borderWidth: 1,
                 borderColor: paltaTheme.color.divider,
               })}
