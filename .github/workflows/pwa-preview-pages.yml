@@ -1,0 +1,125 @@
+name: Palta Composed PWA Preview
+
+on:
+  push:
+    branches:
+      - integration/runtime-composition-v1
+      - integration/local-business-v1
+      - integration/market-v1
+      - integration/play-discovery-v1
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: palta-pwa-preview-pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      PALTA_WEB_BASE_URL: /palta-mobile
+      EXPO_PUBLIC_PALTA_WEB_BASE_URL: /palta-mobile
+      EXPO_PUBLIC_PALTA_PREVIEW: '1'
+      EXPO_PUBLIC_ENV: preview
+      EXPO_PUBLIC_PALTA_API_BASE_URL: https://rqbpbauhkdgsrkbwmkmg.supabase.co/functions/v1/palta-public-api
+      EXPO_PUBLIC_MAP_STYLE_URL: https://palta-map-edge.kimeuisin.workers.dev/maps/cl/style.json
+      EXPO_PUBLIC_SUPABASE_URL: https://rqbpbauhkdgsrkbwmkmg.supabase.co
+      EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_QEHIwvil9m4lyE6kJ1ba6w_CjA9_XXh
+    steps:
+      - name: Checkout composition source of truth
+        uses: actions/checkout@v6
+        with:
+          ref: integration/runtime-composition-v1
+          fetch-depth: 0
+
+      - name: Fetch live overlay branches
+        run: |
+          git fetch origin \
+            integration/local-business-v1 \
+            integration/market-v1 \
+            integration/play-discovery-v1
+
+      - name: Compute preview build identity
+        shell: bash
+        run: |
+          COMPOSITION_SHA="$(git rev-parse HEAD)"
+          NEGOCIOS_SHA="$(git rev-parse origin/integration/local-business-v1)"
+          MARKET_SHA="$(git rev-parse origin/integration/market-v1)"
+          PLAY_SHA="$(git rev-parse origin/integration/play-discovery-v1)"
+          BUILD_ID="$(printf '%s\n%s\n%s\n%s\n' "$COMPOSITION_SHA" "$NEGOCIOS_SHA" "$MARKET_SHA" "$PLAY_SHA" | sha256sum | cut -c1-16)"
+          echo "EXPO_PUBLIC_PALTA_BUILD_SHA=$BUILD_ID" >> "$GITHUB_ENV"
+          echo "PALTA_COMPOSITION_SHA=$COMPOSITION_SHA" >> "$GITHUB_ENV"
+          echo "PALTA_NEGOCIOS_SHA=$NEGOCIOS_SHA" >> "$GITHUB_ENV"
+          echo "PALTA_MARKET_SHA=$MARKET_SHA" >> "$GITHUB_ENV"
+          echo "PALTA_PLAY_SHA=$PLAY_SHA" >> "$GITHUB_ENV"
+
+      - name: Compose latest mobile runtime
+        run: node scripts/compose-mobile-runtime.mjs
+
+      - name: Copy PWA public assets
+        run: |
+          rm -rf apps/mobile/public
+          mkdir -p apps/mobile/public
+          cp -R mobile-overlay/public/. apps/mobile/public/
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22.13.0'
+
+      - name: Install generated mobile dependencies
+        working-directory: apps/mobile
+        run: npm install --no-audit --no-fund
+
+      - name: Typecheck composed preview
+        working-directory: apps/mobile
+        run: npx tsc --noEmit
+
+      - name: Export composed PWA
+        working-directory: apps/mobile
+        run: npx expo export --platform web --output-dir dist
+
+      - name: Finalize preview artifact
+        shell: bash
+        run: |
+          cp -R apps/mobile/public/. apps/mobile/dist/
+          cp apps/mobile/dist/index.html apps/mobile/dist/404.html
+          touch apps/mobile/dist/.nojekyll
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const payload = {
+            buildId: process.env.EXPO_PUBLIC_PALTA_BUILD_SHA,
+            deployedAt: new Date().toISOString(),
+            compositionSha: process.env.PALTA_COMPOSITION_SHA,
+            sources: {
+              negocios: process.env.PALTA_NEGOCIOS_SHA,
+              market: process.env.PALTA_MARKET_SHA,
+              play: process.env.PALTA_PLAY_SHA,
+            },
+          };
+          fs.writeFileSync('apps/mobile/dist/build.json', JSON.stringify(payload, null, 2) + '\n');
+          NODE
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload composed PWA artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: apps/mobile/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy composed PWA preview
+        id: deployment
+        uses: actions/deploy-pages@v4
