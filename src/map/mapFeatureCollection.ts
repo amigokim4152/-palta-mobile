@@ -14,6 +14,8 @@ export type PaltaPointFeatureCollection = {
       entityType: MapFeature['entityType'];
       title: string;
       categoryKey?: string;
+      verificationStatus?: string;
+      operationalState?: string;
       selected: boolean;
     };
   }>;
@@ -39,6 +41,12 @@ export function toPointFeatureCollection(
         entityType: feature.entityType,
         title: feature.title,
         ...(feature.categoryKey ? { categoryKey: feature.categoryKey } : {}),
+        ...(feature.verificationStatus
+          ? { verificationStatus: feature.verificationStatus }
+          : {}),
+        ...(feature.operationalState
+          ? { operationalState: feature.operationalState }
+          : {}),
         selected: feature.selected === true,
       },
     })),
