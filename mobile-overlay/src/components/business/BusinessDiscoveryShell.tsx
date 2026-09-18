@@ -22,22 +22,19 @@ export function BusinessDiscoveryShell({
         style={{
           flexDirection: 'row',
           alignItems: 'center',
-          justifyContent: 'space-between',
           gap: paltaTheme.spacing.sm,
           paddingHorizontal: paltaTheme.spacing.md,
           paddingTop: paltaTheme.spacing.xs,
           paddingBottom: paltaTheme.spacing.sm,
         }}
       >
-        {leftAction ? <View>{leftAction}</View> : null}
-
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text
             numberOfLines={1}
             style={{
-              fontSize: 22,
+              fontSize: 24,
               fontWeight: '800',
-              letterSpacing: -0.35,
+              letterSpacing: -0.45,
               color: paltaTheme.color.textPrimary,
             }}
           >
@@ -55,7 +52,19 @@ export function BusinessDiscoveryShell({
           </Text>
         </View>
 
-        {rightAction ? <View>{rightAction}</View> : null}
+        {(leftAction || rightAction) ? (
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: paltaTheme.spacing.xxs,
+              flexShrink: 0,
+            }}
+          >
+            {leftAction ? <View>{leftAction}</View> : null}
+            {rightAction ? <View>{rightAction}</View> : null}
+          </View>
+        ) : null}
       </View>
 
       <View style={{ flex: 1 }}>{children}</View>
@@ -74,21 +83,23 @@ export function BusinessHeaderAction({
     <Pressable
       accessibilityRole="button"
       onPress={onPress}
+      hitSlop={4}
       style={({ pressed }) => ({
         minHeight: paltaTheme.touch.minimum,
         justifyContent: 'center',
-        paddingHorizontal: paltaTheme.spacing.sm,
-        borderRadius: paltaTheme.radius.pill,
+        paddingHorizontal: paltaTheme.spacing.xs,
+        borderRadius: paltaTheme.radius.control,
         backgroundColor: pressed
           ? paltaTheme.color.surfaceMuted
-          : paltaTheme.color.surface,
+          : 'transparent',
       })}
     >
       <Text
+        numberOfLines={1}
         style={{
           fontSize: 13,
           fontWeight: '800',
-          color: paltaTheme.color.textPrimary,
+          color: paltaTheme.color.textSecondary,
         }}
       >
         {label}
