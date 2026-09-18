@@ -44,10 +44,9 @@ function defaultCorrections(
 /**
  * Converts confirmed schedules from any domain into the shared Home semantics.
  *
- * A future confirmed event normally belongs to PRÓXIMO. If a user action is
- * required and the event has entered its configured attention window, it moves
- * to AHORA while retaining scheduledAt as context. Unconfirmed dates never
- * become Home schedules.
+ * A future confirmed event normally belongs to PRÓXIMO. It moves to AHORA only
+ * when a real executable action exists and the event has entered its configured
+ * attention window. Unconfirmed dates never become Home schedules.
  */
 export function scheduledEventsToFunctionalHome(
   input: ScheduledFunctionalProjectionInput,
@@ -68,7 +67,10 @@ export function scheduledEventsToFunctionalHome(
 
     const leadMs = (event.attentionLeadMinutes ?? 120) * 60 * 1000;
     const needsAttentionNow = Boolean(
-      event.actionRequired && untilMs >= -60 * 60 * 1000 && untilMs <= leadMs,
+      event.actionRequired &&
+      event.action &&
+      untilMs >= -60 * 60 * 1000 &&
+      untilMs <= leadMs,
     );
 
     const item: HomeFunctionalItem = {
