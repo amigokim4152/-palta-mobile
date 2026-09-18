@@ -91,8 +91,10 @@ assert(
   'Shared Care UI must project quote responses and allow explicit user selection.',
 );
 assert(
-  care.includes('mobileRuntime.client.quotes.selectBusiness') && care.includes('response.business_id'),
-  'Quote selection must go through the quote domain client using canonical Business ids.',
+  care.includes('getBusinessAuthenticatedRuntime') &&
+    care.includes('authenticatedRuntime.client.quotes.selectBusiness') &&
+    care.includes('response.business_id'),
+  'Quote selection must use the shared authenticated quote domain client with canonical Business ids.',
 );
 assert(
   ownerHome.includes('getBusinessInbox(businessId)') &&
