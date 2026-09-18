@@ -29,16 +29,16 @@ assert(tryNormalizeLocale('zh-CN') === 'zh-Hans', 'Simplified Chinese device loc
 assert(tryNormalizeLocale('pt-BR') === null, 'Unsupported locale must not be coerced to another translated locale.');
 
 assert(
-  resolvePreferredLocale({ deviceLocales: ['ko-KR'] }) === 'ko',
-  'Korean device should see Korean when there is no explicit account preference.',
+  resolvePreferredLocale({ deviceLocales: ['ko-KR'] }) === 'es-CL',
+  'Device language must not silently override the Chilean Spanish default.',
 );
 assert(
   resolvePreferredLocale({
     storedLocale: 'es-CL',
     storedLocaleExplicit: false,
     deviceLocales: ['ko-KR'],
-  }) === 'ko',
-  'Database default Spanish must not override a Korean device before the user explicitly chooses Spanish.',
+  }) === 'es-CL',
+  'A non-explicit database locale and device language must preserve the Spanish default.',
 );
 assert(
   resolvePreferredLocale({
@@ -75,8 +75,8 @@ const signedInDevice = resolveSignedInLocalePreference({
   deviceLocales: ['zh-CN'],
 });
 assert(
-  signedInDevice.locale === 'zh-Hans' && !signedInDevice.promoteLocalToAccount,
-  'Device locale should win only when there is no explicit remote or local choice.',
+  signedInDevice.locale === 'es-CL' && !signedInDevice.promoteLocalToAccount,
+  'Signed-in accounts without an explicit language must preserve the Spanish default.',
 );
 
 assert(t('nav.home', 'ko') === '홈', 'Korean tab label should resolve.');
