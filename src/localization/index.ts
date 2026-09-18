@@ -30,6 +30,13 @@ export {
 } from './discoveryCatalog.js';
 
 export {
+  CARE_ES,
+  careT,
+  type CareCopyKey,
+  type CareInterpolation,
+} from './careCatalog.js';
+
+export {
   hasTranslation,
   resolveLocalizedContent,
   type ContentTranslation,
