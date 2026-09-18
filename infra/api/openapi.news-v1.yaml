@@ -141,19 +141,33 @@ components:
         status:
           enum: [BLOCKED, UNAVAILABLE]
         reason:
-          enum: [public_news_disabled, public_news_storage_not_bound]
+          enum:
+            - public_news_disabled
+            - public_news_storage_not_bound
+            - public_news_object_not_found
 
   responses:
     UnavailableOrDisabled:
       description: >
-        The resource does not exist, or the independent edge publication gate is disabled.
-        Disabled News intentionally does not expose whether stale public objects exist.
+        The independent edge publication gate is disabled or the requested approved public
+        object does not exist. Disabled News intentionally does not reveal whether stale objects
+        exist in storage.
+      headers:
+        X-Palta-News-Reason:
+          schema:
+            type: string
+            enum: [public_news_disabled, public_news_object_not_found]
       content:
         application/json:
           schema:
             $ref: "#/components/schemas/EdgeStatus"
     StorageUnavailable:
       description: Public News is enabled but the confirmed public-content R2 binding is unavailable
+      headers:
+        X-Palta-News-Reason:
+          schema:
+            type: string
+            const: public_news_storage_not_bound
       content:
         application/json:
           schema:
