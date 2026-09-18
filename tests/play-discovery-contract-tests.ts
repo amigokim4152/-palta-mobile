@@ -70,7 +70,6 @@ assert(nearbyOnly.length === 1 && nearbyOnly[0]?.id === 'near', 'nearby intent m
 const libraryItem: PlayDiscoveryItem = {
   ...municipalEvent,
   id: 'library:1',
-  eventId: undefined,
   contentKind: 'library',
   title: 'Biblioteca y cuentacuentos',
   travelTimeMinutes: 12,
@@ -80,7 +79,6 @@ assert(selectPlayDiscoveryItems([libraryItem], { selectedTheme: 'culture' }).len
 const foodItem: PlayDiscoveryItem = {
   ...municipalEvent,
   id: 'food:1',
-  eventId: undefined,
   contentKind: 'food_outing',
   title: 'Ruta gastronómica',
   themeTags: [],
