@@ -8,6 +8,7 @@ import { createClient, type Session } from '@supabase/supabase-js';
 
 import type { PaltaUserId } from '../../../src/auth/accountModel';
 import type {
+  AuthCapabilities,
   AuthProvider,
   InteractiveAuthPort,
 } from '../../../src/ports/authPort';
@@ -113,6 +114,72 @@ export function createSupabaseAuthPort(): InteractiveAuthPort {
     });
   }
 
+  let capabilitiesCache:
+    | { value: AuthCapabilities; validUntil: number }
+    | undefined;
+
+  const loadCapabilities = async (): Promise<AuthCapabilities> => {
+    const now = Date.now();
+    if (capabilitiesCache && capabilitiesCache.validUntil > now) {
+      return capabilitiesCache.value;
+    }
+
+    let response: Response;
+    try {
+      response = await fetch(`${url}/auth/v1/settings`, {
+        headers: { apikey: key },
+      });
+    } catch (error) {
+      throw new AuthPortError(
+        'provider_error',
+        '사용 가능한 로그인 방식을 확인하지 못했습니다.',
+        error,
+      );
+    }
+
+    if (!response.ok) {
+      throw new AuthPortError(
+        'provider_error',
+        '로그인 서비스 상태를 확인하지 못했습니다.',
+        new Error(`auth_settings_http_${response.status}`),
+      );
+    }
+
+    let payload: unknown;
+    try {
+      payload = await response.json();
+    } catch (error) {
+      throw new AuthPortError(
+        'provider_error',
+        '로그인 서비스 설정 응답을 확인하지 못했습니다.',
+        error,
+      );
+    }
+
+    const external =
+      payload && typeof payload === 'object' &&
+      'external' in payload &&
+      payload.external &&
+      typeof payload.external === 'object'
+        ? (payload.external as Record<string, unknown>)
+        : null;
+
+    if (!external) {
+      throw new AuthPortError(
+        'provider_error',
+        '로그인 서비스가 사용 가능한 인증 방식을 반환하지 않았습니다.',
+      );
+    }
+
+    const value: AuthCapabilities = {
+      apple: external.apple === true,
+      google: external.google === true,
+      email: external.email === true,
+    };
+    capabilitiesCache = { value, validUntil: now + 5 * 60_000 };
+    return value;
+  };
+
   // ASWebAuthenticationSession and Expo Linking can observe the same custom-
   // scheme callback. Exchange each one-time PKCE code at most once so a
   // duplicate callback cannot turn a successful login into a provider error.
@@ -166,6 +233,8 @@ export function createSupabaseAuthPort(): InteractiveAuthPort {
       }
       return toProviderSession(data.session);
     },
+
+    getCapabilities: loadCapabilities,
 
     async signOut() {
       const { error } = await client.auth.signOut({ scope: 'local' });
