@@ -3,6 +3,11 @@ set -euo pipefail
 
 EMAIL="${1:-${GOLDEN_USER_EMAIL:-}}"
 
+if [ -z "$EMAIL" ] && [ -t 0 ]; then
+  printf 'Golden User 001 테스트 이메일: '
+  IFS= read -r EMAIL
+fi
+
 if [ -z "$EMAIL" ]; then
   echo "Usage: npm run test:golden:ios -- test@example.com" >&2
   exit 2
