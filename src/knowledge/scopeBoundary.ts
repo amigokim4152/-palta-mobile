@@ -2,37 +2,90 @@ import type {
   KnowledgeContentClass,
   KnowledgeIngressDecision,
   KnowledgeStorageLane,
+  RoutingStatus,
 } from './contracts.js';
 
-const STORAGE_LANE_BY_CONTENT_CLASS: Record<KnowledgeContentClass, KnowledgeStorageLane> = {
-  durable_knowledge: 'canonical_git',
-  dynamic_observation: 'dynamic_read_model',
-  public_benefit: 'public_data_event_core',
-  public_event: 'public_data_event_core',
-  institution_state: 'public_data_event_core',
-  news: 'news_system',
-  private_context: 'private_store',
+type RoutePolicy = {
+  lane: KnowledgeStorageLane;
+  status: RoutingStatus;
+  overrideAllowed: boolean;
+  eligibleForCanonicalKnowledge: boolean;
+  reason: string;
 };
 
-const REASON_BY_CONTENT_CLASS: Record<KnowledgeContentClass, string> = {
-  durable_knowledge: 'Stable explanatory knowledge belongs in the versioned canonical Knowledge Core.',
-  dynamic_observation: 'Frequently changing observations belong in a dynamic read model and may reference canonical knowledge IDs.',
-  public_benefit: 'Time-bound public benefits belong in Public Data/Event Core and may link to relevant canonical knowledge.',
-  public_event: 'Schedules and dated public events belong in Public Data/Event Core, not canonical knowledge.',
-  institution_state: 'Current hours, availability and operational institution state belong in Public Data/Event Core.',
-  news: 'News is intentionally maintained as a separate Palta system and is not ingested into canonical Knowledge Core.',
-  private_context: 'Personal or relationship-specific context belongs in private storage and must never become public canonical knowledge.',
+/**
+ * Only boundaries already decided by Palta are fixed here.
+ * Everything else is a routing hint that can move later without changing the
+ * datum's domain, canonical reference, provenance or validity metadata.
+ */
+const ROUTE_POLICY: Record<KnowledgeContentClass, RoutePolicy> = {
+  durable_knowledge: {
+    lane: 'canonical_git',
+    status: 'fixed',
+    overrideAllowed: false,
+    eligibleForCanonicalKnowledge: true,
+    reason: 'Durable explanatory knowledge is versioned in the canonical Knowledge Core.',
+  },
+  dynamic_observation: {
+    lane: 'dynamic_read_model',
+    status: 'provisional',
+    overrideAllowed: true,
+    eligibleForCanonicalKnowledge: false,
+    reason: 'Current prices, availability and measurements are observations. Their final service/storage placement may change while canonical references remain stable.',
+  },
+  public_benefit: {
+    lane: 'shared_data_unresolved',
+    status: 'provisional',
+    overrideAllowed: true,
+    eligibleForCanonicalKnowledge: false,
+    reason: 'Public benefits/programs remain shared structured data until their final runtime/service ownership is decided.',
+  },
+  public_event: {
+    lane: 'shared_data_unresolved',
+    status: 'provisional',
+    overrideAllowed: true,
+    eligibleForCanonicalKnowledge: false,
+    reason: 'Dated cultural/public events remain shared structured data until their final runtime/service ownership is decided.',
+  },
+  institution_state: {
+    lane: 'shared_data_unresolved',
+    status: 'provisional',
+    overrideAllowed: true,
+    eligibleForCanonicalKnowledge: false,
+    reason: 'Current institution hours/status/availability remain shared structured data until their final runtime/service ownership is decided.',
+  },
+  news: {
+    lane: 'news_system',
+    status: 'fixed',
+    overrideAllowed: false,
+    eligibleForCanonicalKnowledge: false,
+    reason: 'News is maintained as a separate Palta system. It may reference shared data and canonical knowledge but does not own them.',
+  },
+  private_context: {
+    lane: 'private_store',
+    status: 'fixed',
+    overrideAllowed: false,
+    eligibleForCanonicalKnowledge: false,
+    reason: 'Personal or relationship-specific context stays in private storage and never becomes public canonical knowledge.',
+  },
 };
 
 export function routeKnowledgeContent(contentClass: KnowledgeContentClass): KnowledgeIngressDecision {
+  const policy = ROUTE_POLICY[contentClass];
   return {
     contentClass,
-    storageLane: STORAGE_LANE_BY_CONTENT_CLASS[contentClass],
-    eligibleForCanonicalKnowledge: contentClass === 'durable_knowledge',
-    reason: REASON_BY_CONTENT_CLASS[contentClass],
+    storageLane: policy.lane,
+    routingStatus: policy.status,
+    overrideAllowed: policy.overrideAllowed,
+    eligibleForCanonicalKnowledge: policy.eligibleForCanonicalKnowledge,
+    reason: policy.reason,
   };
 }
 
 export function isCanonicalKnowledgeContent(contentClass: KnowledgeContentClass): boolean {
   return routeKnowledgeContent(contentClass).eligibleForCanonicalKnowledge;
+}
+
+export function canReRouteContent(contentClass: KnowledgeContentClass): boolean {
+  return routeKnowledgeContent(contentClass).overrideAllowed;
 }
