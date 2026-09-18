@@ -57,10 +57,15 @@
         "mobile-overlay/src/app/business",
         "mobile-overlay/src/app/local-businesses",
         "src/business",
+        "src/api/businessQuotesApiClient.ts",
+        "dev/mock-api/business-quotes-state.mjs",
+        "dev/mock-api/quote-smoke.mjs",
         "tests/local-business-discovery-preview-tests.ts",
+        "tests/local-business-quote-inbox-api-tests.ts",
         "scripts/check-local-business-experience-shell.mjs",
         "scripts/check-local-business-map-search.mjs",
         "scripts/check-local-business-primary-tab.mjs",
+        "scripts/check-local-business-quote-ui.mjs",
         "scripts/check-local-business-relationship-loop.mjs",
         "scripts/check-local-business-screen-reference.mjs",
         "scripts/check-mobile-runtime-shell.mjs",
@@ -68,7 +73,8 @@
       ],
       "reviewed_contract_paths": [
         "src/business/localBusinessDiscoveryPreview.ts",
-        "src/business/foodVertical.ts"
+        "src/business/foodVertical.ts",
+        "src/api/businessQuotesApiClient.ts"
       ]
     },
     {
