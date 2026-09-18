@@ -1,22 +1,33 @@
-# Somos Palta parallel-work entry point
+# Somos Palta Mercado branch handoff
 
-This branch is the whole-app mobile runtime composition branch.
+This branch is the Source of Truth for the Palta Mercado mobile surface and Mercado-specific contracts.
 
-Before changing any mobile-visible behavior, read:
+Before changing mobile-visible behavior, read the repository-wide contract:
 
-- `docs/MOBILE_RUNTIME_COMPOSITION.md`
-- `manifest/mobile-runtime-composition.json`
+- `AGENTS.md` on `main`
+- `docs/MOBILE_RUNTIME_COMPOSITION.md` on `integration/runtime-composition-v1`
+- `manifest/mobile-runtime-composition.json` on `integration/runtime-composition-v1`
 - repository-global GitHub Issue #9: `[Source of Truth] Mobile runtime composition for parallel feature work`
 
-Repository-wide rules also live in `AGENTS.md` on `main`.
+## Owned scope
 
-Key rules:
+- `mobile-overlay/src/features/market`
+- `mobile-overlay/src/app/(tabs)/market.tsx`
+- `mobile-overlay/src/app/market`
+- `src/market`
+- Mercado-specific tests/docs added by this workstream
 
-- Feature branches remain Sources of Truth for their own surfaces/contracts.
-- Whole-app simulator/review happens on `integration/runtime-composition-v1`.
-- Do not hand-edit `apps/mobile/src` as Source of Truth; it is generated runtime output.
-- Do not duplicate Shared Cores inside feature branches.
-- Integrate isolated screens as declared overlays only; reconcile shared API/Core changes first.
-- Any source advance that cannot be safely overlaid must be surfaced as review-required rather than silently showing stale UI.
-- Whole-app acceptance requires composed runtime typecheck and iOS bundle verification.
-- Do not merge feature work to `main` merely to make it visible in the simulator.
+## Product boundary
+
+Mercado v1 is neighborhood person-to-person goods: sell, give away, exchange and wanted posts.
+Vehicles, property and jobs/services are separate Palta verticals and must not be folded into Mercado merely because they can be listed.
+
+## Rules
+
+- Inspect existing implementation before changing it; do not recreate parallel Mercado screens.
+- Do not hand-edit `apps/mobile/src`; it is generated runtime output.
+- Do not modify shared tab layout, theme, API client or shared runtime scripts from this branch.
+- Do not duplicate Messaging, Auth/Profile, Map, Media, Payment, Care, Notification or other Shared Cores.
+- Development preview listings must remain clearly development-scoped; production must not silently fall back to fake listings.
+- Whole-app simulator/review belongs to `integration/runtime-composition-v1`.
+- Do not merge Mercado work to `main` merely to make it visible in the simulator.
