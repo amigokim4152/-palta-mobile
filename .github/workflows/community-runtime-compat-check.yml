@@ -1,0 +1,85 @@
+name: Community Runtime Compatibility Audit
+
+on:
+  push:
+    branches:
+      - integration/community-runtime-compat-check-v1
+    paths:
+      - 'mobile-overlay/**'
+      - 'apps/mobile/**'
+      - 'src/community/**'
+      - 'manifest/mobile-runtime-composition.json'
+      - 'scripts/compose-mobile-runtime.mjs'
+      - 'scripts/check-mobile-runtime-composition.mjs'
+      - '.github/workflows/community-runtime-compat-check.yml'
+  workflow_dispatch:
+
+jobs:
+  verify-community-runtime:
+    runs-on: ubuntu-latest
+    env:
+      EXPO_PUBLIC_SUPABASE_URL: https://rqbpbauhkdgsrkbwmkmg.supabase.co
+      EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_QEHIwvil9m4lyE6kJ1ba6w_CjA9_XXh
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.13.0'
+          cache: npm
+          cache-dependency-path: mobile-overlay/package.json
+
+      - name: Install composition-source dependencies
+        working-directory: mobile-overlay
+        run: npm install --no-audit --no-fund
+
+      - name: Typecheck Community in composition source
+        working-directory: mobile-overlay
+        run: npm run typecheck
+
+      - name: Validate Expo config
+        working-directory: mobile-overlay
+        run: npm run config
+
+      - name: Bundle composition-source iOS JavaScript
+        working-directory: mobile-overlay
+        env:
+          EXPO_PUBLIC_PALTA_API_BASE_URL: http://127.0.0.1:8787
+          EXPO_PUBLIC_ENV: development
+          EXPO_PUBLIC_MAP_STYLE_URL: https://palta-edge-preflight.kimeuisin.workers.dev/maps/style.json
+        run: npm run bundle:ios
+
+      - name: Validate runtime composition contract
+        run: node scripts/check-mobile-runtime-composition.mjs
+
+      - name: Materialize composed simulator runtime
+        run: node scripts/compose-mobile-runtime.mjs
+
+      - name: Reject template source leakage
+        run: |
+          if find apps/mobile/src -type f -name '*.template.*' -print -quit | grep -q .; then
+            echo 'FAIL: template source leaked into generated apps/mobile/src' >&2
+            find apps/mobile/src -type f -name '*.template.*' -print >&2
+            exit 1
+          fi
+          echo 'PASS: generated runtime contains no template source files'
+
+      - name: Install composed runtime dependencies
+        working-directory: apps/mobile
+        run: npm install --no-audit --no-fund
+
+      - name: Typecheck composed simulator runtime
+        working-directory: apps/mobile
+        run: npx tsc --noEmit
+
+      - name: Bundle composed iOS simulator runtime
+        working-directory: apps/mobile
+        env:
+          EXPO_PUBLIC_PALTA_API_BASE_URL: http://127.0.0.1:8787
+          EXPO_PUBLIC_ENV: development
+          EXPO_PUBLIC_MAP_STYLE_URL: https://palta-edge-preflight.kimeuisin.workers.dev/maps/style.json
+        run: npx expo export --platform ios --output-dir .expo-export/ios-runtime
