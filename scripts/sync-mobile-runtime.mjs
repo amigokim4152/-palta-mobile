@@ -1,3 +1,4 @@
+import { watch } from 'node:fs';
 import { cp, mkdir, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -82,7 +83,7 @@ async function transformTree(currentDir) {
   }
 }
 
-async function main() {
+export async function syncMobileRuntime() {
   await readFile(path.join(appRoot, 'package.json'), 'utf8').catch(() => {
     throw new Error('apps/mobile runtime shell is missing. Refusing to synthesize a second Expo app.');
   });
@@ -103,4 +104,64 @@ async function main() {
   console.log('PASS: materialized mobile-overlay/src into apps/mobile/src');
 }
 
-await main();
+async function watchMobileRuntime() {
+  await syncMobileRuntime();
+  console.log('WATCH: mobile-overlay/src -> apps/mobile/src (Expo Fast Refresh ready)');
+
+  let debounceTimer;
+  let syncing = false;
+  let queued = false;
+  let lastReason = 'change';
+
+  const flush = async () => {
+    if (syncing) {
+      queued = true;
+      return;
+    }
+
+    syncing = true;
+    try {
+      do {
+        queued = false;
+        const reason = lastReason;
+        await syncMobileRuntime();
+        console.log(`WATCH: synced after ${reason}`);
+      } while (queued);
+    } catch (error) {
+      console.error('WATCH: mobile runtime sync failed');
+      console.error(error);
+    } finally {
+      syncing = false;
+    }
+  };
+
+  const watcher = watch(sourceRoot, { recursive: true }, (_eventType, filename) => {
+    lastReason = filename ? String(filename) : 'overlay change';
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+      void flush();
+    }, 90);
+  });
+
+  const close = () => {
+    clearTimeout(debounceTimer);
+    watcher.close();
+  };
+
+  process.once('SIGINT', () => {
+    close();
+    process.exit(0);
+  });
+  process.once('SIGTERM', () => {
+    close();
+    process.exit(0);
+  });
+
+  await new Promise(() => {});
+}
+
+if (process.argv.includes('--watch')) {
+  await watchMobileRuntime();
+} else {
+  await syncMobileRuntime();
+}
