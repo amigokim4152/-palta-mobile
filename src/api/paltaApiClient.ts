@@ -199,6 +199,83 @@ export type CareApiTrack = {
   expected_at?: string;
 };
 
+export type CommunityKind =
+  | 'school'
+  | 'church'
+  | 'neighborhood'
+  | 'interest'
+  | 'activity'
+  | 'apartment';
+
+export type CommunityMembershipState =
+  | 'active'
+  | 'pending'
+  | 'none'
+  | 'invite_required';
+
+export type CommunityApiCard = {
+  id: string;
+  name: string;
+  kind: CommunityKind;
+  meta: string;
+  unreadCount: number;
+  actionRequiredCount: number;
+};
+
+export type CommunityApiFeedItem = {
+  id: string;
+  communityId: string;
+  communityName: string;
+  kind: CommunityKind;
+  author: string;
+  timeLabel: string;
+  body: string;
+  announcement: boolean;
+  commentCount: number;
+  reactionCount: number;
+};
+
+export type CommunityApiTab = {
+  communities: CommunityApiCard[];
+  discover: CommunityApiCard[];
+  feed: CommunityApiFeedItem[];
+};
+
+export type CommunityApiPostSummary = {
+  id: string;
+  author: string;
+  timeLabel: string;
+  body: string;
+  commentCount: number;
+  reactionCount: number;
+};
+
+export type CommunityApiSpace = {
+  id: string;
+  name: string;
+  subtitle: string;
+  membershipState: CommunityMembershipState;
+  canJoin: boolean;
+  joinLabel: string;
+  joinDescription: string;
+  joinActionLabel: string;
+  posts: CommunityApiPostSummary[];
+};
+
+export type CommunityApiComment = {
+  id: string;
+  author: string;
+  body: string;
+  timeLabel: string;
+};
+
+export type CommunityApiThread = {
+  communityName: string;
+  post: CommunityApiPostSummary;
+  comments: CommunityApiComment[];
+  canComment: boolean;
+};
+
 export type PaltaApiClientOptions = {
   baseUrl: string;
   fetch: FetchLike;
@@ -247,6 +324,7 @@ export class PaltaApiClient {
     if (init?.body !== undefined) requestInit.body = JSON.stringify(init.body);
     const response = await this.fetchImpl(joinUrl(this.baseUrl, path), requestInit);
     if (!response.ok) throw new PaltaApiError(`Palta API request failed: ${response.status}`, response.status);
+    if (response.status === 204) return undefined;
     return response.json();
   }
 
@@ -542,4 +620,86 @@ export class PaltaApiClient {
     }
     return result as CareApiTrack;
   }
+  async getCommunityTab(): Promise<CommunityApiTab> {
+    const result = expectObject(
+      await this.request('/v1/community/tab'),
+      'GET /v1/community/tab',
+    );
+    if (
+      !Array.isArray(result.communities) ||
+      !Array.isArray(result.discover) ||
+      !Array.isArray(result.feed)
+    ) {
+      throw new Error('GET /v1/community/tab returned invalid community data');
+    }
+    return result as CommunityApiTab;
+  }
+
+  async getCommunitySpace(spaceId: string): Promise<CommunityApiSpace> {
+    const result = expectObject(
+      await this.request(`/v1/community/spaces/${encodeURIComponent(spaceId)}`),
+      'GET /v1/community/spaces/{id}',
+    );
+    if (
+      typeof result.id !== 'string' ||
+      typeof result.name !== 'string' ||
+      !Array.isArray(result.posts)
+    ) {
+      throw new Error('GET /v1/community/spaces/{id} returned invalid space');
+    }
+    return result as CommunityApiSpace;
+  }
+
+  async getCommunityPost(
+    spaceId: string,
+    postId: string,
+  ): Promise<CommunityApiThread> {
+    const result = expectObject(
+      await this.request(
+        `/v1/community/spaces/${encodeURIComponent(spaceId)}/posts/${encodeURIComponent(postId)}`,
+      ),
+      'GET /v1/community/spaces/{id}/posts/{postId}',
+    );
+    expectObject(result.post, 'Community thread post');
+    if (!Array.isArray(result.comments)) {
+      throw new Error('GET community post returned invalid comments');
+    }
+    return result as CommunityApiThread;
+  }
+
+  async joinCommunitySpace(spaceId: string): Promise<void> {
+    await this.request(
+      `/v1/community/spaces/${encodeURIComponent(spaceId)}/join`,
+      { method: 'POST' },
+    );
+  }
+
+  async addCommunityComment(
+    spaceId: string,
+    postId: string,
+    body: string,
+  ): Promise<void> {
+    await this.request(
+      `/v1/community/spaces/${encodeURIComponent(spaceId)}/posts/${encodeURIComponent(postId)}/comments`,
+      {
+        method: 'POST',
+        body: { body },
+      },
+    );
+  }
+
+  async reactToCommunityPost(
+    spaceId: string,
+    postId: string,
+    reactionKey: string,
+  ): Promise<void> {
+    await this.request(
+      `/v1/community/spaces/${encodeURIComponent(spaceId)}/posts/${encodeURIComponent(postId)}/reactions`,
+      {
+        method: 'POST',
+        body: { reactionKey },
+      },
+    );
+  }
+
 }
