@@ -1,14 +1,26 @@
-import type { CommunityAuthorizationPort } from './communityBoundary';
-import type { SqlPool, SqlTransaction } from './supabaseCommunityRepository';
+import type { CommunityAuthorizationPort } from './communityBoundary.js';
 import type { CommunityMemberRole } from '../../src/community/communityMembershipLifecycle.js';
 import { canManageCommunityMemberships } from '../../src/community/communityMembershipLifecycle.js';
+
+export interface CommunityAuthorizationSqlTransaction {
+  query<Row = Record<string, unknown>>(
+    sql: string,
+    params?: readonly unknown[],
+  ): Promise<{ rows: Row[] }>;
+}
+
+export interface CommunityAuthorizationSqlPool {
+  transaction<T>(
+    work: (tx: CommunityAuthorizationSqlTransaction) => Promise<T>,
+  ): Promise<T>;
+}
 
 function first<Row>(rows: Row[]): Row | null {
   return rows[0] ?? null;
 }
 
 async function activeMembership(
-  tx: SqlTransaction,
+  tx: CommunityAuthorizationSqlTransaction,
   userId: string,
   spaceId: string,
 ): Promise<{ roleKey: CommunityMemberRole } | null> {
@@ -26,7 +38,7 @@ async function activeMembership(
 }
 
 async function assertVisiblePost(
-  tx: SqlTransaction,
+  tx: CommunityAuthorizationSqlTransaction,
   userId: string,
   spaceId: string,
   postId: string,
@@ -54,7 +66,7 @@ async function assertVisiblePost(
  * bearer token has been resolved to an active canonical Palta account.
  */
 export class SupabaseCommunityAuthorization implements CommunityAuthorizationPort {
-  constructor(private readonly pool: SqlPool) {}
+  constructor(private readonly pool: CommunityAuthorizationSqlPool) {}
 
   async assertCanReadSpace(input: { userId: string; spaceId: string }): Promise<void> {
     await this.pool.transaction(async (tx) => {
