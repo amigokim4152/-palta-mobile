@@ -26,11 +26,13 @@ export function VehicleListingCard({
   item,
   onPress,
   saved = false,
+  selected = false,
   onToggleSaved,
 }: {
   item: VehicleListingView;
   onPress: () => void;
   saved?: boolean;
+  selected?: boolean;
   onToggleSaved?: () => void;
 }) {
   const { vehicle, listing } = item;
@@ -38,12 +40,13 @@ export function VehicleListingCard({
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityState={{ selected }}
       onPress={onPress}
       style={({ pressed }) => ({
         overflow: 'hidden',
         borderRadius: paltaTheme.radius.surface,
-        borderWidth: 1,
-        borderColor: paltaTheme.color.divider,
+        borderWidth: selected ? 2 : 1,
+        borderColor: selected ? paltaTheme.color.brandPrimary : paltaTheme.color.divider,
         backgroundColor: pressed ? paltaTheme.color.surfaceMuted : paltaTheme.color.surface,
       })}
     >
