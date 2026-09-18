@@ -4,12 +4,13 @@ import {
   type HomeApiResponse,
   type LocalSearchItem,
 } from '../../../src/api/paltaApiClient';
+import type { PaltaLocale } from '../../../src/localization/index';
 import { parseRuntimeEnv } from '../../../src/config/runtimeEnv';
 import { createPaltaApiClient } from '../../../src/api/paltaApiFactory';
 import type { AuthPort } from '../../../src/ports/authPort';
 
 export type MobilePaltaClient = {
-  getHome(): Promise<HomeApiResponse>;
+  getHome(locale?: PaltaLocale): Promise<HomeApiResponse>;
   searchLocal(input: {
     latitude: number;
     longitude: number;
