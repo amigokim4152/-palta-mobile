@@ -21,6 +21,11 @@ export type KnowledgeKind =
   | 'application'
   | 'misconception';
 
+/**
+ * Content class describes what a datum IS, not which screen or service owns it.
+ * Domain and content class stay independent so routing can change later without
+ * rewriting canonical identity.
+ */
 export type KnowledgeContentClass =
   | 'durable_knowledge'
   | 'dynamic_observation'
@@ -33,13 +38,35 @@ export type KnowledgeContentClass =
 export type KnowledgeStorageLane =
   | 'canonical_git'
   | 'dynamic_read_model'
-  | 'public_data_event_core'
+  | 'shared_data_unresolved'
   | 'news_system'
   | 'private_store';
+
+export type RoutingStatus = 'fixed' | 'provisional';
+
+export interface DataValidityWindow {
+  validFrom?: string;
+  validUntil?: string;
+  observedAt?: string;
+}
+
+export interface DataClassification {
+  domain: KnowledgeDomain;
+  contentClass: KnowledgeContentClass;
+  canonicalRef?: string;
+  sourceRef?: string;
+  countryCode?: string;
+  regionCode?: string;
+  localityCode?: string;
+  validity?: DataValidityWindow;
+  projectionHints?: string[];
+}
 
 export interface KnowledgeIngressDecision {
   contentClass: KnowledgeContentClass;
   storageLane: KnowledgeStorageLane;
+  routingStatus: RoutingStatus;
+  overrideAllowed: boolean;
   eligibleForCanonicalKnowledge: boolean;
   reason: string;
 }
