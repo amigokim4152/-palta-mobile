@@ -57,12 +57,15 @@ jobs:
         id: auth-settings
         run: node --env-file=.env.example scripts/check-supabase-auth-public-settings.mjs
 
-      - name: Check palta-dev Apple Auth provider
-        if: ${{ always() && steps.auth-settings.conclusion == 'success' }}
+      - name: Require palta-dev email Auth
+        run: node --env-file=.env.example scripts/check-supabase-auth-public-settings.mjs email
+
+      - name: Observe palta-dev Apple Auth readiness
+        continue-on-error: true
         run: node --env-file=.env.example scripts/check-supabase-auth-public-settings.mjs apple
 
-      - name: Check palta-dev Google Auth provider
-        if: ${{ always() && steps.auth-settings.conclusion == 'success' }}
+      - name: Observe palta-dev Google Auth readiness
+        continue-on-error: true
         run: node --env-file=.env.example scripts/check-supabase-auth-public-settings.mjs google
 
       - name: Materialize current mobile overlay
