@@ -68,6 +68,13 @@ Before implementing a new surface or data contract, read this document first. Do
     - Do not invent speculative duplicate domain models only for translation.
     - If a localization requirement cannot fit this model, update this document and shared localization runtime deliberately before shipping the exception.
 
+13. **Canonical mutation/event payloads must not contain fabricated display prose.**
+    - System-origin semantics belong in stable machine fields such as `source_context`, `intent_key`, `action_type`, or another typed canonical key.
+    - A screen must not invent Spanish, Korean, English, or Chinese prose merely to satisfy a payload field.
+    - User-authored text such as a quote description, message, review, or note stays in the exact language the user entered unless an explicit translation workflow creates a separate derived translation.
+    - During migrations, readers may temporarily accept both the legacy prose-bearing payload and the new machine-key payload, but all newly written system-generated data must use the language-neutral form.
+    - Machine keys may be stored, routed, retried, logged, and analyzed as canonical values; before they are shown to a user they must pass through the appropriate localized label resolver.
+
 ### Required implementation pattern for every new feature
 
 When adding a new Palta feature or surface, apply this sequence:
@@ -83,6 +90,8 @@ At minimum, check:
 - Are translated fields additive rather than destructive?
 - Can the feature still render when a translation is missing?
 - Are raw backend/provider errors hidden from users?
+- Are system-generated mutation/event payloads language-neutral rather than fabricated prose?
+- Are user-authored text fields preserved exactly unless a separate translation workflow is explicitly invoked?
 - If search, message, notification, or dynamic content is involved, does it use the shared cross-domain localization boundary rather than a feature-local translation path?
 
 ### Definition of done for localization
@@ -93,6 +102,7 @@ A feature is not localization-complete merely because its buttons were translate
 - canonical behavior is identical across languages;
 - locale changes alter presentation, not jurisdiction or stored entity identity;
 - source/original content is retained where required;
+- system-generated canonical payloads contain machine semantics rather than localized display prose;
 - fallback behavior is tested;
 - relevant typecheck/tests/smoke checks pass;
 - no new duplicate locale provider, locale store, translated canonical enum, or raw technical error exposure was introduced.
@@ -147,11 +157,43 @@ Current catalogs:
 
 - `uiCatalog.ts` — shell, auth, Home, Neighborhood, Community, business actions
 - `discoveryCatalog.ts` — Market and Play
-- `careCatalog.ts` — Care flow and timeline
+- `careCatalog.ts` — Care flow, timeline, intent and waiting labels
 - `surfaceCatalog.ts` — secondary routes and shared async states
-- `businessCatalog.ts` — typed business status labels
+- `businessCatalog.ts` — typed business verification and capability labels
 
 Runtime interpolation uses named placeholders such as `{count}`, `{status}`, or `{id}`. Do not concatenate translated fragments when word order can differ between languages.
+
+## Canonical action and mutation payloads
+
+System-generated workflow semantics must be represented by machine keys, not human-language filler text.
+
+Example — quick quote launched from Business Detail:
+
+```ts
+{
+  intent_key: 'local_business_quote',
+  action_type: 'quote_request',
+  payload: {
+    source_context: 'business_detail'
+  }
+}
+```
+
+Do **not** manufacture a value such as `description: 'Solicitud iniciada desde el detalle del negocio.'` merely to record where the action began.
+
+If the user actually enters a description, preserve it separately and exactly:
+
+```ts
+{
+  payload: {
+    description: '브레이크를 밟으면 소리가 납니다'
+  }
+}
+```
+
+Offline mutation queues and retry workers follow the same rule. Legacy queued records may be read for backward compatibility, but newly written machine-generated records must use canonical machine fields.
+
+Care keys such as `local_business_quote` and `business_response`, and Business capability keys such as `queue` or `inquiry`, remain canonical internally and must resolve through localization before user display.
 
 ## Dynamic content
 
@@ -231,6 +273,8 @@ The canonical fields remain available even when a localized display field is pre
 - Do not translate user-entered text or proper names in the UI layer without an explicit translation workflow.
 - Do not duplicate the canonical business, place, Care, Market policy, or content object per language.
 - Do not replace canonical taxonomy/status keys with translated text.
+- Do not place fabricated human-language prose into machine-generated mutation/event payloads.
+- Do not show raw `intent_key`, `waiting_for`, capability keys, or similar machine values when a localized presentation resolver exists.
 - Do not use a missing translation as a reason to show an empty UI; fall back to the canonical/source value or Spanish original according to the data contract.
 
 ## Remaining data-contract work
@@ -251,10 +295,13 @@ Changes to this contract must keep these checks green:
 
 - root TypeScript/Core check
 - `tests/localization-runtime-tests.ts`
+- `tests/localization-canonical-boundary-tests.ts`
 - `npm run mock:verify` — starts the mock API and runs real HTTP localization smoke checks
 - mobile overlay materialization
 - generated Expo mobile TypeScript check
 - Expo public config resolution
 - DB migration/preflight checks when locale persistence changes
+
+The canonical-boundary regression suite verifies that machine-generated quote actions do not fabricate localized prose, user-authored text remains unchanged, and Care/Business machine keys resolve to localized presentation labels.
 
 The mock HTTP smoke currently verifies locale propagation and localized metadata for Home, local businesses, public services, events, business detail, proper-name preservation, and Care idempotency.
