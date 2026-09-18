@@ -21,6 +21,18 @@ export type PlayDiscoverySource = {
   verifiedAt?: string;
 };
 
+export type PlayDiscoveryActionKind =
+  | 'registration'
+  | 'ticket'
+  | 'reservation'
+  | 'official_info';
+
+export type PlayDiscoveryAction = Readonly<{
+  kind: PlayDiscoveryActionKind;
+  url: string;
+  label?: string;
+}>;
+
 export type PlayBusinessProjectionRef = Readonly<{
   businessId: string;
   offeringId?: string;
@@ -47,6 +59,7 @@ export type PlayDiscoveryItem = {
   distanceM?: number;
   distanceLabel?: string;
   experienceTags?: readonly string[];
+  primaryAction?: PlayDiscoveryAction;
   placeId?: string;
   businessId?: string;
   businessProjection?: PlayBusinessProjectionRef;
@@ -75,6 +88,10 @@ function canonicalBusinessId(item: PlayDiscoveryItem): string | undefined {
   return item.businessProjection?.businessId ?? item.businessId;
 }
 
+function isHttpUrl(value: string): boolean {
+  return /^https?:\/\//i.test(value.trim());
+}
+
 export function validatePlayDiscoveryItem(item: PlayDiscoveryItem): readonly string[] {
   const issues: string[] = [];
   if (!item.id.trim()) issues.push('play_item_id_required');
@@ -84,6 +101,9 @@ export function validatePlayDiscoveryItem(item: PlayDiscoveryItem): readonly str
   if (!item.source.authority.trim()) issues.push('source_authority_required');
   if (item.distanceM !== undefined && (!Number.isFinite(item.distanceM) || item.distanceM < 0)) {
     issues.push('distance_m_invalid');
+  }
+  if (item.primaryAction && !isHttpUrl(item.primaryAction.url)) {
+    issues.push('primary_action_url_invalid');
   }
   if (item.sourceKind === 'business' && !canonicalBusinessId(item)?.trim()) {
     issues.push('canonical_business_id_required');
