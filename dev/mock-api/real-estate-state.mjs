@@ -28,19 +28,19 @@ function matchesListing(item, url) {
   const businessId = url.searchParams.get('businessId');
   const transaction = url.searchParams.get('transaction');
   const propertyType = url.searchParams.get('propertyType');
-  const publisherType = url.searchParams.get('publisherType');
+  const publisher = url.searchParams.get('publisher');
 
   if (businessId && item.publisher_business_id !== businessId) return false;
   if (transaction && item.transaction_type !== transaction) return false;
   if (propertyType && item.property_type !== propertyType) return false;
-  if (publisherType && item.publisher_type !== publisherType) return false;
+  if (publisher && item.publisher_type !== publisher) return false;
 
   if (!within(item.price_clp, optionalNumber(url.searchParams, 'minPriceClp'), optionalNumber(url.searchParams, 'maxPriceClp'))) return false;
   if (!within(item.price_uf, optionalNumber(url.searchParams, 'minPriceUf'), optionalNumber(url.searchParams, 'maxPriceUf'))) return false;
-  if (!within(item.usable_area_m2, optionalNumber(url.searchParams, 'minUsableAreaM2'), optionalNumber(url.searchParams, 'maxUsableAreaM2'))) return false;
+  if (!within(item.usable_area_m2, optionalNumber(url.searchParams, 'minArea'), optionalNumber(url.searchParams, 'maxArea'))) return false;
   if (!within(item.bedrooms, optionalNumber(url.searchParams, 'minBedrooms'), undefined)) return false;
   if (!within(item.bathrooms, optionalNumber(url.searchParams, 'minBathrooms'), undefined)) return false;
-  if (!within(item.parking_spaces, optionalNumber(url.searchParams, 'minParkingSpaces'), undefined)) return false;
+  if (!within(item.parking_spaces, optionalNumber(url.searchParams, 'minParking'), undefined)) return false;
 
   if (!q) return true;
   const haystack = normalize([
