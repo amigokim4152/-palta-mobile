@@ -28,6 +28,19 @@ function formatDistance(distanceM?: number): string | undefined {
   return `${(distanceM / 1000).toFixed(1).replace('.', ',')} km`;
 }
 
+function isOpenNow(operationalState?: string): boolean {
+  return operationalState === 'open_now' || operationalState === 'open';
+}
+
+function operationalLabel(operationalState?: string): string | undefined {
+  if (isOpenNow(operationalState)) return 'Abierto ahora';
+  if (operationalState === 'closed_now' || operationalState === 'closed') {
+    return 'Cerrado ahora';
+  }
+  if (operationalState === 'temporarily_closed') return 'Cerrado temporalmente';
+  return undefined;
+}
+
 export function NeighborhoodScreen() {
   const { state: neighborhood, dispatch } = useNeighborhoodState();
   const [locationBusy, setLocationBusy] = useState(false);
@@ -66,6 +79,12 @@ export function NeighborhoodScreen() {
         ) {
           return false;
         }
+        if (
+          neighborhood.activeFilters.includes('open_now') &&
+          !isOpenNow(item.operational_state)
+        ) {
+          return false;
+        }
         return true;
       }),
     [state.data, neighborhood.activeFilters],
@@ -73,17 +92,19 @@ export function NeighborhoodScreen() {
 
   const mapFeatures = useMemo<MapFeature[]>(
     () =>
-      visibleResults.map((item) => ({
-        id: item.entity_id,
-        entityType: item.entity_type,
-        coordinate: {
-          latitude: item.location.lat,
-          longitude: item.location.lng,
-        },
-        title: item.name,
-        ...(item.category_key ? { categoryKey: item.category_key } : {}),
-        selected: item.entity_id === neighborhood.selectedEntityId,
-      })),
+      visibleResults
+        .filter((item) => item.location !== undefined)
+        .map((item) => ({
+          id: item.entity_id,
+          entityType: item.entity_type,
+          coordinate: {
+            latitude: item.location!.lat,
+            longitude: item.location!.lng,
+          },
+          title: item.name,
+          ...(item.category_key ? { categoryKey: item.category_key } : {}),
+          selected: item.entity_id === neighborhood.selectedEntityId,
+        })),
     [visibleResults, neighborhood.selectedEntityId],
   );
 
@@ -296,11 +317,21 @@ export function NeighborhoodScreen() {
             />
           ) : null}
 
+          {state.data &&
+          state.data.length > 0 &&
+          visibleResults.length === 0 ? (
+            <EmptyState
+              title="No hay resultados con estos filtros"
+              body="Prueba quitar un filtro para ver más lugares cercanos."
+            />
+          ) : null}
+
           {visibleResults.map((item) => (
             <LocalResultCard
               key={item.entity_id}
               name={item.name}
               meta={[
+                operationalLabel(item.operational_state),
                 item.category_key,
                 item.verification_status === 'verified'
                   ? 'Verificado'
@@ -308,7 +339,12 @@ export function NeighborhoodScreen() {
               ]
                 .filter(Boolean)
                 .join(' · ')}
-              distance={formatDistance(item.distance_m)}
+              distance={
+                item.location
+                  ? formatDistance(item.distance_m)
+                  : 'Atiende por zona'
+              }
+              selected={item.entity_id === neighborhood.selectedEntityId}
               onPress={() => openEntity(item.entity_id, item.entity_type)}
             />
           ))}
