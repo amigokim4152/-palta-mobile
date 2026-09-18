@@ -12,9 +12,6 @@ NODE_MAJOR="$(node -e "process.stdout.write(process.versions.node.split('.')[0])
 ROOT="$(git rev-parse --show-toplevel 2>/dev/null || true)"; [ -n "$ROOT" ] || fail "Run this from inside the Palta git repository."; cd "$ROOT"
 APP_DIR="$ROOT/apps/mobile"
 
-# apps/mobile is a local Expo runtime and may be partially preserved across branch
-# switches. Never delete it: recover missing root metadata in a temporary shell,
-# then copy metadata only, preserving src, ios, .env.local, .expo and node_modules.
 if [ ! -f "$APP_DIR/package.json" ]; then
   if [ -d "$APP_DIR" ]; then
     info "Partial local Expo runtime detected; preserving existing Palta runtime and restoring missing metadata..."
@@ -41,10 +38,12 @@ if [ ! -f "$APP_DIR/package.json" ]; then
 fi
 info "Using mobile runtime: $APP_DIR"
 
-# Ensure the recovered/new shell has the native dependencies required by the Palta overlay.
 cd "$APP_DIR"
 npx expo install expo-router expo-location expo-sqlite expo-secure-store expo-notifications expo-haptics expo-speech >/tmp/palta-expo-install.log 2>&1 || { cat /tmp/palta-expo-install.log >&2; fail "Expo dependency reconciliation failed."; }
-npx expo install @maplibre/maplibre-react-native >>/tmp/palta-expo-install.log 2>&1 || { cat /tmp/palta-expo-install.log >&2; fail "MapLibre dependency reconciliation failed."; }
+# The recovered SDK 57 shell can contain React 19.2.x while npm selects an optional
+# react-dom 19.3 peer during MapLibre resolution. This is unrelated to the native
+# MapLibre dependency; use npm's legacy peer resolver for this native-only install.
+npm install --save @maplibre/maplibre-react-native --legacy-peer-deps >>/tmp/palta-expo-install.log 2>&1 || { cat /tmp/palta-expo-install.log >&2; fail "MapLibre dependency reconciliation failed."; }
 cd "$ROOT"
 
 info "Fetching simulator recovery branch without switching your current branch..."
