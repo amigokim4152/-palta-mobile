@@ -4,6 +4,7 @@ import {
 } from '../../../../src/market/marketHttpAdapter';
 import type { MarketMessageIntent } from '../../../../src/market/marketMessageIntent';
 import type { MarketLocationSummary } from '../../../../src/market/marketPersistenceContract';
+import type { MarketSafetyIntent } from '../../../../src/market/marketSafetyIntent';
 import type { MarketRuntime } from './marketRuntime';
 
 export type CreateMarketLiveRuntimeInput = {
@@ -20,13 +21,15 @@ export type CreateMarketLiveRuntimeInput = {
   }) => Promise<string[]>;
   /** Shared Message Core handoff. */
   openMessageIntent?: (intent: MarketMessageIntent) => Promise<void>;
+  /** Shared Safety/Moderation handoff. */
+  handleSafetyIntent?: (intent: MarketSafetyIntent) => Promise<void>;
 };
 
 /**
  * Composition-layer entry point for production Mercado data.
  *
  * This factory deliberately accepts shared adapters instead of importing Auth,
- * Media, Location, Messaging or the global Palta API client directly.
+ * Media, Location, Messaging, Safety or the global Palta API client directly.
  * integration/runtime-composition-v1 can install the result with
  * installMarketRuntime() after those Shared Cores are reconciled.
  */
@@ -44,6 +47,9 @@ export function createMarketLiveRuntime(
       : {}),
     ...(input.openMessageIntent
       ? { openMessageIntent: input.openMessageIntent }
+      : {}),
+    ...(input.handleSafetyIntent
+      ? { handleSafetyIntent: input.handleSafetyIntent }
       : {}),
     resolveMediaAssetUrl: input.resolveMediaAssetUrl,
   };
