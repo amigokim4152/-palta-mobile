@@ -130,6 +130,16 @@ sync_ref_file \
   "Journey to Home bridge"
 
 sync_ref_file \
+  "src/home/adapters/careHomeAdapter.ts" \
+  "$ROOT/src/home/adapters/careHomeAdapter.ts" \
+  "Care lifecycle Home adapter"
+
+sync_ref_file \
+  "src/home/adapters/scheduledEventHomeAdapter.ts" \
+  "$ROOT/src/home/adapters/scheduledEventHomeAdapter.ts" \
+  "PRÓXIMO scheduled-event adapter"
+
+sync_ref_file \
   "src/home/adapters/publicLifeNewsHomeAdapters.ts" \
   "$ROOT/src/home/adapters/publicLifeNewsHomeAdapters.ts" \
   "Public-life and news Home adapters"
