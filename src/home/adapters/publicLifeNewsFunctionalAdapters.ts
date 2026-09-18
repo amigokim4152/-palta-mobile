@@ -111,6 +111,9 @@ export function municipalRecordsToFunctionalHome(
 
       const item: HomeFunctionalItem = {
         id: `public-life-${record.id}`,
+        capabilityKey: deadlineSoon
+          ? 'now.admin_deadline'
+          : 'today.municipal_benefit',
         surface: deadlineSoon ? 'now' : 'useful_today',
         kind: deadlineSoon
           ? hasExecutableAction
@@ -121,6 +124,9 @@ export function municipalRecordsToFunctionalHome(
         personalized: true,
         corrections,
         source,
+        dedupeKey: `public-life:municipal:${record.id}`,
+        importance: deadlineSoon ? 3 : 2,
+        relevance: deadlineSoon ? 0.95 : 0.84,
         ...(record.summary ? { body: record.summary } : {}),
       };
 
