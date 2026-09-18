@@ -67,7 +67,14 @@ if (!Array.isArray(manifest.surfaces) || manifest.surfaces.length === 0) {
 if (!Array.isArray(manifest.core_integrations) || manifest.core_integrations.length === 0) {
   fail('Runtime composition must track shared Core integration branches.');
 }
+if (!Array.isArray(manifest.branch_metadata_paths) || manifest.branch_metadata_paths.length === 0) {
+  fail('Runtime composition must declare branch_metadata_paths for cross-branch handoff files.');
+}
 
+const branchMetadataPaths = manifest.branch_metadata_paths.map(normalizeRepoPath);
+if (!branchMetadataPaths.includes('AGENTS.md')) {
+  fail('AGENTS.md must remain an allowed branch metadata path.');
+}
 const sharedPaths = (manifest.shared_paths ?? []).map(normalizeRepoPath);
 const ownership = [];
 const ids = new Set();
@@ -90,6 +97,9 @@ for (const surface of manifest.surfaces) {
     liveSurfaceCount += 1;
     if (surface.integrated_source_sha !== undefined) {
       fail(`Live surface ${surface.id} must follow its source branch instead of pinning integrated_source_sha.`);
+    }
+    if (!shaPattern.test(surface.ownership_baseline_sha ?? '')) {
+      fail(`Live surface ${surface.id} must record a 40-character ownership_baseline_sha.`);
     }
   } else {
     snapshotSurfaceCount += 1;
@@ -203,7 +213,10 @@ if (!watcher.includes('manifest.core_integrations') || !watcher.includes('refspe
 if (!drift.includes('CORE REVIEW REQUIRED') || !drift.includes('observed_source_sha')) {
   fail('Runtime drift check must report Shared Core advances without auto-copying them.');
 }
+if (!drift.includes('OWNERSHIP REVIEW REQUIRED') || !drift.includes('ownership_baseline_sha')) {
+  fail('Runtime drift check must detect feature-branch changes outside declared surface ownership.');
+}
 
 console.log(
-  `PASS: mobile runtime composition (${manifest.surfaces.length} surfaces; ${liveSurfaceCount} live, ${snapshotSurfaceCount} reviewed; ${manifest.core_integrations.length} Core watches; ${ownership.length} owned paths; cross-chat discovery protected)`,
+  `PASS: mobile runtime composition (${manifest.surfaces.length} surfaces; ${liveSurfaceCount} live, ${snapshotSurfaceCount} reviewed; ${manifest.core_integrations.length} Core watches; ${ownership.length} owned paths; ownership + cross-chat discovery protected)`,
 );
