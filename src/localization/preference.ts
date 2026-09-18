@@ -1,6 +1,5 @@
 import {
   DEFAULT_LOCALE,
-  resolveInitialLocale,
   tryNormalizeLocale,
   type PaltaLocale,
 } from './locales.js';
@@ -12,13 +11,12 @@ export interface LocalePreferenceInput {
 }
 
 export function resolvePreferredLocale(input: LocalePreferenceInput): PaltaLocale {
+  // Palta is a Chile-first service. Device language is informational only;
+  // it must not silently change the app language. Only an explicit user
+  // preference may override the Spanish (Chile) default.
   if (input.storedLocaleExplicit) {
     const stored = tryNormalizeLocale(input.storedLocale);
     if (stored) return stored;
-  }
-
-  if (input.deviceLocales?.length) {
-    return resolveInitialLocale(input.deviceLocales);
   }
 
   return DEFAULT_LOCALE;
@@ -46,7 +44,8 @@ export interface SignedInLocaleResolution {
  * Resolve locale after authentication without conflating a database default
  * with an actual user choice. A local locale exists only after the user
  * explicitly selected it on this device, so it is safe to promote when the
- * account has no explicit preference yet.
+ * account has no explicit preference yet. Device language never silently
+ * overrides the Chilean Spanish default.
  */
 export function resolveSignedInLocalePreference(
   input: SignedInLocaleResolutionInput,
@@ -64,9 +63,7 @@ export function resolveSignedInLocalePreference(
   }
 
   return {
-    locale: resolvePreferredLocale(
-      input.deviceLocales ? { deviceLocales: input.deviceLocales } : {},
-    ),
+    locale: DEFAULT_LOCALE,
     promoteLocalToAccount: false,
   };
 }
