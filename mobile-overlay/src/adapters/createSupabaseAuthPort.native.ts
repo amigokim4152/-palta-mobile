@@ -18,18 +18,19 @@ import {
   type SupabaseAuthBridge,
 } from './supabaseAuthAdapter';
 
-const PALTA_DEV_URL = 'https://rqbpbauhkdgsrkbwmkmg.supabase.co';
-const PALTA_DEV_PUBLISHABLE_KEY =
-  'sb_publishable_QEHIwvil9m4lyE6kJ1ba6w_CjA9_XXh';
-
 let singleton: InteractiveAuthPort | null = null;
 let appStateBound = false;
 
 function getPublicConfig() {
-  const url = process.env.EXPO_PUBLIC_SUPABASE_URL || PALTA_DEV_URL;
-  const key =
-    process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
-    PALTA_DEV_PUBLISHABLE_KEY;
+  const url = process.env.EXPO_PUBLIC_SUPABASE_URL?.trim();
+  const key = process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim();
+
+  if (!url || !key) {
+    throw new AuthPortError(
+      'configuration_error',
+      '로그인 서비스 설정이 없습니다. 앱 설정을 확인한 뒤 다시 시도해 주세요.',
+    );
+  }
 
   if (!/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(url)) {
     throw new AuthPortError(
