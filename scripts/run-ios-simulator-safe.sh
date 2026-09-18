@@ -10,8 +10,23 @@ info() { echo "[Palta Simulator] $1"; }
 for cmd in git node npm xcrun xcodebuild open lsof; do command -v "$cmd" >/dev/null 2>&1 || fail "Required command not found: $cmd"; done
 NODE_MAJOR="$(node -e "process.stdout.write(process.versions.node.split('.')[0])")"; [ "$NODE_MAJOR" -ge 22 ] || fail "Node 22+ required; found $(node -v)."
 ROOT="$(git rev-parse --show-toplevel 2>/dev/null || true)"; [ -n "$ROOT" ] || fail "Run this from inside the Palta git repository."; cd "$ROOT"
-APP_DIR="$ROOT/apps/mobile"; [ -f "$APP_DIR/package.json" ] || fail "Existing Expo app not found at $APP_DIR. Nothing was created or overwritten."
-info "Using existing mobile app: $APP_DIR"
+APP_DIR="$ROOT/apps/mobile"
+
+# apps/mobile is a local Expo runtime and is intentionally not guaranteed to be
+# tracked on every integration branch. Recreate it safely when a branch switch
+# removes it, then seed the complete canonical overlay before applying recovery fixes.
+if [ ! -f "$APP_DIR/package.json" ]; then
+  info "Local Expo runtime is missing on this branch; creating it from the canonical Palta overlay..."
+  [ ! -e "$APP_DIR" ] || fail "$APP_DIR exists but package.json is missing. Refusing to overwrite an ambiguous local runtime."
+  chmod +x "$ROOT/scripts/bootstrap-mobile.sh"
+  "$ROOT/scripts/bootstrap-mobile.sh"
+  [ -f "$APP_DIR/package.json" ] || fail "Expo bootstrap did not create $APP_DIR/package.json."
+  mkdir -p "$APP_DIR/src"
+  cp -R "$ROOT/mobile-overlay/src/." "$APP_DIR/src/"
+  info "Canonical mobile overlay seeded into the new Expo runtime."
+fi
+info "Using mobile runtime: $APP_DIR"
+
 info "Fetching simulator recovery branch without switching your current branch..."
 git fetch origin "$TARGET_BRANCH:refs/remotes/origin/$TARGET_BRANCH" >/dev/null
 REF="origin/$TARGET_BRANCH"; git rev-parse --verify "$REF" >/dev/null 2>&1 || fail "Cannot resolve $REF after fetch."
