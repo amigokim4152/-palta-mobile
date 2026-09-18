@@ -1,0 +1,69 @@
+{
+  "dataset": "palta_food_menu_corroborations_rm",
+  "observed_at": "2026-09-18",
+  "policy": {
+    "factual_fields_only": true,
+    "collect_images": false,
+    "collect_reviews": false,
+    "collect_ratings": false,
+    "collect_long_descriptions": false
+  },
+  "records": [
+    {
+      "outlet_key": "cl-rm-la-florida-el-chavin-san-jose-de-la-estrella-850",
+      "menu_scope": "official_outlet_menu_current_price_sample_pending_merchant_authorization",
+      "source": {"kind": "official_website", "url": "https://www.elchavin.cl/", "observed_at": "2026-09-18"},
+      "items": [
+        {"name": "Menú Clásico", "price_clp": 7000},
+        {"name": "Menú Premium", "price_clp": 8500}
+      ]
+    },
+    {
+      "outlet_key": "cl-rm-la-florida-chi-sushi-san-jose-de-la-estrella-392",
+      "menu_scope": "official_outlet_order_menu_current_prices_pending_merchant_authorization",
+      "source": {"kind": "official_website", "url": "https://www.chisushi.cl/", "observed_at": "2026-09-18"},
+      "sections": ["Promociones", "Créalo Tú", "Rolls Premium", "Sushi Burger", "Gohan", "Ceviches", "Acompañamientos", "Salsas"],
+      "items": [
+        {"name": "Promo Estudiante", "price_clp": 4000},
+        {"name": "KATANA 20 piezas", "price_clp": 10000},
+        {"name": "ZEN 20 Piezas", "price_clp": 10000},
+        {"name": "FÉNIX 40 Piezas", "price_clp": 15000},
+        {"name": "TOKIO 50 Piezas Frías", "price_clp": 18000},
+        {"name": "EMPERADOR 100 piezas", "price_clp": 32000},
+        {"name": "Camarón Nikkei", "price_clp": 9500},
+        {"name": "Salmón Acevichado", "price_clp": 9000},
+        {"name": "Sushi Burger Pollo", "price_clp": 6500},
+        {"name": "Sushipleto Pollo Crispy", "price_clp": 5900},
+        {"name": "Gohan Pollo", "price_clp": 5900},
+        {"name": "Ceviche Individual con Camarón", "price_clp": 5900},
+        {"name": "Ceviche Grande Mixto (1 kg)", "price_clp": 19000}
+      ]
+    },
+    {
+      "outlet_key": "cl-rm-puente-alto-ciudad-oriental-jorge-ross-ossa-923",
+      "menu_scope": "official_outlet_menu_current_price_sample_pending_merchant_authorization",
+      "source": {"kind": "official_website", "url": "https://ciudadoriental.cl/", "observed_at": "2026-09-18"},
+      "items": [
+        {"name": "Parrillada Mixta de Mariscos", "price_clp": 12900},
+        {"name": "Chapsui Especial", "price_clp": 10200},
+        {"name": "Papas con surtido", "price_clp": 10500},
+        {"name": "Costillar cantonés", "price_clp": 10200},
+        {"name": "Parrillada especial", "price_clp": 11900}
+      ]
+    },
+    {
+      "outlet_key": "cl-rm-puente-alto-el-duo-express-camilo-henriquez-3623",
+      "menu_scope": "official_outlet_menu_current_price_sample_pending_merchant_authorization",
+      "source": {"kind": "official_website", "url": "https://restaurantelduo.cl/", "observed_at": "2026-09-18"},
+      "items": [
+        {"name": "Traditional Reineta", "price_clp": 11900},
+        {"name": "Yakimeshi Nikkei", "price_clp": 11990},
+        {"name": "Yakimeshi", "price_clp": 10200},
+        {"name": "Camarones Salteados", "price_clp": 11500},
+        {"name": "Jaiba Maki Nikkei", "price_clp": 8400},
+        {"name": "Peruvian Maki", "price_clp": 7600},
+        {"name": "Huancaina Maki", "price_clp": 7500}
+      ]
+    }
+  ]
+}
