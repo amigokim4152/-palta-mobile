@@ -40,6 +40,8 @@ export type HomeSubjectRef = {
 
 export type HomeFunctionalItem = {
   id: string;
+  /** Stable product capability slot used to replace demo providers with canonical sources. */
+  capabilityKey?: string;
   surface: Exclude<HomeSurface, 'glance'>;
   kind: 'action' | 'status' | 'alert' | 'useful' | 'content';
   title: string;
@@ -117,6 +119,9 @@ export function validateHomeFunctionalItem(item: HomeFunctionalItem): string[] {
   const errors: string[] = [];
 
   if (!isNonEmpty(item.id)) errors.push('item.id is required');
+  if (item.capabilityKey !== undefined && !isNonEmpty(item.capabilityKey)) {
+    errors.push('item.capabilityKey must be non-empty when present');
+  }
   if (!isNonEmpty(item.title)) errors.push('item.title is required');
   if (!isNonEmpty(item.source.domain)) errors.push('item.source.domain is required');
   if (item.dedupeKey !== undefined && !isNonEmpty(item.dedupeKey)) {
