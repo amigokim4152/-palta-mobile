@@ -9,6 +9,12 @@ const BASE_URL = RAW_BASE_URL === '/' ? '' : RAW_BASE_URL.replace(/\/$/, '');
 const BUILD_URL = `${BASE_URL}/build.json`;
 const POLL_INTERVAL_MS = 15_000;
 
+function reloadIntoBuild(buildId: string) {
+  const nextUrl = new URL(window.location.href);
+  nextUrl.searchParams.set('__palta_build', buildId);
+  window.location.replace(nextUrl.toString());
+}
+
 export function PreviewBuildWatcher() {
   const [updating, setUpdating] = useState(false);
 
@@ -38,7 +44,7 @@ export function PreviewBuildWatcher() {
 
         window.sessionStorage.setItem(reloadKey, '1');
         setUpdating(true);
-        window.setTimeout(() => window.location.reload(), 120);
+        window.setTimeout(() => reloadIntoBuild(remoteBuildId), 120);
       } catch {
         // Preview polling must never make the application unusable offline.
       } finally {
