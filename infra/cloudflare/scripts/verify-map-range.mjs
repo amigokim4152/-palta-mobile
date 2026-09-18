@@ -1,6 +1,6 @@
 const base = process.argv[2];
 const expectedStyleVersion =
-  process.env.PALTA_EXPECTED_MAP_STYLE_VERSION ?? 'palta-v1.4';
+  process.env.PALTA_EXPECTED_MAP_STYLE_VERSION ?? 'palta-v1.5';
 
 if (!base) {
   console.error('Usage: node verify-map-range.mjs https://host.example');
@@ -54,6 +54,10 @@ assert(
   'Style PMTiles source mismatch',
 );
 assert(
+  style.sources?.chile?.attribution?.includes('OpenStreetMap'),
+  'OpenStreetMap attribution must remain available',
+);
+assert(
   style['font-faces']?.['Noto Sans']?.[0]?.url === fontUrl,
   'Self-hosted Noto Sans font-face missing',
 );
@@ -76,33 +80,50 @@ assert(
   roadsMajorFilter.includes('highway') && roadsMajorFilter.includes('major_road'),
   `roads-major must use Protomaps kind values, got ${roadsMajorFilter}`,
 );
-assert(
-  !roadsMajorFilter.includes('motorway') && !roadsMajorFilter.includes('trunk'),
-  'roads-major must not confuse kind_detail with kind',
-);
 
 const roadLabels = layers.find((layer) => layer?.id === 'road-labels');
+const roadLabelFilter = JSON.stringify(roadLabels?.filter ?? null);
 assert(
-  Number(roadLabels?.minzoom) >= 12,
-  `Major road labels are too dense below zoom 12: ${roadLabels?.minzoom}`,
+  roadLabelFilter.includes('kind_detail'),
+  `Major road labels must use kind_detail: ${roadLabelFilter}`,
+);
+for (const value of ['motorway', 'trunk', 'primary', 'secondary']) {
+  assert(
+    roadLabelFilter.includes(value),
+    `Major road labels missing ${value}: ${roadLabelFilter}`,
+  );
+}
+assert(
+  !roadLabelFilter.includes('tertiary'),
+  'Tertiary roads must not appear in major-road labels',
 );
 assert(
-  Number(roadLabels?.layout?.['symbol-spacing']) >= 500,
+  Number(roadLabels?.minzoom) >= 11.8,
+  `Major road labels are too dense: ${roadLabels?.minzoom}`,
+);
+assert(
+  Number(roadLabels?.layout?.['symbol-spacing']) >= 600,
   'Major road label spacing regressed below product-safe density',
 );
 
 const localRoadLabels = layers.find((layer) => layer?.id === 'road-labels-local');
 const localRoadFilter = JSON.stringify(localRoadLabels?.filter ?? null);
 assert(
-  localRoadFilter.includes('minor_road') && localRoadFilter.includes('path'),
-  `local road label filter is incomplete: ${localRoadFilter}`,
+  localRoadFilter.includes('kind_detail'),
+  `Local road labels must use kind_detail: ${localRoadFilter}`,
 );
+for (const value of ['tertiary', 'residential', 'service']) {
+  assert(
+    localRoadFilter.includes(value),
+    `Local road labels missing ${value}: ${localRoadFilter}`,
+  );
+}
 assert(
-  Number(localRoadLabels?.minzoom) >= 14.5,
+  Number(localRoadLabels?.minzoom) >= 15.3,
   `Local road labels must wait until close zoom: ${localRoadLabels?.minzoom}`,
 );
 assert(
-  Number(localRoadLabels?.layout?.['symbol-spacing']) >= 700,
+  Number(localRoadLabels?.layout?.['symbol-spacing']) >= 900,
   'Local road label spacing regressed below product-safe density',
 );
 
@@ -119,6 +140,10 @@ assert(poiFilter.includes('school'), 'Context POI labels must include schools');
 assert(
   !poiFilter.includes('restaurant') && !poiFilter.includes('cafe'),
   'Basemap POI labels must not compete with Palta business discovery',
+);
+assert(
+  Number(poiLabels?.minzoom) >= 15,
+  `POI labels must wait until close zoom: ${poiLabels?.minzoom}`,
 );
 
 const fontHead = await fetch(fontUrl, { method: 'HEAD' });
@@ -160,6 +185,12 @@ for (const id of ['places', 'roads', 'water', 'pois']) {
   assert(definition?.fields?.name === 'String', `${id} must expose name`);
   assert(definition?.fields?.['name:es'] === 'String', `${id} must expose name:es`);
 }
+
+const roadsDefinition = vectorLayerDefinitions.find((layer) => layer?.id === 'roads');
+assert(
+  roadsDefinition?.fields?.kind_detail === 'String',
+  'roads must expose kind_detail for label hierarchy',
+);
 
 const head = await fetch(mapUrl, { method: 'HEAD' });
 assert(head.status === 200, `HEAD expected 200, got ${head.status}`);
