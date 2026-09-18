@@ -120,9 +120,14 @@ sync_ref_file \
   "Public-life and news Home adapters"
 
 sync_ref_file \
+  "dev/mock-api/live-weather.mjs" \
+  "$ROOT/dev/mock-api/live-weather.mjs" \
+  "live development weather bridge"
+
+sync_ref_file \
   "dev/mock-api/server.mjs" \
   "$ROOT/dev/mock-api/server.mjs" \
-  "Home development mock data"
+  "Home development API"
 
 # A stale mock server would hide the new Home payload even when the UI files are correct.
 if lsof -nP -iTCP:"$MOCK_PORT" -sTCP:LISTEN -t >/dev/null 2>&1; then
