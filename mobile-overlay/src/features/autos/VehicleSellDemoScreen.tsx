@@ -123,7 +123,7 @@ export function VehicleSellDemoScreen() {
         </View>
 
         <View style={{ gap: paltaTheme.spacing.sm }}>
-          <Field label="Patente" value={plate} onChangeText={setPlate} autoCapitalize="characters" />
+          <Field label="Patente" value={plate} onChangeText={setPlate} />
           <View style={{ flexDirection: 'row', gap: paltaTheme.spacing.xs }}>
             <View style={{ flex: 1 }}><Field label="Marca" value={make} onChangeText={setMake} /></View>
             <View style={{ flex: 1 }}><Field label="Modelo" value={model} onChangeText={setModel} /></View>
