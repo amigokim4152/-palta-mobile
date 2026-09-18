@@ -2,6 +2,9 @@ import { parseRuntimeEnv } from '../../../src/config/runtimeEnv';
 import { createPaltaApiClient } from '../../../src/api/paltaApiFactory';
 import type { AuthPort } from '../../../src/ports/authPort';
 
+const SHARED_DEV_MAP_STYLE_URL =
+  'https://palta-edge-preflight.kimeuisin.workers.dev/maps/style.json';
+
 /**
  * Mobile uses the canonical API client directly. Do not mirror its methods in a
  * second hand-maintained interface; new domain contracts must become available
@@ -40,11 +43,19 @@ export function createMobileRuntime(auth?: AuthPort): MobileRuntime {
       ...(auth ? { auth } : {}),
     });
 
+    // Local Business consumes the shared Map Core. In development, use the
+    // currently verified Palta style endpoint when no local env override is
+    // present so an already-running simulator can render MapLibre immediately.
+    // Preview/production remain explicit configuration only.
+    const mapStyleUrl =
+      env.mapStyleUrl ??
+      (env.environment === 'development' ? SHARED_DEV_MAP_STYLE_URL : undefined);
+
     return {
       status: 'ready',
       client,
       environment: env.environment,
-      ...(env.mapStyleUrl ? { mapStyleUrl: env.mapStyleUrl } : {}),
+      ...(mapStyleUrl ? { mapStyleUrl } : {}),
     };
   } catch (error) {
     return {
