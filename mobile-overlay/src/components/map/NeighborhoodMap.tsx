@@ -1,5 +1,6 @@
 import { useMemo, useRef } from 'react';
 import { Pressable, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Camera,
   GeoJSONSource,
@@ -44,6 +45,7 @@ export function NeighborhoodMap({
   onSelectEntity,
   onViewportChanged,
 }: Props) {
+  const insets = useSafeAreaInsets();
   const mapRef = useRef<MapRef>(null);
   const cameraRef = useRef<CameraRef>(null);
   const sourceRef = useRef<GeoJSONSourceRef>(null);
@@ -245,23 +247,23 @@ export function NeighborhoodMap({
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Información y atribución del mapa"
-        hitSlop={8}
+        hitSlop={12}
         onPress={() => void mapRef.current?.showAttribution()}
         style={{
           position: 'absolute',
           right: 8,
-          bottom: 8,
-          width: 24,
-          height: 24,
-          borderRadius: 12,
+          top: insets.top + 8,
+          width: 20,
+          height: 20,
+          borderRadius: 10,
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: 'rgba(255,255,255,0.92)',
+          backgroundColor: 'rgba(255,255,255,0.90)',
           borderWidth: 1,
-          borderColor: 'rgba(52,66,57,0.20)',
+          borderColor: 'rgba(52,66,57,0.18)',
         }}
       >
-        <Text style={{ fontSize: 14, fontWeight: '700', color: '#4B5A51' }}>i</Text>
+        <Text style={{ fontSize: 12, fontWeight: '700', color: '#4B5A51' }}>i</Text>
       </Pressable>
     </View>
   );
