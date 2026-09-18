@@ -44,6 +44,10 @@ on:
       - 'mobile-overlay/.env.example'
       - '.github/workflows/map-production-check.yml'
 
+concurrency:
+  group: palta-map-production-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
 jobs:
   cloudflare-production:
     name: Cloudflare production edge
