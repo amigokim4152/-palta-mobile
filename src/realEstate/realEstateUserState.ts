@@ -1,5 +1,5 @@
-import type { ListingId } from './realEstateContracts';
-import type { RealEstateListingQuery } from './realEstateRepository';
+import type { ListingId } from './realEstateContracts.js';
+import type { RealEstateListingQuery } from './realEstateRepository.js';
 
 export type SavedRealEstateListing = {
   listingId: ListingId;
