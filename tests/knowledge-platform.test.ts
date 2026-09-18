@@ -4,13 +4,13 @@ import {
   CHILE_FIRST_GRADE_SUBJECTS,
 } from '../src/education/curriculumRegistry.js';
 import { learningNeedsPrivateStorage } from '../src/education/learningGraph.js';
-import type { KnowledgeEntity, KnowledgeDomainProfile } from '../src/knowledge/contracts.js';
+import type { DataClassification, KnowledgeEntity, KnowledgeDomainProfile } from '../src/knowledge/contracts.js';
 import { assessDomainGraduation } from '../src/knowledge/domainMaturity.js';
 import { canonicalKnowledgeChangedEvent } from '../src/knowledge/events.js';
 import { knowledgeToHomeCandidate } from '../src/knowledge/homeProjection.js';
 import { validateCanonicalPublicBoundary } from '../src/knowledge/publicPrivateBoundary.js';
 import { revisionConflict } from '../src/knowledge/revision.js';
-import { routeKnowledgeContent } from '../src/knowledge/scopeBoundary.js';
+import { canReRouteContent, routeKnowledgeContent } from '../src/knowledge/scopeBoundary.js';
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
@@ -39,6 +39,18 @@ const entity: KnowledgeEntity = {
   updatedAt: '2026-09-18T07:50:00Z',
 };
 
+const foodPrice: DataClassification = {
+  domain: 'food',
+  contentClass: 'dynamic_observation',
+  canonicalRef: 'FOOD-TOMATO-001',
+  sourceRef: 'MARKET-OBS-2026-09-18-001',
+  countryCode: 'CL',
+  regionCode: 'RM',
+  validity: { observedAt: '2026-09-18T08:00:00Z' },
+  projectionHints: ['food', 'home', 'market'],
+};
+assert(foodPrice.domain === 'food' && foodPrice.contentClass === 'dynamic_observation', 'Domain and data class must remain independent axes.');
+
 const home = knowledgeToHomeCandidate({
   entity,
   locale: 'es-CL',
@@ -64,12 +76,24 @@ assert(learningNeedsPrivateStorage({
   updatedAt: '2026-09-18T07:50:00Z',
 }), 'Learner progress must always use private storage.');
 
-assert(routeKnowledgeContent('durable_knowledge').storageLane === 'canonical_git', 'Durable knowledge must use canonical Git storage.');
-assert(routeKnowledgeContent('public_benefit').storageLane === 'public_data_event_core', 'Municipal/public benefits must stay outside canonical knowledge.');
-assert(routeKnowledgeContent('public_event').storageLane === 'public_data_event_core', 'Cultural schedules must stay in Public Data/Event Core.');
-assert(routeKnowledgeContent('dynamic_observation').storageLane === 'dynamic_read_model', 'Current prices/availability observations must remain dynamic.');
-assert(routeKnowledgeContent('news').storageLane === 'news_system', 'News must remain a separate Palta system.');
-assert(routeKnowledgeContent('private_context').storageLane === 'private_store', 'Private context must remain isolated from public canonical knowledge.');
+const durableRoute = routeKnowledgeContent('durable_knowledge');
+assert(durableRoute.storageLane === 'canonical_git' && durableRoute.routingStatus === 'fixed', 'Durable knowledge must use versioned canonical storage.');
+
+const benefitRoute = routeKnowledgeContent('public_benefit');
+assert(benefitRoute.storageLane === 'shared_data_unresolved' && benefitRoute.routingStatus === 'provisional', 'Public benefit ownership must remain adjustable until the shared-data architecture is decided.');
+assert(canReRouteContent('public_benefit'), 'Provisional public-benefit data must be reroutable without reclassifying its identity.');
+
+const eventRoute = routeKnowledgeContent('public_event');
+assert(eventRoute.storageLane === 'shared_data_unresolved' && eventRoute.overrideAllowed, 'Cultural/public event routing must remain provisional.');
+
+const observationRoute = routeKnowledgeContent('dynamic_observation');
+assert(observationRoute.storageLane === 'dynamic_read_model' && observationRoute.routingStatus === 'provisional', 'Current prices/availability are observations but their final service placement remains adjustable.');
+
+const newsRoute = routeKnowledgeContent('news');
+assert(newsRoute.storageLane === 'news_system' && newsRoute.routingStatus === 'fixed' && !newsRoute.overrideAllowed, 'News remains a separately decided Palta system.');
+
+const privateRoute = routeKnowledgeContent('private_context');
+assert(privateRoute.storageLane === 'private_store' && privateRoute.routingStatus === 'fixed', 'Private context must remain isolated from public data.');
 
 const profile: KnowledgeDomainProfile = {
   domain: 'music',
