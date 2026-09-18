@@ -37,7 +37,7 @@ const initialState: NeighborhoodState = {
   activeFilters: [],
   selectedEntityId: null,
   resultIds: [],
-  sheetSnap: 'half',
+  sheetSnap: 'peek',
   mapMovedSinceSearch: false,
   loading: 'idle',
   degraded: false,
