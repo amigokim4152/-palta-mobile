@@ -21,6 +21,8 @@ export type PlaySourceSnapshot = Readonly<{
   municipalEvents: readonly MunicipalEventPlayInput[];
   businessExposures: readonly ResolvedBusinessPlayExposure[];
   publicPrograms: readonly PlayDiscoveryItem[];
+  /** Normalized cinema/showtime, ticketing, tourism or editorial discovery items. */
+  catalogItems?: readonly PlayDiscoveryItem[];
   fetchedAt: string;
   version?: string;
 }>;
@@ -31,7 +33,8 @@ export type PlaySourceSnapshot = Readonly<{
  * Implementations may read from a Worker snapshot, API, cache or another Palta
  * service, but the Play screen never knows which transport is used. Production
  * adapters must return normalized facts/projections only; they must not expose a
- * Base44-specific shape or the municipal engine's research-draft intake schema.
+ * Base44-specific shape, a ticket partner schema or the municipal engine's
+ * research-draft intake schema.
  */
 export interface PlaySourcePort {
   readSnapshot(request: PlaySourceRequest): Promise<PlaySourceSnapshot>;
@@ -66,6 +69,7 @@ export async function loadPlaySourceAssembly(input: {
     municipalEvents: snapshot.municipalEvents,
     businessExposures: snapshot.businessExposures,
     publicPrograms: snapshot.publicPrograms,
+    ...(snapshot.catalogItems ? { catalogItems: snapshot.catalogItems } : {}),
     calendar: input.calendar,
   });
 }
