@@ -73,6 +73,15 @@ export interface PublicNewsBrief {
   readonly updatedNotice?: string;
 }
 
+export type PublicNewsVoiceType =
+  | "essay"
+  | "interview"
+  | "field_note"
+  | "photo_essay"
+  | "student_art"
+  | "local_memory"
+  | "proposal";
+
 export interface PublicNewsStory extends PublicNewsBrief {
   readonly standfirst?: string;
   readonly body?: readonly string[];
@@ -85,6 +94,12 @@ export interface PublicNewsStory extends PublicNewsBrief {
     readonly at: string;
     readonly label: string;
   }[];
+  // Present only when contentClass === "local_voice". The Local Voices list contract
+  // requires these fields; story detail keeps them so attribution/rights remain visible.
+  readonly voiceType?: PublicNewsVoiceType;
+  readonly contributorLabel?: string;
+  readonly perspectiveDisclosure?: string;
+  readonly mediaRights?: "none_required" | "cleared";
 }
 
 export interface PublicNewsHome {
@@ -124,16 +139,8 @@ export interface PublicNewsLocalPage {
   readonly voices: readonly PublicNewsVoiceContribution[];
 }
 
-export type PublicNewsVoiceType =
-  | "essay"
-  | "interview"
-  | "field_note"
-  | "photo_essay"
-  | "student_art"
-  | "local_memory"
-  | "proposal";
-
 export interface PublicNewsVoiceContribution extends PublicNewsBrief {
+  readonly section: "voices";
   readonly contentClass: "local_voice";
   readonly voiceType: PublicNewsVoiceType;
   readonly contributorLabel: string;
