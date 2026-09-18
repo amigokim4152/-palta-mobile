@@ -19,11 +19,46 @@ assert(home.body.contract_version === 'functional-home-v1', 'functional Home con
 assert(home.body.context?.locality?.label === 'Vitacura', 'Home context/locality missing');
 assert(typeof home.body.context?.notifications_target === 'string', 'Home notifications target missing');
 assert(typeof home.body.context?.profile_target === 'string', 'Home profile target missing');
-assert(Array.isArray(home.body.glance) && home.body.glance.length >= 2, 'Home glance missing');
-assert(home.body.items.some((item) => item.surface === 'now'), 'Home AHORA item missing');
-assert(home.body.items.some((item) => item.surface === 'in_progress'), 'Home EN CURSO item missing');
-assert(home.body.items.some((item) => item.surface === 'upcoming'), 'Home PRÓXIMO item missing');
-assert(home.body.items.some((item) => item.surface === 'useful_today'), 'Home PARA HOY item missing');
+assert(Array.isArray(home.body.glance) && home.body.glance.length >= 4, 'complete Home glance missing');
+assert(home.body.glance.every((item) => item.data_mode === 'demo'), 'demo Glance must be explicitly marked demo');
+
+const bySurface = (surface) => home.body.items.filter((item) => item.surface === surface);
+assert(bySurface('now').length >= 2, 'complete Home AHORA scenario missing');
+assert(bySurface('in_progress').length >= 4, 'complete Home EN CURSO scenario missing');
+assert(bySurface('upcoming').length >= 5, 'complete Home PRÓXIMO scenario missing');
+assert(bySurface('useful_today').length >= 5, 'complete Home PARA HOY scenario missing');
+assert(home.body.items.every((item) => item.data_mode === 'demo'), 'demo Home items must be explicitly marked demo');
+
+const requiredDomains = [
+  'mobility',
+  'school',
+  'care',
+  'commerce',
+  'public-life',
+  'community',
+  'health',
+  'vehicle',
+  'pets',
+  'news',
+  'local-life',
+  'play',
+];
+for (const domain of requiredDomains) {
+  assert(
+    home.body.items.some((item) => item.source_domain === domain),
+    `complete Home demo missing domain: ${domain}`,
+  );
+}
+
+const personalizedItems = home.body.items.filter((item) => item.personalized);
+assert(personalizedItems.length >= 8, 'complete Home demo needs personalized examples');
+assert(
+  personalizedItems.every(
+    (item) => item.subject && Array.isArray(item.corrections) && item.corrections.length > 0,
+  ),
+  'personalized demo items need subject and correction paths',
+);
+
 const careHomeItem = home.body.items.find((item) => item.care_track_id === 'care-demo-1');
 assert(careHomeItem?.action_target === '/care/care-demo-1', 'Home Care deep link missing');
 
@@ -139,6 +174,12 @@ console.log(JSON.stringify({
   homeContract: home.body.contract_version,
   homeItems: home.body.items.length,
   homeGlance: home.body.glance.length,
+  surfaces: {
+    now: bySurface('now').length,
+    inProgress: bySurface('in_progress').length,
+    upcoming: bySurface('upcoming').length,
+    usefulToday: bySurface('useful_today').length,
+  },
   locality: home.body.context.locality.label,
   profileUpdate: 'ok',
   unreadBefore: notifications.body.summary.unread_count,
