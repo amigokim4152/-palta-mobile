@@ -36,19 +36,19 @@ const MARKET_VERTICAL_ENTRIES: Array<{
   description: string;
 }> = [
   {
-    key: 'secondhand',
-    title: 'Usados',
-    description: 'Artículos de personas cerca de ti',
-  },
-  {
     key: 'vehicles',
-    title: 'Vehículos',
-    description: 'Autos y otros vehículos',
+    title: 'Autos',
+    description: 'Compra, venta y gestión de vehículos',
   },
   {
     key: 'property',
     title: 'Propiedades',
-    description: 'Venta y arriendo',
+    description: 'Venta, arriendo y búsqueda por mapa',
+  },
+  {
+    key: 'secondhand',
+    title: 'Usados',
+    description: 'Artículos de personas cerca de ti',
   },
   {
     key: 'local_produce',
@@ -56,6 +56,18 @@ const MARKET_VERTICAL_ENTRIES: Array<{
     description: 'Venta directa de tu zona',
   },
 ];
+
+function openMarketVertical(key: RuntimeCompatibleVertical) {
+  if (key === 'vehicles') {
+    router.push('/autos?source=mercado');
+    return;
+  }
+  if (key === 'property') {
+    router.push('/propiedades?source=mercado');
+    return;
+  }
+  router.push(`/market/${key}`);
+}
 
 function formatPrice(listing: MarketPublicListing) {
   if (listing.tradeMode === 'free') return 'Gratis';
@@ -232,7 +244,7 @@ export function MarketScreen() {
           return (
             <Pressable
               accessibilityRole="button"
-              onPress={() => router.push(`/market/${item.key}`)}
+              onPress={() => openMarketVertical(item.key)}
               style={({ pressed }) => [
                 styles.verticalCard,
                 selected && styles.verticalCardSelected,
@@ -430,7 +442,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: paltaTheme.color.border,
     backgroundColor: paltaTheme.color.surface,
-    padding: 12,
+    paddingHorizontal: 13,
+    paddingVertical: 12,
   },
   verticalCardSelected: {
     borderColor: paltaTheme.color.brandPrimary,
@@ -438,12 +451,12 @@ const styles = StyleSheet.create({
   },
   verticalTitle: {
     color: paltaTheme.color.textPrimary,
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '800',
   },
   verticalTitleSelected: { color: paltaTheme.color.brandPrimary },
   verticalDescription: {
-    marginTop: 6,
+    marginTop: 5,
     color: paltaTheme.color.textMuted,
     fontSize: 11,
     lineHeight: 15,
@@ -451,175 +464,170 @@ const styles = StyleSheet.create({
   verticalDescriptionSelected: { color: paltaTheme.color.textSecondary },
   searchBox: {
     marginTop: 16,
-    height: 48,
-    borderRadius: paltaTheme.radius.control,
-    backgroundColor: paltaTheme.color.surfaceMuted,
+    minHeight: 52,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 13,
-  },
-  searchGlyph: {
-    color: paltaTheme.color.textSecondary,
-    fontSize: 23,
-    marginRight: 8,
-    marginTop: -2,
-  },
-  searchInput: {
-    flex: 1,
-    color: paltaTheme.color.textPrimary,
-    fontSize: 16,
-    paddingVertical: 0,
-  },
-  categoryRow: { paddingTop: 14, paddingBottom: 3, gap: 8 },
-  categoryChip: {
-    minHeight: 38,
-    justifyContent: 'center',
-    borderRadius: paltaTheme.radius.pill,
+    gap: 8,
+    borderRadius: paltaTheme.radius.prominent,
     borderWidth: 1,
     borderColor: paltaTheme.color.border,
     backgroundColor: paltaTheme.color.surface,
     paddingHorizontal: 14,
   },
+  searchGlyph: { color: paltaTheme.color.textMuted, fontSize: 18 },
+  searchInput: {
+    flex: 1,
+    minHeight: 48,
+    color: paltaTheme.color.textPrimary,
+    fontSize: 15,
+  },
+  categoryRow: { paddingTop: 12, paddingBottom: 2, gap: 7 },
+  categoryChip: {
+    minHeight: 34,
+    justifyContent: 'center',
+    borderRadius: paltaTheme.radius.pill,
+    borderWidth: 1,
+    borderColor: paltaTheme.color.border,
+    backgroundColor: paltaTheme.color.surface,
+    paddingHorizontal: 12,
+  },
   categoryChipSelected: {
     borderColor: paltaTheme.color.brandPrimary,
-    backgroundColor: paltaTheme.color.brandPrimary,
+    backgroundColor: paltaTheme.color.brandSoft,
   },
   categoryChipText: {
     color: paltaTheme.color.textSecondary,
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 12,
+    fontWeight: '700',
   },
-  categoryChipTextSelected: { color: '#FFFFFF' },
+  categoryChipTextSelected: { color: paltaTheme.color.brandPrimary },
   sectionLine: {
-    marginTop: 22,
-    paddingBottom: 7,
+    marginTop: 19,
+    marginBottom: 4,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
   sectionTitle: {
     color: paltaTheme.color.textPrimary,
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '800',
   },
   viewMoreText: {
     color: paltaTheme.color.brandPrimary,
     fontSize: 12,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   listingRow: {
-    minHeight: 146,
     flexDirection: 'row',
-    gap: 14,
-    paddingVertical: 14,
+    gap: 12,
+    paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: paltaTheme.color.divider,
   },
-  pressed: { opacity: 0.76 },
   listingImage: {
-    width: 118,
-    height: 118,
+    width: 104,
+    height: 104,
     borderRadius: 14,
     backgroundColor: paltaTheme.color.surfaceMuted,
   },
   imagePlaceholder: { alignItems: 'center', justifyContent: 'center' },
   imagePlaceholderText: {
     color: paltaTheme.color.textMuted,
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 11,
+    fontWeight: '700',
   },
-  listingBody: { flex: 1, minHeight: 118, paddingTop: 1 },
+  listingBody: { flex: 1, minWidth: 0 },
   listingTitle: {
     color: paltaTheme.color.textPrimary,
-    fontSize: 16,
-    lineHeight: 21,
-    fontWeight: '600',
+    fontSize: 15,
+    lineHeight: 20,
+    fontWeight: '700',
   },
   listingMeta: {
-    marginTop: 5,
+    marginTop: 4,
     color: paltaTheme.color.textMuted,
-    fontSize: 12,
-    lineHeight: 16,
+    fontSize: 11,
   },
   priceLine: {
-    marginTop: 8,
-    minHeight: 25,
+    marginTop: 9,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 7,
+    flexWrap: 'wrap',
   },
   price: {
     color: paltaTheme.color.textPrimary,
-    fontSize: 17,
-    fontWeight: '800',
+    fontSize: 16,
+    fontWeight: '900',
   },
   freePrice: { color: paltaTheme.color.brandPrimary },
   statusChip: {
     borderRadius: paltaTheme.radius.pill,
     backgroundColor: paltaTheme.color.surfaceMuted,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
   },
   statusChipText: {
     color: paltaTheme.color.textSecondary,
-    fontSize: 11,
-    fontWeight: '700',
+    fontSize: 9,
+    fontWeight: '800',
   },
   engagementLine: {
     marginTop: 'auto',
+    paddingTop: 10,
     flexDirection: 'row',
-    justifyContent: 'flex-end',
     gap: 10,
   },
-  engagement: { color: paltaTheme.color.textMuted, fontSize: 12 },
+  engagement: { color: paltaTheme.color.textMuted, fontSize: 10 },
   emptyState: {
-    paddingVertical: 56,
+    minHeight: 180,
     alignItems: 'center',
-    paddingHorizontal: 28,
+    justifyContent: 'center',
+    paddingHorizontal: 22,
   },
   integrationState: {
-    marginTop: 24,
-    paddingVertical: 32,
-    paddingHorizontal: 24,
+    minHeight: 180,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 22,
     borderRadius: paltaTheme.radius.surface,
     borderWidth: 1,
     borderColor: paltaTheme.color.border,
     backgroundColor: paltaTheme.color.surface,
-    alignItems: 'center',
   },
   emptyTitle: {
     color: paltaTheme.color.textPrimary,
-    fontSize: 17,
+    fontSize: 15,
     fontWeight: '800',
     textAlign: 'center',
   },
   emptyBody: {
-    marginTop: 8,
-    color: paltaTheme.color.textSecondary,
-    lineHeight: 20,
+    marginTop: 7,
+    color: paltaTheme.color.textMuted,
+    fontSize: 12,
+    lineHeight: 18,
     textAlign: 'center',
   },
   sellButton: {
     position: 'absolute',
-    right: 18,
+    right: 20,
     bottom: 18,
-    minHeight: 52,
-    borderRadius: 18,
-    backgroundColor: paltaTheme.color.brandPrimary,
+    minHeight: 50,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 3,
     paddingHorizontal: 17,
+    borderRadius: 25,
+    backgroundColor: paltaTheme.color.brandPrimary,
     shadowColor: '#000000',
     shadowOpacity: 0.16,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 5 },
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
     elevation: 4,
   },
-  sellPlus: {
-    color: '#FFFFFF',
-    fontSize: 19,
-    fontWeight: '700',
-    marginRight: 4,
-  },
-  sellText: { color: '#FFFFFF', fontSize: 15, fontWeight: '800' },
+  sellPlus: { color: '#FFFFFF', fontSize: 20, fontWeight: '500' },
+  sellText: { color: '#FFFFFF', fontSize: 14, fontWeight: '800' },
+  pressed: { opacity: 0.72 },
 });
