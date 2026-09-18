@@ -1,46 +1,57 @@
 import { View } from 'react-native';
+import {
+  discoveryT,
+  type DiscoveryKey,
+} from '../../../../src/localization/index';
 import { ScreenFrame } from '../../components/ScreenFrame';
 import { SectionHeading } from '../../components/common/SectionHeading';
 import { PaltaButton } from '../../components/common/PaltaButton';
+import { useLocalization } from '../../providers/LocalizationProvider';
 
-const sections = [
+const sections: Array<{
+  key: string;
+  titleKey: DiscoveryKey;
+  subtitleKey: DiscoveryKey;
+}> = [
   {
     key: 'eat_drink',
-    title: 'Comer y tomar algo',
-    subtitle: 'Lugares cercanos y útiles, no un catálogo infinito.',
+    titleKey: 'play.eatDrinkTitle',
+    subtitleKey: 'play.eatDrinkSubtitle',
   },
   {
     key: 'events_culture',
-    title: 'Eventos y cultura',
-    subtitle: 'Qué pasa hoy o próximamente cerca de ti.',
+    titleKey: 'play.eventsCultureTitle',
+    subtitleKey: 'play.eventsCultureSubtitle',
   },
   {
     key: 'family',
-    title: 'Familia',
-    subtitle: 'Panoramas adecuados al momento y al contexto.',
+    titleKey: 'play.familyTitle',
+    subtitleKey: 'play.familySubtitle',
   },
   {
     key: 'travel_stays',
-    title: 'Viajes y estadías',
-    subtitle: 'Explorar. Si el viaje se vuelve real, Palta crea un contexto temporal.',
+    titleKey: 'play.travelStaysTitle',
+    subtitleKey: 'play.travelStaysSubtitle',
   },
 ];
 
 export function PlayScreen() {
+  const { locale } = useLocalization();
+
   return (
     <ScreenFrame
-      title="Panoramas"
-      subtitle="Qué hacer con tu tiempo"
+      title={discoveryT('play.title', locale)}
+      subtitle={discoveryT('play.subtitle', locale)}
     >
       <View style={{ gap: 22 }}>
         {sections.map((section) => (
           <View key={section.key} style={{ gap: 10 }}>
             <SectionHeading
-              title={section.title}
-              subtitle={section.subtitle}
+              title={discoveryT(section.titleKey, locale)}
+              subtitle={discoveryT(section.subtitleKey, locale)}
             />
             <PaltaButton
-              label="Explorar"
+              label={discoveryT('common.explore', locale)}
               variant="secondary"
               onPress={() => {}}
             />
