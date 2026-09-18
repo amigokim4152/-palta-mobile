@@ -15,6 +15,7 @@ Implementation must conform to:
 - `src/market/marketCatalog.ts`
 - `src/market/marketLifecycle.ts`
 - `src/market/marketMessageIntent.ts`
+- `src/market/marketMessagingFlow.ts`
 - `src/market/marketPersistenceContract.ts`
 - `src/market/marketApiContract.ts`
 - `src/market/marketHttpAdapter.ts`
@@ -28,11 +29,11 @@ Primary v1 database remains Supabase Postgres. Mercado does not own Shared Cores
 
 - Auth/Profile owns identity and authentication.
 - Media Core owns image/video binaries and asset lifecycle.
-- Message Core owns conversations/messages.
+- Message Core owns durable conversations, scopes and messages.
 - Map/Location Core owns precise user location handling.
 - Payment/Commerce Core is not required for Mercado v1 and must not be embedded into listings.
 
-Mercado stores references to those systems only.
+Mercado stores stable references to those systems only.
 
 ## Recommended persistence mapping
 
@@ -111,10 +112,15 @@ The infrastructure workstream may store this as normalized immutable columns or 
 Constraints:
 
 - seller_user_id != buyer_user_id
-- one active/reserved transaction per listing at a time
+- at most one `coordinating` or `reserved` transaction for the same `(listing_id, buyer_user_id)` at a time
+- at most one `reserved` transaction per listing at a time
+- multiple different buyers may have `coordinating` transactions for the same active/reserved listing
 - completion is terminal
 - transaction rows are visible only to participants and service role
 - listing snapshot is written once when the transaction is created and is not rewritten by later listing edits
+- once a transaction has a `conversation_id`, retries must not silently replace it with a different conversation id
+
+A practical database implementation may use partial unique indexes for the two active constraints above. Exact SQL remains owned by the infrastructure workstream.
 
 ### market_transaction_review
 
@@ -174,25 +180,33 @@ Public discovery includes only active and reserved listings. Sold and withdrawn 
 
 Recommended server behavior:
 
-- first serious buyer interaction may create `coordinating` and atomically capture the listing snapshot
-- seller selects/accepts one buyer -> `reserved`; listing -> `reserved`
+- buyer contact flow calls `startTransaction` only after Message Core has ensured the durable buyer↔seller conversation
+- `startTransaction` ensures/reuses the buyer's existing `coordinating`/`reserved` transaction for that listing and atomically captures the listing snapshot on first creation
+- immediate retries therefore converge instead of creating duplicate transaction rows
+- if an existing active transaction already has a different non-null `conversation_id`, reject the mismatch rather than rebinding it silently
+- a cancelled transaction is historical; a later contact may create a new coordinating transaction if the listing is still contactable
+- seller selects/accepts one buyer -> that transaction becomes `reserved`; listing -> `reserved`
 - seller confirms exchange -> transaction `completed`; listing -> `sold`
-- either participant may cancel before completion; listing returns to `active` when no other reservation remains
+- either participant may cancel before completion; listing returns to `active` when the reserved transaction is released and the item is otherwise available
 
-A listing should not be marked reserved merely because a chat exists.
+A listing must not be marked reserved merely because a chat or coordinating transaction exists.
 
 ## Messaging handoff
 
-Mercado emits `MarketMessageIntent` with:
+Message Core defines a conversation as a durable relationship. Mercado therefore **does not create one conversation per listing**.
 
-- conversation type `transaction`
-- context relation `listing`
-- resource type `market_listing`
-- listing id and label
-- seller Palta actor id
-- optional initial preset text
+Canonical flow from `marketMessagingFlow.ts`:
 
-Message Core owns the resulting conversation id and messages. Mercado may persist only the conversation reference in a transaction.
+1. ask Message Core to ensure/reuse the durable buyer↔seller peer conversation;
+2. call Mercado `startTransaction({ listingId, conversationId })` to ensure/reuse the buyer's active transaction for that listing;
+3. open the durable conversation focused on `market_transaction:{transactionId}`;
+4. optional quick-message text is sent/opened in that transaction context.
+
+The concrete listing/transaction interaction belongs in Message Core as a `ConversationScope`, while the durable Conversation remains person-to-person. Scope creation/linking is internal-only in Message Core and must use the owning-domain authorization evidence required by Message Core. The mobile Mercado feature must not create ConversationScope rows directly.
+
+The primary scope resource is `market_transaction`, not `market_listing`, because the transaction owns the coordination/reservation/completion lifecycle and immutable listing snapshot. A listing may still be shown as related context via the transaction snapshot.
+
+If opening Messaging fails after the Mercado transaction has been created, retries must converge on the same active transaction and durable conversation. Do not fake a distributed atomic transaction between Mercado and Message Core.
 
 ## Location/privacy
 
@@ -218,7 +232,7 @@ Mercado receives shared capabilities by injection:
 - authenticated/optional-auth HTTP transport from the shared Palta API/Auth runtime
 - coarse public area from Location Core
 - media asset resolver and picker/uploader from Media Core
-- conversation handoff from Message Core
+- durable peer-conversation/opening bridge from Message Core
 
 Production must not fall back to development fixtures when any live dependency is absent.
 
@@ -229,9 +243,10 @@ Before applying a real migration to `palta-dev`:
 1. infrastructure ownership for the migration is explicit;
 2. Auth/Profile user identifier mapping is confirmed;
 3. Media Core asset identifier is confirmed;
-4. Message Core conversation reference contract is confirmed;
+4. Message Core durable conversation + transaction scope integration is confirmed;
 5. transaction listing snapshot storage is confirmed;
-6. RLS/API policy is reviewed;
-7. migration and rollback are tested against development data;
-8. API responses pass `marketHttpAdapter` canonical parsing;
-9. mobile dev fixtures remain dev-only until the real adapter passes composed runtime verification.
+6. active transaction/reservation uniqueness rules above are implemented and concurrency-tested;
+7. RLS/API policy is reviewed;
+8. migration and rollback are tested against development data;
+9. API responses pass `marketHttpAdapter` canonical parsing;
+10. mobile dev fixtures remain dev-only until the real adapter passes composed runtime verification.
