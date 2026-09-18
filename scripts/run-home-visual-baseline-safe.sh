@@ -61,6 +61,11 @@ sync_ref_file() {
 
 # Home visual baseline: no live Home API, no shared src/home imports.
 sync_ref_file \
+  "mobile-overlay/src/app/(tabs)/_layout.tsx" \
+  "$APP_DIR/src/app/(tabs)/_layout.tsx" \
+  "Palta bottom navigation"
+
+sync_ref_file \
   "mobile-overlay/src/app/(tabs)/home.tsx" \
   "$APP_DIR/src/app/(tabs)/home.tsx" \
   "Home tab route"
