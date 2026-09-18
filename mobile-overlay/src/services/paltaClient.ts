@@ -16,8 +16,9 @@ export type MobilePaltaClient = {
     longitude: number;
     radiusM?: number;
     query?: string;
+    locale?: PaltaLocale;
   }): Promise<LocalSearchItem[]>;
-  getBusiness(id: string): Promise<BusinessApiDetail>;
+  getBusiness(id: string, locale?: PaltaLocale): Promise<BusinessApiDetail>;
   getCare(id: string): Promise<CareApiTrack>;
   createCare(input: {
     intentKey: string;
