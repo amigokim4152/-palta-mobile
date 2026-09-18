@@ -22,6 +22,17 @@ export type MobileRuntime =
     }
   | { status: 'config_error'; message: string };
 
+function isSameSupabaseEdgeOrigin(apiBaseUrl: string, supabaseUrl?: string): boolean {
+  if (!supabaseUrl) return false;
+  try {
+    const api = new URL(apiBaseUrl);
+    const supabase = new URL(supabaseUrl);
+    return api.origin === supabase.origin && api.pathname.startsWith('/functions/v1/');
+  } catch {
+    return false;
+  }
+}
+
 export function createMobileRuntime(auth?: AuthPort): MobileRuntime {
   try {
     const env = parseRuntimeEnv({
@@ -31,10 +42,30 @@ export function createMobileRuntime(auth?: AuthPort): MobileRuntime {
       EXPO_PUBLIC_ENV: process.env.EXPO_PUBLIC_ENV,
     });
 
+    const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL?.trim();
+    const supabasePublishableKey =
+      process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim();
+    const usesSupabaseEdgeApi = isSameSupabaseEdgeOrigin(env.apiBaseUrl, supabaseUrl);
+
+    if (usesSupabaseEdgeApi && !supabasePublishableKey) {
+      throw new Error(
+        'EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY is required when Palta API uses Supabase Edge Functions',
+      );
+    }
+
     const client = createPaltaApiClient({
       baseUrl: env.apiBaseUrl,
       fetch: async (input, init) => {
-        const response = await fetch(input, init);
+        const headers: Record<string, string> = {
+          ...(init?.headers ?? {}),
+        };
+        if (usesSupabaseEdgeApi && supabasePublishableKey) {
+          headers.apikey = supabasePublishableKey;
+        }
+        const response = await fetch(input, {
+          ...init,
+          headers,
+        });
         return {
           ok: response.ok,
           status: response.status,
