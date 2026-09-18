@@ -21,6 +21,10 @@ type Props = {
     latitude: number;
     longitude: number;
   };
+  activeLocation?: {
+    latitude: number;
+    longitude: number;
+  };
   initialZoom?: number;
   onSelectEntity?: (entityId: string) => void;
   onViewportChanged?: (
@@ -41,6 +45,7 @@ export function NeighborhoodMap({
   mapStyle,
   features,
   initialCenter,
+  activeLocation,
   initialZoom = 14,
   onSelectEntity,
   onViewportChanged,
@@ -51,23 +56,26 @@ export function NeighborhoodMap({
   const sourceRef = useRef<GeoJSONSourceRef>(null);
   const data = toPointFeatureCollection(features);
   const activeLocationData = useMemo(
-    () => ({
-      type: 'FeatureCollection' as const,
-      features: [
-        {
-          type: 'Feature' as const,
-          geometry: {
-            type: 'Point' as const,
-            coordinates: [initialCenter.longitude, initialCenter.latitude] as [
-              number,
-              number,
+    () =>
+      activeLocation
+        ? {
+            type: 'FeatureCollection' as const,
+            features: [
+              {
+                type: 'Feature' as const,
+                geometry: {
+                  type: 'Point' as const,
+                  coordinates: [
+                    activeLocation.longitude,
+                    activeLocation.latitude,
+                  ] as [number, number],
+                },
+                properties: {},
+              },
             ],
-          },
-          properties: {},
-        },
-      ],
-    }),
-    [initialCenter.latitude, initialCenter.longitude],
+          }
+        : null,
+    [activeLocation?.latitude, activeLocation?.longitude],
   );
 
   return (
@@ -219,29 +227,31 @@ export function NeighborhoodMap({
           />
         </GeoJSONSource>
 
-        <GeoJSONSource id="palta-active-location" data={activeLocationData}>
-          <Layer
-            id="palta-active-location-halo"
-            type="circle"
-            paint={{
-              'circle-color': '#FFFFFF',
-              'circle-radius': 12,
-              'circle-opacity': 0.98,
-              'circle-stroke-color': '#D8E5F2',
-              'circle-stroke-width': 1,
-            }}
-          />
-          <Layer
-            id="palta-active-location-dot"
-            type="circle"
-            paint={{
-              'circle-color': '#2F7DD1',
-              'circle-radius': 6.5,
-              'circle-stroke-color': '#FFFFFF',
-              'circle-stroke-width': 1.5,
-            }}
-          />
-        </GeoJSONSource>
+        {activeLocationData ? (
+          <GeoJSONSource id="palta-active-location" data={activeLocationData}>
+            <Layer
+              id="palta-active-location-halo"
+              type="circle"
+              paint={{
+                'circle-color': '#FFFFFF',
+                'circle-radius': 12,
+                'circle-opacity': 0.98,
+                'circle-stroke-color': '#D8E5F2',
+                'circle-stroke-width': 1,
+              }}
+            />
+            <Layer
+              id="palta-active-location-dot"
+              type="circle"
+              paint={{
+                'circle-color': '#2F7DD1',
+                'circle-radius': 6.5,
+                'circle-stroke-color': '#FFFFFF',
+                'circle-stroke-width': 1.5,
+              }}
+            />
+          </GeoJSONSource>
+        ) : null}
       </Map>
 
       <Pressable
