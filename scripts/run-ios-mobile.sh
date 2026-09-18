@@ -5,6 +5,7 @@ MOCK_PORT="${PALTA_MOCK_PORT:-8787}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(git -C "$SCRIPT_DIR/.." rev-parse --show-toplevel)"
 APP_DIR="$ROOT/apps/mobile"
+SYNC_WATCH_PID=""
 
 fail() {
   echo "FAIL: $1" >&2
@@ -14,6 +15,13 @@ fail() {
 info() {
   echo "[Palta iOS] $1"
 }
+
+cleanup() {
+  if [ -n "$SYNC_WATCH_PID" ]; then
+    kill "$SYNC_WATCH_PID" >/dev/null 2>&1 || true
+  fi
+}
+trap cleanup EXIT INT TERM
 
 [ "$(uname -s)" = "Darwin" ] || fail "iOS Simulator launch requires macOS."
 for cmd in git node npm xcrun xcode-select open lsof; do
@@ -37,6 +45,15 @@ if [ ! -d "$APP_DIR/node_modules" ]; then
     info "Installing mobile dependencies..."
     npm install --prefix "$APP_DIR"
   fi
+fi
+
+info "Starting live mobile-overlay sync for Expo Fast Refresh..."
+node "$ROOT/scripts/sync-mobile-runtime.mjs" --watch >/tmp/palta-mobile-runtime-sync.log 2>&1 &
+SYNC_WATCH_PID=$!
+sleep 0.3
+if ! kill -0 "$SYNC_WATCH_PID" >/dev/null 2>&1; then
+  tail -80 /tmp/palta-mobile-runtime-sync.log 2>/dev/null || true
+  fail "Live mobile runtime sync failed to start."
 fi
 
 export EXPO_PUBLIC_PALTA_API_BASE_URL="http://127.0.0.1:${MOCK_PORT}"
