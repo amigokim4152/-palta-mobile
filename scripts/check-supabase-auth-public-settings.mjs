@@ -1,6 +1,7 @@
 const baseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL?.trim();
 const publishableKey =
   process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim();
+const requestedProvider = process.argv[2]?.trim().toLowerCase();
 
 function fail(message) {
   console.error(`FAIL: ${message}`);
@@ -50,22 +51,23 @@ const external =
   settings && typeof settings === 'object' && settings.external &&
   typeof settings.external === 'object'
     ? settings.external
-    : {};
+    : null;
 
-const expectedProviders = ['apple', 'google'];
-const disabledProviders = expectedProviders.filter(
-  (provider) => external[provider] !== true,
-);
-
-if (disabledProviders.length > 0) {
-  fail(
-    `required Supabase Auth provider(s) are not enabled: ${disabledProviders.join(', ')}`,
-  );
+if (!external) {
+  fail('Supabase Auth settings response does not contain external provider settings');
 }
 
-const enabledExpected = expectedProviders.filter(
-  (provider) => external[provider] === true,
-);
-console.log(
-  `PASS: Supabase Auth public settings reachable; required providers enabled: ${enabledExpected.join(', ')}`,
-);
+if (!requestedProvider) {
+  console.log('PASS: Supabase Auth public settings endpoint is reachable and readable');
+  process.exit(0);
+}
+
+if (!['apple', 'google'].includes(requestedProvider)) {
+  fail(`unsupported provider readiness check: ${requestedProvider}`);
+}
+
+if (external[requestedProvider] !== true) {
+  fail(`required Supabase Auth provider is not enabled: ${requestedProvider}`);
+}
+
+console.log(`PASS: Supabase Auth provider enabled: ${requestedProvider}`);
