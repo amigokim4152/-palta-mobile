@@ -39,8 +39,51 @@ load_persisted_map_style() {
   done < "$env_file"
 }
 
+mock_listener_pids() {
+  lsof -nP -iTCP:"$MOCK_PORT" -sTCP:LISTEN -t 2>/dev/null || true
+}
+
+start_mock_api() {
+  info "Starting Palta mock API on port $MOCK_PORT..."
+  PALTA_MOCK_PORT="$MOCK_PORT" nohup node "$ROOT/dev/mock-api/server.mjs" >/tmp/palta-mock-api.log 2>&1 &
+  echo $! >/tmp/palta-mock-api.pid
+  sleep 1
+}
+
+stop_stale_palta_mock_api() {
+  local pids
+  pids="$(mock_listener_pids)"
+  [ -n "$pids" ] || return 0
+
+  local pid command
+  for pid in $pids; do
+    command="$(ps -p "$pid" -o command= 2>/dev/null || true)"
+    case "$command" in
+      *dev/mock-api/server.mjs*)
+        info "Stopping stale Palta mock API process $pid..."
+        kill "$pid" >/dev/null 2>&1 || true
+        ;;
+      *)
+        fail "Port $MOCK_PORT is occupied by a non-Palta process (PID $pid). Stop it or set PALTA_MOCK_PORT to another port."
+        ;;
+    esac
+  done
+
+  local attempt=0
+  while [ -n "$(mock_listener_pids)" ] && [ "$attempt" -lt 20 ]; do
+    sleep 0.15
+    attempt=$((attempt + 1))
+  done
+
+  [ -z "$(mock_listener_pids)" ] || fail "Could not release mock API port $MOCK_PORT."
+}
+
+verify_mock_api() {
+  node "$ROOT/dev/mock-api/smoke.mjs"
+}
+
 [ "$(uname -s)" = "Darwin" ] || fail "iOS Simulator launch requires macOS."
-for cmd in git node npm xcrun xcode-select open lsof; do
+for cmd in git node npm xcrun xcode-select open lsof ps; do
   command -v "$cmd" >/dev/null 2>&1 || fail "Required command not found: $cmd"
 done
 
@@ -86,19 +129,25 @@ if [ -z "${EXPO_PUBLIC_MAP_STYLE_URL:-}" ]; then
 fi
 info "MapLibre style: $EXPO_PUBLIC_MAP_STYLE_URL"
 
-if lsof -nP -iTCP:"$MOCK_PORT" -sTCP:LISTEN -t >/dev/null 2>&1; then
-  info "Reusing listener on mock API port $MOCK_PORT."
+if [ -n "$(mock_listener_pids)" ]; then
+  info "Validating existing listener on mock API port $MOCK_PORT..."
+  if verify_mock_api >/tmp/palta-mock-smoke.log 2>&1; then
+    info "Existing Palta mock API is current; reusing it."
+  else
+    info "Existing mock API is stale for this branch; restarting it."
+    stop_stale_palta_mock_api
+    start_mock_api
+  fi
 else
-  info "Starting Palta mock API on port $MOCK_PORT..."
-  PALTA_MOCK_PORT="$MOCK_PORT" nohup node "$ROOT/dev/mock-api/server.mjs" >/tmp/palta-mock-api.log 2>&1 &
-  echo $! >/tmp/palta-mock-api.pid
-  sleep 1
+  start_mock_api
 fi
 
-if ! node "$ROOT/dev/mock-api/smoke.mjs"; then
+if ! verify_mock_api; then
   echo "--- mock API log ---" >&2
   tail -80 /tmp/palta-mock-api.log 2>/dev/null || true
-  fail "Mock API smoke test failed."
+  echo "--- first smoke failure, if any ---" >&2
+  tail -80 /tmp/palta-mock-smoke.log 2>/dev/null || true
+  fail "Mock API smoke test failed after restart."
 fi
 info "Mock API smoke test passed."
 
