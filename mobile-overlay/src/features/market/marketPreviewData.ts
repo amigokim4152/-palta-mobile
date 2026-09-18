@@ -30,7 +30,15 @@ export type MarketPreviewListing = {
   description: string;
 };
 
-/** Development-only visual fixtures. Production data must come from Mercado data services. */
+/**
+ * Development-only visual fixtures.
+ *
+ * The Mercado home intentionally keeps six secondhand fixtures with varied
+ * comunas, prices and lifecycle states so list-card behavior can be checked
+ * quickly on mobile/PWA. Autos and Propiedades keep their own vertical demo
+ * data instead of being duplicated here.
+ * Production data must come from Mercado data services.
+ */
 export const marketPreviewListings: MarketPreviewListing[] = [
   {
     id: 'preview-bike-01',
@@ -96,8 +104,8 @@ export const marketPreviewListings: MarketPreviewListing[] = [
     priceClp: 35000,
     tradeMode: 'sale',
     category: 'fashion',
-    comuna: 'Vitacura',
-    distanceKm: 0.9,
+    comuna: 'Ñuñoa',
+    distanceKm: 6.4,
     ageLabel: 'hace 2 h',
     favorites: 5,
     chats: 1,
@@ -126,61 +134,22 @@ export const marketPreviewListings: MarketPreviewListing[] = [
       'Libros usados pero completos. Prefiero entregarlos todos juntos a una familia que los aproveche.',
   },
   {
-    id: 'preview-car-06',
-    vertical: 'vehicles',
-    title: 'Toyota RAV4 2021 automática',
-    priceClp: 17990000,
-    tradeMode: 'sale',
-    category: 'hobby',
-    comuna: 'Las Condes',
-    distanceKm: 3.4,
-    ageLabel: 'hace 24 min',
-    favorites: 12,
+    id: 'preview-coffee-06',
+    vertical: 'secondhand',
+    title: 'Cafetera italiana + molino manual',
+    tradeMode: 'exchange',
+    category: 'home',
+    comuna: 'La Reina',
+    distanceKm: 8.0,
+    ageLabel: 'hace 4 h',
+    favorites: 11,
     chats: 4,
     status: 'active',
     imageUrl:
-      'https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=600&q=80',
-    sellerName: 'Andrés',
+      'https://images.unsplash.com/photo-1517668808822-9ebb02f2a0e6?auto=format&fit=crop&w=600&q=80',
+    sellerName: 'Felipe',
     description:
-      'Toyota RAV4 2021, transmisión automática, 52.000 km. Mantenciones al día y documentación disponible para revisar antes de coordinar una visita.',
-  },
-  {
-    id: 'preview-property-sale-07',
-    vertical: 'property',
-    title: 'Departamento 2D 2B cerca de Metro Tobalaba',
-    priceClp: 285000000,
-    tradeMode: 'sale',
-    category: 'home',
-    comuna: 'Providencia',
-    distanceKm: 4.8,
-    ageLabel: 'hace 42 min',
-    favorites: 17,
-    chats: 6,
-    status: 'active',
-    imageUrl:
-      'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=600&q=80',
-    sellerName: 'Corredora Andes',
-    description:
-      'Departamento de 2 dormitorios y 2 baños, 78 m² aproximados, estacionamiento y bodega. La ubicación pública se muestra por sector, no por dirección exacta.',
-  },
-  {
-    id: 'preview-property-rent-08',
-    vertical: 'property',
-    title: 'Arriendo departamento 1D con estacionamiento',
-    priceClp: 890000,
-    tradeMode: 'rent',
-    category: 'home',
-    comuna: 'Ñuñoa',
-    distanceKm: 7.2,
-    ageLabel: 'hace 1 h',
-    favorites: 9,
-    chats: 5,
-    status: 'active',
-    imageUrl:
-      'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=600&q=80',
-    sellerName: 'Carolina',
-    description:
-      'Departamento de 1 dormitorio, terraza y estacionamiento. Canon mensual publicado; condiciones y documentos se coordinan por mensaje.',
+      'Cafetera italiana y molino manual funcionando bien. Me interesa intercambio por accesorios de cocina o una planta de interior.',
   },
   {
     id: 'preview-produce-09',
