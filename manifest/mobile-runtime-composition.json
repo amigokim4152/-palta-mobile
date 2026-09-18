@@ -8,9 +8,13 @@
   "shared_paths": [
     "mobile-overlay/src/app/_layout.tsx",
     "mobile-overlay/src/app/(tabs)/_layout.tsx",
+    "mobile-overlay/src/app/messages",
+    "mobile-overlay/src/features/messaging",
     "mobile-overlay/src/theme",
     "mobile-overlay/src/services",
     "src/api/paltaApiClient.ts",
+    "src/api/paltaApiFactory.ts",
+    "src/api/messagingApiClient.ts",
     "scripts/run-ios-mobile.sh",
     "scripts/sync-mobile-runtime.mjs",
     "scripts/compose-mobile-runtime.mjs",
@@ -145,7 +149,7 @@
     {
       "id": "messaging",
       "source_branch": "integration/message-core-v1",
-      "status": "pending_contract_integration",
+      "status": "integrated",
       "observed_source_sha": "152de04b8ad045caad8196a6057ba8ce37ef13ec"
     },
     {
