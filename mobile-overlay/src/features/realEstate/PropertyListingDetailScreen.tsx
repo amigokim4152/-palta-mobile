@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView, ScrollView, Text, View } from 'react-native';
 import {
@@ -9,10 +10,12 @@ import {
 } from '../../../../src/realEstate/realEstateDiscovery';
 import { PaltaButton } from '../../components/common/PaltaButton';
 import { paltaTheme } from '../../theme/paltaTheme';
-import { findDemoPropertyListing } from './propertyDemoData';
 import { findPropertyDetailDemo } from './propertyDetailDemoData';
+import { SaveRealEstateSearchButton } from './SaveRealEstateSearchButton';
+import { useRealEstateListing } from './useRealEstateListing';
+import { useSavedRealEstateListings } from './useSavedRealEstateListings';
 
-function Surface({ children }: { children: React.ReactNode }) {
+function Surface({ children }: { children: ReactNode }) {
   return (
     <View
       style={{
@@ -40,15 +43,26 @@ function Pill({ label }: { label: string }) {
 export function PropertyListingDetailScreen() {
   const params = useLocalSearchParams<{ listingId?: string }>();
   const listingId = typeof params.listingId === 'string' ? params.listingId : '';
-  const item = findDemoPropertyListing(listingId);
+  const { listing: item, loading, error } = useRealEstateListing(listingId);
+  const savedListings = useSavedRealEstateListings();
   const detail = findPropertyDetailDemo(listingId);
 
-  if (!item) {
+  if (loading) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: paltaTheme.color.canvas }}>
+        <View style={{ flex: 1, padding: paltaTheme.spacing.lg, justifyContent: 'center' }}>
+          <Text style={{ textAlign: 'center', color: paltaTheme.color.textSecondary }}>Cargando propiedad…</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (!item || error) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: paltaTheme.color.canvas }}>
         <View style={{ flex: 1, padding: paltaTheme.spacing.lg, justifyContent: 'center', gap: paltaTheme.spacing.md }}>
           <Text style={{ fontSize: 22, fontWeight: '900', color: paltaTheme.color.textPrimary }}>Esta propiedad no está disponible</Text>
-          <Text style={{ color: paltaTheme.color.textSecondary }}>Puede haber sido retirada, vendida o arrendada.</Text>
+          <Text style={{ color: paltaTheme.color.textSecondary }}>{error ?? 'Puede haber sido retirada, vendida o arrendada.'}</Text>
           <PaltaButton label="Volver a Propiedades" onPress={() => router.replace('/propiedades')} />
         </View>
       </SafeAreaView>
@@ -56,6 +70,7 @@ export function PropertyListingDetailScreen() {
   }
 
   const { listing, property } = item;
+  const isSaved = savedListings.isSaved(listing.id);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: paltaTheme.color.canvas }}>
@@ -99,7 +114,7 @@ export function PropertyListingDetailScreen() {
 
           <Surface>
             <Text style={{ fontSize: 17, fontWeight: '900', color: paltaTheme.color.textPrimary }}>Precio y alertas</Text>
-            <Text style={{ fontSize: 13, color: paltaTheme.color.textSecondary }}>Guarda esta propiedad o activa una búsqueda para recibir nuevas publicaciones similares.</Text>
+            <Text style={{ fontSize: 13, color: paltaTheme.color.textSecondary }}>Guarda esta propiedad o guarda una búsqueda similar para revisarla después.</Text>
             {detail?.marketReference ? (
               <View style={{ padding: paltaTheme.spacing.sm, borderRadius: paltaTheme.radius.control, backgroundColor: paltaTheme.color.surfaceMuted }}>
                 <Text style={{ fontSize: 12, fontWeight: '800', color: paltaTheme.color.textPrimary }}>{detail.marketReference.label}</Text>
@@ -108,8 +123,21 @@ export function PropertyListingDetailScreen() {
               </View>
             ) : null}
             <View style={{ flexDirection: 'row', gap: paltaTheme.spacing.sm }}>
-              <PaltaButton label="Guardar" variant="secondary" style={{ flex: 1 }} />
-              <PaltaButton label="Crear alerta" variant="secondary" style={{ flex: 1 }} />
+              <PaltaButton
+                label={isSaved ? 'Guardado' : 'Guardar'}
+                variant="secondary"
+                style={{ flex: 1 }}
+                onPress={() => void savedListings.toggleSaved(listing.id)}
+              />
+              <View style={{ flex: 1 }}>
+                <SaveRealEstateSearchButton
+                  query={{
+                    text: item.comuna,
+                    transactionType: listing.transactionType,
+                    propertyType: property.type,
+                  }}
+                />
+              </View>
             </View>
           </Surface>
 
@@ -170,12 +198,12 @@ export function PropertyListingDetailScreen() {
           </Surface>
 
           <View style={{ flexDirection: 'row', gap: paltaTheme.spacing.sm }}>
-            <PaltaButton label="Compartir" variant="secondary" style={{ flex: 1 }} />
-            <PaltaButton label="Consultar" style={{ flex: 1 }} />
+            <PaltaButton label="Compartir" variant="secondary" disabled style={{ flex: 1 }} />
+            <PaltaButton label="Consultar" disabled style={{ flex: 1 }} />
           </View>
 
           <Text style={{ fontSize: 11, lineHeight: 16, color: paltaTheme.color.textMuted }}>
-            Vista en desarrollo con datos de prueba. Cada bloque está preparado para sustituirse por su fuente real sin rehacer el flujo de usuario.
+            Vista en desarrollo con datos de prueba. Compartir y consultar se activarán al conectar Share/Message Core y la identidad verificada del publicador.
           </Text>
         </View>
       </ScrollView>
