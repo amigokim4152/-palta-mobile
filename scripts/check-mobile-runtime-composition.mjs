@@ -80,6 +80,7 @@ const ownership = [];
 const ids = new Set();
 let liveSurfaceCount = 0;
 let snapshotSurfaceCount = 0;
+let reviewedContractCount = 0;
 
 for (const surface of manifest.surfaces) {
   if (!surface || typeof surface !== 'object') fail('Invalid surface entry.');
@@ -112,10 +113,16 @@ for (const surface of manifest.surfaces) {
     fail(`Surface ${surface.id} must declare owned_paths.`);
   }
 
+  const branchOwnedPaths = (surface.branch_owned_paths ?? surface.owned_paths).map(normalizeRepoPath);
+  if (branchOwnedPaths.length === 0) fail(`Surface ${surface.id} must have branch ownership paths.`);
+
   for (const rawPath of surface.owned_paths) {
     const ownedPath = normalizeRepoPath(rawPath);
     if (surface.integration_mode === 'live_overlay' && !ownedPath.startsWith('mobile-overlay/src/')) {
       fail(`Live surface ${surface.id} can overlay only mobile-overlay/src paths: ${ownedPath}.`);
+    }
+    if (!branchOwnedPaths.some((branchPath) => containsPath(branchPath, ownedPath))) {
+      fail(`Surface ${surface.id} live/reviewed path must also belong to its branch ownership: ${ownedPath}.`);
     }
 
     for (const sharedPath of sharedPaths) {
@@ -131,6 +138,17 @@ for (const surface of manifest.surfaces) {
       }
     }
     ownership.push({ surfaceId: surface.id, path: ownedPath });
+  }
+
+  for (const rawPath of surface.reviewed_contract_paths ?? []) {
+    const reviewedPath = normalizeRepoPath(rawPath);
+    reviewedContractCount += 1;
+    if (!branchOwnedPaths.some((branchPath) => containsPath(branchPath, reviewedPath))) {
+      fail(`Reviewed contract ${surface.id}:${reviewedPath} must belong to its source branch ownership.`);
+    }
+    if (!fs.existsSync(path.join(root, reviewedPath))) {
+      fail(`Reviewed contract must exist in composition source: ${surface.id}:${reviewedPath}.`);
+    }
   }
 }
 
@@ -213,10 +231,13 @@ if (!watcher.includes('manifest.core_integrations') || !watcher.includes('refspe
 if (!drift.includes('CORE REVIEW REQUIRED') || !drift.includes('observed_source_sha')) {
   fail('Runtime drift check must report Shared Core advances without auto-copying them.');
 }
-if (!drift.includes('OWNERSHIP REVIEW REQUIRED') || !drift.includes('ownership_baseline_sha')) {
-  fail('Runtime drift check must detect feature-branch changes outside declared surface ownership.');
+if (!drift.includes('OWNERSHIP REVIEW REQUIRED') || !drift.includes('branch_owned_paths')) {
+  fail('Runtime drift check must detect feature-branch changes outside declared branch ownership.');
+}
+if (!drift.includes('CONTRACT REVIEW REQUIRED') || !drift.includes('reviewed_contract_paths')) {
+  fail('Runtime drift check must compare reviewed feature contracts against their source branches.');
 }
 
 console.log(
-  `PASS: mobile runtime composition (${manifest.surfaces.length} surfaces; ${liveSurfaceCount} live, ${snapshotSurfaceCount} reviewed; ${manifest.core_integrations.length} Core watches; ${ownership.length} owned paths; ownership + cross-chat discovery protected)`,
+  `PASS: mobile runtime composition (${manifest.surfaces.length} surfaces; ${liveSurfaceCount} live, ${snapshotSurfaceCount} reviewed; ${manifest.core_integrations.length} Core watches; ${reviewedContractCount} reviewed feature contracts; ${ownership.length} visible owned paths; ownership + cross-chat discovery protected)`,
 );
