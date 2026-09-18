@@ -34,7 +34,11 @@ export type LocalSearchItem = {
   category_key?: string;
   distance_m?: number;
   verification_status?: string;
-  location: { lat: number; lng: number };
+  operational_state?: string;
+  operational_confirmed_at?: string;
+  next_open_at?: string;
+  /** Exact public point is absent for area-only or hidden-location businesses. */
+  location?: { lat: number; lng: number };
 };
 
 export type BusinessApiDetail = {
