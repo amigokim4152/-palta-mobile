@@ -14,6 +14,12 @@ export {
 } from './locales.js';
 
 export {
+  resolvePreferredLocale,
+  serializePreferredLocale,
+  type LocalePreferenceInput,
+} from './preference.js';
+
+export {
   ES_CL_UI,
   resolveUiText,
   t,
