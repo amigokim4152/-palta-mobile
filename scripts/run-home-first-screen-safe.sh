@@ -29,12 +29,17 @@ sync_file() {
   echo "[Palta Home] synced $LABEL"
 }
 
-# Force the local Expo router to use the same verified Home entry path as the
-# function-first Home branch. This prevents an older local tab/index route from
-# hiding the latest Home screen even when HomeScreen itself is up to date.
+# Keep the entire bottom navigation route map aligned with the verified Home
+# branch. The screen implementations remain separate domains, but stale local
+# route wrappers must never cause two tabs to open the same screen.
 sync_file "mobile-overlay/src/app/(tabs)/home.tsx" "$APP_DIR/src/app/(tabs)/home.tsx" "Home tab route"
+sync_file "mobile-overlay/src/app/(tabs)/neighborhood.tsx" "$APP_DIR/src/app/(tabs)/neighborhood.tsx" "Negocios tab route"
+sync_file "mobile-overlay/src/app/(tabs)/community.tsx" "$APP_DIR/src/app/(tabs)/community.tsx" "Community tab route"
+sync_file "mobile-overlay/src/app/(tabs)/market.tsx" "$APP_DIR/src/app/(tabs)/market.tsx" "Market tab route"
+sync_file "mobile-overlay/src/app/(tabs)/play.tsx" "$APP_DIR/src/app/(tabs)/play.tsx" "Panoramas tab route"
 sync_file "mobile-overlay/src/app/(tabs)/index.tsx" "$APP_DIR/src/app/(tabs)/index.tsx" "tab index redirect"
 sync_file "mobile-overlay/src/app/(tabs)/_layout.tsx" "$APP_DIR/src/app/(tabs)/_layout.tsx" "tab layout / initial Home route"
+
 sync_file "mobile-overlay/src/theme/paltaTheme.ts" "$APP_DIR/src/theme/paltaTheme.ts" "Palta theme"
 sync_file "mobile-overlay/src/components/ScreenFrame.tsx" "$APP_DIR/src/components/ScreenFrame.tsx" "Home screen frame"
 sync_file "src/accessibility/focusLayout.ts" "$APP_DIR/src/accessibility/focusLayout.ts" "adaptive focus layout policy"
