@@ -1,0 +1,124 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-09-17",
+  "authority": "docs/PALTA_PLATFORM_RUNTIME_FOUNDATION_V1.md",
+  "rules": [
+    "Every module uses the canonical Palta app shell and API boundary.",
+    "Do not create a module-specific canonical database when the platform Postgres is the owner.",
+    "Direct R2/edge reads are allowed only for approved public/static high-volume data.",
+    "Private mutations and business operations go through authenticated Palta API.",
+    "Provider credentials and privileged provider calls remain server-side.",
+    "Money/fiscal operations use transactional Postgres plus Durable Outbox.",
+    "Device SQLite is cache/offline journal only, never global canonical truth."
+  ],
+  "modules": {
+    "identity_profile": {
+      "apiNamespace": ["/v1/auth/session", "/v1/me"],
+      "canonicalStore": "supabase-postgres",
+      "identityProvider": "supabase-auth",
+      "objectStore": "cloudflare-r2-when-profile-media-needed",
+      "queue": null,
+      "offline": "cache_only",
+      "notes": "Supabase Auth proves identity; Palta Postgres roles/capabilities decide authorization."
+    },
+    "home": {
+      "apiNamespace": ["/v1/home"],
+      "canonicalStore": "composed_from_platform_sources",
+      "objectStore": null,
+      "queue": null,
+      "offline": "cached_projection_allowed",
+      "notes": "Home is a projection/composition surface, not a parallel content database."
+    },
+    "local_business": {
+      "apiNamespace": ["/v1/places", "/v1/businesses"],
+      "canonicalStore": "supabase-postgres",
+      "objectStore": "cloudflare-r2",
+      "queue": "background-ingestion-when-needed",
+      "offline": "read_cache_allowed",
+      "notes": "Canonical business is reused by map/search/detail/commerce/care. Public snapshots may be edge-cached."
+    },
+    "community": {
+      "apiNamespace": ["/v1/community"],
+      "canonicalStore": "supabase-postgres",
+      "objectStore": "cloudflare-r2-for-media",
+      "queue": "notifications",
+      "offline": "read_cache_and_explicit_draft_queue",
+      "notes": "Private school/class/community authorization is server-enforced; media does not make R2 the canonical permission store."
+    },
+    "market": {
+      "apiNamespace": ["/v1/market"],
+      "canonicalStore": "supabase-postgres",
+      "objectStore": "cloudflare-r2-for-media",
+      "queue": "notifications-and-background-jobs",
+      "offline": "read_cache_and_safe_drafts",
+      "notes": "Listings and ownership are relational canonical data; images use object storage."
+    },
+    "transport": {
+      "apiNamespace": ["/v1/transport"],
+      "canonicalStore": "postgres-for-private_state_and_operational_metadata",
+      "publicStaticStore": "cloudflare-r2-edge",
+      "queue": "event-notification-and-ingestion",
+      "offline": "public_snapshot_cache_allowed",
+      "notes": "GTFS/map/public releases can be direct edge reads; private saved routes/alerts remain behind Palta API. Realtime providers stay behind collector/provider adapters."
+    },
+    "events_care": {
+      "apiNamespace": ["/v1/events"],
+      "compatibilityNamespace": ["/v1/care"],
+      "canonicalStore": "supabase-postgres",
+      "objectStore": null,
+      "queue": "notifications-and-lifecycle-work",
+      "offline": "read_cache_and_idempotent_allowed_mutations",
+      "notes": "Shared lifecycle/Event Core owns durable state; Home and push are projections/delivery choices."
+    },
+    "commerce_pos": {
+      "apiNamespace": ["/v1/commerce"],
+      "canonicalStore": "supabase-postgres",
+      "objectStore": "cloudflare-r2-for-approved-artifacts",
+      "queue": "commerce-follow-up-via-durable-outbox",
+      "offline": "sqlite_journal_only_for_explicitly_allowed_non_integrated_flows",
+      "notes": "Integrated online card initiation is blocked when canonical PaymentIntent cannot first be durably created."
+    },
+    "payment": {
+      "apiNamespace": ["/v1/payments"],
+      "canonicalStore": "supabase-postgres",
+      "secretStore": "encrypted-postgres-envelope-plus-external-kek",
+      "objectStore": "evidence-only-when-required",
+      "queue": "payment",
+      "offline": "provider_specific_only_if_explicitly_certified",
+      "notes": "Adapters are provider-neutral. Transbank/Mercado Pago exist; Getnet adapter still pending. Provider result unknown blocks blind replacement payment."
+    },
+    "fiscal_chile": {
+      "apiNamespace": ["/v1/fiscal"],
+      "canonicalStore": "supabase-postgres",
+      "secretStore": "external-secret-boundary-plus-encrypted-reference",
+      "objectStore": "cloudflare-r2-fiscal-archive",
+      "queue": "fiscal",
+      "offline": "only_when_current_chile_fiscal_policy_explicitly_allows",
+      "notes": "Payment success is not rolled back solely because SII is unavailable. Fiscal policy decides blocking/deferred behavior."
+    },
+    "notifications": {
+      "apiNamespace": ["/v1/notifications"],
+      "canonicalStore": "supabase-postgres-for_preferences_delivery_state",
+      "objectStore": null,
+      "queue": "notifications",
+      "offline": "local_notification_state_cache_allowed",
+      "notes": "Event decision and push delivery are separate; delivery providers are adapters."
+    },
+    "map_public_assets": {
+      "apiNamespace": [],
+      "canonicalStore": "versioned-public-release-metadata-in-platform-store",
+      "objectStore": "existing-cloudflare-r2-map-public-edge",
+      "queue": "background-release-build-only",
+      "offline": "cache_allowed",
+      "notes": "Reuse existing R2/Worker after inventory; do not create duplicate map storage."
+    },
+    "media_files": {
+      "apiNamespace": ["signed-or-authorized-upload-download-endpoints-as-needed"],
+      "canonicalStore": "postgres-metadata-and-permission-reference",
+      "objectStore": "cloudflare-r2",
+      "queue": "media-processing-when-needed",
+      "offline": "local-upload-staging-allowed",
+      "notes": "Object URLs do not replace authorization metadata. Private media must not become public merely because it is in R2."
+    }
+  }
+}
