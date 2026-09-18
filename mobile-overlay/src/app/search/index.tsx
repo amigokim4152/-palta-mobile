@@ -1,10 +1,17 @@
 import { Text } from 'react-native';
+import { surfaceT } from '../../../../src/localization/index';
 import { ScreenFrame } from '../../components/ScreenFrame';
+import { useLocalization } from '../../providers/LocalizationProvider';
 
 export default function SearchScreen() {
+  const { locale } = useLocalization();
+
   return (
-    <ScreenFrame title="Buscar" subtitle="Una búsqueda, múltiples tipos de resultado">
-      <Text>Places · Businesses · Public actions · Events · Market · Personal state when appropriate</Text>
+    <ScreenFrame
+      title={surfaceT('search.title', locale)}
+      subtitle={surfaceT('search.subtitle', locale)}
+    >
+      <Text>{surfaceT('search.scope', locale)}</Text>
     </ScreenFrame>
   );
 }
