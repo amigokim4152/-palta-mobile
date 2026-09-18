@@ -18,6 +18,7 @@ import { SummaryListRow } from '../../components/home/SummaryListRow';
 import { useAsyncResource } from '../../hooks/useAsyncResource';
 import { mobileRuntime } from '../../services/paltaClient';
 import { paltaTheme } from '../../theme/paltaTheme';
+import { missingLegacyLifeCardDemoItems } from './demoLegacyLifeCards';
 
 const DETAILED_SEASONAL_FOOD_KEYS = new Set([
   'today.seasonal_fruit',
@@ -119,6 +120,15 @@ function domainLabel(domain: string): string {
     'local-life': 'Vida local',
     food: 'Alimentos',
     play: 'Panoramas',
+    economy: 'Economía',
+    fuel: 'Combustible',
+    traffic: 'Tránsito',
+    road: 'Rutas',
+    border: 'Frontera',
+    marine: 'Mar',
+    safety: 'Seguridad',
+    message: 'Mensajes',
+    'local-business': 'Negocios',
   };
   return labels[domain] ?? 'Palta';
 }
@@ -261,18 +271,23 @@ export function HomeScreen() {
     (data.glance ?? []).some((item) => item.data_mode === 'demo') ||
     data.items.some((item) => item.data_mode === 'demo');
 
-  const nowItems = data.items.filter((item) => itemSurface(item) === 'now');
-  const inProgressItems = data.items.filter(
+  const completeDemoItems = demoMode
+    ? missingLegacyLifeCardDemoItems(data.items)
+    : [];
+  const homeItems = demoMode ? [...data.items, ...completeDemoItems] : data.items;
+
+  const nowItems = homeItems.filter((item) => itemSurface(item) === 'now');
+  const inProgressItems = homeItems.filter(
     (item) => itemSurface(item) === 'in_progress',
   );
-  const upcomingItems = data.items.filter(
+  const upcomingItems = homeItems.filter(
     (item) => itemSurface(item) === 'upcoming',
   );
-  const rawUsefulTodayItems = data.items.filter(
+  const rawUsefulTodayItems = homeItems.filter(
     (item) => itemSurface(item) === 'useful_today',
   );
 
-  const hasDetailedSeasonalFood = data.items.some(
+  const hasDetailedSeasonalFood = homeItems.some(
     (item) =>
       typeof item.capability_key === 'string' &&
       DETAILED_SEASONAL_FOOD_KEYS.has(item.capability_key),
