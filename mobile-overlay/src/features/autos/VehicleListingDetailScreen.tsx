@@ -101,7 +101,16 @@ export function VehicleListingDetailScreen() {
               {listing.verifiedSeller ? 'Identidad del vendedor verificada · demo' : 'Verificación pendiente · demo'}
             </Text>
             {listing.publisherBusinessId ? (
-              <Pressable onPress={() => router.push(`/business/${encodeURIComponent(listing.publisherBusinessId)}`)} style={{ marginTop: 6 }}>
+              <Pressable
+                onPress={() =>
+                  router.push(
+                    listing.publisherBusinessId.startsWith('demo-business-auto-')
+                      ? `/autos/dealer/${encodeURIComponent(listing.publisherBusinessId)}`
+                      : `/business/${encodeURIComponent(listing.publisherBusinessId)}`,
+                  )
+                }
+                style={{ marginTop: 6 }}
+              >
                 <Text style={{ fontWeight: '800', color: paltaTheme.color.brandPrimary }}>Ver perfil del negocio ›</Text>
               </Pressable>
             ) : null}
