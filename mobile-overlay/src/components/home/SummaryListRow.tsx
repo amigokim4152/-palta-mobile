@@ -42,7 +42,7 @@ export function SummaryListRow({
             flexShrink: 1,
             fontSize: 16,
             lineHeight: 22,
-            fontWeight: '650',
+            fontWeight: '600',
             color: paltaTheme.color.textPrimary,
           }}
         >
