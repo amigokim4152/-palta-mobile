@@ -11,6 +11,7 @@
     "mobile-overlay/src/app/messages",
     "mobile-overlay/src/features/messaging",
     "mobile-overlay/src/providers/MarketRuntimeBootstrap.tsx",
+    "mobile-overlay/src/components/navigation",
     "mobile-overlay/src/theme",
     "mobile-overlay/src/services",
     "src/api/paltaApiClient.ts",
