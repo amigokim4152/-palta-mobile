@@ -77,12 +77,8 @@ export const playContentDefinitions: readonly PlayContentDefinition[] = [
   { kind: 'other', family: 'culture_entertainment', labelEs: 'Otros panoramas', defaultThemes: [] },
 ] as const;
 
-const definitionByKind = new Map<PlayContentKind, PlayContentDefinition>(
-  playContentDefinitions.map((definition) => [definition.kind, definition]),
-);
-
 export function playContentDefinition(kind: PlayContentKind): PlayContentDefinition {
-  return definitionByKind.get(kind) ?? {
+  return playContentDefinitions.find((definition) => definition.kind === kind) ?? {
     kind: 'other',
     family: 'culture_entertainment',
     labelEs: 'Otros panoramas',
