@@ -5,7 +5,10 @@ import { parseRuntimeEnv } from '../../../src/config/runtimeEnv';
 import { createMarketHttpPorts } from '../../../src/market/marketHttpAdapter';
 import type { MarketMessagingPort } from '../../../src/market/marketMessagingFlow';
 import { createSupabaseAuthPort } from '../adapters/createSupabaseAuthPort';
-import { installMarketRuntime } from '../features/market/marketRuntime';
+import {
+  createMarketPreviewRuntime,
+  installMarketRuntime,
+} from '../features/market/marketRuntime';
 import { getAuthenticatedMobileRuntime } from '../services/paltaClient';
 
 function createFetchLike() {
@@ -20,12 +23,21 @@ function createFetchLike() {
 }
 
 /**
- * Composition-owned live Mercado wiring.
+ * Composition-owned Mercado wiring.
  * Mercado owns product behavior; shared runtime owns network/auth and Message Core.
+ * The public PWA preview deliberately installs fixture data so visual reviews can
+ * happen without mutating palta-dev or production data.
  */
 export function MarketRuntimeBootstrap() {
   useEffect(() => {
     let dispose: (() => void) | undefined;
+
+    if (process.env.EXPO_PUBLIC_PALTA_PREVIEW === '1') {
+      dispose = installMarketRuntime(createMarketPreviewRuntime());
+      return () => {
+        dispose?.();
+      };
+    }
 
     try {
       const env = parseRuntimeEnv({
