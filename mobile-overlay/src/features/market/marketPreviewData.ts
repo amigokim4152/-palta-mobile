@@ -19,6 +19,8 @@ export type MarketPreviewListing = {
   priceClp?: number;
   tradeMode: MarketPreviewTradeMode;
   category: Exclude<MarketCategoryKey, 'all'>;
+  /** Preview-only product family used to validate related-item UX. */
+  recommendationGroup?: string;
   comuna: string;
   distanceKm: number;
   ageLabel: string;
@@ -41,115 +43,123 @@ export type MarketPreviewListing = {
  */
 export const marketPreviewListings: MarketPreviewListing[] = [
   {
-    id: 'preview-bike-01',
+    id: 'preview-iphone-01',
     vertical: 'secondhand',
-    title: 'Bicicleta urbana en muy buen estado',
+    title: 'iPhone 14 128 GB · muy buen estado',
+    priceClp: 430000,
+    tradeMode: 'sale',
+    category: 'tech',
+    recommendationGroup: 'smartphone',
+    comuna: 'Vitacura',
+    distanceKm: 1.1,
+    ageLabel: 'hace 15 min',
+    favorites: 18,
+    chats: 6,
+    status: 'active',
+    imageUrl:
+      'https://images.unsplash.com/photo-1678685888221-cda773a3dcdb?auto=format&fit=crop&w=600&q=80',
+    sellerName: 'María',
+    description:
+      'iPhone 14 de 128 GB, batería en buen estado y sin reparaciones. Se puede revisar y probar antes de coordinar la compra.',
+  },
+  {
+    id: 'preview-galaxy-02',
+    vertical: 'secondhand',
+    title: 'Samsung Galaxy S23 256 GB',
+    priceClp: 390000,
+    tradeMode: 'sale',
+    category: 'tech',
+    recommendationGroup: 'smartphone',
+    comuna: 'Las Condes',
+    distanceKm: 2.7,
+    ageLabel: 'hace 32 min',
+    favorites: 15,
+    chats: 5,
+    status: 'active',
+    imageUrl:
+      'https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?auto=format&fit=crop&w=600&q=80',
+    sellerName: 'Tomás',
+    description:
+      'Galaxy S23 de 256 GB con caja y cable. Pantalla y cámaras funcionando correctamente; disponible para revisar en un punto acordado.',
+  },
+  {
+    id: 'preview-iphone-03',
+    vertical: 'secondhand',
+    title: 'iPhone 13 128 GB · con caja',
+    priceClp: 330000,
+    tradeMode: 'sale',
+    category: 'tech',
+    recommendationGroup: 'smartphone',
+    comuna: 'Providencia',
+    distanceKm: 4.0,
+    ageLabel: 'hace 48 min',
+    favorites: 24,
+    chats: 8,
+    status: 'reserved',
+    imageUrl:
+      'https://images.unsplash.com/photo-1632661674596-df8be070a5c5?auto=format&fit=crop&w=600&q=80',
+    sellerName: 'Diego',
+    description:
+      'iPhone 13 de 128 GB con caja. Tiene marcas leves de uso y está reservado mientras se coordina una revisión.',
+  },
+  {
+    id: 'preview-bike-04',
+    vertical: 'secondhand',
+    title: 'Bicicleta urbana aro 28',
     priceClp: 120000,
     tradeMode: 'sale',
     category: 'sports',
-    comuna: 'Vitacura',
-    distanceKm: 1.2,
-    ageLabel: 'hace 15 min',
+    recommendationGroup: 'urban_bike',
+    comuna: 'Ñuñoa',
+    distanceKm: 6.2,
+    ageLabel: 'hace 1 h',
     favorites: 8,
     chats: 3,
     status: 'active',
     imageUrl:
       'https://images.unsplash.com/photo-1571068316344-75bc76f77890?auto=format&fit=crop&w=600&q=80',
-    sellerName: 'María',
+    sellerName: 'Camila',
     description:
-      'Bicicleta urbana cuidada, frenos y cambios funcionando bien. Entrega cerca de Parque Bicentenario.',
+      'Bicicleta urbana cuidada, frenos y cambios funcionando bien. Entrega en un punto público acordado.',
   },
   {
-    id: 'preview-chair-02',
+    id: 'preview-chair-05',
     vertical: 'secondhand',
     title: 'Silla de comedor de madera',
     priceClp: 28000,
     tradeMode: 'sale',
     category: 'home',
-    comuna: 'Las Condes',
-    distanceKm: 2.6,
-    ageLabel: 'hace 38 min',
+    recommendationGroup: 'dining_chair',
+    comuna: 'Lo Barnechea',
+    distanceKm: 5.4,
+    ageLabel: 'hace 2 h',
     favorites: 14,
     chats: 5,
-    status: 'reserved',
+    status: 'active',
     imageUrl:
       'https://images.unsplash.com/photo-1503602642458-232111445657?auto=format&fit=crop&w=600&q=80',
-    sellerName: 'Tomás',
+    sellerName: 'Paula',
     description:
       'Silla firme y limpia. Tiene pequeñas marcas normales de uso. Retiro coordinado por mensaje.',
   },
   {
-    id: 'preview-camera-03',
-    vertical: 'secondhand',
-    title: 'Cámara compacta con batería',
-    priceClp: 95000,
-    tradeMode: 'sale',
-    category: 'tech',
-    comuna: 'Providencia',
-    distanceKm: 4.1,
-    ageLabel: 'hace 1 h',
-    favorites: 21,
-    chats: 7,
-    status: 'active',
-    imageUrl:
-      'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&w=600&q=80',
-    sellerName: 'Diego',
-    description:
-      'Incluye batería, cargador y correa. Se puede probar al momento de la entrega.',
-  },
-  {
-    id: 'preview-shoes-04',
-    vertical: 'secondhand',
-    title: 'Zapatillas deportivas talla 40',
-    priceClp: 35000,
-    tradeMode: 'sale',
-    category: 'fashion',
-    comuna: 'Ñuñoa',
-    distanceKm: 6.4,
-    ageLabel: 'hace 2 h',
-    favorites: 5,
-    chats: 1,
-    status: 'active',
-    imageUrl:
-      'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=600&q=80',
-    sellerName: 'Camila',
-    description: 'Muy poco uso. Se entregan limpias y con su caja.',
-  },
-  {
-    id: 'preview-free-05',
+    id: 'preview-free-06',
     vertical: 'secondhand',
     title: 'Caja de libros infantiles',
     tradeMode: 'free',
     category: 'kids',
-    comuna: 'Lo Barnechea',
-    distanceKm: 5.3,
+    recommendationGroup: 'kids_books',
+    comuna: 'La Reina',
+    distanceKm: 8.0,
     ageLabel: 'hace 3 h',
     favorites: 19,
     chats: 9,
     status: 'active',
     imageUrl:
       'https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=600&q=80',
-    sellerName: 'Paula',
-    description:
-      'Libros usados pero completos. Prefiero entregarlos todos juntos a una familia que los aproveche.',
-  },
-  {
-    id: 'preview-coffee-06',
-    vertical: 'secondhand',
-    title: 'Cafetera italiana + molino manual',
-    tradeMode: 'exchange',
-    category: 'home',
-    comuna: 'La Reina',
-    distanceKm: 8.0,
-    ageLabel: 'hace 4 h',
-    favorites: 11,
-    chats: 4,
-    status: 'active',
-    imageUrl:
-      'https://images.unsplash.com/photo-1517668808822-9ebb02f2a0e6?auto=format&fit=crop&w=600&q=80',
     sellerName: 'Felipe',
     description:
-      'Cafetera italiana y molino manual funcionando bien. Me interesa intercambio por accesorios de cocina o una planta de interior.',
+      'Libros usados pero completos. Prefiero entregarlos todos juntos a una familia que los aproveche.',
   },
   {
     id: 'preview-produce-09',
@@ -158,6 +168,7 @@ export const marketPreviewListings: MarketPreviewListing[] = [
     priceClp: 18000,
     tradeMode: 'sale',
     category: 'home',
+    recommendationGroup: 'produce_box',
     comuna: 'La Reina',
     distanceKm: 8.1,
     ageLabel: 'hace 55 min',
@@ -171,3 +182,40 @@ export const marketPreviewListings: MarketPreviewListing[] = [
       'Caja con verduras de temporada preparadas para retiro semanal. Disponibilidad y punto de entrega se confirman antes de pagar o desplazarse.',
   },
 ];
+
+export function marketPreviewRecommendationIds(
+  listingId: string,
+  limit = 3,
+): string[] {
+  const current = marketPreviewListings.find((item) => item.id === listingId);
+  if (!current) return [];
+
+  return marketPreviewListings
+    .filter(
+      (item) =>
+        item.id !== current.id &&
+        item.vertical === current.vertical &&
+        item.category === current.category,
+    )
+    .sort((a, b) => {
+      const aFamily =
+        a.recommendationGroup && a.recommendationGroup === current.recommendationGroup
+          ? 0
+          : 1;
+      const bFamily =
+        b.recommendationGroup && b.recommendationGroup === current.recommendationGroup
+          ? 0
+          : 1;
+      if (aFamily !== bFamily) return aFamily - bFamily;
+
+      const currentPrice = current.priceClp;
+      if (typeof currentPrice === 'number') {
+        const aGap = Math.abs((a.priceClp ?? currentPrice * 3) - currentPrice);
+        const bGap = Math.abs((b.priceClp ?? currentPrice * 3) - currentPrice);
+        if (aGap !== bGap) return aGap - bGap;
+      }
+      return a.distanceKm - b.distanceKm;
+    })
+    .slice(0, limit)
+    .map((item) => item.id);
+}
