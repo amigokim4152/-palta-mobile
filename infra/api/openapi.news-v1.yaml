@@ -1,0 +1,160 @@
+openapi: 3.1.0
+info:
+  title: Palta Public News API
+  version: 1.0.0-draft
+  description: >
+    Public, read-only News contract for news.somospalta.cl. This API serves only
+    owner-approved Public Projection objects. Raw collection, editorial state,
+    Korean operator copy, risk flags and review metadata are outside this API.
+servers:
+  - url: https://api.somospalta.cl
+    description: Planned Palta public edge boundary
+  - url: http://localhost:8787
+    description: Local Worker development boundary
+
+tags:
+  - name: News
+
+paths:
+  /v1/cl/news/home:
+    get:
+      tags: [News]
+      summary: Public Palta News home projection
+      operationId: getPublicNewsHome
+      responses:
+        "200":
+          description: Owner-approved public home projection
+          headers:
+            ETag:
+              schema: { type: string }
+            Cache-Control:
+              schema: { type: string }
+          content:
+            application/json:
+              schema:
+                $ref: "../../news-web/contracts/public-news-home-v1.schema.json"
+        "304":
+          description: Not modified for matching ETag
+        "404":
+          $ref: "#/components/responses/UnavailableOrDisabled"
+        "503":
+          $ref: "#/components/responses/StorageUnavailable"
+
+  /v1/cl/news/stories/{slug}:
+    get:
+      tags: [News]
+      summary: One public News story
+      operationId: getPublicNewsStory
+      parameters:
+        - $ref: "#/components/parameters/Slug"
+      responses:
+        "200":
+          description: Owner-approved story projection
+          content:
+            application/json:
+              schema:
+                $ref: "../../news-web/contracts/public-news-story-v1.schema.json"
+        "304":
+          description: Not modified for matching ETag
+        "404":
+          $ref: "#/components/responses/UnavailableOrDisabled"
+        "503":
+          $ref: "#/components/responses/StorageUnavailable"
+
+  /v1/cl/news/comunas/{slug}:
+    get:
+      tags: [News]
+      summary: Public News page for one comuna
+      operationId: getPublicNewsComuna
+      parameters:
+        - $ref: "#/components/parameters/Slug"
+      responses:
+        "200":
+          description: Public comuna projection derived from approved canonical stories
+          content:
+            application/json:
+              schema:
+                $ref: "../../news-web/contracts/public-news-local-v1.schema.json"
+        "304":
+          description: Not modified for matching ETag
+        "404":
+          $ref: "#/components/responses/UnavailableOrDisabled"
+        "503":
+          $ref: "#/components/responses/StorageUnavailable"
+
+  /v1/cl/news/regions/{slug}:
+    get:
+      tags: [News]
+      summary: Public News page for one region
+      operationId: getPublicNewsRegion
+      parameters:
+        - $ref: "#/components/parameters/Slug"
+      responses:
+        "200":
+          description: Public region projection derived from approved canonical stories
+          content:
+            application/json:
+              schema:
+                $ref: "../../news-web/contracts/public-news-local-v1.schema.json"
+        "304":
+          description: Not modified for matching ETag
+        "404":
+          $ref: "#/components/responses/UnavailableOrDisabled"
+        "503":
+          $ref: "#/components/responses/StorageUnavailable"
+
+  /v1/cl/news/voices:
+    get:
+      tags: [News]
+      summary: Clearly labeled Local Voices contributions
+      operationId: getPublicNewsVoices
+      responses:
+        "200":
+          description: Owner-approved contributed perspectives with explicit rights/disclosure metadata
+          content:
+            application/json:
+              schema:
+                $ref: "../../news-web/contracts/public-news-voices-v1.schema.json"
+        "304":
+          description: Not modified for matching ETag
+        "404":
+          $ref: "#/components/responses/UnavailableOrDisabled"
+        "503":
+          $ref: "#/components/responses/StorageUnavailable"
+
+components:
+  parameters:
+    Slug:
+      in: path
+      name: slug
+      required: true
+      schema:
+        type: string
+        pattern: "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+
+  schemas:
+    EdgeStatus:
+      type: object
+      additionalProperties: false
+      required: [status, reason]
+      properties:
+        status:
+          enum: [BLOCKED, UNAVAILABLE]
+        reason:
+          enum: [public_news_disabled, public_news_storage_not_bound]
+
+  responses:
+    UnavailableOrDisabled:
+      description: >
+        The resource does not exist, or the independent edge publication gate is disabled.
+        Disabled News intentionally does not expose whether stale public objects exist.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/EdgeStatus"
+    StorageUnavailable:
+      description: Public News is enabled but the confirmed public-content R2 binding is unavailable
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/EdgeStatus"
