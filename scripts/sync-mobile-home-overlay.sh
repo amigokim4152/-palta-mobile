@@ -14,16 +14,25 @@ if [[ ! -d mobile-overlay/src ]]; then
   exit 1
 fi
 
-backup="/tmp/palta-home-backup-$(date +%Y%m%d-%H%M%S)"
+backup="/tmp/palta-primary-surfaces-backup-$(date +%Y%m%d-%H%M%S)"
 mkdir -p "$backup"
 
 files=(
+  "app/_layout.tsx"
   "app/(tabs)/_layout.tsx"
   "app/(tabs)/index.tsx"
   "app/(tabs)/home.tsx"
+  "app/(tabs)/community.tsx"
+  "app/search/index.tsx"
+  "app/context/[contextId].tsx"
+  "app/community/[communitySpaceId].tsx"
   "features/home/HomeScreen.tsx"
+  "features/community/CommunityScreen.tsx"
+  "features/community/communityRuntime.ts"
   "components/HomeCandidateCard.tsx"
   "components/ScreenFrame.tsx"
+  "components/common/FilterChip.tsx"
+  "components/common/PaltaButton.tsx"
   "theme/paltaTheme.ts"
 )
 
@@ -42,6 +51,6 @@ for rel in "${files[@]}"; do
   cp "$src" "$dst"
 done
 
-echo "Home overlay synced to apps/mobile/src."
+echo "Home and Community primary surfaces synced to apps/mobile/src."
 echo "Backup of replaced files: $backup"
 echo "No branch switch, merge, delete, dependency install, or unrelated file mutation was performed."
