@@ -50,7 +50,7 @@
       "id": "community",
       "source_branch": "integration/community-runtime-v1",
       "integration_mode": "reviewed_snapshot",
-      "integrated_source_sha": "1a90545e18c19542dc4cd540bed22356a79f7842",
+      "integrated_source_sha": "0f5937bebc2af6d0545fa83176b7be5011630ded",
       "owned_paths": [
         "mobile-overlay/src/features/community",
         "mobile-overlay/src/app/(tabs)/community.tsx",
