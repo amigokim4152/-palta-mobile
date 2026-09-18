@@ -1,8 +1,4 @@
-export type MarketVerticalKey =
-  | 'secondhand'
-  | 'vehicles'
-  | 'property'
-  | 'jobs_services';
+export type MarketVerticalKey = 'secondhand';
 
 export type MarketVerticalDefinition = {
   key: MarketVerticalKey;
@@ -12,32 +8,16 @@ export type MarketVerticalDefinition = {
   browseWithoutLogin: boolean;
 };
 
+/**
+ * Mercado is intentionally narrow in v1: person-to-person neighborhood goods.
+ * Vehicles, property and jobs/services are separate Palta verticals and must not
+ * be mixed into the Mercado feed merely because they can be listed.
+ */
 export const marketVerticals: MarketVerticalDefinition[] = [
   {
     key: 'secondhand',
     title: 'Usados',
     mapUseful: false,
-    createContextual: true,
-    browseWithoutLogin: true,
-  },
-  {
-    key: 'vehicles',
-    title: 'Vehículos',
-    mapUseful: true,
-    createContextual: true,
-    browseWithoutLogin: true,
-  },
-  {
-    key: 'property',
-    title: 'Propiedades',
-    mapUseful: true,
-    createContextual: true,
-    browseWithoutLogin: true,
-  },
-  {
-    key: 'jobs_services',
-    title: 'Empleos y servicios',
-    mapUseful: true,
     createContextual: true,
     browseWithoutLogin: true,
   },
