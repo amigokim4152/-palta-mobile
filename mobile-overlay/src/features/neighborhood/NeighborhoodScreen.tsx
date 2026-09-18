@@ -11,7 +11,6 @@ import { LocalResultCard } from '../../components/LocalResultCard';
 import { FilterChip } from '../../components/common/FilterChip';
 import { MapResultSheet } from '../../components/neighborhood/MapResultSheet';
 import { NeighborhoodMap } from '../../components/map/NeighborhoodMap';
-import { PALTA_DEVELOPMENT_MAP_STYLE } from '../../components/map/paltaDevelopmentMapStyle';
 import { ScreenFrame } from '../../components/ScreenFrame';
 import { useAsyncResource } from '../../hooks/useAsyncResource';
 import { expoLocationAdapter } from '../../adapters/expoLocationAdapter';
@@ -88,16 +87,6 @@ export function NeighborhoodScreen() {
     [visibleResults, neighborhood.selectedEntityId],
   );
 
-  const isDevelopment =
-    mobileRuntime.status === 'ready' &&
-    mobileRuntime.environment === 'development';
-
-  const resolvedMapStyle =
-    mobileRuntime.status === 'ready'
-      ? mobileRuntime.mapStyleUrl ??
-        (isDevelopment ? PALTA_DEVELOPMENT_MAP_STYLE : undefined)
-      : undefined;
-
   async function useMyLocation() {
     setLocationBusy(true);
     setLocationError(null);
@@ -161,7 +150,8 @@ export function NeighborhoodScreen() {
           </Text>
         </Pressable>
 
-        {isDevelopment ? (
+        {mobileRuntime.status === 'ready' &&
+        mobileRuntime.environment === 'development' ? (
           <Pressable
             onPress={() =>
               dispatch({
@@ -190,12 +180,12 @@ export function NeighborhoodScreen() {
     >
       <View style={{ flex: 1 }}>
         <View style={{ minHeight: 250, flex: 1 }}>
-          {resolvedMapStyle ? (
+          {mobileRuntime.status === 'ready' &&
+          mobileRuntime.mapStyleUrl ? (
             <NeighborhoodMap
-              mapStyle={resolvedMapStyle}
+              mapStyle={mobileRuntime.mapStyleUrl}
               features={mapFeatures}
               initialCenter={neighborhood.effectiveLocation}
-              showLoadStatus={isDevelopment}
               onSelectEntity={(entityId) =>
                 dispatch({ type: 'select_entity', entityId })
               }
@@ -217,9 +207,9 @@ export function NeighborhoodScreen() {
                 borderWidth: 1,
               }}
             >
-              <Text>Mapa no disponible</Text>
+              <Text>Map Core preparado</Text>
               <Text style={{ marginTop: 6, opacity: 0.6 }}>
-                Falta conectar el estilo de mapa.
+                Falta conectar EXPO_PUBLIC_MAP_STYLE_URL.
               </Text>
             </View>
           )}
