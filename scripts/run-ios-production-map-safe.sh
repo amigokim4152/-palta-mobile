@@ -67,6 +67,12 @@ copy_overlay \
 adjust_repo_root_imports "$APP_DIR/src/components/map/NeighborhoodMap.tsx"
 
 copy_overlay \
+  "$ROOT/mobile-overlay/src/components/neighborhood/MapResultSheet.tsx" \
+  "$APP_DIR/src/components/neighborhood/MapResultSheet.tsx" \
+  "MapResultSheet.tsx"
+adjust_repo_root_imports "$APP_DIR/src/components/neighborhood/MapResultSheet.tsx"
+
+copy_overlay \
   "$ROOT/mobile-overlay/src/features/neighborhood/NeighborhoodScreen.tsx" \
   "$APP_DIR/src/features/neighborhood/NeighborhoodScreen.tsx" \
   "NeighborhoodScreen.tsx"
