@@ -16,6 +16,7 @@ import {
   t,
   tryNormalizeLocale,
 } from '../src/localization/index.js';
+import { marketVerticalByKey } from '../src/market/marketVerticalPolicy.js';
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
@@ -99,6 +100,11 @@ assert(
     'Post in Vehicles',
   'Feature copy should support runtime interpolation.',
 );
+const propertyVertical = marketVerticalByKey('property');
+assert(
+  !('title' in propertyVertical),
+  'Market policy must remain language-neutral; display titles belong to localization catalogs.',
+);
 assert(
   careStateLabel('follow_up', 'zh-Hans') === '后续处理',
   'Care state labels should resolve in Simplified Chinese.',
@@ -137,11 +143,28 @@ const localizedApi = new PaltaApiClient({
               {
                 entity_id: 'biz-pharmacy-1',
                 entity_type: 'business',
+                entity_type_label: '동네업체',
                 name: 'Farmacia ejemplo',
                 category_key: 'pharmacy',
                 category_label: '약국',
                 verification_status: 'verified',
                 location: { lat: -33.39, lng: -70.57 },
+              },
+              {
+                entity_id: 'public-service-1',
+                entity_type: 'public_service',
+                entity_type_label: '공공 서비스',
+                name: 'Atención municipal ejemplo',
+                category_key: 'municipal_service',
+                category_label: '구청 서비스',
+                location: { lat: -33.391, lng: -70.571 },
+              },
+              {
+                entity_id: 'event-1',
+                entity_type: 'event',
+                entity_type_label: '행사',
+                name: 'Feria vecinal de ejemplo',
+                location: { lat: -33.392, lng: -70.572 },
               },
             ],
           };
@@ -174,8 +197,22 @@ assert(
 );
 assert(
   localizedSearch[0]?.category_key === 'pharmacy' &&
-    localizedSearch[0]?.category_label === '약국',
-  'Localized search responses must preserve the canonical key and additive display label.',
+    localizedSearch[0]?.category_label === '약국' &&
+    localizedSearch[0]?.entity_type_label === '동네업체',
+  'Localized business search results must preserve canonical keys and additive display labels.',
+);
+assert(
+  localizedSearch[1]?.entity_type === 'public_service' &&
+    localizedSearch[1]?.entity_type_label === '공공 서비스' &&
+    localizedSearch[1]?.category_key === 'municipal_service' &&
+    localizedSearch[1]?.category_label === '구청 서비스',
+  'Public-service search results must keep canonical taxonomy alongside localized labels.',
+);
+assert(
+  localizedSearch[2]?.entity_type === 'event' &&
+    localizedSearch[2]?.entity_type_label === '행사' &&
+    localizedSearch[2]?.name === 'Feria vecinal de ejemplo',
+  'Event search results must localize metadata without translating proper names.',
 );
 
 const localizedBusiness = await localizedApi.getBusiness(
