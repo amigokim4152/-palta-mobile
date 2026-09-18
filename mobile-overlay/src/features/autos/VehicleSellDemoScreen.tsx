@@ -14,7 +14,9 @@ import {
   hasRequiredVehicleCaptures,
   type VehicleCaptureSlotId,
 } from '../../../../src/autos/autosCaptureFlow';
+import { estimateChileVehicleTransaction } from '../../../../src/autos/chileVehicleTransaction';
 import { paltaTheme } from '../../theme/paltaTheme';
+import { createDemoAcquisitionRequest } from './autosAcquisitionDemoState';
 import { publishDemoVehicle } from './autosDemoState';
 
 type SellStep = 'identify' | 'photos' | 'confirm' | 'method';
@@ -22,6 +24,10 @@ type SellMethod = 'dealer_offers' | 'direct';
 
 function digits(value: string) {
   return Number(value.replace(/[^0-9]/g, ''));
+}
+
+function clp(value: number) {
+  return `$${new Intl.NumberFormat('es-CL').format(value)}`;
 }
 
 function Field({
@@ -90,17 +96,7 @@ function PrimaryButton({ label, onPress, disabled = false }: { label: string; on
   );
 }
 
-function ChoiceCard({
-  selected,
-  title,
-  body,
-  onPress,
-}: {
-  selected: boolean;
-  title: string;
-  body: string;
-  onPress: () => void;
-}) {
+function ChoiceCard({ selected, title, body, onPress }: { selected: boolean; title: string; body: string; onPress: () => void }) {
   return (
     <Pressable
       onPress={onPress}
@@ -132,18 +128,19 @@ export function VehicleSellDemoScreen() {
   const [capturedSlots, setCapturedSlots] = useState<VehicleCaptureSlotId[]>([]);
   const [sellMethod, setSellMethod] = useState<SellMethod>('dealer_offers');
   const [editingIdentity, setEditingIdentity] = useState(false);
-  const [dealerRequestPrepared, setDealerRequestPrepared] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const requiredPhotoCount = useMemo(
-    () => AUTOS_CAPTURE_SLOTS.filter((slot) => slot.required).length,
-    [],
-  );
+  const requiredPhotoCount = useMemo(() => AUTOS_CAPTURE_SLOTS.filter((slot) => slot.required).length, []);
   const completedRequiredPhotoCount = useMemo(
     () => AUTOS_CAPTURE_SLOTS.filter((slot) => slot.required && capturedSlots.includes(slot.id)).length,
     [capturedSlots],
   );
   const requiredPhotosReady = hasRequiredVehicleCaptures(capturedSlots);
+  const priceValue = digits(price);
+  const directSaleEstimate = useMemo(
+    () => estimateChileVehicleTransaction({ salePriceClp: priceValue, costBearer: 'buyer' }),
+    [priceValue],
+  );
 
   function toggleCapture(slotId: VehicleCaptureSlotId) {
     setCapturedSlots((current) =>
@@ -187,7 +184,6 @@ export function VehicleSellDemoScreen() {
   function publishDirect() {
     const yearValue = digits(year);
     const mileageValue = digits(mileage);
-    const priceValue = digits(price);
     if (priceValue <= 0) {
       setError('Ingresa el precio que quieres pedir.');
       return;
@@ -206,9 +202,19 @@ export function VehicleSellDemoScreen() {
     router.replace(`/autos/listing/${encodeURIComponent(item.listing.id)}`);
   }
 
-  function prepareDealerRequest() {
+  function requestDealerOffers() {
+    const yearValue = digits(year);
+    const mileageValue = digits(mileage);
+    const request = createDemoAcquisitionRequest({
+      make,
+      model,
+      year: yearValue,
+      mileageKm: mileageValue,
+      comuna,
+      askingReferenceClp: priceValue > 0 ? priceValue : undefined,
+    });
     setError(null);
-    setDealerRequestPrepared(true);
+    router.push(`/autos/offers/${encodeURIComponent(request.request.id)}`);
   }
 
   return (
@@ -218,7 +224,10 @@ export function VehicleSellDemoScreen() {
         contentContainerStyle={{ padding: paltaTheme.spacing.md, paddingBottom: 48, gap: paltaTheme.spacing.lg }}
       >
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: paltaTheme.spacing.sm }}>
-          <Pressable onPress={() => (step === 'identify' ? router.back() : setStep(step === 'photos' ? 'identify' : step === 'confirm' ? 'photos' : 'confirm'))} style={{ minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' }}>
+          <Pressable
+            onPress={() => (step === 'identify' ? router.back() : setStep(step === 'photos' ? 'identify' : step === 'confirm' ? 'photos' : 'confirm'))}
+            style={{ minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' }}
+          >
             <Text style={{ fontSize: 24, color: paltaTheme.color.textPrimary }}>‹</Text>
           </Pressable>
           <View style={{ flex: 1 }}>
@@ -355,41 +364,67 @@ export function VehicleSellDemoScreen() {
                 selected={sellMethod === 'dealer_offers'}
                 title="Recibir ofertas de automotoras"
                 body="No necesitas fijar un precio ahora. Automotoras verificadas podrán enviar ofertas y tú eliges si aceptas alguna."
-                onPress={() => { setSellMethod('dealer_offers'); setDealerRequestPrepared(false); }}
+                onPress={() => setSellMethod('dealer_offers')}
               />
               <ChoiceCard
                 selected={sellMethod === 'direct'}
                 title="Publicar para venta directa"
                 body="Tú defines el precio y conversas con compradores. La ficha pública reutiliza la información que ya preparaste."
-                onPress={() => { setSellMethod('direct'); setDealerRequestPrepared(false); }}
+                onPress={() => setSellMethod('direct')}
               />
             </View>
 
             {sellMethod === 'direct' ? (
-              <Field label="Precio que quieres pedir" value={price} onChangeText={setPrice} keyboardType="number-pad" />
-            ) : null}
-
-            <View style={{ padding: paltaTheme.spacing.md, gap: 5, borderRadius: paltaTheme.radius.surface, borderWidth: 1, borderColor: paltaTheme.color.divider, backgroundColor: paltaTheme.color.surface }}>
-              <Text style={{ fontSize: 14, fontWeight: '900', color: paltaTheme.color.textPrimary }}>Antes de aceptar una venta</Text>
-              <Text style={{ fontSize: 12, lineHeight: 18, color: paltaTheme.color.textSecondary }}>
-                Palta mostrará el precio, los costos aplicables y el monto estimado que recibirías. La decisión final siempre es tuya.
-              </Text>
-            </View>
-
-            {dealerRequestPrepared ? (
-              <View style={{ padding: paltaTheme.spacing.md, gap: 5, borderRadius: paltaTheme.radius.surface, backgroundColor: paltaTheme.color.brandSoft }}>
-                <Text style={{ fontSize: 16, fontWeight: '900', color: paltaTheme.color.brandPrimary }}>Solicitud preparada</Text>
+              <>
+                <Field label="Precio que quieres pedir" value={price} onChangeText={setPrice} keyboardType="number-pad" />
+                {priceValue > 0 ? (
+                  <View style={{ padding: paltaTheme.spacing.md, gap: 8, borderRadius: paltaTheme.radius.surface, borderWidth: 1, borderColor: paltaTheme.color.divider, backgroundColor: paltaTheme.color.surface }}>
+                    <Text style={{ fontSize: 14, fontWeight: '900', color: paltaTheme.color.textPrimary }}>Así se verían los costos</Text>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: paltaTheme.spacing.md }}>
+                      <Text style={{ fontSize: 12, color: paltaTheme.color.textSecondary }}>Precio de venta</Text>
+                      <Text style={{ fontSize: 12, fontWeight: '800', color: paltaTheme.color.textPrimary }}>{clp(priceValue)}</Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: paltaTheme.spacing.md }}>
+                      <Text style={{ fontSize: 12, color: paltaTheme.color.textSecondary }}>Impuesto transferencia · 1,5%</Text>
+                      <Text style={{ fontSize: 12, fontWeight: '800', color: paltaTheme.color.textPrimary }}>{clp(directSaleEstimate.transferTaxClp)}</Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: paltaTheme.spacing.md }}>
+                      <Text style={{ fontSize: 12, color: paltaTheme.color.textSecondary }}>Trámite oficial civil</Text>
+                      <Text style={{ fontSize: 12, fontWeight: '800', color: paltaTheme.color.textPrimary }}>{clp(directSaleEstimate.civilOfficerProcedureFeeClp)}</Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: paltaTheme.spacing.md }}>
+                      <Text style={{ fontSize: 12, color: paltaTheme.color.textSecondary }}>Inscripción vehículo</Text>
+                      <Text style={{ fontSize: 12, fontWeight: '800', color: paltaTheme.color.textPrimary }}>{clp(directSaleEstimate.motorVehicleRegistryFeeClp)}</Text>
+                    </View>
+                    <View style={{ height: 1, backgroundColor: paltaTheme.color.divider }} />
+                    <Text style={{ fontSize: 12, color: paltaTheme.color.textSecondary }}>Si el comprador asume los costos de transferencia:</Text>
+                    <Text style={{ fontSize: 23, fontWeight: '900', color: paltaTheme.color.brandPrimary }}>Tú recibirías aprox. {clp(directSaleEstimate.sellerEstimatedNetClp)}</Text>
+                    <Text style={{ fontSize: 12, lineHeight: 18, color: paltaTheme.color.textMuted }}>
+                      El comprador desembolsaría aprox. {clp(directSaleEstimate.buyerEstimatedOutlayClp)}. Cuando conectemos la referencia SII, Palta aplicará automáticamente la base legal correspondiente sin pedirte calcular nada.
+                    </Text>
+                  </View>
+                ) : null}
+              </>
+            ) : (
+              <View style={{ padding: paltaTheme.spacing.md, gap: 5, borderRadius: paltaTheme.radius.surface, borderWidth: 1, borderColor: paltaTheme.color.divider, backgroundColor: paltaTheme.color.surface }}>
+                <Text style={{ fontSize: 14, fontWeight: '900', color: paltaTheme.color.textPrimary }}>Tú no eliges a ciegas</Text>
                 <Text style={{ fontSize: 12, lineHeight: 18, color: paltaTheme.color.textSecondary }}>
-                  En la versión conectada, Palta enviará sólo la información necesaria a automotoras elegibles. Tu contacto y ubicación exacta seguirán privados hasta que tú elijas con quién avanzar.
+                  Compararemos monto, tipo de oferta, necesidad de inspección, historial de respeto de ofertas y condiciones de pago. Tu contacto y ubicación exacta siguen privados hasta que elijas una automotora.
                 </Text>
               </View>
-            ) : null}
+            )}
+
+            <View style={{ padding: paltaTheme.spacing.md, gap: 5, borderRadius: paltaTheme.radius.surface, backgroundColor: paltaTheme.color.surfaceMuted }}>
+              <Text style={{ fontSize: 12, lineHeight: 18, color: paltaTheme.color.textSecondary }}>
+                Los costos y reglas están versionados fuera de esta pantalla para poder actualizar cambios legales o tarifarios sin rehacer el flujo de venta.
+              </Text>
+            </View>
 
             {error ? <Text style={{ fontSize: 13, fontWeight: '700', color: paltaTheme.color.danger }}>{error}</Text> : null}
             {sellMethod === 'direct' ? (
               <PrimaryButton label="Publicar demo" onPress={publishDirect} />
             ) : (
-              <PrimaryButton label={dealerRequestPrepared ? 'Listo' : 'Solicitar ofertas · demo'} onPress={dealerRequestPrepared ? () => router.back() : prepareDealerRequest} />
+              <PrimaryButton label="Solicitar ofertas · demo" onPress={requestDealerOffers} />
             )}
           </>
         ) : null}
