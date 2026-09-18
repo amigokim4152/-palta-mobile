@@ -1,8 +1,8 @@
-# Somos Palta parallel-work entry point
+# Somos Palta Play discovery Source of Truth
 
-This branch is the whole-app mobile runtime composition branch.
+This branch is the Source of Truth for the mobile `Play / Panoramas` discovery surface.
 
-Before changing any mobile-visible behavior, read:
+Before changing mobile-visible behavior, also read from `integration/runtime-composition-v1`:
 
 - `docs/MOBILE_RUNTIME_COMPOSITION.md`
 - `manifest/mobile-runtime-composition.json`
@@ -10,13 +10,35 @@ Before changing any mobile-visible behavior, read:
 
 Repository-wide rules also live in `AGENTS.md` on `main`.
 
-Key rules:
+## Owned paths
 
-- Feature branches remain Sources of Truth for their own surfaces/contracts.
-- Whole-app simulator/review happens on `integration/runtime-composition-v1`.
-- Do not hand-edit `apps/mobile/src` as Source of Truth; it is generated runtime output.
-- Do not duplicate Shared Cores inside feature branches.
-- Integrate isolated screens as declared overlays only; reconcile shared API/Core changes first.
-- Any source advance that cannot be safely overlaid must be surfaced as review-required rather than silently showing stale UI.
-- Whole-app acceptance requires composed runtime typecheck and iOS bundle verification.
-- Do not merge feature work to `main` merely to make it visible in the simulator.
+This branch may own and advance:
+
+- `mobile-overlay/src/features/play`
+- `mobile-overlay/src/app/(tabs)/play.tsx`
+- `src/play`
+
+It does **not** own the shared tab layout, theme, Map Core, Search Core, Location Core, Care Core, Messaging, Commerce, Localization, or generated `apps/mobile/src` output.
+
+## Product direction
+
+Play answers: **what can I do with my time?**
+
+The initial Chile/Santiago discovery hierarchy is:
+
+1. official municipal/public events and programs as the stable content floor,
+2. user-intent themes such as today, weekend, family, free, outdoor, and birthday,
+3. canonical places/businesses and eventual reservation/contact actions,
+4. shared Map Core for spatial discovery.
+
+Do not reproduce Municipalidad department menus in the UI. Project one canonical event/program into multiple useful themes instead.
+
+Birthday is an occasion/theme, not a duplicate Business or Place entity.
+
+Development preview fixtures must remain explicitly scoped to development and must never appear as verified production events.
+
+## Integration
+
+The whole-app simulator/review remains `integration/runtime-composition-v1`.
+
+Do not edit `apps/mobile/src` as Source of Truth and do not merge to `main` merely to make Play visible in the simulator.
