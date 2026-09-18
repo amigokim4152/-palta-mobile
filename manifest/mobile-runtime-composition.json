@@ -101,8 +101,8 @@
     {
       "id": "auth_profile",
       "source_branch": "integration/auth-profile-core-v1",
-      "status": "pending_contract_integration",
-      "observed_source_sha": "275e8b201d29d9565083bb2b02cd38aaf5b38e65"
+      "status": "integrated",
+      "observed_source_sha": "a030511374d7a7a4b1383d5627f7d9ba4e6780aa"
     },
     {
       "id": "messaging",
