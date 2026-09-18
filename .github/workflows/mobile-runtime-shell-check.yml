@@ -53,8 +53,17 @@ jobs:
       - name: Check mobile Auth credential boundary
         run: node scripts/check-mobile-auth-secrets.mjs
 
-      - name: Check palta-dev public Auth provider readiness
+      - name: Check palta-dev Auth settings endpoint
+        id: auth-settings
         run: node --env-file=.env.example scripts/check-supabase-auth-public-settings.mjs
+
+      - name: Check palta-dev Apple Auth provider
+        if: ${{ always() && steps.auth-settings.conclusion == 'success' }}
+        run: node --env-file=.env.example scripts/check-supabase-auth-public-settings.mjs apple
+
+      - name: Check palta-dev Google Auth provider
+        if: ${{ always() && steps.auth-settings.conclusion == 'success' }}
+        run: node --env-file=.env.example scripts/check-supabase-auth-public-settings.mjs google
 
       - name: Materialize current mobile overlay
         run: node scripts/sync-mobile-runtime.mjs
