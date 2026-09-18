@@ -16,6 +16,8 @@ on:
       - 'scripts/check-mobile-runtime-composition.mjs'
       - 'scripts/check-mobile-runtime-shell.mjs'
       - 'scripts/check-runtime-source-drift.mjs'
+      - 'scripts/check-mobile-auth-secrets.mjs'
+      - 'scripts/check-supabase-auth-public-settings.mjs'
       - 'scripts/run-ios-mobile.sh'
       - 'scripts/watch-local-business-simulator.sh'
       - '.github/workflows/mobile-runtime-check.yml'
@@ -32,6 +34,8 @@ on:
       - 'scripts/check-mobile-runtime-composition.mjs'
       - 'scripts/check-mobile-runtime-shell.mjs'
       - 'scripts/check-runtime-source-drift.mjs'
+      - 'scripts/check-mobile-auth-secrets.mjs'
+      - 'scripts/check-supabase-auth-public-settings.mjs'
       - 'scripts/run-ios-mobile.sh'
       - 'scripts/watch-local-business-simulator.sh'
       - '.github/workflows/mobile-runtime-check.yml'
@@ -39,6 +43,9 @@ on:
 jobs:
   verify-mobile-runtime:
     runs-on: ubuntu-latest
+    env:
+      EXPO_PUBLIC_SUPABASE_URL: https://rqbpbauhkdgsrkbwmkmg.supabase.co
+      EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_QEHIwvil9m4lyE6kJ1ba6w_CjA9_XXh
     defaults:
       run:
         working-directory: mobile-overlay
@@ -55,6 +62,22 @@ jobs:
           cache: npm
           cache-dependency-path: mobile-overlay/package.json
 
+      - name: Check launcher shell syntax
+        working-directory: .
+        run: bash -n scripts/run-ios-mobile.sh
+
+      - name: Check composed mobile Auth credential boundary
+        working-directory: .
+        run: node scripts/check-mobile-auth-secrets.mjs
+
+      - name: Check palta-dev public Auth settings
+        working-directory: .
+        run: node scripts/check-supabase-auth-public-settings.mjs
+
+      - name: Require palta-dev email Auth
+        working-directory: .
+        run: node scripts/check-supabase-auth-public-settings.mjs email
+
       - name: Install mobile dependencies
         run: npm install --no-audit --no-fund
 
@@ -65,6 +88,10 @@ jobs:
         run: npm run config
 
       - name: Bundle composition source iOS JavaScript
+        env:
+          EXPO_PUBLIC_PALTA_API_BASE_URL: http://127.0.0.1:8787
+          EXPO_PUBLIC_ENV: development
+          EXPO_PUBLIC_MAP_STYLE_URL: https://palta-edge-preflight.kimeuisin.workers.dev/maps/style.json
         run: npm run bundle:ios
 
       - name: Validate runtime composition contract
@@ -80,6 +107,10 @@ jobs:
       - name: Materialize actual composed simulator runtime shell
         working-directory: .
         run: node scripts/compose-mobile-runtime.mjs
+
+      - name: Re-check Auth boundary after runtime composition
+        working-directory: .
+        run: node scripts/check-mobile-auth-secrets.mjs
 
       - name: Install simulator runtime dependencies
         working-directory: apps/mobile
