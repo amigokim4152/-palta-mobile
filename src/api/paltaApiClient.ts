@@ -68,7 +68,7 @@ export type LocalSearchItem = {
   next_open_at?: string;
   address?: string;
   commune?: string;
-  /** Exact public point is absent for area-only or hidden-location businesses. */
+  /** Exact public point is absent for area-only or hidden-location entities. */
   location?: { lat: number; lng: number };
 };
 
@@ -98,6 +98,27 @@ export type BusinessApiDetail = {
   store_locator_url?: string;
   media_source_url?: string;
   enabled_capabilities?: string[];
+  evidence?: BusinessEvidence;
+};
+
+export type PlaceApiDetail = {
+  id: string;
+  name: string;
+  entity_type: 'place';
+  source_entity_type?: string;
+  place_type?: string;
+  category_key?: string;
+  record_class?: PaltaRecordClass;
+  public_listing_status?: string;
+  fact_verification_status?: string;
+  address?: string;
+  commune?: string;
+  region?: string;
+  location_precision?: string;
+  map_eligible?: boolean;
+  location?: { lat: number; lng: number };
+  service_labels?: string[];
+  contact?: Omit<BusinessContact, 'whatsapp'>;
   evidence?: BusinessEvidence;
 };
 
@@ -234,6 +255,21 @@ export class PaltaApiClient {
       throw new Error('GET /v1/business/{id} returned invalid business');
     }
     return result as BusinessApiDetail;
+  }
+
+  async getPlace(placeId: string): Promise<PlaceApiDetail> {
+    const result = expectObject(
+      await this.request(`/v1/place/${encodeURIComponent(placeId)}`),
+      'GET /v1/place/{id}',
+    );
+    if (
+      typeof result.id !== 'string' ||
+      typeof result.name !== 'string' ||
+      result.entity_type !== 'place'
+    ) {
+      throw new Error('GET /v1/place/{id} returned invalid place');
+    }
+    return result as PlaceApiDetail;
   }
 
   async getCare(careTrackId: string): Promise<CareApiTrack> {
