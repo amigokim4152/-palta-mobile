@@ -20,6 +20,7 @@ const DEMO_PRIVATE_SELLER_REQUESTS = [
     comuna: 'Las Condes',
     photoCount: 5,
     note: 'Mantenciones al día. Vendedor declaró un detalle menor en parachoques.',
+    suggestedDraft: '15.800.000',
   },
   {
     id: 'dealer-request-demo-002',
@@ -28,6 +29,7 @@ const DEMO_PRIVATE_SELLER_REQUESTS = [
     comuna: 'Vitacura',
     photoCount: 6,
     note: 'Dos llaves y revisión técnica vigente declarada.',
+    suggestedDraft: '17.200.000',
   },
 ] as const;
 
@@ -39,8 +41,10 @@ export function AutosDealerBusinessScreen() {
   );
   const [acquisitionEnabled, setAcquisitionEnabled] = useState(true);
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
-  const [offerAmount, setOfferAmount] = useState('15.800.000');
-  const [sentRequestIds, setSentRequestIds] = useState<string[]>([]);
+  const [offerDrafts, setOfferDrafts] = useState<Record<string, string>>(() =>
+    Object.fromEntries(DEMO_PRIVATE_SELLER_REQUESTS.map((request) => [request.id, request.suggestedDraft])),
+  );
+  const [submittedOffers, setSubmittedOffers] = useState<Record<string, number>>({});
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: paltaTheme.color.canvas }}>
@@ -100,7 +104,8 @@ export function AutosDealerBusinessScreen() {
           {acquisitionEnabled
             ? DEMO_PRIVATE_SELLER_REQUESTS.map((request) => {
                 const selected = selectedRequestId === request.id;
-                const sent = sentRequestIds.includes(request.id);
+                const submittedAmount = submittedOffers[request.id];
+                const draft = offerDrafts[request.id] ?? request.suggestedDraft;
                 return (
                   <View key={request.id} style={{ padding: paltaTheme.spacing.md, gap: paltaTheme.spacing.sm, borderRadius: paltaTheme.radius.surface, borderWidth: 1, borderColor: selected ? paltaTheme.color.brandPrimary : paltaTheme.color.divider, backgroundColor: paltaTheme.color.surface }}>
                     <View style={{ gap: 3 }}>
@@ -114,18 +119,19 @@ export function AutosDealerBusinessScreen() {
                       </Text>
                     </View>
 
-                    {sent ? (
-                      <View style={{ padding: paltaTheme.spacing.sm, borderRadius: paltaTheme.radius.control, backgroundColor: paltaTheme.color.brandSoft }}>
+                    {submittedAmount !== undefined ? (
+                      <View style={{ padding: paltaTheme.spacing.sm, gap: 3, borderRadius: paltaTheme.radius.control, backgroundColor: paltaTheme.color.brandSoft }}>
                         <Text style={{ fontSize: 13, fontWeight: '900', color: paltaTheme.color.brandPrimary }}>Oferta enviada · demo</Text>
-                        <Text style={{ marginTop: 3, fontSize: 12, color: paltaTheme.color.textSecondary }}>{clp(digits(offerAmount))}</Text>
+                        <Text style={{ fontSize: 15, fontWeight: '900', color: paltaTheme.color.textPrimary }}>{clp(submittedAmount)}</Text>
+                        <Text style={{ fontSize: 11, color: paltaTheme.color.textSecondary }}>Preliminar · sujeta sólo a diferencias verificables en inspección</Text>
                       </View>
                     ) : selected ? (
                       <>
                         <View style={{ gap: 5 }}>
                           <Text style={{ fontSize: 12, fontWeight: '800', color: paltaTheme.color.textSecondary }}>Tu oferta preliminar</Text>
                           <TextInput
-                            value={offerAmount}
-                            onChangeText={setOfferAmount}
+                            value={draft}
+                            onChangeText={(value) => setOfferDrafts((current) => ({ ...current, [request.id]: value }))}
                             keyboardType="number-pad"
                             style={{ minHeight: 48, paddingHorizontal: paltaTheme.spacing.md, borderRadius: paltaTheme.radius.control, borderWidth: 1, borderColor: paltaTheme.color.divider, color: paltaTheme.color.textPrimary, backgroundColor: paltaTheme.color.canvas }}
                           />
@@ -134,9 +140,14 @@ export function AutosDealerBusinessScreen() {
                           Si luego bajas esta oferta, Palta exigirá motivo, monto del ajuste y evidencia de inspección.
                         </Text>
                         <Pressable
-                          disabled={digits(offerAmount) <= 0}
-                          onPress={() => setSentRequestIds((current) => [...current, request.id])}
-                          style={({ pressed }) => ({ minHeight: 48, alignItems: 'center', justifyContent: 'center', borderRadius: paltaTheme.radius.control, backgroundColor: pressed ? paltaTheme.color.brandMid : paltaTheme.color.brandPrimary, opacity: digits(offerAmount) > 0 ? 1 : 0.45 })}
+                          disabled={digits(draft) <= 0}
+                          onPress={() => {
+                            const amount = digits(draft);
+                            if (amount <= 0) return;
+                            setSubmittedOffers((current) => ({ ...current, [request.id]: amount }));
+                            setSelectedRequestId(null);
+                          }}
+                          style={({ pressed }) => ({ minHeight: 48, alignItems: 'center', justifyContent: 'center', borderRadius: paltaTheme.radius.control, backgroundColor: pressed ? paltaTheme.color.brandMid : paltaTheme.color.brandPrimary, opacity: digits(draft) > 0 ? 1 : 0.45 })}
                         >
                           <Text style={{ fontSize: 14, fontWeight: '900', color: paltaTheme.color.surface }}>Enviar oferta</Text>
                         </Pressable>
