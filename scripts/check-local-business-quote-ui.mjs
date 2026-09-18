@@ -3,7 +3,7 @@ import path from 'node:path';
 import ts from 'typescript';
 
 const root = process.cwd();
-const detailPath = path.join(root, 'mobile-overlay/src/app/business/[businessId].tsx');
+const detailPath = path.join(root, 'mobile-overlay/src/features/business/BusinessProfileExperience.tsx');
 const quotePath = path.join(root, 'mobile-overlay/src/app/business/[businessId]/quote.tsx');
 const carePath = path.join(root, 'mobile-overlay/src/app/care/[careTrackId].tsx');
 
@@ -62,7 +62,7 @@ const care = readChecked(carePath);
 
 assert(
   detail.includes("case 'quote':") && detail.includes('/quote`'),
-  'Business detail quote action must open the quote request form instead of sending a placeholder request.',
+  'Polished Business Profile quote action must open the quote request form instead of sending a placeholder request.',
 );
 assert(
   quote.includes('mobileRuntime.client.quotes.createQuoteRequest') &&
