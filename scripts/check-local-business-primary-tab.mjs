@@ -7,6 +7,7 @@ const tabLayoutPath = path.join(root, 'mobile-overlay/src/app/(tabs)/_layout.tsx
 const tabRoutePath = path.join(root, 'mobile-overlay/src/app/(tabs)/businesses.tsx');
 const legacyRoutePath = path.join(root, 'mobile-overlay/src/app/local-businesses/index.tsx');
 const discoveryPath = path.join(root, 'mobile-overlay/src/features/business/BusinessDiscoveryExperience.tsx');
+const handoffPath = path.join(root, 'mobile-overlay/src/features/business/BusinessVerticalHandoffBar.tsx');
 const manifestPath = path.join(root, 'manifest/app-route-manifest.json');
 
 function assert(condition, message) {
@@ -39,6 +40,7 @@ const layout = parseTsx(tabLayoutPath);
 const route = parseTsx(tabRoutePath);
 const legacyRoute = parseTsx(legacyRoutePath);
 const discovery = parseTsx(discoveryPath);
+const handoff = parseTsx(handoffPath);
 
 const homeIndex = layout.indexOf('name="home"');
 const businessIndex = layout.indexOf('name="businesses"');
@@ -76,6 +78,17 @@ assert(
     discovery.includes('Buscar en esta zona') &&
     discovery.includes("position: 'absolute', top: 0, right: 0, bottom: 0, left: 0"),
   'Canonical Negocios experience must be map-first with search/results layered over a stable full map.',
+);
+assert(
+  discovery.includes("import { BusinessVerticalHandoffBar } from './BusinessVerticalHandoffBar'") &&
+    discovery.includes('<BusinessVerticalHandoffBar />'),
+  'Negocios must expose independent verticals from the canonical discovery experience, not from a parallel wrapper route.',
+);
+assert(
+  handoff.includes("router.push('/propiedades?source=negocios_category')") &&
+    handoff.includes('Propiedades') &&
+    handoff.includes('Comprar, arrendar y explorar por mapa'),
+  'The Negocios handoff must deep-link into the independent Propiedades vertical without turning listings into Business records.',
 );
 
 const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
