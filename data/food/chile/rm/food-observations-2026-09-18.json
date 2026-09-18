@@ -1,0 +1,256 @@
+{
+  "dataset": "palta_food_observations_rm",
+  "observed_at": "2026-09-18",
+  "currency": "CLP",
+  "scope": "Región Metropolitana de Santiago",
+  "records": [
+    {
+      "outlet": {
+        "outlet_key": "cl-rm-providencia-sushi-bless-av-italia-1187",
+        "brand_name": "Sushi Bless",
+        "outlet_name": "Providencia",
+        "address": "Avenida Italia 1187",
+        "comuna": "Providencia",
+        "region": "Región Metropolitana",
+        "postal_code": "7500000",
+        "public_contact": {
+          "phone": "+56940359789",
+          "website": "https://www.sushibless.cl/tiendas"
+        },
+        "identity_status": "verified"
+      },
+      "listing": {
+        "platform": "uber_eats",
+        "listing_id": "avSNYg3RR4C3TRHzC-9mZA",
+        "listing_name": "SUSHI BLESS PROVIDENCIA",
+        "url": "https://www.ubereats.com/cl/store/sushi-bless-providencia/avSNYg3RR4C3TRHzC-9mZA",
+        "platform_categories": ["Japonesa", "Asiática", "Sushi", "Coreana", "Hamburguesas", "Pollo", "Pescados y mariscos", "Comida económica", "Family Meals"],
+        "delivery_supported": true,
+        "pickup_supported": true
+      },
+      "menu_snapshot": {
+        "sections": ["Artículos destacados", "Promociones Premium", "Promociones Box", "Entradas", "Sushi Burger", "Gohan", "Tartar Bless", "Sashimi - Nigiri", "Ceviches", "Nikkei Rolls", "Orientales - Rolls sin Arroz", "Especial Rolls", "Panko Rolls - Rolls Calientes", "Cheese Rolls - Envueltos en Queso", "California Rolls - Envueltos en Sésamo o Ciboulette", "Hand Rolls", "Hosomaki", "Bebidas", "Salsas"],
+        "sample_items": [
+          {"name": "Trio Box", "price_clp": 21000},
+          {"name": "Sushi Burger Pollo - Bless", "price_clp": 9800},
+          {"name": "Panko Pollo Queso", "price_clp": 8300},
+          {"name": "20 Piezas Premium a Elección", "price_clp": 22500},
+          {"name": "Tempura Cevichero", "price_clp": 12800},
+          {"name": "California Salmón", "price_clp": 9000},
+          {"name": "40 Piezas Nikkei", "price_clp": 37000}
+        ]
+      },
+      "evidence": [
+        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/sushi-bless-providencia/avSNYg3RR4C3TRHzC-9mZA", "observed_at": "2026-09-18"},
+        {"kind": "official_website", "url": "https://www.sushibless.cl/tiendas", "observed_at": "2026-09-18"}
+      ]
+    },
+    {
+      "outlet": {
+        "outlet_key": "cl-rm-providencia-maktub-sushi-emilio-vaisse-600",
+        "brand_name": "Maktub Sushi",
+        "outlet_name": "Providencia",
+        "address": "Emilio Vaisse 600",
+        "comuna": "Providencia",
+        "region": "Región Metropolitana",
+        "public_contact": {
+          "phone": "+56932100342",
+          "website": "https://www.maktubsushi.cl/"
+        },
+        "identity_status": "corroborated"
+      },
+      "listing": {
+        "platform": "uber_eats",
+        "listing_id": "ET9Gi1k_QxOPo-6gwC9eMg",
+        "listing_name": "Maktub Sushi (Providencia)",
+        "url": "https://www.ubereats.com/cl/store/maktub-sushi-providencia/ET9Gi1k_QxOPo-6gwC9eMg",
+        "platform_categories": ["Sushi", "Japonesa"],
+        "delivery_supported": true,
+        "pickup_supported": true
+      },
+      "menu_snapshot": {
+        "sections": ["Artículos destacados", "2X1", "Mega Promos", "Duplica tu Apetito!!!", "Promociones Classic", "Promociones Premium", "Promociones Vip", "Especialidades", "Rollos Nikkei", "Futo sin Arroz", "Ceviche", "Gyozas Fritas", "Tori Balls", "Gohan", "Camarón Apanado", "Sashimi", "Nigiri (2 Piezas)", "California Rolls", "Special Rolls", "Tempura Rolls", "Sake Rolls", "Hosomaki Rolls", "Handrolls", "Futomaki Rolls", "Rolls Envueltos en Atún", "Arma tu Promo", "Relleno Adicional", "Bebestibles", "Salsas", "Adicionales"],
+        "sample_items": [
+          {"name": "Vip Fresh 30 Piezas", "price_clp": 23500},
+          {"name": "Imperdible 20 Piezas Tempura", "price_clp": 14990},
+          {"name": "Special Rolls Salmón", "price_clp": 10540},
+          {"name": "Classic 40 Piezas Mixta", "price_clp": 22500},
+          {"name": "Ceviche Mixto", "price_clp": 12500},
+          {"name": "Acevichado Rolls", "price_clp": 11990},
+          {"name": "California Rolls Atun", "price_clp": 9090}
+        ]
+      },
+      "evidence": [
+        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/maktub-sushi-providencia/ET9Gi1k_QxOPo-6gwC9eMg", "observed_at": "2026-09-18"},
+        {"kind": "waze", "url": "https://www.waze.com/es/live-map/directions/cl/region-metropolitana/providencia/maktub-sushi-providencia", "observed_at": "2026-09-18"},
+        {"kind": "rappi", "url": "https://www.rappi.cl/restaurantes/900048491-maktub-sushi", "observed_at": "2026-09-18"}
+      ]
+    },
+    {
+      "outlet": {
+        "outlet_key": "cl-rm-la-cisterna-el-pollo-urbano-el-parron-11",
+        "brand_name": "El Pollo Urbano",
+        "address": "Av. El Parrón 11",
+        "comuna": "La Cisterna",
+        "region": "Región Metropolitana",
+        "identity_status": "platform_only"
+      },
+      "listing": {
+        "platform": "uber_eats",
+        "listing_id": "BMcEVEvRRTayj4aXY43_mQ",
+        "listing_name": "El Pollo Urbano",
+        "url": "https://www.ubereats.com/cl/store/el-pollo-urbano/BMcEVEvRRTayj4aXY43_mQ",
+        "platform_categories": ["Pollo"],
+        "delivery_supported": true,
+        "pickup_supported": true
+      },
+      "menu_snapshot": {
+        "sections": ["Top 5", "Promos Para Compartir", "Sushi Promociones", "Gohan", "Promociones", "Pollo asados", "Papas fritas", "Platos", "Chorrillana", "Sándwiches de Vacuno", "Sándwiches de Ave", "Salchipapa", "Ases", "Completos", "Guarniciones", "Bebidas"],
+        "sample_items": [
+          {"name": "1/4 de pollo asado con papas + bebida en lata", "price_clp": 8500},
+          {"name": "1/2 Pollo Asado", "price_clp": 12000},
+          {"name": "Pollo asado Entero", "price_clp": 20000},
+          {"name": "2 Churrascos Barros luco grandes", "price_clp": 13000},
+          {"name": "2 italianos tamaño normal", "price_clp": 6200},
+          {"name": "Promoción 40 piezas fritas", "price_clp": 15990}
+        ]
+      },
+      "evidence": [
+        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/el-pollo-urbano/BMcEVEvRRTayj4aXY43_mQ", "observed_at": "2026-09-18"}
+      ]
+    },
+    {
+      "outlet": {
+        "outlet_key": "cl-rm-maipu-la-casa-del-completo-las-garzas-585",
+        "brand_name": "La Casa del Completo",
+        "address": "Las Garzas 585",
+        "comuna": "Maipú",
+        "region": "Región Metropolitana",
+        "postal_code": "9250000",
+        "identity_status": "platform_only"
+      },
+      "listing": {
+        "platform": "uber_eats",
+        "listing_id": "7lVjUsFIWv6LSb-xu9Amlw",
+        "listing_name": "La Casa del Completo",
+        "url": "https://www.ubereats.com/cl/store/la-casa-del-completo/7lVjUsFIWv6LSb-xu9Amlw",
+        "platform_categories": ["Comida rápida", "Chilena"],
+        "delivery_supported": true
+      },
+      "menu_snapshot": {
+        "sections": ["BOX DELDIA"],
+        "sample_items": [
+          {"name": "(BOX1) VIANESA ITALIANA + PAPAS FRITAS", "price_clp": 7200},
+          {"name": "(BOX2) VIANESA COMPLETO + PAPAS FRITAS", "price_clp": 7200},
+          {"name": "(BOX7) LOMITO CHACARERO + PAPAS FRITAS", "price_clp": 5278},
+          {"name": "(BOX4) HAMBURGUESA CHEESE BURGER + PAPAS FRITAS", "price_clp": 9990},
+          {"name": "PIZZA DEL DIA", "price_clp": 9200}
+        ]
+      },
+      "evidence": [
+        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/la-casa-del-completo/7lVjUsFIWv6LSb-xu9Amlw", "observed_at": "2026-09-18"}
+      ]
+    },
+    {
+      "outlet": {
+        "outlet_key": "cl-rm-quilicura-la-completeria-lo-marcoleta-0964",
+        "brand_name": "La completería Santiago",
+        "outlet_name": "Santiago",
+        "address": "Avenida Lo Marcoleta 0964",
+        "comuna": "Quilicura",
+        "region": "Región Metropolitana",
+        "postal_code": "8700000",
+        "identity_status": "platform_only"
+      },
+      "listing": {
+        "platform": "uber_eats",
+        "listing_id": "bzISl3VWQGavBZxuXcK-tA",
+        "listing_name": "La completería Santiago (Santiago)",
+        "url": "https://www.ubereats.com/cl/store/la-completeria-santiago-santiago/bzISl3VWQGavBZxuXcK-tA",
+        "platform_categories": ["Sándwiches", "Chilena", "Hamburguesas"],
+        "delivery_supported": true,
+        "pickup_supported": true
+      },
+      "menu_snapshot": {
+        "sections": ["EL COMPLETO SOLISTA", "BOXPLETOS & FRITOS"],
+        "sample_items": [
+          {"name": "Completo XL a Elección", "price_clp": 3990},
+          {"name": "Completo XXL 40 cm a Elección", "price_clp": 5490},
+          {"name": "Completo Normal a Elección", "price_clp": 2990},
+          {"name": "BoxPletos x2 Normal a Elección & Fritos", "price_clp": 9990}
+        ]
+      },
+      "evidence": [
+        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/la-completeria-santiago-santiago/bzISl3VWQGavBZxuXcK-tA", "observed_at": "2026-09-18"}
+      ]
+    },
+    {
+      "outlet": {
+        "outlet_key": "cl-rm-providencia-pollo-bombero-vicuna-mackenna-490",
+        "brand_name": "Pollo Bombero",
+        "outlet_name": "Santiago",
+        "address": "Avenida Vicuña Mackenna 490",
+        "comuna": "Providencia",
+        "region": "Región Metropolitana",
+        "identity_status": "corroborated"
+      },
+      "listing": {
+        "platform": "uber_eats",
+        "listing_id": "3aB3ar8wW3iyRTPkd_YebQ",
+        "listing_name": "Pollo Bombero (Santiago)",
+        "url": "https://www.ubereats.com/cl/store/pollo-bombero-santiago/3aB3ar8wW3iyRTPkd_YebQ",
+        "platform_categories": ["Pollo", "Fried Chicken", "Pollo frito taiwanés", "Chilena"],
+        "delivery_supported": true,
+        "pickup_supported": true
+      },
+      "menu_snapshot": {
+        "sections": ["Pollo asado"],
+        "sample_items": [
+          {"name": "Pollo truto entero 1/4", "price_clp": 6890},
+          {"name": "Pollo pechuga 1/4", "price_clp": 6990},
+          {"name": "Medio pollo", "price_clp": 11980},
+          {"name": "Pollo entero", "price_clp": 18990}
+        ]
+      },
+      "evidence": [
+        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/pollo-bombero-santiago/3aB3ar8wW3iyRTPkd_YebQ", "observed_at": "2026-09-18"},
+        {"kind": "rappi", "url": "https://www.rappi.cl/restaurantes/900020734-pollo-bombero", "observed_at": "2026-09-18"}
+      ]
+    },
+    {
+      "outlet": {
+        "outlet_key": "cl-rm-santiago-don-completo-baquedano-1182",
+        "brand_name": "Don Completo",
+        "outlet_name": "Santiago",
+        "address": "Gral. Baquedano 1182",
+        "comuna": "Santiago",
+        "region": "Región Metropolitana",
+        "postal_code": "8340035",
+        "identity_status": "platform_only"
+      },
+      "listing": {
+        "platform": "uber_eats",
+        "listing_id": "seHTCegrWpSEunkGbgapAA",
+        "listing_name": "Don Completo (Santiago)",
+        "url": "https://www.ubereats.com/cl/store/don-completo-santiago/seHTCegrWpSEunkGbgapAA",
+        "platform_categories": ["Chilena", "Perros calientes", "Comida rápida"],
+        "delivery_supported": true,
+        "observed_availability": "closed_on_platform",
+        "closed_on_platform_at": "2026-06-17T18:54:58.289Z"
+      },
+      "menu_snapshot": {
+        "sections": ["Completos", "Menú"],
+        "sample_items": [
+          {"name": "Completo MECHADA ITALIANO XL"},
+          {"name": "2 COMPLETO ITALIANO XL"},
+          {"name": "2 COMPLETO XL DINAMICO"},
+          {"name": "GRAN PROMO FAMILIAR PARA DOS"},
+          {"name": "Papas Fritas XL"}
+        ]
+      },
+      "evidence": [
+        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/don-completo-santiago/seHTCegrWpSEunkGbgapAA", "observed_at": "2026-09-18"}
+      ]
+    }
+  ]
+}
