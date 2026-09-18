@@ -50,6 +50,21 @@ node "$TMP_DIR/infra/cloudflare/scripts/verify-map-range.mjs" "$WORKER_BASE"
 STYLE_URL="$WORKER_BASE/maps/style.json"
 info "Map style verified: $STYLE_URL"
 
+# Persist Expo public runtime configuration. Shell-only exports can be lost
+# when Metro is restarted from another terminal, which leaves Barrio showing
+# the EXPO_PUBLIC_MAP_STYLE_URL placeholder.
+ENV_LOCAL="$APP_DIR/.env.local"
+cat > "$ENV_LOCAL" <<EOF
+EXPO_PUBLIC_PALTA_API_BASE_URL=http://127.0.0.1:${MOCK_PORT}
+EXPO_PUBLIC_ENV=development
+EXPO_PUBLIC_MAP_STYLE_URL=${STYLE_URL}
+EOF
+
+if ! grep -q "^EXPO_PUBLIC_MAP_STYLE_URL=${STYLE_URL}$" "$ENV_LOCAL"; then
+  fail "Map style URL was not persisted to $ENV_LOCAL."
+fi
+info "Persisted Expo map runtime to $ENV_LOCAL"
+
 if lsof -nP -iTCP:"$MOCK_PORT" -sTCP:LISTEN -t >/dev/null 2>&1; then
   info "Palta mock API is already running on port $MOCK_PORT."
 else
@@ -61,9 +76,10 @@ else
     || fail "Mock API did not start. See /tmp/palta-mock-api.log"
 fi
 
+# Stop the old Metro so the next bundle is created from .env.local.
 METRO_PIDS="$(lsof -nP -iTCP:"$METRO_PORT" -sTCP:LISTEN -t 2>/dev/null || true)"
 if [ -n "$METRO_PIDS" ]; then
-  info "Stopping the old Metro process so the map URL is picked up..."
+  info "Stopping old Metro on port $METRO_PORT..."
   for pid in $METRO_PIDS; do
     kill "$pid" 2>/dev/null || true
   done
@@ -74,6 +90,6 @@ export EXPO_PUBLIC_PALTA_API_BASE_URL="http://127.0.0.1:${MOCK_PORT}"
 export EXPO_PUBLIC_ENV="development"
 export EXPO_PUBLIC_MAP_STYLE_URL="$STYLE_URL"
 
-info "Starting Palta with the verified map style. Keep this terminal open."
+info "Starting Palta with persistent map configuration. Keep this terminal open."
 cd "$APP_DIR"
 exec npx expo start --dev-client --clear --ios --port "$METRO_PORT"
