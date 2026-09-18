@@ -104,6 +104,19 @@ try {
 assert(unresolvedRejected, 'Unresolved UI service-area ids must never be written as official comuna codes.');
 assert(calls.length === 1, 'Unresolved service areas must fail before hitting Supabase.');
 
+let malformedCodeRejected = false;
+try {
+  await adapter.persistRegistration({
+    draft: mixed,
+    idempotencyKey: 'owner-device-request-bad-code',
+    serviceAreaCodes: ['vitacura'],
+  });
+} catch (error) {
+  malformedCodeRejected = error instanceof Error && error.message === 'invalid_service_area_code';
+}
+assert(malformedCodeRejected, 'Only official five-digit Chile area codes may cross the persistence boundary.');
+assert(calls.length === 1, 'Malformed area codes must fail before hitting Supabase.');
+
 const online = draft({
   businessName: 'Asesoría Remota Palta',
   ownerDescription: 'Asesoría profesional remota',
@@ -126,6 +139,15 @@ assert(promoted.businessId === 'biz-1' && promoted.created, 'Promotion response 
 const promoteBody = JSON.parse(calls[2]?.init?.body ?? '{}') as Record<string, unknown>;
 assert(promoteBody.p_registration_id === 'reg-1', 'Promotion must reference the immutable intake id.');
 assert(promoteBody.p_comuna_code === '13132', 'Primary official comuna code must be explicit at promotion.');
+
+let badPrimaryComunaRejected = false;
+try {
+  await adapter.promoteRegistration({ registrationId: 'reg-1', primaryComunaCode: 'vitacura' });
+} catch (error) {
+  badPrimaryComunaRejected = error instanceof Error && error.message === 'invalid_comuna_code';
+}
+assert(badPrimaryComunaRejected, 'Promotion must reject a UI slug in place of an official comuna code.');
+assert(calls.length === 3, 'Invalid primary comuna code must fail before hitting Supabase.');
 
 const failing = new SupabaseBusinessOnboardingAdapter({
   projectUrl: 'https://example.supabase.co',
