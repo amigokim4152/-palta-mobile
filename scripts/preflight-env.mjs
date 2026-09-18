@@ -44,6 +44,24 @@ if (
   fail('EXPO_PUBLIC_ENV must be development, preview, or production');
 }
 
+const goldenEnabled =
+  process.env.EXPO_PUBLIC_ENABLE_GOLDEN_USER_AUTH?.trim() === 'true';
+const goldenEmail = process.env.EXPO_PUBLIC_GOLDEN_USER_EMAIL?.trim();
+const goldenPassword = process.env.EXPO_PUBLIC_GOLDEN_USER_PASSWORD;
+
+if (goldenEnabled) {
+  if (environment !== 'development') {
+    fail('Golden User Auth may be enabled only when EXPO_PUBLIC_ENV=development');
+  }
+  if (!goldenEmail) fail('Golden User Auth requires EXPO_PUBLIC_GOLDEN_USER_EMAIL');
+  if (!goldenPassword) fail('Golden User Auth requires EXPO_PUBLIC_GOLDEN_USER_PASSWORD');
+  if (goldenPassword && goldenPassword.length < 12) {
+    fail('Golden User development password must be at least 12 characters');
+  }
+} else if (environment === 'production' && (goldenEmail || goldenPassword)) {
+  fail('Golden User credentials must not be present in production public config');
+}
+
 const apiBaseUrl = process.env.EXPO_PUBLIC_PALTA_API_BASE_URL?.trim();
 if (apiBaseUrl) {
   try {
