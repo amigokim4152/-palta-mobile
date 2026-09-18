@@ -1,0 +1,18 @@
+{
+  "registry_version": 1,
+  "updated_at": "2026-09-18T07:55:00Z",
+  "principle": "All domains share one canonical Knowledge Core. Standalone means a dedicated surface, not a copied database.",
+  "domains": {
+    "health": { "maturity": "standalone", "surface": "palta-health" },
+    "pets": { "maturity": "standalone", "surface": "palta-pets" },
+    "news": { "maturity": "standalone", "surface": "palta-news" },
+    "food": { "maturity": "growing", "surface": "palta-bodega/food" },
+    "education": { "maturity": "growing", "surface": "palta-bodega/education" },
+    "music": { "maturity": "seed", "surface": "palta-bodega/music" },
+    "art": { "maturity": "seed", "surface": "palta-bodega/art" },
+    "finance": { "maturity": "seed", "surface": "palta-bodega/finance" },
+    "culture": { "maturity": "seed", "surface": "palta-bodega/culture" },
+    "clothing": { "maturity": "seed", "surface": "palta-bodega/clothing" },
+    "hobby": { "maturity": "seed", "surface": "palta-bodega/hobby" }
+  }
+}
