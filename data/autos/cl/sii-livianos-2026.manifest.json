@@ -1,0 +1,21 @@
+{
+  "datasetId": "sii-livianos-2026",
+  "country": "CL",
+  "effectiveYear": 2026,
+  "officialLandingUrl": "https://www.sii.cl/servicios_online/1049-2612.html",
+  "downloadUrl": "https://www.sii.cl/servicios_online/tasacion_fiscal_vehiculos/liv2026.xlsx",
+  "announcedRecordCount": 81611,
+  "containsPersonalData": false,
+  "mobileBundleAllowed": false,
+  "ingestionTarget": "external_normalized_snapshot",
+  "refreshPolicy": "check official source fingerprint and 2026 correction resolutions before promotion",
+  "known2026NormativeRefs": [
+    "Resolución Exenta SII N° 06 de 14-01-2026",
+    "Resolución Exenta SII N° 96 de 21-07-2026"
+  ],
+  "notes": [
+    "The mobile app must not download or parse the XLSX at runtime.",
+    "A normalized snapshot must retain source URL, collection time, checksum, effective year and source provenance.",
+    "When make/model/year resolves to multiple SII versions, Palta must ask for version or SII code instead of guessing."
+  ]
+}
