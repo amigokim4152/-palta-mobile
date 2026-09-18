@@ -16,6 +16,8 @@ Canonical domain/HTTP adapter:
 
 - `src/market/marketApiContract.ts`
 - `src/market/marketHttpAdapter.ts`
+- `src/market/marketMessageIntent.ts`
+- `src/market/marketMessagingFlow.ts`
 - `src/market/marketSafetyIntent.ts`
 
 Mobile runtime boundary:
@@ -83,6 +85,8 @@ Authenticated mutations:
 - `POST /v1/market/transactions/:transactionId/status`
 - `POST /v1/market/transactions/:transactionId/reviews`
 
+`POST /v1/market/transactions` must ensure/reuse the current buyer's `coordinating`/`reserved` transaction for the listing. Immediate retries with the same durable conversation reference must converge on the same active transaction instead of producing duplicates.
+
 Non-2xx API responses should return a stable Mercado error code when possible. The adapter also maps HTTP 401/403/404/409/422/429/5xx and network failures to canonical Mercado errors.
 
 ## Location Core injection
@@ -103,15 +107,31 @@ Mercado never creates a second upload/storage lifecycle. Live publication remain
 
 ## Messaging injection
 
-`openMessageIntent(intent)` receives the canonical `MarketMessageIntent`:
+`createMarketLiveRuntime` now accepts a `messaging: MarketMessagingPort` bridge rather than a listing-bound `openMessageIntent` callback.
 
-- conversation type `transaction`
-- context relation `listing`
-- resource type `market_listing`
-- seller Palta actor id
-- optional initial quick-message text
+The bridge has two responsibilities:
 
-Shared Messaging opens/creates the conversation. Mercado does not own conversation/message storage.
+1. `ensurePeerConversation({ counterpartyUserId })`
+   - asks Message Core to ensure/reuse the durable user↔user relationship;
+   - must not include the listing id in Conversation identity;
+   - returns the canonical `conversationId`.
+2. `openConversation({ conversationId, focus, initialText })`
+   - opens that same durable conversation;
+   - `focus` is `sourceCore=market`, `resourceType=market_transaction`, `resourceId=<transactionId>`;
+   - the composition/backend Message integration resolves/ensures the corresponding ConversationScope internally;
+   - mobile Mercado must not call internal scope-creation endpoints directly.
+
+`openMarketMessagingFlow(...)` owns the feature-side orchestration:
+
+1. ensure/reuse buyer↔seller conversation;
+2. Mercado `startTransaction({ listingId, conversationId })`;
+3. reject a transaction that is already bound to a different conversation;
+4. open the durable conversation focused on the returned transaction;
+5. carry the optional quick-message text into that context.
+
+Starting this flow creates/returns only a `coordinating` transaction. It must not reserve the item. Reservation remains an explicit seller-side Mercado lifecycle action.
+
+If opening the conversation fails after transaction creation, retry is expected to converge on the same active transaction and durable relationship. Do not simulate cross-Core atomicity or delete a valid Mercado transaction as compensation.
 
 The user-facing Mercado screen must not expose internal terms such as "Message Core", adapter state, branch names or runtime integration notes.
 
@@ -151,7 +171,7 @@ Mercado does not persist moderation audit state or overload the listing lifecycl
 - real API read/mutation ports are installed
 - public area comes from Location Core
 - media comes from Media Core
-- messages hand off to Messaging
+- durable peer conversations/opening come from Message Core
 - hide/report actions hand off to shared Safety/Moderation
 
 ### unavailable
@@ -168,27 +188,32 @@ Before marking Mercado live in the composed runtime:
 2. Connect the Palta API endpoints above to `palta-dev`.
 3. Supply a coarse `publicArea` from Location Core.
 4. Supply Media Core asset resolver and picker/uploader.
-5. Supply Messaging handoff when Message Core integration is available.
-6. Supply shared Safety/Moderation handoff for hide/report intents.
-7. Create and install `createMarketLiveRuntime(...)` before Mercado screens read runtime state.
-8. Verify anonymous discovery.
-9. Verify authenticated favorite, create listing and My listings.
-10. Verify transaction creation/reservation/completion and review eligibility.
-11. Verify sold/withdrawn listings disappear from public discovery but transaction snapshots remain readable to participants.
-12. Verify a hidden listing disappears for that viewer without changing global listing status.
-13. Verify structured reports reach the shared Safety/Moderation audit path.
-14. Verify exact address, phone, email and raw latitude/longitude never appear in public listing payloads.
-15. Verify production cannot show development preview listings when a live dependency is absent.
-16. Run composed runtime TypeScript check and iOS bundle verification.
+5. Implement `MarketMessagingPort.ensurePeerConversation` by reusing Message Core's canonical one-to-one relationship identity.
+6. Implement `MarketMessagingPort.openConversation` so `market_transaction` focus is resolved to an internal Message Core ConversationScope with proper owner authorization evidence.
+7. Supply shared Safety/Moderation handoff for hide/report intents.
+8. Create and install `createMarketLiveRuntime(...)` before Mercado screens read runtime state.
+9. Verify anonymous discovery.
+10. Verify authenticated favorite, create listing and My listings.
+11. Verify two listings between the same buyer/seller reuse one Conversation but create separate Mercado transaction contexts/scopes.
+12. Verify repeated entry into the same active buyer/listing interaction reuses the active Mercado transaction.
+13. Verify multiple buyers may coordinate on one listing while only one transaction may become `reserved`.
+14. Verify starting chat never marks the listing reserved.
+15. Verify transaction creation/reservation/completion and review eligibility.
+16. Verify sold/withdrawn listings disappear from public discovery but transaction snapshots remain readable to participants.
+17. Verify a hidden listing disappears for that viewer without changing global listing status.
+18. Verify structured reports reach the shared Safety/Moderation audit path.
+19. Verify exact address, phone, email and raw latitude/longitude never appear in public listing payloads.
+20. Verify production cannot show development preview listings when a live dependency is absent.
+21. Run composed runtime TypeScript check and iOS bundle verification.
 
 ## Current external blockers
 
 Feature-side contracts do not require these cores to be duplicated. Actual E2E completion depends on the corresponding shared integrations:
 
-- real Mercado persistence/API implementation
+- real Mercado persistence/API implementation with convergent transaction start semantics
 - Media Core mobile selection/upload capability
 - Location Core public-area capability
-- Message Core composed-runtime handoff
+- Message Core composed-runtime bridge for durable peer conversation + transaction scope focus
 - shared Safety/Moderation handoff
 
 These should be reconciled on their owning workstreams/composition branch, not implemented as Mercado-specific substitutes.
