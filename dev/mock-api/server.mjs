@@ -65,35 +65,47 @@ const server = http.createServer(async (req, res) => {
     const url = new URL(req.url, `http://${req.headers.host ?? `${host}:${port}`}`);
 
     if (req.method === 'GET' && url.pathname === '/health') {
-      return json(res, 200, { ok: true, service: 'palta-mock-api', version: '0.2.0' });
+      return json(res, 200, { ok: true, service: 'palta-mock-api', version: '0.3.0' });
     }
 
     if (req.method === 'GET' && url.pathname === '/v1/home') {
+      const observedAt = new Date().toISOString();
       return json(res, 200, {
-        generated_at: new Date().toISOString(),
+        generated_at: observedAt,
         locality_label: 'Vitacura',
+        source_state: [
+          { source_domain: 'weather', data_mode: 'demo', observed_at: observedAt },
+          { source_domain: 'mobility', data_mode: 'demo', observed_at: observedAt },
+          { source_domain: 'care', data_mode: 'demo', observed_at: observedAt },
+          { source_domain: 'public-life', data_mode: 'demo', observed_at: observedAt },
+          { source_domain: 'news', data_mode: 'demo', observed_at: observedAt },
+        ],
         glance: [
           {
-            id: 'weather',
+            id: 'weather-current',
             label: 'HOY',
             value: '23°',
             detail: '17° / 25°',
+            source_domain: 'weather',
+            data_mode: 'demo',
+            observed_at: observedAt,
           },
           {
             id: 'bus-405',
             label: 'BUS 405',
             value: '6 min',
-            detail: 'Los Leones',
+            detail: 'Parada habitual',
+            source_domain: 'mobility',
+            data_mode: 'demo',
+            observed_at: observedAt,
           },
           {
             id: 'metro-l1',
             label: 'METRO L1',
             value: 'Normal',
-          },
-          {
-            id: 'air',
-            label: 'AIRE',
-            value: 'Bueno',
+            source_domain: 'mobility',
+            data_mode: 'demo',
+            observed_at: observedAt,
           },
         ],
         items: [
@@ -110,7 +122,7 @@ const server = http.createServer(async (req, res) => {
             id: 'home-benefit-demo-1',
             kind: 'useful_today',
             title: 'Beneficio municipal cerca de ti',
-            body: 'Cuando conectemos la fuente municipal, aquí aparecerán solo los beneficios relevantes para tu comuna y perfil.',
+            body: 'Aquí aparecerán beneficios vigentes solo después de verificar comuna, fecha y relevancia.',
             source_domain: 'public-life',
             delivery: 'home',
           },
