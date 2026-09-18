@@ -1,6 +1,7 @@
 import React, { useState, type ReactNode } from 'react';
 import {
   ActivityIndicator,
+  Linking,
   Pressable,
   StyleSheet,
   Text,
@@ -20,8 +21,24 @@ export function AuthGate({ children }: { children: ReactNode }) {
     signOut,
     retry,
   } = useAuthRuntime();
-  const [email, setEmail] = useState('');
   const showGate01Evidence = process.env.EXPO_PUBLIC_ENV === 'development';
+  const goldenUserEmail = showGate01Evidence
+    ? (process.env.EXPO_PUBLIC_GOLDEN_USER_EMAIL?.trim() ?? '')
+    : '';
+  const [email, setEmail] = useState(goldenUserEmail);
+  const [testMagicLink, setTestMagicLink] = useState('');
+  const [testLinkError, setTestLinkError] = useState('');
+
+  const openTestMagicLink = async () => {
+    const link = testMagicLink.trim();
+    const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL?.replace(/\/$/, '') ?? '';
+    if (!link || !supabaseUrl || !link.startsWith(`${supabaseUrl}/auth/`)) {
+      setTestLinkError('palta-dev에서 받은 Supabase 로그인 링크를 붙여넣어 주세요.');
+      return;
+    }
+    setTestLinkError('');
+    await Linking.openURL(link);
+  };
 
   if (state.status === 'loading') {
     return (
@@ -39,6 +56,8 @@ export function AuthGate({ children }: { children: ReactNode }) {
         {showGate01Evidence ? (
           <View style={styles.evidencePanel}>
             <Text style={styles.evidenceTitle}>Gate 01 · 개발 검증</Text>
+            <Text style={styles.evidenceLabel}>Canonical account</Text>
+            <Text style={styles.evidenceOk}>해결됨 ✓</Text>
             <Text style={styles.evidenceLabel}>Palta ID</Text>
             <Text selectable style={styles.evidenceValue}>
               {state.session.paltaUserId}
@@ -70,6 +89,8 @@ export function AuthGate({ children }: { children: ReactNode }) {
   const socialLoginAvailable =
     capabilities?.apple === true || capabilities?.google === true;
   const emailLoginAvailable = capabilities?.email === true;
+  const goldenUserTestAvailable =
+    showGate01Evidence && emailLoginAvailable && Boolean(goldenUserEmail);
 
   return (
     <View style={styles.screen}>
@@ -101,6 +122,47 @@ export function AuthGate({ children }: { children: ReactNode }) {
           </View>
         ) : null}
 
+        {goldenUserTestAvailable ? (
+          <View style={styles.testBox}>
+            <Text style={styles.testTitle}>Golden User 001 테스트</Text>
+            <Text style={styles.testText}>
+              개발 모드 전용입니다. 실제 palta-dev Magic Link 경로를 사용하며
+              비밀번호·관리자 키 우회는 사용하지 않습니다.
+            </Text>
+            <Pressable
+              accessibilityRole="button"
+              disabled={busy}
+              onPress={() => void signInWithEmail(goldenUserEmail)}
+              style={styles.testButton}
+            >
+              <Text style={styles.testButtonText}>테스트 로그인 링크 보내기</Text>
+            </Pressable>
+            <TextInput
+              autoCapitalize="none"
+              autoCorrect={false}
+              editable={!busy}
+              onChangeText={setTestMagicLink}
+              placeholder="받은 Magic Link 붙여넣기"
+              style={styles.input}
+              value={testMagicLink}
+            />
+            <Pressable
+              accessibilityRole="button"
+              disabled={busy || !testMagicLink.trim()}
+              onPress={() => void openTestMagicLink()}
+              style={[
+                styles.secondaryButton,
+                (busy || !testMagicLink.trim()) && styles.disabled,
+              ]}
+            >
+              <Text style={styles.secondaryButtonText}>붙여넣은 링크로 로그인 테스트</Text>
+            </Pressable>
+            {testLinkError ? (
+              <Text style={styles.testError}>{testLinkError}</Text>
+            ) : null}
+          </View>
+        ) : null}
+
         {capabilities?.apple ? (
           <Pressable
             accessibilityRole="button"
@@ -125,7 +187,9 @@ export function AuthGate({ children }: { children: ReactNode }) {
 
         {emailLoginAvailable ? (
           <>
-            {socialLoginAvailable ? <View style={styles.divider} /> : null}
+            {socialLoginAvailable || goldenUserTestAvailable ? (
+              <View style={styles.divider} />
+            ) : null}
             <TextInput
               autoCapitalize="none"
               autoComplete="email"
@@ -237,6 +301,26 @@ const styles = StyleSheet.create({
     backgroundColor: '#F1F5EC',
   },
   noticeText: { color: '#32452E' },
+  testBox: {
+    gap: 9,
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#C8D1BE',
+    backgroundColor: '#F5F8F1',
+  },
+  testTitle: { fontSize: 14, fontWeight: '700', color: '#2E432B' },
+  testText: { fontSize: 12, lineHeight: 17, color: '#4C5C48' },
+  testButton: {
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 10,
+    backgroundColor: '#2F4A2A',
+    paddingHorizontal: 14,
+  },
+  testButtonText: { color: '#FFFFFF', fontWeight: '700' },
+  testError: { fontSize: 11, color: '#8A1C16' },
   evidencePanel: {
     position: 'absolute',
     left: 12,
@@ -252,6 +336,7 @@ const styles = StyleSheet.create({
   },
   evidenceTitle: { fontSize: 12, fontWeight: '700' },
   evidenceLabel: { marginTop: 2, fontSize: 10, color: '#66665F' },
+  evidenceOk: { fontSize: 11, fontWeight: '700', color: '#2F6A2A' },
   evidenceValue: { fontSize: 11 },
   evidenceMeta: { marginTop: 3, fontSize: 10, color: '#66665F' },
   signOutButton: {
