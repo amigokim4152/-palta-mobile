@@ -49,6 +49,7 @@ function toMunicipalRecord(
 ): MunicipalFunctionalRecord | null {
   if (!MUNICIPAL_HOME_TYPES.has(record.record_type)) return null;
 
+  const summary = nonEmpty(record.summary);
   const validFrom = nonEmpty(record.validity?.starts_at);
   const validUntil = nonEmpty(record.validity?.ends_at);
   const deadlineAt = nonEmpty(record.validity?.deadline_at);
@@ -57,7 +58,7 @@ function toMunicipalRecord(
   return {
     id: record.record_id,
     title: record.title,
-    ...(nonEmpty(record.summary) ? { summary: nonEmpty(record.summary) } : {}),
+    ...(summary ? { summary } : {}),
     // The Public Data /home endpoint is approved-only. At the Home boundary,
     // approved canonical data is represented as verified input; research or
     // hold-state records never reach this bridge.
@@ -95,19 +96,16 @@ export function publicDataHomeToFunctionalItems(input: {
   const records = input.response.items
     .map((record) => toMunicipalRecord(record, expectedComunaCode, input.isRelevant))
     .filter((record): record is MunicipalFunctionalRecord => record !== null);
+  const expiresAt = sourceExpiry(
+    input.response.generated_at,
+    input.cacheTtlSeconds ?? 300,
+  );
 
   return municipalRecordsToFunctionalHome(
     {
       dataMode: input.dataMode ?? 'scheduled',
       observedAt: input.response.generated_at,
-      ...(sourceExpiry(input.response.generated_at, input.cacheTtlSeconds ?? 300)
-        ? {
-            expiresAt: sourceExpiry(
-              input.response.generated_at,
-              input.cacheTtlSeconds ?? 300,
-            ),
-          }
-        : {}),
+      ...(expiresAt ? { expiresAt } : {}),
       records,
       ...(input.deadlineAttentionDays !== undefined
         ? { deadlineAttentionDays: input.deadlineAttentionDays }
