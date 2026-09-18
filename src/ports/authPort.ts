@@ -1,5 +1,11 @@
+import type { AuthBrokerUserId, PaltaUserId } from '../auth/accountModel.js';
+import type { IdentityProvider } from '../auth/identityModel.js';
+
 export type AuthSession = {
-  userId: string;
+  /** Supabase auth.users.id; never a raw Apple/Google provider subject. */
+  authUserId: AuthBrokerUserId;
+  /** Canonical application account id resolved after server bootstrap. */
+  paltaUserId: PaltaUserId;
   accessToken: string;
   expiresAt?: string;
 };
@@ -9,9 +15,55 @@ export type AuthState =
   | { status: 'signed_out' }
   | { status: 'signed_in'; session: AuthSession };
 
+export type AuthProvider = Extract<IdentityProvider, 'apple' | 'google'>;
+
+export type AuthCapabilities = {
+  apple: boolean;
+  google: boolean;
+  email: boolean;
+};
+
+export type EmailSignInResult = {
+  status: 'link_sent';
+};
+
+export type AuthPortErrorCode =
+  | 'configuration_error'
+  | 'provider_error'
+  | 'provider_unavailable'
+  | 'oauth_cancelled'
+  | 'invalid_redirect'
+  | 'account_bootstrap_missing'
+  | 'account_lookup_failed';
+
+export class AuthPortError extends Error {
+  readonly code: AuthPortErrorCode;
+  readonly cause?: unknown;
+
+  constructor(code: AuthPortErrorCode, message: string, cause?: unknown) {
+    super(message);
+    this.name = 'AuthPortError';
+    this.code = code;
+    if (cause !== undefined) this.cause = cause;
+  }
+}
+
+export type AuthStateListener = (state: AuthState) => void;
+export type AuthSubscriptionErrorListener = (error: unknown) => void;
+
 export interface AuthPort {
   getState(): Promise<AuthState>;
   getAccessToken(): Promise<string | null>;
   signOut(): Promise<void>;
-  subscribe(listener: (state: AuthState) => void): () => void;
+  subscribe(
+    listener: AuthStateListener,
+    onError?: AuthSubscriptionErrorListener,
+  ): () => void;
+}
+
+export interface InteractiveAuthPort extends AuthPort {
+  getCapabilities(): Promise<AuthCapabilities>;
+  signInWithOAuth(provider: AuthProvider): Promise<AuthState>;
+  signInWithEmail(email: string): Promise<EmailSignInResult>;
+  handleRedirect(url: string): Promise<AuthState>;
 }

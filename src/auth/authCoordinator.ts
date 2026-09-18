@@ -1,4 +1,8 @@
-import type { AuthPort, AuthState } from '../ports/authPort.js';
+import type {
+  AuthPort,
+  AuthState,
+  AuthSubscriptionErrorListener,
+} from '../ports/authPort.js';
 
 export class AuthCoordinator {
   constructor(private readonly auth: AuthPort) {}
@@ -11,8 +15,11 @@ export class AuthCoordinator {
     return this.auth.getAccessToken();
   }
 
-  subscribe(listener: (state: AuthState) => void): () => void {
-    return this.auth.subscribe(listener);
+  subscribe(
+    listener: (state: AuthState) => void,
+    onError?: AuthSubscriptionErrorListener,
+  ): () => void {
+    return this.auth.subscribe(listener, onError);
   }
 
   async signOut(): Promise<void> {
