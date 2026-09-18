@@ -88,12 +88,14 @@ export function NeighborhoodScreen() {
     [visibleResults, neighborhood.selectedEntityId],
   );
 
+  const isDevelopment =
+    mobileRuntime.status === 'ready' &&
+    mobileRuntime.environment === 'development';
+
   const resolvedMapStyle =
     mobileRuntime.status === 'ready'
       ? mobileRuntime.mapStyleUrl ??
-        (mobileRuntime.environment === 'development'
-          ? PALTA_DEVELOPMENT_MAP_STYLE
-          : undefined)
+        (isDevelopment ? PALTA_DEVELOPMENT_MAP_STYLE : undefined)
       : undefined;
 
   async function useMyLocation() {
@@ -159,8 +161,7 @@ export function NeighborhoodScreen() {
           </Text>
         </Pressable>
 
-        {mobileRuntime.status === 'ready' &&
-        mobileRuntime.environment === 'development' ? (
+        {isDevelopment ? (
           <Pressable
             onPress={() =>
               dispatch({
@@ -194,6 +195,7 @@ export function NeighborhoodScreen() {
               mapStyle={resolvedMapStyle}
               features={mapFeatures}
               initialCenter={neighborhood.effectiveLocation}
+              showLoadStatus={isDevelopment}
               onSelectEntity={(entityId) =>
                 dispatch({ type: 'select_entity', entityId })
               }
