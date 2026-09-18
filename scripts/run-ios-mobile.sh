@@ -6,6 +6,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(git -C "$SCRIPT_DIR/.." rev-parse --show-toplevel)"
 APP_DIR="$ROOT/apps/mobile"
 RUNTIME_WATCH_PID=""
+RUNTIME_MODE="${PALTA_RUNTIME_MODE:-full}"
 DEFAULT_MAP_STYLE_URL="${PALTA_MAP_STYLE_URL:-https://palta-edge-preflight.kimeuisin.workers.dev/maps/style.json}"
 DEFAULT_SUPABASE_URL="https://rqbpbauhkdgsrkbwmkmg.supabase.co"
 DEFAULT_SUPABASE_PUBLISHABLE_KEY="sb_publishable_QEHIwvil9m4lyE6kJ1ba6w_CjA9_XXh"
@@ -100,7 +101,10 @@ verify_mock_api() {
 
 start_runtime_watcher() {
   local current_branch="$1"
-  if [ "$current_branch" = "$COMPOSITION_BRANCH" ] && [ -f "$COMPOSITION_MANIFEST" ]; then
+  if [ "$RUNTIME_MODE" = "gate01_auth" ]; then
+    info "Starting Gate 01 Auth-isolated mobile-overlay sync..."
+    node "$ROOT/scripts/sync-mobile-runtime.mjs" --watch >/tmp/palta-mobile-runtime-sync.log 2>&1 &
+  elif [ "$current_branch" = "$COMPOSITION_BRANCH" ] && [ -f "$COMPOSITION_MANIFEST" ]; then
     info "Starting composed runtime watcher (Home + Negocios + Community + Auth)..."
     bash "$ROOT/scripts/watch-runtime-composition.sh" >/tmp/palta-runtime-composition.log 2>&1 &
   else
@@ -121,6 +125,11 @@ for cmd in git node npm xcrun xcode-select open lsof ps; do
   command -v "$cmd" >/dev/null 2>&1 || fail "Required command not found: $cmd"
 done
 
+case "$RUNTIME_MODE" in
+  full|gate01_auth) ;;
+  *) fail "Unsupported PALTA_RUNTIME_MODE: $RUNTIME_MODE" ;;
+esac
+
 [ -f "$APP_DIR/package.json" ] || fail "Versioned mobile shell missing at $APP_DIR."
 
 NODE_MAJOR="$(node -e "process.stdout.write(process.versions.node.split('.')[0])")"
@@ -128,7 +137,12 @@ NODE_MAJOR="$(node -e "process.stdout.write(process.versions.node.split('.')[0])
 
 cd "$ROOT"
 CURRENT_BRANCH="$(git branch --show-current)"
-if [ "$CURRENT_BRANCH" = "$COMPOSITION_BRANCH" ] && [ -f "$COMPOSITION_MANIFEST" ]; then
+if [ "$RUNTIME_MODE" = "gate01_auth" ]; then
+  [ "$CURRENT_BRANCH" = "$COMPOSITION_BRANCH" ] || fail "Gate 01 Auth test must run from $COMPOSITION_BRANCH."
+  info "Gate 01 Auth-isolated runtime: materializing versioned mobile-overlay only."
+  info "Unrelated live feature overlays are intentionally excluded from this Auth/session test."
+  node scripts/sync-mobile-runtime.mjs
+elif [ "$CURRENT_BRANCH" = "$COMPOSITION_BRANCH" ] && [ -f "$COMPOSITION_MANIFEST" ]; then
   info "Validating composed mobile runtime..."
   node scripts/check-mobile-runtime-composition.mjs
   info "Composing reviewed surfaces with live feature overlays..."
@@ -146,6 +160,11 @@ if [ ! -d "$APP_DIR/node_modules" ]; then
     info "Installing mobile dependencies..."
     npm install --prefix "$APP_DIR"
   fi
+fi
+
+if [ "$RUNTIME_MODE" = "gate01_auth" ]; then
+  info "Typechecking Gate 01 Auth-isolated simulator runtime..."
+  (cd "$APP_DIR" && npx tsc --noEmit)
 fi
 
 start_runtime_watcher "$CURRENT_BRANCH"
