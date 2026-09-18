@@ -6,6 +6,8 @@ const root = process.cwd();
 const detailPath = path.join(root, 'mobile-overlay/src/features/business/BusinessProfileExperience.tsx');
 const quotePath = path.join(root, 'mobile-overlay/src/app/business/[businessId]/quote.tsx');
 const carePath = path.join(root, 'mobile-overlay/src/app/care/[careTrackId].tsx');
+const ownerHomePath = path.join(root, 'mobile-overlay/src/app/business/manage/[businessId].tsx');
+const ownerQuotePath = path.join(root, 'mobile-overlay/src/app/business/manage/[businessId]/quotes.tsx');
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
@@ -59,6 +61,8 @@ function readChecked(file) {
 const detail = readChecked(detailPath);
 const quote = readChecked(quotePath);
 const care = readChecked(carePath);
+const ownerHome = readChecked(ownerHomePath);
+const ownerQuote = readChecked(ownerQuotePath);
 
 assert(
   detail.includes("case 'quote':") && detail.includes('/quote`'),
@@ -90,5 +94,23 @@ assert(
   care.includes('mobileRuntime.client.quotes.selectBusiness') && care.includes('response.business_id'),
   'Quote selection must go through the quote domain client using canonical Business ids.',
 );
+assert(
+  ownerHome.includes('getBusinessInbox(businessId)') &&
+    ownerHome.includes('pendingQuoteCount') &&
+    ownerHome.includes('/quotes`'),
+  'Verified owner home must surface only real quote work from the business-scoped inbox.',
+);
+assert(
+  ownerQuote.includes('mobileRuntime.client.quotes.getBusinessInbox(businessId)') &&
+    ownerQuote.includes('mobileRuntime.client.quotes.submitBusinessResponse') &&
+    ownerQuote.includes('Aquí sólo ves la solicitud y la respuesta de tu propio negocio'),
+  'Owner quote inbox must let the business respond while explaining the cross-business privacy boundary.',
+);
+assert(
+  ownerQuote.includes('Monto CLP (opcional)') &&
+    ownerQuote.includes('Agrega un monto o una nota antes de responder.') &&
+    ownerQuote.includes('item.can_respond'),
+  'Owner quote response UI must accept useful bounded input only while the request is open.',
+);
 
-console.log('PASS: Local Business quote orchestration UI source check');
+console.log('PASS: Local Business user + owner quote orchestration UI source check');
