@@ -17,6 +17,7 @@ export type ProviderSession =
       };
     };
 
+// Provider SDK details stay behind this bridge; Core only sees InteractiveAuthPort.
 export type SupabaseAuthBridge = {
   getSession(): Promise<ProviderSession>;
   signOut(): Promise<void>;
