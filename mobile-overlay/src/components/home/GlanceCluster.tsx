@@ -37,6 +37,7 @@ export function GlanceCluster({
     >
       {visible.map((item, index) => {
         const basis = columns === 2 ? '50%' : '100%';
+        const isLeftColumn = columns === 2 && index % 2 === 0;
         return (
           <Pressable
             key={item.id}
@@ -45,9 +46,11 @@ export function GlanceCluster({
             disabled={!item.onPress}
             style={{
               width: basis,
-              minHeight: 58,
-              paddingVertical: 10,
-              paddingHorizontal: index % 2 === 0 ? 0 : 10,
+              minHeight: 50,
+              paddingVertical: 7,
+              paddingLeft: isLeftColumn ? 0 : 12,
+              paddingRight: isLeftColumn ? 12 : 0,
+              borderRightWidth: isLeftColumn ? 1 : 0,
               borderBottomWidth:
                 index < visible.length - (columns === 2 ? 2 : 1) ? 1 : 0,
               borderColor: paltaTheme.color.divider,
@@ -57,26 +60,27 @@ export function GlanceCluster({
             <Text
               allowFontScaling
               style={{
-                fontSize: 12,
+                fontSize: 11,
+                lineHeight: 15,
                 color: paltaTheme.color.textSecondary,
-                fontWeight: '600',
+                fontWeight: '700',
               }}
             >
               {item.label}
             </Text>
             <View
               style={{
-                marginTop: 2,
+                marginTop: 1,
                 flexDirection: columns === 2 ? 'row' : 'column',
                 alignItems: columns === 2 ? 'baseline' : 'flex-start',
-                gap: 6,
+                gap: 4,
               }}
             >
               <Text
                 allowFontScaling
                 style={{
-                  fontSize: 18,
-                  lineHeight: 24,
+                  fontSize: 17,
+                  lineHeight: 22,
                   fontWeight: '700',
                   color: item.exceptional
                     ? paltaTheme.color.warning
@@ -89,7 +93,8 @@ export function GlanceCluster({
                 <Text
                   allowFontScaling
                   style={{
-                    fontSize: 13,
+                    fontSize: 12,
+                    lineHeight: 17,
                     color: paltaTheme.color.textSecondary,
                   }}
                 >
