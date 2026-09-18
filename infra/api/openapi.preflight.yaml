@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Palta Mobile API Preflight
-  version: 0.2.1
+  version: 0.2.2
   description: Development contract for Palta mobile vertical slices. This is not a production API freeze.
 servers:
   - url: https://api.somospalta.cl
@@ -98,9 +98,42 @@ paths:
     post:
       security: [{ bearerAuth: [] }]
       summary: Join or request membership in a Community space
+      description: Open spaces activate immediately. Approval-required spaces create pending membership. Invite-only spaces require an existing invitation.
       parameters: [{ $ref: "#/components/parameters/SpaceId" }, { $ref: "#/components/parameters/IdempotencyKey" }]
       responses:
         "204": { description: Membership transition accepted }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+  /v1/community/spaces/{spaceId}/memberships:
+    get:
+      security: [{ bearerAuth: [] }]
+      summary: List pending and active memberships for an authorized Community manager
+      parameters: [{ $ref: "#/components/parameters/SpaceId" }]
+      responses:
+        "200": { description: Membership management snapshot }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /v1/community/spaces/{spaceId}/memberships/{membershipId}:
+    patch:
+      security: [{ bearerAuth: [] }]
+      summary: Approve, reject, or end a Community membership
+      parameters: [{ $ref: "#/components/parameters/SpaceId" }, { $ref: "#/components/parameters/MembershipId" }, { $ref: "#/components/parameters/IdempotencyKey" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [action]
+              properties:
+                action: { type: string, enum: [approve, reject, end] }
+                roleKey: { type: string, enum: [member, guardian, student, teacher, staff, leader, admin] }
+      responses:
+        "204": { description: Membership transition accepted }
+        "400": { description: Invalid action or role }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
@@ -136,7 +169,7 @@ paths:
               properties:
                 reactionKey:
                   type: string
-                  enum: [appreciate, helpful, celebrate, curious, concerned, welcome]
+                  enum: [appreciate, helpful, celebrate, curious, concerned, welcome, acknowledged]
       responses:
         "204": { description: Reaction accepted }
         "401": { $ref: "#/components/responses/Unauthorized" }
@@ -149,6 +182,7 @@ components:
   parameters:
     SpaceId: { in: path, name: spaceId, required: true, schema: { type: string, format: uuid } }
     PostId: { in: path, name: postId, required: true, schema: { type: string, format: uuid } }
+    MembershipId: { in: path, name: membershipId, required: true, schema: { type: string, format: uuid } }
     IdempotencyKey: { in: header, name: Idempotency-Key, required: false, schema: { type: string, minLength: 8, maxLength: 200 }, description: Stable mutation ID for duplicate protection. }
   responses:
     Unauthorized: { description: Missing or invalid authenticated session }

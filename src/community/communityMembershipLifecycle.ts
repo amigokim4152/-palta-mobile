@@ -43,6 +43,7 @@ export function membershipStateForJoin(input: {
 }): 'active' | 'pending' {
   if (input.currentState === 'active') return 'active';
   if (input.currentState === 'pending') return 'pending';
+  if (input.currentState === 'invited') return 'active';
   if (input.currentState && BLOCKED_REJOIN_STATES.has(input.currentState)) {
     throw new Error('COMMUNITY_MEMBERSHIP_BLOCKED');
   }

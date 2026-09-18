@@ -1,3 +1,8 @@
+import type {
+  CommunityMemberRole,
+  CommunityMembershipDecision,
+} from '../../src/community/communityMembershipLifecycle.js';
+
 export type AuthenticatedPaltaIdentity = {
   paltaUserId: string;
   authSubject: string;
@@ -13,7 +18,15 @@ export type CommunityRepositoryTransaction = {
   getTab(userId: string): Promise<unknown>;
   getSpace(userId: string, spaceId: string): Promise<unknown | null>;
   getThread(userId: string, spaceId: string, postId: string): Promise<unknown | null>;
-  joinSpace(input: { userId: string; spaceId: string }): Promise<void>;
+  getMembershipManagement(userId: string, spaceId: string): Promise<unknown>;
+  joinSpace(input: { userId: string; spaceId: string }): Promise<{ state: 'active' | 'pending' }>;
+  setMembershipDecision(input: {
+    actorUserId: string;
+    spaceId: string;
+    membershipId: string;
+    decision: CommunityMembershipDecision;
+    roleKey?: CommunityMemberRole;
+  }): Promise<void>;
   addComment(input: { userId: string; spaceId: string; postId: string; body: string }): Promise<void>;
   setReaction(input: { userId: string; spaceId: string; postId: string; reactionKey: string }): Promise<void>;
   findMutationReceipt(input: { userId: string; idempotencyKey: string }): Promise<{ operationKey: string; resourceId?: string } | null>;
@@ -29,6 +42,7 @@ export interface CommunityAuthorizationPort {
   assertCanReadSpace(input: { userId: string; spaceId: string }): Promise<void>;
   assertCanReadThread(input: { userId: string; spaceId: string; postId: string }): Promise<void>;
   assertCanJoin(input: { userId: string; spaceId: string }): Promise<void>;
+  assertCanManageMemberships(input: { userId: string; spaceId: string }): Promise<void>;
   assertCanComment(input: { userId: string; spaceId: string; postId: string }): Promise<void>;
   assertCanReact(input: { userId: string; spaceId: string; postId: string; reactionKey: string }): Promise<void>;
 }
@@ -53,15 +67,55 @@ export class CommunityApiService {
     return this.repository.transaction((tx) => tx.getThread(context.identity.paltaUserId, spaceId, postId));
   }
 
+  async getMembershipManagement(context: CommunityRequestContext, spaceId: string): Promise<unknown> {
+    await this.authorization.assertCanManageMemberships({ userId: context.identity.paltaUserId, spaceId });
+    return this.repository.transaction((tx) => tx.getMembershipManagement(context.identity.paltaUserId, spaceId));
+  }
+
   async joinSpace(context: CommunityRequestContext, spaceId: string): Promise<void> {
     await this.authorization.assertCanJoin({ userId: context.identity.paltaUserId, spaceId });
     await this.mutate(context, 'community.join', spaceId, async (tx) => {
-      await tx.joinSpace({ userId: context.identity.paltaUserId, spaceId });
+      const membership = await tx.joinSpace({ userId: context.identity.paltaUserId, spaceId });
       await tx.appendOutbox({
         eventType: 'community.membership.changed',
         aggregateType: 'community_space',
         aggregateId: spaceId,
-        payload: { paltaUserId: context.identity.paltaUserId, spaceId },
+        payload: {
+          paltaUserId: context.identity.paltaUserId,
+          spaceId,
+          membershipState: membership.state,
+        },
+      });
+    });
+  }
+
+  async setMembershipDecision(
+    context: CommunityRequestContext,
+    spaceId: string,
+    membershipId: string,
+    decision: CommunityMembershipDecision,
+    roleKey?: CommunityMemberRole,
+  ): Promise<void> {
+    await this.authorization.assertCanManageMemberships({ userId: context.identity.paltaUserId, spaceId });
+    await this.mutate(context, `community.membership.${decision}`, membershipId, async (tx) => {
+      await tx.setMembershipDecision({
+        actorUserId: context.identity.paltaUserId,
+        spaceId,
+        membershipId,
+        decision,
+        ...(roleKey ? { roleKey } : {}),
+      });
+      await tx.appendOutbox({
+        eventType: 'community.membership.changed',
+        aggregateType: 'community_space',
+        aggregateId: spaceId,
+        payload: {
+          actorUserId: context.identity.paltaUserId,
+          spaceId,
+          membershipId,
+          decision,
+          ...(roleKey ? { roleKey } : {}),
+        },
       });
     });
   }

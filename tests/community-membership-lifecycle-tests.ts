@@ -31,9 +31,13 @@ assert(
   membershipStateForJoin({ joinPolicy: 'approval_required', currentState: 'active' }) === 'active',
   'Repeated join must preserve active membership.',
 );
+assert(
+  membershipStateForJoin({ joinPolicy: 'invite_only', currentState: 'invited' }) === 'active',
+  'An existing invitation should be accepted through the join action.',
+);
 assertThrows(
   () => membershipStateForJoin({ joinPolicy: 'invite_only' }),
-  'Invite-only spaces must not accept self-service joins',
+  'Invite-only spaces must not accept uninvited self-service joins',
   'COMMUNITY_INVITE_REQUIRED',
 );
 assertThrows(

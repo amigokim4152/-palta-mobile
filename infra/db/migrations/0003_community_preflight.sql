@@ -8,6 +8,8 @@ create table if not exists community_space (
   name text not null,
   space_type text not null check (space_type in ('organization','geo','interest','activity')),
   visibility text not null,
+  join_policy text not null default 'approval_required'
+    check (join_policy in ('open','approval_required','invite_only')),
   created_by_user_id uuid not null,
   organization_id text,
   academic_period_id text,
@@ -34,8 +36,15 @@ create table if not exists community_membership (
   id uuid primary key default gen_random_uuid(),
   community_space_id uuid not null references community_space(id) on delete cascade,
   user_id uuid not null,
-  state text not null check (state in ('invited','pending','active','suspended','left','removed')),
+  state text not null check (state in ('invited','pending','active','suspended','left','removed','rejected')),
+  role_key text not null default 'member'
+    check (role_key in ('member','guardian','student','teacher','staff','leader','admin')),
   eligibility jsonb not null default '{}'::jsonb,
+  requested_at timestamptz,
+  decided_at timestamptz,
+  decided_by_user_id uuid,
+  ended_at timestamptz,
+  end_reason text,
   effective_from timestamptz,
   effective_to timestamptz,
   created_at timestamptz not null default now(),
@@ -44,6 +53,8 @@ create table if not exists community_membership (
 );
 create index if not exists community_membership_user_state_idx
   on community_membership(user_id, state, community_space_id);
+create index if not exists community_membership_space_state_idx
+  on community_membership(community_space_id, state, requested_at);
 
 create table if not exists community_post (
   id uuid primary key default gen_random_uuid(),
