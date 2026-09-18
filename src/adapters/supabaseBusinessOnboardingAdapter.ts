@@ -38,6 +38,8 @@ export type SupabaseBusinessOnboardingAdapterOptions = Readonly<{
   fetch: ServerFetch;
 }>;
 
+const CHILE_COMUNA_CODE = /^[0-9]{5}$/;
+
 function record(value: unknown): Record<string, unknown> | undefined {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
   return value as Record<string, unknown>;
@@ -159,6 +161,9 @@ export class SupabaseBusinessOnboardingAdapter {
     if (input.draft.serviceAreaIds.length > 0 && serviceAreaCodes.length === 0) {
       throw new Error('service_area_codes_unresolved');
     }
+    if (serviceAreaCodes.some((code) => !CHILE_COMUNA_CODE.test(code))) {
+      throw new Error('invalid_service_area_code');
+    }
 
     const publicLocationPrecision = deriveBusinessPublicLocationPrecision(input.draft.presenceModes);
     const anchor = input.draft.anchorLocation;
@@ -197,9 +202,13 @@ export class SupabaseBusinessOnboardingAdapter {
   }): Promise<BusinessPromotionResult> {
     const registrationId = input.registrationId.trim();
     if (!registrationId) throw new Error('business_registration_id_required');
+    const primaryComunaCode = input.primaryComunaCode?.trim();
+    if (primaryComunaCode && !CHILE_COMUNA_CODE.test(primaryComunaCode)) {
+      throw new Error('invalid_comuna_code');
+    }
     const payload = await this.rpc('palta_promote_business_intake', {
       p_registration_id: registrationId,
-      p_comuna_code: input.primaryComunaCode?.trim() || null,
+      p_comuna_code: primaryComunaCode || null,
     });
     return normalizePromotionResult(payload);
   }
