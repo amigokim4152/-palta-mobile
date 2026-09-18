@@ -3,6 +3,8 @@ import path from 'node:path';
 
 const root = process.cwd();
 const manifestPath = path.join(root, 'manifest/mobile-runtime-composition.json');
+const agentsPath = path.join(root, 'AGENTS.md');
+const contractPath = path.join(root, 'docs/MOBILE_RUNTIME_COMPOSITION.md');
 const validModes = new Set(['live_overlay', 'reviewed_snapshot']);
 const shaPattern = /^[0-9a-f]{40}$/;
 
@@ -21,7 +23,34 @@ function containsPath(parent, child) {
   return child === parent || child.startsWith(`${parent}/`);
 }
 
-if (!fs.existsSync(manifestPath)) fail('Missing manifest/mobile-runtime-composition.json');
+for (const requiredPath of [agentsPath, contractPath, manifestPath]) {
+  if (!fs.existsSync(requiredPath)) {
+    fail(`Missing runtime composition discovery contract: ${path.relative(root, requiredPath)}`);
+  }
+}
+
+const agents = fs.readFileSync(agentsPath, 'utf8');
+const contract = fs.readFileSync(contractPath, 'utf8');
+for (const required of [
+  'integration/runtime-composition-v1',
+  'docs/MOBILE_RUNTIME_COMPOSITION.md',
+  'manifest/mobile-runtime-composition.json',
+]) {
+  if (!agents.includes(required)) {
+    fail(`AGENTS.md must point parallel work to ${required}.`);
+  }
+}
+for (const required of [
+  'AGENTS.md` on `main',
+  'GitHub Issue #9',
+  'manifest/mobile-runtime-composition.json',
+  'REVIEW REQUIRED',
+]) {
+  if (!contract.includes(required)) {
+    fail(`Runtime composition contract must preserve repository-wide discovery marker: ${required}.`);
+  }
+}
+
 const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
 
 if (manifest.version !== 1) fail(`Unsupported runtime composition version: ${manifest.version}`);
@@ -124,5 +153,5 @@ if (!composer.includes("const prefix = 'mobile-overlay/src/'")) {
 }
 
 console.log(
-  `PASS: mobile runtime composition (${manifest.surfaces.length} surfaces; ${liveSurfaceCount} live, ${snapshotSurfaceCount} reviewed; ${ownership.length} owned paths)`,
+  `PASS: mobile runtime composition (${manifest.surfaces.length} surfaces; ${liveSurfaceCount} live, ${snapshotSurfaceCount} reviewed; ${ownership.length} owned paths; cross-chat discovery protected)`,
 );
