@@ -9,24 +9,13 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import type { LocalSearchItem } from '../../../../../src/api/paltaApiClient';
-import type { FoodFulfillmentProfile } from '../../../../../src/business/foodFulfillment';
-import {
-  matchesFoodFulfillmentFilter,
-  projectFoodFulfillmentDiscovery,
-  type FoodFulfillmentFilter,
-} from '../../../../../src/business/foodFulfillmentDiscovery';
+import type { FoodFulfillmentFilter } from '../../../../../src/business/foodFulfillmentDiscovery';
 import {
   FOOD_VERTICAL_CATEGORIES,
   buildFoodVerticalQuery,
-  isFoodVerticalBusiness,
   type FoodVerticalCategoryId,
 } from '../../../../../src/business/foodVertical';
-import {
-  localBusinessConsumerCategoryLabel,
-  readLocalBusinessDiscoveryPreview,
-} from '../../../../../src/business/localBusinessDiscoveryPreview';
-import { projectLocalBusinesses } from '../../../../../src/business/localBusinessDiscovery';
+import { localBusinessConsumerCategoryLabel } from '../../../../../src/business/localBusinessDiscoveryPreview';
 import { ErrorState, LoadingState } from '../../../components/AsyncStateBlock';
 import { FilterChip } from '../../../components/common/FilterChip';
 import { expoLocationAdapter } from '../../../adapters/expoLocationAdapter';
@@ -39,14 +28,11 @@ import {
   writeLocalBusinessDiscoveryCache,
 } from '../localBusinessDiscoveryCache';
 import { paltaTheme } from '../../../theme/paltaTheme';
-
-type FoodSearchItem = LocalSearchItem & {
-  food_fulfillment?: FoodFulfillmentProfile;
-};
-
-type FoodCardItem = FoodSearchItem & {
-  preview: ReturnType<typeof readLocalBusinessDiscoveryPreview>;
-};
+import {
+  projectFoodItemFulfillment,
+  projectFoodSearchResults,
+  type FoodDiscoveryItem,
+} from './foodDiscoveryProjection';
 
 const SANTIAGO_EXPLORATION_ORIGIN = {
   latitude: -33.4489,
@@ -67,14 +53,6 @@ function formatFoodStatus(state?: string): string | undefined {
   if (state === 'seasonal_closed') return 'Cerrado por temporada';
   if (state === 'unknown_or_stale') return 'Horario por confirmar';
   return undefined;
-}
-
-function fulfillmentInput(item: FoodCardItem) {
-  return {
-    ...(item.food_fulfillment ? { profile: item.food_fulfillment } : {}),
-    serviceLabels: item.preview.serviceLabels,
-    ...(item.distance_m !== undefined ? { distanceM: item.distance_m } : {}),
-  };
 }
 
 function FoodSearchBar({
@@ -139,13 +117,13 @@ function FoodResultCard({
   item,
   onPress,
 }: {
-  item: FoodCardItem;
+  item: FoodDiscoveryItem;
   onPress: () => void;
 }) {
   const categoryLabel = localBusinessConsumerCategoryLabel(item.category_key);
   const status = formatFoodStatus(item.operational_state);
   const distance = formatDistance(item.distance_m);
-  const fulfillment = projectFoodFulfillmentDiscovery(fulfillmentInput(item));
+  const fulfillment = projectFoodItemFulfillment(item);
 
   return (
     <Pressable
@@ -389,46 +367,14 @@ export function FoodDiscoveryExperience() {
     ...(cachedResults ? { initialData: cachedResults } : {}),
   });
 
-  const businesses = useMemo(() => {
-    const projected = projectLocalBusinesses(
-      (state.data ?? []).map((rawItem) => {
-        const item = rawItem as FoodSearchItem;
-        return {
-          entityId: item.entity_id,
-          entityType: item.entity_type,
-          name: item.name,
-          ...(item.category_key ? { categoryKey: item.category_key } : {}),
-          ...(item.distance_m !== undefined ? { distanceM: item.distance_m } : {}),
-          ...(item.verification_status ? { verificationStatus: item.verification_status } : {}),
-          ...(item.operational_state ? { operationalState: item.operational_state } : {}),
-          ...(item.operational_confirmed_at
-            ? { operationalConfirmedAt: item.operational_confirmed_at }
-            : {}),
-          ...(item.location ? { location: item.location } : {}),
-          preview: readLocalBusinessDiscoveryPreview(item),
-          source: item,
-        };
+  const businesses = useMemo(
+    () =>
+      projectFoodSearchResults(state.data ?? [], {
+        openNowOnly,
+        fulfillmentFilter,
       }),
-      { openNowOnly },
-    );
-
-    return projected
-      .filter((item) =>
-        isFoodVerticalBusiness({
-          categoryKey: item.categoryKey,
-          name: item.name,
-          serviceLabels: item.preview?.serviceLabels,
-        }),
-      )
-      .map((item) => {
-        const source = item.source as FoodSearchItem;
-        return {
-          ...source,
-          preview: item.preview ?? readLocalBusinessDiscoveryPreview(source),
-        } satisfies FoodCardItem;
-      })
-      .filter((item) => matchesFoodFulfillmentFilter(fulfillmentFilter, fulfillmentInput(item)));
-  }, [state.data, openNowOnly, fulfillmentFilter]);
+    [state.data, openNowOnly, fulfillmentFilter],
+  );
 
   async function useMyLocation() {
     setLocationBusy(true);
@@ -458,6 +404,17 @@ export function FoodDiscoveryExperience() {
 
   function toggleFulfillmentFilter(next: Exclude<FoodFulfillmentFilter, 'any'>) {
     setFulfillmentFilter((current) => (current === next ? 'any' : next));
+  }
+
+  function openMap() {
+    const path = [
+      '/local-businesses/food/map',
+      `?categoryId=${encodeURIComponent(categoryId)}`,
+      `&q=${encodeURIComponent(submittedQuery)}`,
+      `&fulfillment=${encodeURIComponent(fulfillmentFilter)}`,
+      `&open=${openNowOnly ? '1' : '0'}`,
+    ].join('');
+    router.push(path);
   }
 
   if (!neighborhood.effectiveLocation) {
@@ -518,6 +475,21 @@ export function FoodDiscoveryExperience() {
                 Elige qué quieres comer y después el local.
               </Text>
             </View>
+            <Pressable
+              accessibilityRole="button"
+              onPress={openMap}
+              style={({ pressed }) => ({
+                minHeight: 42,
+                justifyContent: 'center',
+                paddingHorizontal: paltaTheme.spacing.sm,
+                borderRadius: paltaTheme.radius.pill,
+                backgroundColor: pressed ? paltaTheme.color.brandSoft : paltaTheme.color.surface,
+                borderWidth: 1,
+                borderColor: paltaTheme.color.divider,
+              })}
+            >
+              <Text style={{ fontWeight: '800', color: paltaTheme.color.brandPrimary }}>Mapa</Text>
+            </Pressable>
           </View>
 
           <View style={{ paddingHorizontal: paltaTheme.spacing.md }}>
