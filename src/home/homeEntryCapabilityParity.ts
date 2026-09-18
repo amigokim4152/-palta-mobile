@@ -16,6 +16,7 @@ export type HomeEntryCapabilityDefinition = {
  */
 export const HOME_ENTRY_CAPABILITIES: readonly HomeEntryCapabilityDefinition[] = [
   { key: 'entry.search', ownerDomain: 'Search', legacyRoute: '/search', demoRequired: true, description: 'Search across Palta domains and local context.' },
+  { key: 'entry.nearby', ownerDomain: 'Geo/Local Discovery', legacyRoute: '/nearby', demoRequired: true, description: 'Find useful places and activity around the effective locality.' },
   { key: 'entry.local_business', ownerDomain: 'Local Business', legacyRoute: '/businesses', demoRequired: true, description: 'Open nearby/local businesses.' },
   { key: 'entry.real_estate', ownerDomain: 'Real Estate', legacyRoute: '/market/property', demoRequired: true, description: 'Open housing/property discovery.' },
   { key: 'entry.community', ownerDomain: 'Community', legacyRoute: '/community', demoRequired: true, description: 'Open joined/local community.' },
@@ -28,6 +29,9 @@ export const HOME_ENTRY_CAPABILITIES: readonly HomeEntryCapabilityDefinition[] =
   { key: 'entry.food', ownerDomain: 'Food', legacyRoute: '/food', demoRequired: true, description: 'Open food, seasonal produce and food-business domain.' },
   { key: 'entry.events', ownerDomain: 'Events/Play', legacyRoute: '/events', demoRequired: true, description: 'Open events and activities.' },
   { key: 'entry.exchange', ownerDomain: 'Economy', legacyRoute: '/exchange', demoRequired: true, description: 'Open exchange/UF details.' },
+  { key: 'entry.interests', ownerDomain: 'Personalization', legacyRoute: '/interests', demoRequired: true, description: 'Review and edit explicit interests that drive Home personalization.' },
+  { key: 'entry.kids', ownerDomain: 'Kids', legacyRoute: '/kids', demoRequired: true, description: 'Open curated child/family content surface.' },
+  { key: 'entry.services', ownerDomain: 'Services/Care', legacyRoute: '/services', demoRequired: true, description: 'Open service-request/Chile work-assistance surface.' },
   { key: 'entry.more', ownerDomain: 'Shell', legacyRoute: '/more', demoRequired: true, description: 'Open complete Palta navigation/discovery hub.' },
 ] as const;
 
