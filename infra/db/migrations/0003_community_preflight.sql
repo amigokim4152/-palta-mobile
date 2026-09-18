@@ -1,5 +1,5 @@
 -- PALTA COMMUNITY DB PREFLIGHT
--- STATUS: DRAFT / NOT APPLIED
+-- STATUS: APPLIED + VERIFIED ON palta-dev (2026-09-18)
 -- Primary v1 target: Supabase Postgres.
 -- Community mutations enter through the Palta API; mobile clients do not write these tables directly.
 
