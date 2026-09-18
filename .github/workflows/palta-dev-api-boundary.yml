@@ -1,0 +1,49 @@
+name: Palta Dev API Boundary
+
+on:
+  push:
+    branches:
+      - integration/runtime-composition-v1
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    env:
+      PALTA_API_BASE_URL: https://rqbpbauhkdgsrkbwmkmg.supabase.co/functions/v1/palta-public-api
+      SUPABASE_PUBLISHABLE_KEY: sb_publishable_QEHIwvil9m4lyE6kJ1ba6w_CjA9_XXh
+    steps:
+      - name: Check palta-dev public and protected API boundaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          API="$PALTA_API_BASE_URL"
+          TEST_ID="00000000-0000-4000-8000-000000000001"
+
+          HEALTH_STATUS="$(curl -sS -o /tmp/palta-health.json -w '%{http_code}' "$API/health")"
+          test "$HEALTH_STATUS" = "200"
+
+          SEARCH_STATUS="$(curl -sS -o /tmp/palta-search.json -w '%{http_code}' \
+            -H "apikey: $SUPABASE_PUBLISHABLE_KEY" \
+            "$API/v1/local/search?lat=-33.4372&lng=-70.6506&radius_m=1000")"
+          test "$SEARCH_STATUS" = "200"
+
+          DETAIL_STATUS="$(curl -sS -o /tmp/palta-detail.json -w '%{http_code}' \
+            -H "apikey: $SUPABASE_PUBLISHABLE_KEY" \
+            "$API/v1/business/$TEST_ID")"
+          test "$DETAIL_STATUS" = "404"
+
+          CARE_STATUS="$(curl -sS -o /tmp/palta-care.json -w '%{http_code}' \
+            -H "apikey: $SUPABASE_PUBLISHABLE_KEY" \
+            "$API/v1/care/$TEST_ID")"
+          test "$CARE_STATUS" = "401"
+
+          RESERVATION_STATUS="$(curl -sS -o /tmp/palta-reservation.json -w '%{http_code}' \
+            -H "apikey: $SUPABASE_PUBLISHABLE_KEY" \
+            "$API/v1/local-business/reservations/by-care/$TEST_ID")"
+          test "$RESERVATION_STATUS" = "401"
+
+          echo "PASS: palta-dev public key + protected JWT boundary"
