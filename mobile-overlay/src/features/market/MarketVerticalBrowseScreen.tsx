@@ -12,6 +12,11 @@ import {
   View,
 } from 'react-native';
 import type { DiscoverMarketListingsQuery } from '../../../../src/market/marketApiContract';
+import type {
+  MarketCategoryKey,
+  MarketTradeMode,
+} from '../../../../src/market/marketCatalog';
+import { marketPriceBand } from '../../../../src/market/marketInterestSignal';
 import type { MarketPublicListing } from '../../../../src/market/marketPersistenceContract';
 import { paltaTheme } from '../../theme/paltaTheme';
 import { getMarketRuntime } from './marketRuntime';
@@ -24,6 +29,7 @@ export type MarketRouteVertical =
 
 type MarketSort = 'recent' | 'distance' | 'price_asc' | 'price_desc';
 type PropertyOperation = 'all' | 'sale' | 'rent';
+type SecondhandTradeMode = 'all' | Exclude<MarketTradeMode, 'rent'>;
 
 type ExtendedDiscoverMarketListingsQuery = Omit<
   DiscoverMarketListingsQuery,
@@ -79,6 +85,30 @@ const VERTICAL_UI: Record<MarketRouteVertical, VerticalUiDefinition> = {
   },
 };
 
+const SECONDHAND_CATEGORIES: Array<{
+  label: string;
+  value: MarketCategoryKey;
+}> = [
+  { label: 'Todo', value: 'all' },
+  { label: 'Tecnología', value: 'tech' },
+  { label: 'Hogar', value: 'home' },
+  { label: 'Niños', value: 'kids' },
+  { label: 'Deportes', value: 'sports' },
+  { label: 'Moda', value: 'fashion' },
+  { label: 'Hobby', value: 'hobby' },
+];
+
+const SECONDHAND_TRADE_MODES: Array<{
+  label: string;
+  value: SecondhandTradeMode;
+}> = [
+  { label: 'Todo', value: 'all' },
+  { label: 'Venta', value: 'sale' },
+  { label: 'Gratis', value: 'free' },
+  { label: 'Intercambio', value: 'exchange' },
+  { label: 'Busco', value: 'wanted' },
+];
+
 const DISTANCES: Array<{ label: string; value?: number }> = [
   { label: 'Todo' },
   { label: '2 km', value: 2 },
@@ -118,6 +148,11 @@ function operationLabel(vertical: MarketRouteVertical, listing: MarketPublicList
   }
   if (vertical === 'vehicles') return 'Vehículo';
   if (vertical === 'local_produce') return 'Local';
+  if (vertical === 'secondhand') {
+    if (listing.tradeMode === 'free') return 'Gratis';
+    if (listing.tradeMode === 'exchange') return 'Intercambio';
+    if (listing.tradeMode === 'wanted') return 'Busco';
+  }
   return undefined;
 }
 
@@ -220,6 +255,9 @@ export function MarketVerticalBrowseScreen({
   );
   const [sort, setSort] = useState<MarketSort>('recent');
   const [propertyOperation, setPropertyOperation] = useState<PropertyOperation>('all');
+  const [secondhandCategory, setSecondhandCategory] = useState<MarketCategoryKey>('all');
+  const [secondhandTradeMode, setSecondhandTradeMode] =
+    useState<SecondhandTradeMode>('all');
   const [listings, setListings] = useState<MarketPublicListing[]>([]);
   const [compareIds, setCompareIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(Boolean(runtime.read));
@@ -238,6 +276,12 @@ export function MarketVerticalBrowseScreen({
       limit: 40,
       ...(distanceKm !== undefined ? { maxDistanceKm: distanceKm } : {}),
       ...(normalizedQuery ? { query: normalizedQuery } : {}),
+      ...(vertical === 'secondhand' && secondhandCategory !== 'all'
+        ? { category: secondhandCategory }
+        : {}),
+      ...(vertical === 'secondhand' && secondhandTradeMode !== 'all'
+        ? { tradeMode: secondhandTradeMode }
+        : {}),
       ...(vertical === 'property' && propertyOperation !== 'all'
         ? { tradeMode: propertyOperation }
         : {}),
@@ -262,12 +306,21 @@ export function MarketVerticalBrowseScreen({
     return () => {
       active = false;
     };
-  }, [distanceKm, propertyOperation, query, runtime, sort, vertical]);
+  }, [
+    distanceKm,
+    propertyOperation,
+    query,
+    runtime,
+    secondhandCategory,
+    secondhandTradeMode,
+    sort,
+    vertical,
+  ]);
 
-  function toggleCompare(listingId: string) {
+  function toggleCompare(listing: MarketPublicListing) {
     setCompareIds((current) => {
-      if (current.includes(listingId)) {
-        return current.filter((id) => id !== listingId);
+      if (current.includes(listing.id)) {
+        return current.filter((id) => id !== listing.id);
       }
       if (current.length >= MAX_COMPARE_ITEMS) {
         Alert.alert(
@@ -276,8 +329,30 @@ export function MarketVerticalBrowseScreen({
         );
         return current;
       }
-      return [...current, listingId];
+
+      const priceBand = marketPriceBand(listing.priceClp);
+      void runtime.recordInterestSignal?.({
+        action: 'compare',
+        occurredAt: new Date().toISOString(),
+        vertical,
+        category: listing.category,
+        listingId: listing.id,
+        ...(priceBand ? { priceBand } : {}),
+      });
+      return [...current, listing.id];
     });
+  }
+
+  function selectSecondhandCategory(value: MarketCategoryKey) {
+    setSecondhandCategory(value);
+    if (value !== 'all') {
+      void runtime.recordInterestSignal?.({
+        action: 'search',
+        occurredAt: new Date().toISOString(),
+        vertical: 'secondhand',
+        category: value,
+      });
+    }
   }
 
   function openComparison() {
@@ -317,6 +392,68 @@ export function MarketVerticalBrowseScreen({
         />
       </View>
 
+      {vertical === 'secondhand' ? (
+        <>
+          <View style={styles.filterSection}>
+            <Text style={styles.filterTitle}>Categoría</Text>
+            <FlatList
+              horizontal
+              data={SECONDHAND_CATEGORIES}
+              keyExtractor={(item) => item.value}
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.horizontalFilters}
+              renderItem={({ item }) => {
+                const selected = secondhandCategory === item.value;
+                return (
+                  <Pressable
+                    onPress={() => selectSecondhandCategory(item.value)}
+                    style={[styles.filterChip, selected && styles.filterChipSelected]}
+                  >
+                    <Text
+                      style={[
+                        styles.filterChipText,
+                        selected && styles.filterChipTextSelected,
+                      ]}
+                    >
+                      {item.label}
+                    </Text>
+                  </Pressable>
+                );
+              }}
+            />
+          </View>
+
+          <View style={styles.filterSectionCompact}>
+            <Text style={styles.filterTitle}>Tipo de publicación</Text>
+            <FlatList
+              horizontal
+              data={SECONDHAND_TRADE_MODES}
+              keyExtractor={(item) => item.value}
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.horizontalFilters}
+              renderItem={({ item }) => {
+                const selected = secondhandTradeMode === item.value;
+                return (
+                  <Pressable
+                    onPress={() => setSecondhandTradeMode(item.value)}
+                    style={[styles.filterChip, selected && styles.filterChipSelected]}
+                  >
+                    <Text
+                      style={[
+                        styles.filterChipText,
+                        selected && styles.filterChipTextSelected,
+                      ]}
+                    >
+                      {item.label}
+                    </Text>
+                  </Pressable>
+                );
+              }}
+            />
+          </View>
+        </>
+      ) : null}
+
       {vertical === 'property' ? (
         <View style={styles.filterSection}>
           <Text style={styles.filterTitle}>Operación</Text>
@@ -348,7 +485,7 @@ export function MarketVerticalBrowseScreen({
         </View>
       ) : null}
 
-      <View style={styles.filterSection}>
+      <View style={styles.filterSectionCompact}>
         <Text style={styles.filterTitle}>Distancia</Text>
         <FlatList
           horizontal
@@ -377,7 +514,7 @@ export function MarketVerticalBrowseScreen({
         />
       </View>
 
-      <View style={styles.filterSection}>
+      <View style={styles.filterSectionCompact}>
         <Text style={styles.filterTitle}>Ordenar</Text>
         <FlatList
           horizontal
@@ -443,7 +580,7 @@ export function MarketVerticalBrowseScreen({
             resolveMediaAssetUrl={runtime.resolveMediaAssetUrl}
             comparisonEnabled={definition.comparisonUseful}
             selectedForCompare={compareIds.includes(item.id)}
-            onToggleCompare={() => toggleCompare(item.id)}
+            onToggleCompare={() => toggleCompare(item)}
           />
         )}
         ListHeaderComponent={header}
@@ -551,6 +688,7 @@ const styles = StyleSheet.create({
     paddingVertical: 0,
   },
   filterSection: { marginTop: 17 },
+  filterSectionCompact: { marginTop: 13 },
   filterTitle: {
     marginBottom: 8,
     color: paltaTheme.color.textSecondary,
