@@ -3,8 +3,8 @@ import path from 'node:path';
 import ts from 'typescript';
 
 const root = process.cwd();
-const detailPath = path.join(root, 'mobile-overlay/src/app/business/[businessId].tsx');
-const photoPath = path.join(root, 'mobile-overlay/src/components/business/BusinessPhotoStrip.tsx');
+const routePath = path.join(root, 'mobile-overlay/src/app/business/[businessId].tsx');
+const detailPath = path.join(root, 'mobile-overlay/src/features/business/BusinessProfileExperience.tsx');
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
@@ -58,38 +58,48 @@ function checkTsx(file) {
   return source;
 }
 
+const route = checkTsx(routePath);
 const detail = checkTsx(detailPath);
-const photos = checkTsx(photoPath);
 
 assert(
+  route.includes('BusinessProfileExperience') && route.includes('export default BusinessProfileExperience'),
+  'Business detail route must remain a thin wrapper around the canonical polished profile experience.',
+);
+assert(
   detail.includes('buildWhatsappUrl') && detail.includes('https://wa.me/'),
-  'Business detail must open a real WhatsApp destination when available.',
+  'Business profile must open a real WhatsApp destination when available.',
 );
 assert(
   detail.includes('buildPhoneUrl') && detail.includes('tel:'),
-  'Business detail must open a real phone destination when available.',
+  'Business profile must open a real phone destination when available.',
 );
 assert(
-  detail.includes('<BusinessPhotoStrip photoUrls={business.photo_urls ?? []} />'),
-  'Free Business Profile must render its canonical photo URLs.',
+  detail.includes('.slice(0, 6)') &&
+    detail.includes('horizontal') &&
+    detail.includes('pagingEnabled') &&
+    detail.includes('business.photo_urls'),
+  'Free Business Profile must keep up to six canonical photos horizontally browsable in the hero.',
 );
 assert(
-  photos.includes('.slice(0, 6)') && photos.includes('horizontal'),
-  'Free Business Profile photo strip must stay bounded and horizontally browsable.',
+  detail.includes('mobileRuntime.client.getBusinessRelationship') &&
+    detail.includes('mobileRuntime.client.updateBusinessRelationship'),
+  'Business profile must preserve save/follow relationship behavior.',
 );
 assert(
   detail.includes('mobileRuntime.client.reviews.getBusinessReviews') &&
-  detail.includes('Opiniones con atención verificada') &&
-  detail.includes('review.verified_interaction') === false,
-  'Business detail must render only the already-public verified-interaction review projection.',
+    detail.includes('Opiniones verificadas') &&
+    !detail.includes('review.verified_interaction'),
+  'Business profile must render only the already-public verified-interaction review projection.',
 );
 assert(
   detail.includes('Atención verificada') && detail.includes('review.evidence_label'),
-  'Business detail must explain why a review is treated as verified interaction.',
+  'Business profile must explain why a review is treated as verified interaction.',
 );
 assert(
-  detail.includes('Messaging Core compartido') && detail.includes('no crearemos un chat paralelo'),
-  'Local Business inquiry must keep the Shared Messaging Core boundary explicit until the shared transport is connected.',
+  detail.includes('Messaging Core compartido') &&
+    !detail.includes('new Map<string,') &&
+    !detail.includes('messageStore'),
+  'Local Business inquiry must keep the Shared Messaging Core boundary and avoid local message storage.',
 );
 
-console.log('PASS: Local Business mobile detail source check');
+console.log('PASS: Local Business polished mobile detail source check');
