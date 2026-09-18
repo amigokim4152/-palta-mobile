@@ -19,6 +19,7 @@ on:
       - 'scripts/check-mobile-auth-secrets.mjs'
       - 'scripts/check-supabase-auth-public-settings.mjs'
       - 'scripts/run-ios-mobile.sh'
+      - 'scripts/run-golden-user-ios.sh'
       - 'scripts/watch-local-business-simulator.sh'
       - '.github/workflows/mobile-runtime-check.yml'
   pull_request:
@@ -37,6 +38,7 @@ on:
       - 'scripts/check-mobile-auth-secrets.mjs'
       - 'scripts/check-supabase-auth-public-settings.mjs'
       - 'scripts/run-ios-mobile.sh'
+      - 'scripts/run-golden-user-ios.sh'
       - 'scripts/watch-local-business-simulator.sh'
       - '.github/workflows/mobile-runtime-check.yml'
 
@@ -64,7 +66,9 @@ jobs:
 
       - name: Check launcher shell syntax
         working-directory: .
-        run: bash -n scripts/run-ios-mobile.sh
+        run: |
+          bash -n scripts/run-ios-mobile.sh
+          bash -n scripts/run-golden-user-ios.sh
 
       - name: Check composed mobile Auth credential boundary
         working-directory: .
