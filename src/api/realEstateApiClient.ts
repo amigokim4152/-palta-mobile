@@ -72,6 +72,23 @@ export type RealEstatePropertyContextApiResponse = {
   nearby: RealEstateNearbyContextApi[];
 };
 
+export type RealEstateMediaApiItem = {
+  media_asset_id: string;
+  kind: 'image' | 'floor_plan';
+  role: 'cover' | 'gallery' | 'floor_plan';
+  sort_order: number;
+  delivery_url?: string;
+  width?: number;
+  height?: number;
+  alt_text?: string;
+};
+
+export type RealEstateListingMediaApiResponse = {
+  listing_id: string;
+  generated_at: string;
+  items: RealEstateMediaApiItem[];
+};
+
 export type RealEstateApiClientOptions = {
   baseUrl: string;
   fetch: FetchLike;
@@ -166,6 +183,21 @@ function isNearbyContext(value: unknown): value is RealEstateNearbyContextApi {
     isEvidence(row.evidence);
 }
 
+function isMediaItem(value: unknown): value is RealEstateMediaApiItem {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const row = value as Record<string, unknown>;
+  const kinds = ['image', 'floor_plan'];
+  const roles = ['cover', 'gallery', 'floor_plan'];
+  return typeof row.media_asset_id === 'string' &&
+    typeof row.kind === 'string' && kinds.includes(row.kind) &&
+    typeof row.role === 'string' && roles.includes(row.role) &&
+    Number.isInteger(row.sort_order) &&
+    (row.delivery_url === undefined || typeof row.delivery_url === 'string') &&
+    (row.width === undefined || isFiniteNumber(row.width)) &&
+    (row.height === undefined || isFiniteNumber(row.height)) &&
+    (row.alt_text === undefined || typeof row.alt_text === 'string');
+}
+
 function validateSearchResponse(value: unknown, label: string): RealEstateListingSearchApiResponse {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     throw new Error(`${label} returned a non-object payload`);
@@ -205,6 +237,25 @@ function validatePropertyContext(
     throw new Error(`${label} returned invalid property context`);
   }
   return row as RealEstatePropertyContextApiResponse;
+}
+
+function validateListingMedia(
+  value: unknown,
+  label: string,
+): RealEstateListingMediaApiResponse {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error(`${label} returned a non-object payload`);
+  }
+  const row = value as Record<string, unknown>;
+  if (
+    typeof row.listing_id !== 'string' ||
+    typeof row.generated_at !== 'string' ||
+    !Array.isArray(row.items) ||
+    row.items.some((item) => !isMediaItem(item))
+  ) {
+    throw new Error(`${label} returned invalid listing media`);
+  }
+  return row as RealEstateListingMediaApiResponse;
 }
 
 function queryString(query: RealEstateListingQuery): string {
@@ -256,6 +307,13 @@ export class RealEstateApiClient {
     return validatePropertyContext(
       await this.request(`/v1/real-estate/properties/${encodeURIComponent(propertyId)}/context`),
       'GET /v1/real-estate/properties/{propertyId}/context',
+    );
+  }
+
+  async getListingMedia(listingId: string): Promise<RealEstateListingMediaApiResponse> {
+    return validateListingMedia(
+      await this.request(`/v1/real-estate/listings/${encodeURIComponent(listingId)}/media`),
+      'GET /v1/real-estate/listings/{listingId}/media',
     );
   }
 }
