@@ -1,17 +1,17 @@
 # Golden User 001 — Gate 01 Auth Runtime Handoff
 
-Status: `RUNTIME_CONNECTED` — Auth/Profile Core, composed mobile runtime, canonical account bootstrap, RLS boundary, public configuration validation, generated runtime typecheck, and composed iOS bundle are connected and verified. The complete live mobile/provider cycle is still `NOT VERIFIED`.
+Status: `RUNTIME_CONNECTED` — Auth/Profile Core, mobile Auth runtime, canonical account bootstrap, RLS boundary, public configuration validation, Gate 01 isolated simulator runtime typecheck, and iOS bundle are connected and verified. The complete live mobile/provider cycle is still `NOT VERIFIED`.
 
 Gate 01 must **not** be changed to `E2E_VERIFIED` until the actual mobile login → terminate/relaunch → logout → login-again cycle is executed against `palta-dev` and resolves to the same canonical Palta account.
 
-There is no Gate 01A/01B shortcut. A server-side synthetic fixture does not allow progression to Gate 02.
+There is no Gate 01A/01B shortcut. A server-side synthetic fixture or a successful bundle does not allow progression to Gate 02.
 
 ## Source of truth
 
 Use these together; do not create a competing Auth model:
 
 1. `integration/golden-user-001-v1` — Golden User orchestration/evidence branch
-2. `integration/runtime-composition-v1` — whole-app iOS runtime/simulator Source of Truth
+2. `integration/runtime-composition-v1` — whole-app iOS runtime/simulator Source of Truth and Gate 01 test launcher
 3. `integration/repository-normalization-v1` — normalized repository/database baseline
 4. `integration/auth-profile-core-v1` — canonical Auth/Profile Core Source of Truth
 5. `integration/mobile-runtime-shell-v1` — historical Expo runtime/package reference only
@@ -33,13 +33,11 @@ Identity layers remain explicit:
 
 For normalized v1, `PaltaUserId` maps deterministically from `AuthBrokerUserId`, but the types remain distinct so raw provider subjects cannot silently become application ids.
 
-The Auth/Profile Core exposes a small canonical runtime contract for broker-id normalization and canonical account verification. The composed mobile adapter uses that contract instead of copying the full persistence/profile model or creating a second Auth model.
+The Auth/Profile Core exposes a small canonical runtime contract for broker-id normalization and canonical account verification. The mobile adapter uses that contract instead of copying the full persistence/profile model or creating a second Auth model.
 
 Auth state subscriptions have separate state/error channels. A provider session that cannot resolve its canonical Palta account is surfaced to the runtime error UI instead of being disguised as `signed_out`.
 
-## Implemented composed mobile runtime
-
-Whole-app execution now belongs to `integration/runtime-composition-v1`. `mobile-overlay/src` is versioned source and `apps/mobile/src` is generated output.
+## Implemented mobile Auth runtime
 
 Implemented controls and states:
 
@@ -56,7 +54,7 @@ Implemented controls and states:
 - visible configuration/provider/account-resolution errors
 - retry
 - logout
-- signed-in app gate around the existing composed app shell
+- signed-in app gate around the existing mobile shell
 
 At the latest verified `palta-dev` public provider state:
 
@@ -66,42 +64,69 @@ At the latest verified `palta-dev` public provider state:
 
 Disabled providers are not shown as dead buttons. When their Supabase provider configuration is enabled, the runtime can expose them without a new account model.
 
-## Composed runtime verification evidence
+## Whole-app composition verification history
 
-Latest whole-app verification succeeded on composition commit `5b3c4f9a5c7396413f04090f31950e8252bb8ae0`.
+A complete whole-app verification previously succeeded on composition commit `5b3c4f9a5c7396413f04090f31950e8252bb8ae0`.
 
-Successful GitHub Actions runs:
+Successful GitHub Actions runs for that composition:
 
 - Mobile Runtime Check: `35341308081`
 - Core Check: `35341307918`
 - Palta Core CI: `35341307922`
 
-The successful Mobile Runtime Check verified all of the following on the actual composed runtime path:
+That successful Mobile Runtime Check verified launcher syntax, mobile Auth credential boundaries, live `palta-dev` settings, source/generated TypeScript, source/composed iOS bundles, composition materialization, and template-source rejection.
 
-- launcher shell syntax
+Later live Market/Play work can advance independently and may temporarily break full composition before their contracts are reconciled. Gate 01 Auth verification must not silently inherit those unrelated feature failures.
+
+## Gate 01 isolated test runtime — verified 2026-09-18
+
+A dedicated development-only Gate 01 test mode is now available on `integration/runtime-composition-v1`.
+
+It deliberately tests the real Auth/session/account boundary while excluding unrelated live feature overlays:
+
+- launcher: `npm run test:golden:ios`
+- runtime mode: `PALTA_RUNTIME_MODE=gate01_auth`
+- source: versioned `mobile-overlay/src`
+- generated target: existing `apps/mobile/src`
+- Auth backend: real `palta-dev`
+- login path: real Supabase email Magic Link
+- account resolution: real canonical `public.palta_account`
+- session persistence: real SecureStore/Supabase persisted session
+- no password shortcut
+- no service-role/admin key in the mobile runtime
+
+The terminal asks locally for the Golden User test email when the command is run without an argument. The email is passed to the development process only and is not written to the repository.
+
+The development Auth screen exposes a `Golden User 001 테스트` panel when a test email is present. It can:
+
+1. send the real `palta-dev` Magic Link
+2. accept a received Supabase Magic Link pasted into the simulator
+3. open that link through the real mobile callback path
+4. show the resulting canonical `Palta ID` and Supabase `Auth ID`
+
+Dedicated GitHub Actions workflow `Golden User Gate 01 Auth Test Check` run `35345553869` completed successfully for runtime-composition commit `9c112df522846d70dc9f950342dd212f1619536b`.
+
+That isolated test-path CI verified:
+
+- Gate 01 launcher shell syntax and isolation marker
 - mobile Auth credential boundary
-- live `palta-dev` Auth settings endpoint
-- required email Auth capability
+- live `palta-dev` public Auth settings
+- Email Auth enabled
 - source mobile TypeScript
-- source Expo config
 - source iOS JavaScript bundle
-- runtime composition contract
-- composition materialization with current live overlays
-- rejection of non-runtime `*.template.*` sources from generated runtime
-- post-composition Auth credential boundary
-- generated simulator runtime TypeScript
-- composed iOS simulator JavaScript bundle
+- isolated `mobile-overlay/src` → `apps/mobile/src` materialization
+- no executable `*.template.*` source leakage
+- post-materialization Auth credential boundary
+- isolated simulator runtime TypeScript
+- isolated simulator iOS JavaScript bundle
 
-The composed check included the current live Negocios, Market and Play surfaces. Their required reviewed Core contracts were reconciled rather than bypassing type safety. In particular, the current food discovery UI now resolves through the reviewed canonical `src/business/foodVertical.ts` contract, while Market lifecycle/message contracts remain explicitly tracked.
-
-An obsolete `supabaseAuthAdapter.template.ts` had initially leaked into generated `apps/mobile/src` and conflicted with the new canonical `AuthSession`. The materializer now removes `*.template.*` source files, and CI explicitly fails if any template source reaches executable generated runtime output.
-
-The composition manifest records Auth/Profile as `integrated` at the reviewed Core SHA. Any later Auth/Profile branch advance must again surface as `CORE REVIEW REQUIRED` until deliberately reconciled.
+This makes Gate 01 **ready for a real user-driven simulator test**. It is not itself the final E2E evidence because GitHub CI cannot click the email link, terminate the iOS app, relaunch it, and perform the logout/re-login cycle as the Golden User.
 
 ## Development verification evidence UI
 
 When `EXPO_PUBLIC_ENV=development`, a signed-in user sees a small Gate 01 verification panel containing:
 
+- canonical account resolution status
 - canonical `Palta ID`
 - Supabase `Auth ID`
 - session expiry when available
@@ -114,8 +139,7 @@ The panel does **not** display access tokens, refresh tokens, passwords, or admi
 
 The mobile Auth adapter is fail-closed:
 
-- no Supabase URL fallback exists in mobile source
-- no concrete publishable-key fallback exists in mobile source
+- no private/admin key is accepted as mobile configuration
 - missing URL/key produces a visible `configuration_error`
 - Supabase URL must match `https://<project>.supabase.co`
 - mobile key must use the `sb_publishable_` format
@@ -123,11 +147,11 @@ The mobile Auth adapter is fail-closed:
 The repository enforces these boundaries:
 
 1. environment preflight rejects privileged-looking `EXPO_PUBLIC_*` variables, including password/secret/token material
-2. mobile Auth secret scanning rejects admin/service-role material, hardcoded Supabase environment binding, public credential variables, Golden User password shortcuts, and password-based Supabase login inside the runtime surface
-3. the same Auth secret scan runs again after runtime composition, so an unsafe live overlay cannot silently enter generated `apps/mobile/src`
+2. mobile Auth secret scanning rejects admin/service-role material, Golden User password shortcuts, and password-based Supabase login inside the runtime surface
+3. Auth secret scanning runs after runtime materialization
 4. generated runtime must contain no `*.template.*` source files
 
-A previously introduced development password shortcut was removed. Gate 01 must use the real configured user-facing Auth path, not `signInWithPassword` hidden behind a development control.
+A previously introduced development password shortcut was removed. Gate 01 uses the real configured user-facing Auth path.
 
 ## Canonical account bootstrap — `palta-dev`
 
@@ -172,54 +196,58 @@ A transaction + rollback synthetic two-user test was executed against the real `
 
 This verifies server bootstrap and the negative owner-RLS boundary. It does not substitute for mobile provider E2E.
 
-## Optional server fixture provisioning
-
-`apps/mobile/scripts/provision-golden-user.mjs` is trusted developer/admin tooling for preparing a synthetic server fixture. Real fixture credentials belong only in ignored local configuration and must never become mobile public configuration.
-
-The utility may use privileged credentials and a synthetic fixture password **only outside the mobile runtime**. Mobile source cannot consume those values, and CI guards against introducing such a path.
-
-Provisioning a fixture is not Gate 01 completion evidence and does not permit Gate 02 to begin.
-
 ## Definition of Done status
 
 | # | Gate 01 requirement | Status | Evidence / remaining work |
 |---|---|---|---|
-| 1 | Fresh install/no session opens Auth | `NOT VERIFIED` | composed runtime/bundle verified; execute on simulator/device |
-| 2 | Golden User login works against `palta-dev` | `NOT VERIFIED` | live mobile email/provider cycle not yet executed |
-| 3 | Successful Auth resolves exactly one canonical Palta account | `PARTIALLY VERIFIED` | real trigger/idempotency + composed resolver path verified; provider-driven login still needs E2E |
+| 1 | Fresh install/no session opens Auth | `NOT VERIFIED` | isolated runtime builds successfully; execute on simulator/device |
+| 2 | Golden User login works against `palta-dev` | `NOT VERIFIED` | real Magic Link test harness is ready; human email-link interaction still required |
+| 3 | Successful Auth resolves exactly one canonical Palta account | `PARTIALLY VERIFIED` | real trigger/idempotency + resolver path verified; provider-driven login still needs E2E |
 | 4 | Kill/relaunch restores same session/account | `NOT VERIFIED` | SecureStore/persistSession implemented; device relaunch not executed |
-| 5 | Sign out clears local session and returns to Auth | `NOT VERIFIED` | composed runtime path implemented; device interaction not executed |
+| 5 | Sign out clears local session and returns to Auth | `NOT VERIFIED` | runtime path implemented; device interaction not executed |
 | 6 | Sign in again resolves same account | `NOT VERIFIED` | requires live mobile cycle |
 | 7 | User A cannot read user B account | `VERIFIED` | real `palta-dev` two-user RLS negative test |
-| 8 | Missing/invalid config and account failures are visible/safe | `PARTIALLY VERIFIED` | fail-closed/error UI + source/composed typechecks; live failure interaction not executed |
-| 9 | No private/admin/password credential bundled in mobile | `VERIFIED` | pre/post-composition credential guards passed |
-| 10 | Applicable TypeScript/tests/migrations pass | `VERIFIED` | latest Core Check, full Core CI, source/generated runtime typechecks and composed iOS bundle passed at `5b3c4f9...` |
+| 8 | Missing/invalid config and account failures are visible/safe | `PARTIALLY VERIFIED` | fail-closed/error UI + isolated source/generated typechecks; live failure interaction not executed |
+| 9 | No private/admin/password credential bundled in mobile | `VERIFIED` | isolated pre/post-materialization credential guards passed |
+| 10 | Applicable TypeScript/tests/migrations pass | `VERIFIED` | Gate 01 isolated source/generated typechecks and iOS bundles passed in run `35345553869` |
 | 11 | Gate status changes only with real runtime evidence | `VERIFIED` | remains `RUNTIME_CONNECTED` |
 
 ## Remaining Gate 01 execution
 
 Do not build Gate 02 yet.
 
-On the development Mac, use the whole-app composition branch:
+On the development Mac:
 
 ```bash
 git fetch origin
 git switch integration/runtime-composition-v1
 git pull --ff-only
-npm run dev:ios
+npm run test:golden:ios
 ```
 
-Then:
+The terminal will ask:
 
-1. confirm the signed-out Auth surface
-2. complete an actually enabled Golden User login path against `palta-dev`; email passwordless is currently available
-3. record the displayed `Palta ID` / `Auth ID`
-4. confirm the canonical account is exactly one row
-5. terminate and relaunch the app; confirm the same identity/session
-6. logout; confirm the Auth surface
-7. login again; confirm the same `Palta ID`
-8. when Apple/Google provider credentials are enabled, smoke-test them and confirm no unintended duplicate account
-9. record exact runtime evidence here
-10. change Gate 01 to `E2E_VERIFIED` only when the Definition of Done is satisfied
+```text
+Golden User 001 테스트 이메일:
+```
+
+Enter the email address you want to use as the synthetic Golden User test identity. The value stays in the local development process.
+
+Then execute in order:
+
+1. confirm the signed-out Auth surface and `Golden User 001 테스트` panel
+2. tap `테스트 로그인 링크 보내기`
+3. receive the real `palta-dev` Magic Link
+4. open it on the same simulator path, or paste it into `받은 Magic Link 붙여넣기` and tap the test-login button
+5. record displayed `Palta ID` and `Auth ID`
+6. confirm the canonical account is exactly one row
+7. terminate the app completely
+8. relaunch the same Gate 01 test command/runtime and confirm the same session and `Palta ID`
+9. logout and confirm return to Auth
+10. login again and confirm the same `Palta ID`
+11. record exact runtime evidence here
+12. change Gate 01 to `E2E_VERIFIED` only after all required evidence exists
+
+Apple/Google remain out of this immediate Gate 01 test because they are disabled in the current `palta-dev` provider configuration. When provider credentials are enabled, smoke-test them separately and confirm no unintended duplicate Palta account.
 
 If a live provider fails, record the exact provider/configuration/deep-link failure and fix that blocker only. Do not advance to later product domains from this work package.
