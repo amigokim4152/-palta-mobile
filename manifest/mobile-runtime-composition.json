@@ -60,6 +60,7 @@
         "tests/local-business-discovery-preview-tests.ts",
         "scripts/check-local-business-experience-shell.mjs",
         "scripts/check-local-business-map-search.mjs",
+        "scripts/check-local-business-primary-tab.mjs",
         "scripts/check-local-business-screen-reference.mjs",
         "scripts/check-mobile-runtime-shell.mjs",
         "package.json"
