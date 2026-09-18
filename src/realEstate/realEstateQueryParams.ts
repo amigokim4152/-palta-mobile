@@ -1,5 +1,5 @@
-import type { PropertyTransactionType, PropertyType } from './realEstateContracts';
-import type { RealEstateListingQuery } from './realEstateRepository';
+import type { PropertyTransactionType, PropertyType } from './realEstateContracts.js';
+import type { RealEstateListingQuery } from './realEstateRepository.js';
 
 export type RealEstateQueryParams = {
   q?: string;
@@ -60,20 +60,20 @@ export function parseRealEstateListingQueryParams(params: RealEstateQueryParams)
     : undefined;
 
   return {
-    text: params.q,
-    businessId: params.businessId,
-    transactionType,
-    propertyType,
-    publisherType,
-    minPriceClp: parseNumber(params.minPriceClp),
-    maxPriceClp: parseNumber(params.maxPriceClp),
-    minPriceUf: parseNumber(params.minPriceUf),
-    maxPriceUf: parseNumber(params.maxPriceUf),
-    minUsableAreaM2: parseNumber(params.minArea),
-    maxUsableAreaM2: parseNumber(params.maxArea),
-    minBedrooms: parseNumber(params.minBedrooms),
-    minBathrooms: parseNumber(params.minBathrooms),
-    minParkingSpaces: parseNumber(params.minParking),
+    ...(params.q ? { text: params.q } : {}),
+    ...(params.businessId ? { businessId: params.businessId } : {}),
+    ...(transactionType ? { transactionType } : {}),
+    ...(propertyType ? { propertyType } : {}),
+    ...(publisherType ? { publisherType } : {}),
+    ...(parseNumber(params.minPriceClp) !== undefined ? { minPriceClp: parseNumber(params.minPriceClp) } : {}),
+    ...(parseNumber(params.maxPriceClp) !== undefined ? { maxPriceClp: parseNumber(params.maxPriceClp) } : {}),
+    ...(parseNumber(params.minPriceUf) !== undefined ? { minPriceUf: parseNumber(params.minPriceUf) } : {}),
+    ...(parseNumber(params.maxPriceUf) !== undefined ? { maxPriceUf: parseNumber(params.maxPriceUf) } : {}),
+    ...(parseNumber(params.minArea) !== undefined ? { minUsableAreaM2: parseNumber(params.minArea) } : {}),
+    ...(parseNumber(params.maxArea) !== undefined ? { maxUsableAreaM2: parseNumber(params.maxArea) } : {}),
+    ...(parseNumber(params.minBedrooms) !== undefined ? { minBedrooms: parseNumber(params.minBedrooms) } : {}),
+    ...(parseNumber(params.minBathrooms) !== undefined ? { minBathrooms: parseNumber(params.minBathrooms) } : {}),
+    ...(parseNumber(params.minParking) !== undefined ? { minParkingSpaces: parseNumber(params.minParking) } : {}),
   };
 }
 
