@@ -135,15 +135,84 @@ try {
     },
   );
   assert(submitted.response.status === 201, 'Eligible dealer should be able to submit an offer.');
-  assert(submitted.body.business_id === 'demo-business-auto-providencia', 'Offer must stay tied to canonical businessId.');
+
+  const losingOffer = await jsonRequest(
+    `/v1/business/demo-business-auto-maipu/autos/acquisition-requests/${encodeURIComponent(requestId)}/offers`,
+    {
+      method: 'POST',
+      headers: authHeaders,
+      body: JSON.stringify({
+        amount_clp: 17_350_000,
+        offer_kind: 'preliminary',
+        inspection_required: true,
+      }),
+    },
+  );
+  assert(losingOffer.response.status === 201, 'Second eligible dealer should be able to compete before selection.');
 
   const offers = await jsonRequest(`/v1/autos/acquisition-requests/${encodeURIComponent(requestId)}/offers`, {
     headers: { Authorization: authValue },
   });
-  assert(offers.response.status === 200 && offers.body.items.length === 1, 'Seller should receive submitted offers.');
-  assert(offers.body.items[0].amount_clp === 17_500_000, 'Seller offer projection should preserve submitted amount.');
+  assert(offers.response.status === 200 && offers.body.items.length === 2, 'Seller should receive competing offers.');
 
-  console.log('PASS: Autos HTTP sale preparation, privacy routing, dealer queue and offer flow');
+  const selectionWithPrivateData = await jsonRequest(
+    `/v1/autos/acquisition-requests/${encodeURIComponent(requestId)}/selection`,
+    {
+      method: 'POST',
+      headers: authHeaders,
+      body: JSON.stringify({ offer_id: submitted.body.offer_id, phone: '+56911112222' }),
+    },
+  );
+  assert(selectionWithPrivateData.response.status === 400, 'Offer selection must reject coordination data.');
+
+  const selected = await jsonRequest(`/v1/autos/acquisition-requests/${encodeURIComponent(requestId)}/selection`, {
+    method: 'POST',
+    headers: authHeaders,
+    body: JSON.stringify({ offer_id: submitted.body.offer_id }),
+  });
+  assert(selected.response.status === 200, 'Seller should be able to select an offer.');
+  assert(selected.body.selected_business_id === 'demo-business-auto-providencia', 'Selection must resolve the chosen Business.');
+  assert(selected.body.contact_shared === false && selected.body.exact_location_shared === false, 'Selecting an offer must not reveal private coordination facts.');
+
+  const privateCoordination = await jsonRequest(
+    `/v1/business/demo-business-auto-providencia/autos/acquisition-requests/${encodeURIComponent(requestId)}/coordination`,
+    { headers: { Authorization: authValue } },
+  );
+  assert(privateCoordination.response.status === 200, 'Selected dealer may inspect coordination state.');
+  assert(!('phone' in privateCoordination.body), 'Contact remains private before explicit consent.');
+  assert(!('exact_location' in privateCoordination.body), 'Exact location remains private before explicit consent.');
+
+  const losingDealerCoordination = await jsonRequest(
+    `/v1/business/demo-business-auto-maipu/autos/acquisition-requests/${encodeURIComponent(requestId)}/coordination`,
+    { headers: { Authorization: authValue } },
+  );
+  assert(losingDealerCoordination.response.status === 403, 'Losing bidder must never access selected-dealer coordination.');
+
+  const shared = await jsonRequest(`/v1/autos/acquisition-requests/${encodeURIComponent(requestId)}/coordination`, {
+    method: 'POST',
+    headers: authHeaders,
+    body: JSON.stringify({
+      contact_consent: 'share_selected_dealer',
+      phone: '+56911112222',
+      location_consent: 'share_selected_dealer',
+      exact_location: {
+        latitude: -33.401,
+        longitude: -70.58,
+        label: 'Lugar acordado',
+      },
+    }),
+  });
+  assert(shared.response.status === 200, 'Seller should explicitly share coordination details after selection.');
+  assert(shared.body.contact_shared === true && shared.body.exact_location_shared === true, 'Server should confirm only the explicitly shared facts.');
+
+  const selectedDealerCoordination = await jsonRequest(
+    `/v1/business/demo-business-auto-providencia/autos/acquisition-requests/${encodeURIComponent(requestId)}/coordination`,
+    { headers: { Authorization: authValue } },
+  );
+  assert(selectedDealerCoordination.body.phone === '+56911112222', 'Selected dealer should receive explicitly shared phone.');
+  assert(selectedDealerCoordination.body.exact_location?.label === 'Lugar acordado', 'Selected dealer should receive explicitly shared visit location.');
+
+  console.log('PASS: Autos HTTP sale preparation, fair routing, offer selection and selected-dealer coordination privacy');
 } finally {
   child.kill('SIGTERM');
   await new Promise((resolve) => {
