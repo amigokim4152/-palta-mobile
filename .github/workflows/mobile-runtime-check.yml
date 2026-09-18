@@ -6,12 +6,20 @@ on:
       - 'integration/**'
     paths:
       - 'mobile-overlay/**'
+      - 'apps/mobile/**'
       - 'src/**'
+      - 'scripts/sync-mobile-runtime.mjs'
+      - 'scripts/run-ios-mobile.sh'
+      - 'scripts/watch-local-business-simulator.sh'
       - '.github/workflows/mobile-runtime-check.yml'
   pull_request:
     paths:
       - 'mobile-overlay/**'
+      - 'apps/mobile/**'
       - 'src/**'
+      - 'scripts/sync-mobile-runtime.mjs'
+      - 'scripts/run-ios-mobile.sh'
+      - 'scripts/watch-local-business-simulator.sh'
       - '.github/workflows/mobile-runtime-check.yml'
 
 jobs:
@@ -42,3 +50,23 @@ jobs:
 
       - name: Bundle iOS JavaScript
         run: npm run bundle:ios
+
+      - name: Materialize actual simulator runtime shell
+        working-directory: .
+        run: node scripts/sync-mobile-runtime.mjs
+
+      - name: Install simulator runtime dependencies
+        working-directory: apps/mobile
+        run: npm install --no-audit --no-fund
+
+      - name: Typecheck materialized simulator runtime
+        working-directory: apps/mobile
+        run: npx tsc --noEmit
+
+      - name: Bundle materialized iOS simulator runtime
+        working-directory: apps/mobile
+        env:
+          EXPO_PUBLIC_PALTA_API_BASE_URL: http://127.0.0.1:8787
+          EXPO_PUBLIC_ENV: development
+          EXPO_PUBLIC_MAP_STYLE_URL: https://palta-edge-preflight.kimeuisin.workers.dev/maps/style.json
+        run: npx expo export --platform ios --output-dir .expo-export/ios-runtime
