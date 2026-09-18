@@ -19,6 +19,56 @@ import { useAsyncResource } from '../../hooks/useAsyncResource';
 import { mobileRuntime } from '../../services/paltaClient';
 import { paltaTheme } from '../../theme/paltaTheme';
 
+const DETAILED_SEASONAL_FOOD_KEYS = new Set([
+  'today.seasonal_fruit',
+  'today.seasonal_vegetable',
+  'today.seasonal_seafood',
+]);
+
+function demoSeasonalFoodItems(): HomeApiItem[] {
+  return [
+    {
+      id: 'home-seasonal-fruit-demo',
+      capability_key: 'today.seasonal_fruit',
+      kind: 'content',
+      title: 'Frutas de temporada',
+      body: 'Ejemplo: frutilla · kiwi · naranja',
+      source_domain: 'food',
+      delivery: 'home',
+      surface: 'useful_today',
+      data_mode: 'demo',
+      dedupe_key: 'food:seasonal:fruit:demo',
+      relevance: 0.72,
+    },
+    {
+      id: 'home-seasonal-vegetable-demo',
+      capability_key: 'today.seasonal_vegetable',
+      kind: 'content',
+      title: 'Verduras de temporada',
+      body: 'Ejemplo: alcachofa · espárrago · espinaca',
+      source_domain: 'food',
+      delivery: 'home',
+      surface: 'useful_today',
+      data_mode: 'demo',
+      dedupe_key: 'food:seasonal:vegetable:demo',
+      relevance: 0.7,
+    },
+    {
+      id: 'home-seasonal-seafood-demo',
+      capability_key: 'today.seasonal_seafood',
+      kind: 'content',
+      title: 'Pescados y mariscos de temporada',
+      body: 'Ejemplo: merluza · reineta · jurel',
+      source_domain: 'food',
+      delivery: 'home',
+      surface: 'useful_today',
+      data_mode: 'demo',
+      dedupe_key: 'food:seasonal:seafood:demo',
+      relevance: 0.7,
+    },
+  ];
+}
+
 function SectionLabel({ children }: { children: string }) {
   return (
     <Text
@@ -67,6 +117,7 @@ function domainLabel(domain: string): string {
     pets: 'Mascota',
     news: 'Noticias',
     'local-life': 'Vida local',
+    food: 'Alimentos',
     play: 'Panoramas',
   };
   return labels[domain] ?? 'Palta';
@@ -205,6 +256,11 @@ export function HomeScreen() {
 
   const context = data.context;
   const localityLabel = context?.locality.label ?? data.locality_label ?? 'Tu zona';
+  const demoMode =
+    data.demo_mode === true ||
+    (data.glance ?? []).some((item) => item.data_mode === 'demo') ||
+    data.items.some((item) => item.data_mode === 'demo');
+
   const nowItems = data.items.filter((item) => itemSurface(item) === 'now');
   const inProgressItems = data.items.filter(
     (item) => itemSurface(item) === 'in_progress',
@@ -212,9 +268,25 @@ export function HomeScreen() {
   const upcomingItems = data.items.filter(
     (item) => itemSurface(item) === 'upcoming',
   );
-  const usefulTodayItems = data.items.filter(
+  const rawUsefulTodayItems = data.items.filter(
     (item) => itemSurface(item) === 'useful_today',
   );
+
+  const hasDetailedSeasonalFood = data.items.some(
+    (item) =>
+      typeof item.capability_key === 'string' &&
+      DETAILED_SEASONAL_FOOD_KEYS.has(item.capability_key),
+  );
+
+  const usefulTodayItems =
+    demoMode && !hasDetailedSeasonalFood
+      ? [
+          ...rawUsefulTodayItems.filter(
+            (item) => item.capability_key !== 'today.seasonal_food',
+          ),
+          ...demoSeasonalFoodItems(),
+        ]
+      : rawUsefulTodayItems;
 
   const glanceItems: GlanceItem[] = (data.glance ?? []).map((item) => ({
     id: item.id,
@@ -224,10 +296,6 @@ export function HomeScreen() {
     ...(item.exceptional !== undefined ? { exceptional: item.exceptional } : {}),
     ...(item.action_target ? { onPress: glancePress(item) } : {}),
   }));
-
-  const demoMode =
-    (data.glance ?? []).some((item) => item.data_mode === 'demo') ||
-    data.items.some((item) => item.data_mode === 'demo');
 
   const noActiveItems =
     nowItems.length === 0 &&
