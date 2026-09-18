@@ -49,16 +49,28 @@ assert(
   'Legacy neighborhood route may remain addressable, but Barrio must not occupy a primary bottom-tab slot.',
 );
 
-for (const [label, source] of [
-  ['primary tab', route],
-  ['legacy route', legacyRoute],
-]) {
-  assert(
-    source.includes('BusinessDiscoveryExperience') &&
-      source.includes('export default BusinessDiscoveryExperience'),
-    `${label} must reuse the canonical BusinessDiscoveryExperience instead of creating a parallel Local Business UI.`,
-  );
-}
+const primaryUsesCanonicalDiscovery =
+  route.includes('BusinessDiscoveryExperience') &&
+  (route.includes('export default BusinessDiscoveryExperience') ||
+    route.includes('<BusinessDiscoveryExperience />'));
+assert(
+  primaryUsesCanonicalDiscovery,
+  'primary tab must reuse the canonical BusinessDiscoveryExperience instead of creating a parallel Local Business UI.',
+);
+assert(
+  !route.includes('LocalBusinessDiscoveryScreen'),
+  'primary tab must not route through a parallel Local Business discovery implementation.',
+);
+assert(
+  route.includes('BusinessVerticalHandoffBar'),
+  'Negocios primary tab must expose independent vertical handoffs without moving their inventory state into Local Business.',
+);
+
+assert(
+  legacyRoute.includes('BusinessDiscoveryExperience') &&
+    legacyRoute.includes('export default BusinessDiscoveryExperience'),
+  'legacy route must reuse the canonical BusinessDiscoveryExperience instead of creating a parallel Local Business UI.',
+);
 
 assert(
   discovery.includes('Explorar Santiago') &&
