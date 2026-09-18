@@ -1,4 +1,7 @@
-import type { RealEstateListingApiItem } from '../../../../src/api/realEstateApiClient';
+import {
+  RealEstateApiError,
+  type RealEstateListingApiItem,
+} from '../../../../src/api/realEstateApiClient';
 import type {
   RealEstateListingQuery,
   RealEstateListingRepository,
@@ -66,7 +69,12 @@ export class ApiRealEstateListingRepository implements RealEstateListingReposito
   }
 
   async getById(listingId: string): Promise<RealEstateListingSearchItem | null> {
-    const item = await this.client.realEstate.getListing(listingId);
-    return projectApiItem(item);
+    try {
+      const item = await this.client.realEstate.getListing(listingId);
+      return projectApiItem(item);
+    } catch (error) {
+      if (error instanceof RealEstateApiError && error.status === 404) return null;
+      throw error;
+    }
   }
 }
