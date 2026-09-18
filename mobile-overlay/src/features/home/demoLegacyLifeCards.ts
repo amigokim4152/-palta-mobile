@@ -46,6 +46,7 @@ export const LEGACY_LIFE_CARD_DEMO_ITEMS: readonly HomeApiItem[] = [
   demoItem('today.marine_alert', 'marine', 'Aviso marítimo', 'Ejemplo: marejadas u otra alerta vigente en zona costera.'),
   demoItem('today.tide', 'marine', 'Mareas', 'Ejemplo: referencia de marea para costa o destino guardado.'),
   demoItem('today.daily_brief', 'news', 'Breves de hoy', 'Ejemplo: resumen corto de transporte, economía, seguridad, clima y cultura.'),
+  demoItem('today.chile_annual_rhythm', 'local-life', 'Ritmo de Chile', 'Ejemplo: Fiestas Patrias, vendimias, temporada de nieve o vacaciones según la época.'),
 
   demoItem('now.earthquake_alert', 'safety', 'Sismo relevante', 'Ejemplo: evento sísmico verificado que afecta tu zona.', 'now'),
   demoItem('now.tsunami_alert', 'safety', 'Alerta de tsunami', 'Ejemplo: alerta oficial visible solo para contexto costero relevante.', 'now'),
