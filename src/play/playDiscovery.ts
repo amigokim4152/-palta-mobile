@@ -135,10 +135,20 @@ function compareDistance(left: PlayDiscoveryItem, right: PlayDiscoveryItem): num
   return 0;
 }
 
+function compareStartTime(left: PlayDiscoveryItem, right: PlayDiscoveryItem): number {
+  if (left.startAt && right.startAt) return left.startAt.localeCompare(right.startAt);
+  if (left.startAt) return -1;
+  if (right.startAt) return 1;
+  return 0;
+}
+
 /**
  * Organic discovery ordering. Deliberately accepts no commercial capability,
  * commission or partner payout input. Monetization is joined only after this
  * selection step.
+ *
+ * Public/municipal supply is guaranteed by dedicated feed sections, not by
+ * pushing a farther public item above a more useful nearby result.
  */
 export function selectPlayDiscoveryItems(
   items: readonly PlayDiscoveryItem[],
@@ -150,25 +160,21 @@ export function selectPlayDiscoveryItems(
     : [...validItems];
 
   return filtered.sort((left, right) => {
+    const distanceOrder = compareDistance(left, right);
+    if (distanceOrder !== 0) return distanceOrder;
+
+    // Comuna is a fallback proximity signal when precise distance is unavailable.
     const leftLocal = context.locality && left.comuna === context.locality ? 0 : 1;
     const rightLocal = context.locality && right.comuna === context.locality ? 0 : 1;
     if (leftLocal !== rightLocal) return leftLocal - rightLocal;
 
+    const timeOrder = compareStartTime(left, right);
+    if (timeOrder !== 0) return timeOrder;
+
+    // Public provenance is only a deterministic tie-breaker in organic discovery.
     const leftPublic = isPublicPlayItem(left) ? 0 : 1;
     const rightPublic = isPublicPlayItem(right) ? 0 : 1;
     if (leftPublic !== rightPublic) return leftPublic - rightPublic;
-
-    const distanceOrder = compareDistance(left, right);
-    if (distanceOrder !== 0) return distanceOrder;
-
-    if (left.startAt && right.startAt) {
-      const dateOrder = left.startAt.localeCompare(right.startAt);
-      if (dateOrder !== 0) return dateOrder;
-    } else if (left.startAt) {
-      return -1;
-    } else if (right.startAt) {
-      return 1;
-    }
 
     return left.title.localeCompare(right.title, 'es');
   });
