@@ -58,6 +58,20 @@ export function AutosDealerDemoScreen() {
           <Text style={{ fontSize: 11, lineHeight: 16, color: paltaTheme.color.textMuted }}>
             En producción esta pantalla será el Business Profile canónico de Negocios; Autos sólo referencia su businessId.
           </Text>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.push(`/autos/business/${encodeURIComponent(businessId)}`)}
+            style={({ pressed }) => ({
+              minHeight: 46,
+              marginTop: paltaTheme.spacing.xs,
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: paltaTheme.radius.control,
+              backgroundColor: pressed ? paltaTheme.color.brandMid : paltaTheme.color.brandPrimary,
+            })}
+          >
+            <Text style={{ fontSize: 13, fontWeight: '900', color: paltaTheme.color.surface }}>Abrir panel Autos · demo</Text>
+          </Pressable>
         </View>
 
         <View style={{ gap: paltaTheme.spacing.sm }}>
