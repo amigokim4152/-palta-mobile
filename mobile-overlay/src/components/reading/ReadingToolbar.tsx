@@ -40,20 +40,14 @@ export function ReadingToolbar({
           : paltaTheme.color.surface,
       }}
     >
-      <Text allowFontScaling style={{ fontWeight: '750' }}>
+      <Text allowFontScaling style={{ fontWeight: '700' }}>
         {label}
       </Text>
     </Pressable>
   );
 
   return (
-    <View
-      style={{
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 8,
-      }}
-    >
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
       {control(listening ? '일시정지' : '이 글 듣기', onToggleListen, listening)}
       {control('A−', onDecreaseText)}
       {control('A+', onIncreaseText)}
