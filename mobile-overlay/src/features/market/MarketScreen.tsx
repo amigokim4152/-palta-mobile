@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   FlatList,
   Image,
@@ -10,21 +10,17 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import type { DiscoverMarketListingsQuery } from '../../../../src/market/marketApiContract';
 import {
   marketCategories,
   type MarketCategoryKey,
 } from '../../../../src/market/marketCatalog';
-import {
-  isMarketListingPublic,
-  marketListingStatusMeta,
-} from '../../../../src/market/marketLifecycle';
+import { marketListingStatusMeta } from '../../../../src/market/marketLifecycle';
+import type { MarketPublicListing } from '../../../../src/market/marketPersistenceContract';
 import { paltaTheme } from '../../theme/paltaTheme';
-import {
-  marketPreviewListings,
-  type MarketPreviewListing,
-} from './marketPreviewData';
+import { getMarketRuntime } from './marketRuntime';
 
-function formatPrice(listing: MarketPreviewListing) {
+function formatPrice(listing: MarketPublicListing) {
   if (listing.tradeMode === 'free') return 'Gratis';
   if (listing.tradeMode === 'wanted') return 'Busco';
   if (listing.tradeMode === 'exchange') return 'Intercambio';
@@ -32,14 +28,43 @@ function formatPrice(listing: MarketPreviewListing) {
   return `$${new Intl.NumberFormat('es-CL').format(listing.priceClp)}`;
 }
 
-function ListingRow({ listing }: { listing: MarketPreviewListing }) {
+function formatAge(listing: MarketPublicListing) {
+  const source = listing.publishedAt ?? listing.createdAt;
+  const time = Date.parse(source);
+  if (!Number.isFinite(time)) return 'hace poco';
+  const minutes = Math.max(1, Math.floor((Date.now() - time) / 60000));
+  if (minutes < 60) return `hace ${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `hace ${hours} h`;
+  const days = Math.floor(hours / 24);
+  return `hace ${days} d`;
+}
+
+function ListingRow({
+  listing,
+  resolveMediaAssetUrl,
+}: {
+  listing: MarketPublicListing;
+  resolveMediaAssetUrl: (mediaAssetId: string) => string | undefined;
+}) {
+  const firstMedia = listing.media[0];
+  const imageUrl = firstMedia
+    ? resolveMediaAssetUrl(firstMedia.mediaAssetId)
+    : undefined;
+
   return (
     <Pressable
       accessibilityRole="button"
       onPress={() => router.push(`/market/listing/${listing.id}`)}
       style={({ pressed }) => [styles.listingRow, pressed && styles.pressed]}
     >
-      <Image source={{ uri: listing.imageUrl }} style={styles.listingImage} />
+      {imageUrl ? (
+        <Image source={{ uri: imageUrl }} style={styles.listingImage} />
+      ) : (
+        <View style={[styles.listingImage, styles.imagePlaceholder]}>
+          <Text style={styles.imagePlaceholderText}>Sin foto</Text>
+        </View>
+      )}
       <View style={styles.listingBody}>
         <View style={styles.titleLine}>
           <Text numberOfLines={2} style={styles.listingTitle}>
@@ -47,7 +72,12 @@ function ListingRow({ listing }: { listing: MarketPreviewListing }) {
           </Text>
         </View>
         <Text style={styles.listingMeta}>
-          {listing.comuna} · {listing.distanceKm.toFixed(1).replace('.', ',')} km · {listing.ageLabel}
+          {listing.location.comunaName}
+          {typeof listing.distanceKm === 'number'
+            ? ` · ${listing.distanceKm.toFixed(1).replace('.', ',')} km`
+            : ''}
+          {' · '}
+          {formatAge(listing)}
         </Text>
         <View style={styles.priceLine}>
           <Text
@@ -67,8 +97,10 @@ function ListingRow({ listing }: { listing: MarketPreviewListing }) {
           ) : null}
         </View>
         <View style={styles.engagementLine}>
-          <Text style={styles.engagement}>♡ {listing.favorites}</Text>
-          <Text style={styles.engagement}>Chats {listing.chats}</Text>
+          <Text style={styles.engagement}>♡ {listing.favoriteCount}</Text>
+          {typeof listing.chatCount === 'number' ? (
+            <Text style={styles.engagement}>Chats {listing.chatCount}</Text>
+          ) : null}
         </View>
       </View>
     </Pressable>
@@ -76,24 +108,47 @@ function ListingRow({ listing }: { listing: MarketPreviewListing }) {
 }
 
 export function MarketScreen() {
+  const runtime = useMemo(() => getMarketRuntime(), []);
   const [category, setCategory] = useState<MarketCategoryKey>('all');
   const [query, setQuery] = useState('');
+  const [listings, setListings] = useState<MarketPublicListing[]>([]);
+  const [loading, setLoading] = useState(Boolean(runtime.read));
+  const [loadError, setLoadError] = useState<string | undefined>(
+    runtime.read ? undefined : runtime.unavailableReason,
+  );
 
-  const listings = useMemo(() => {
-    const base = __DEV__
-      ? marketPreviewListings.filter((listing) => isMarketListingPublic(listing.status))
-      : [];
-    const normalized = query.trim().toLocaleLowerCase('es-CL');
+  useEffect(() => {
+    if (!runtime.read) return;
+    let active = true;
+    const normalizedQuery = query.trim();
+    const request: DiscoverMarketListingsQuery = {
+      sort: 'recent',
+      limit: 30,
+      ...(category !== 'all' ? { category } : {}),
+      ...(normalizedQuery ? { query: normalizedQuery } : {}),
+    };
 
-    return base.filter((listing) => {
-      const categoryMatches = category === 'all' || listing.category === category;
-      const queryMatches =
-        !normalized ||
-        listing.title.toLocaleLowerCase('es-CL').includes(normalized) ||
-        listing.comuna.toLocaleLowerCase('es-CL').includes(normalized);
-      return categoryMatches && queryMatches;
-    });
-  }, [category, query]);
+    setLoading(true);
+    setLoadError(undefined);
+    runtime.read
+      .discover(request)
+      .then((page) => {
+        if (!active) return;
+        setListings(page.items);
+      })
+      .catch(() => {
+        if (!active) return;
+        setListings([]);
+        setLoadError('No pudimos cargar Mercado. Intenta nuevamente.');
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [category, query, runtime]);
 
   const header = (
     <View>
@@ -106,7 +161,7 @@ export function MarketScreen() {
           </Pressable>
         </View>
         <View style={styles.topActions}>
-          {__DEV__ ? (
+          {runtime.mode === 'development_preview' ? (
             <View style={styles.previewBadge}>
               <Text style={styles.previewBadgeText}>Vista previa</Text>
             </View>
@@ -169,21 +224,42 @@ export function MarketScreen() {
     </View>
   );
 
+  const empty = loading ? (
+    <View style={styles.emptyState}>
+      <Text style={styles.emptyTitle}>Cargando publicaciones…</Text>
+    </View>
+  ) : loadError ? (
+    <View style={styles.integrationState}>
+      <Text style={styles.emptyTitle}>Mercado no está disponible</Text>
+      <Text style={styles.emptyBody}>{loadError}</Text>
+      {runtime.mode === 'unavailable' ? (
+        <Text style={styles.integrationHint}>
+          Falta instalar el adaptador de datos de Mercado en este runtime.
+        </Text>
+      ) : null}
+    </View>
+  ) : (
+    <View style={styles.emptyState}>
+      <Text style={styles.emptyTitle}>Todavía no hay publicaciones aquí</Text>
+      <Text style={styles.emptyBody}>
+        Cambia la categoría o publica el primer artículo de tu zona.
+      </Text>
+    </View>
+  );
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <FlatList
         data={listings}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <ListingRow listing={item} />}
+        renderItem={({ item }) => (
+          <ListingRow
+            listing={item}
+            resolveMediaAssetUrl={runtime.resolveMediaAssetUrl}
+          />
+        )}
         ListHeaderComponent={header}
-        ListEmptyComponent={
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyTitle}>Todavía no hay publicaciones aquí</Text>
-            <Text style={styles.emptyBody}>
-              Cambia la categoría o publica el primer artículo de tu zona.
-            </Text>
-          </View>
-        }
+        ListEmptyComponent={empty}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       />
@@ -348,6 +424,12 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     backgroundColor: paltaTheme.color.surfaceMuted,
   },
+  imagePlaceholder: { alignItems: 'center', justifyContent: 'center' },
+  imagePlaceholderText: {
+    color: paltaTheme.color.textMuted,
+    fontSize: 12,
+    fontWeight: '600',
+  },
   listingBody: {
     flex: 1,
     minHeight: 118,
@@ -409,6 +491,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 28,
   },
+  integrationState: {
+    marginTop: 24,
+    paddingVertical: 32,
+    paddingHorizontal: 24,
+    borderRadius: paltaTheme.radius.surface,
+    borderWidth: 1,
+    borderColor: paltaTheme.color.border,
+    backgroundColor: paltaTheme.color.surface,
+    alignItems: 'center',
+  },
   emptyTitle: {
     color: paltaTheme.color.textPrimary,
     fontSize: 17,
@@ -419,6 +511,13 @@ const styles = StyleSheet.create({
     marginTop: 8,
     color: paltaTheme.color.textSecondary,
     lineHeight: 20,
+    textAlign: 'center',
+  },
+  integrationHint: {
+    marginTop: 10,
+    color: paltaTheme.color.textMuted,
+    fontSize: 11,
+    lineHeight: 16,
     textAlign: 'center',
   },
   sellButton: {
