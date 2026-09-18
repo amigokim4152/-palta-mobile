@@ -99,8 +99,8 @@ export function AutosScreen() {
 
         <View style={{ flexDirection: 'row', gap: paltaTheme.spacing.xs }}>
           <QuickAction title="Vender mi auto" subtitle="Publicar" onPress={() => router.push('/autos/sell')} />
-          <QuickAction title="Guardados" subtitle="Tus favoritos" onPress={() => undefined} />
-          <QuickAction title="Mis autos" subtitle="Tus vehículos" onPress={() => undefined} />
+          <QuickAction title="Guardados" subtitle="Tus favoritos" onPress={() => router.push('/autos/saved')} />
+          <QuickAction title="Mis autos" subtitle="Tus vehículos" onPress={() => router.push('/autos/mine')} />
         </View>
 
         <View
