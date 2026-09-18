@@ -326,7 +326,7 @@ const styles = StyleSheet.create({
     color: paltaTheme.color.textPrimary,
     fontSize: 16,
     lineHeight: 21,
-    fontWeight: '650',
+    fontWeight: '600',
   },
   listingMeta: {
     marginTop: 3,
