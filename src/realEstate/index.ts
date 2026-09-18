@@ -2,6 +2,7 @@ export * from './realEstateContracts.js';
 export * from './realEstateDataStatus.js';
 export * from './realEstateDiscovery.js';
 export * from './realEstateEntry.js';
+export * from './realEstateInquiry.js';
 export * from './realEstatePublishing.js';
 export * from './realEstateQueryParams.js';
 export * from './realEstateRepository.js';
