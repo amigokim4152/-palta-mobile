@@ -108,6 +108,16 @@ jobs:
         working-directory: .
         run: node scripts/compose-mobile-runtime.mjs
 
+      - name: Reject non-runtime template sources after composition
+        working-directory: .
+        run: |
+          if find apps/mobile/src -type f -name '*.template.*' -print -quit | grep -q .; then
+            echo 'FAIL: template source leaked into generated apps/mobile/src' >&2
+            find apps/mobile/src -type f -name '*.template.*' -print >&2
+            exit 1
+          fi
+          echo 'PASS: generated runtime contains no template source files'
+
       - name: Re-check Auth boundary after runtime composition
         working-directory: .
         run: node scripts/check-mobile-auth-secrets.mjs
