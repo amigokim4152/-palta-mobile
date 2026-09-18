@@ -41,9 +41,31 @@ Events such as Care updates, canonical changes, relevance rechecks, live transit
 
 The bridge contract is implemented. Wiring a live mobile realtime transport/subscription remains runtime work and is intentionally marked `partial` in the Home behavior capability registry.
 
+## Compact routine-life summary
+
+Routine context must stay visually subordinate to personal action and status state.
+
+- Weather, air quality, and relevant transport state belong in the compact `glance` cluster when normal.
+- Normal glance cells use the minimum touch target and avoid large dashboard cards.
+- Exchange rate and UF are grouped into one compact economy row when standard text sizing is active.
+- Seasonal fruit, vegetables, and seafood are grouped into one compact `De temporada` row. The Food/Seasonality source still owns the facts; Home only compresses presentation.
+- Accessibility text sizing falls back to the existing full summary rows rather than forcing one-line truncation.
+- A routine signal must leave the compact treatment and enter `AHORA` when the owning adapter classifies it as action-changing, urgent, hazardous, or otherwise exceptional.
+
+The compact treatment is presentation-only. It does not create another API contract or another copy of weather, economy, mobility, or food data.
+
+## Municipal and local benefits
+
+Municipal/public-life data enters Home only after source verification, locality matching, eligibility relevance, and current-validity checks.
+
+- Ongoing relevant benefits use capability `today.municipal_benefit` and remain a short `PARA HOY` row.
+- A deadline inside the attention window escalates to capability `now.admin_deadline` and the `AHORA` surface.
+- Unverified, stale, wrong-locality, expired, undated non-ongoing, or unavailable records do not fill Home.
+- Municipal benefits are not merged into the routine glance/economy/seasonality strip. They remain individually actionable because eligibility and deadlines matter.
+
 ## Density and mobile behavior
 
-Existing density rules remain unchanged:
+Existing density rules remain authoritative:
 
 - no fixed card quota
 - useful operational information survives before generic content
@@ -51,4 +73,4 @@ Existing density rules remain unchanged:
 - quiet Home is valid
 - unavailable or expired signals never become fake realtime values
 
-This increment changes ordering inputs, not the visual grammar, navigation shell, auth, localization, theme, or shared API contract.
+This increment refines Home presentation density while keeping the navigation shell, auth, localization, theme, and shared API contract unchanged.
