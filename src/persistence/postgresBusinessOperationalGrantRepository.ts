@@ -9,6 +9,7 @@ import type {
 import type { SqlDatabase } from './sqlDatabase.js';
 
 type GrantStatus = BusinessOperationalGrant['status'];
+type TimestampValue = string | Date;
 
 type GrantRow = {
   business_id: string;
@@ -16,8 +17,8 @@ type GrantRow = {
   role: string;
   status: string;
   granted_by_user_id: string;
-  granted_at: string;
-  expires_at: string | null;
+  granted_at: TimestampValue;
+  expires_at: TimestampValue | null;
 };
 
 const ROLES = new Set<BusinessOperationalRole>([
@@ -44,6 +45,14 @@ function status(value: string): GrantStatus {
   return value as GrantStatus;
 }
 
+function isoTimestamp(value: TimestampValue, field: string): string {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    throw new Error(`Invalid business operational grant ${field} timestamp.`);
+  }
+  return date.toISOString();
+}
+
 function rowToGrant(row: GrantRow): BusinessOperationalGrant {
   const grant: BusinessOperationalGrant = {
     businessId: row.business_id,
@@ -51,9 +60,11 @@ function rowToGrant(row: GrantRow): BusinessOperationalGrant {
     role: role(row.role),
     status: status(row.status),
     grantedByUserId: row.granted_by_user_id,
-    grantedAt: row.granted_at,
+    grantedAt: isoTimestamp(row.granted_at, 'granted_at'),
   };
-  if (row.expires_at !== null) grant.expiresAt = row.expires_at;
+  if (row.expires_at !== null) {
+    grant.expiresAt = isoTimestamp(row.expires_at, 'expires_at');
+  }
   return grant;
 }
 
