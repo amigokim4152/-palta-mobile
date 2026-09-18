@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Pressable,
   SafeAreaView,
@@ -15,14 +15,90 @@ import {
   type MarketCategoryKey,
   type MarketTradeMode,
 } from '../../../../src/market/marketCatalog';
+import { assertMarketListingDraft } from '../../../../src/market/marketPersistenceContract';
 import { paltaTheme } from '../../theme/paltaTheme';
+import { getMarketRuntime } from './marketRuntime';
+
+type SellCategory = Exclude<MarketCategoryKey, 'all'>;
 
 export function SellScreen() {
-  const [category, setCategory] = useState<MarketCategoryKey>('home');
+  const runtime = useMemo(() => getMarketRuntime(), []);
+  const [category, setCategory] = useState<SellCategory>('home');
   const [tradeMode, setTradeMode] = useState<MarketTradeMode>('sale');
   const [title, setTitle] = useState('');
   const [price, setPrice] = useState('');
   const [description, setDescription] = useState('');
+  const [mediaAssetIds, setMediaAssetIds] = useState<string[]>([]);
+  const [publishing, setPublishing] = useState(false);
+  const [formError, setFormError] = useState<string | undefined>();
+
+  const categoryChoices = marketCategories.filter(
+    (item): item is { key: SellCategory; label: string } => item.key !== 'all',
+  );
+
+  function addPhoto() {
+    if (runtime.mode !== 'development_preview') {
+      setFormError(
+        'La carga de fotos se habilitará cuando Media Core esté conectado a Mercado.',
+      );
+      return;
+    }
+    if (mediaAssetIds.length >= 10) return;
+    setMediaAssetIds((current) => [
+      ...current,
+      `preview-upload:${current.length + 1}`,
+    ]);
+    setFormError(undefined);
+  }
+
+  async function publish() {
+    if (!runtime.mutation || publishing) {
+      setFormError(
+        runtime.unavailableReason ?? 'Mercado todavía no puede publicar en este runtime.',
+      );
+      return;
+    }
+
+    const normalizedPrice = price.replace(/[^0-9]/g, '');
+    const parsedPrice = normalizedPrice ? Number.parseInt(normalizedPrice, 10) : undefined;
+
+    try {
+      assertMarketListingDraft({
+        title,
+        description,
+        tradeMode,
+        ...(typeof parsedPrice === 'number' ? { priceClp: parsedPrice } : {}),
+        mediaAssetIds,
+      });
+    } catch {
+      setFormError(
+        tradeMode === 'sale'
+          ? 'Agrega al menos una foto, un título y un precio válido.'
+          : 'Agrega al menos una foto y un título válido.',
+      );
+      return;
+    }
+
+    setPublishing(true);
+    setFormError(undefined);
+    try {
+      await runtime.mutation.createListing({
+        title: title.trim(),
+        description: description.trim(),
+        category,
+        tradeMode,
+        ...(typeof parsedPrice === 'number' ? { priceClp: parsedPrice } : {}),
+        location: { comunaName: 'Vitacura', comunaCode: '13132' },
+        mediaAssetIds,
+        publish: true,
+      });
+      router.replace('/market/my-listings');
+    } catch {
+      setFormError('No pudimos publicar el artículo. Revisa los datos e intenta nuevamente.');
+    } finally {
+      setPublishing(false);
+    }
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -39,11 +115,19 @@ export function SellScreen() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.photoBox}>
+        {runtime.mode === 'development_preview' ? (
+          <View style={styles.previewNotice}>
+            <Text style={styles.previewNoticeText}>
+              Vista previa: la publicación se guarda sólo durante esta sesión de desarrollo.
+            </Text>
+          </View>
+        ) : null}
+
+        <Pressable onPress={addPhoto} style={styles.photoBox}>
           <Text style={styles.photoPlus}>＋</Text>
           <Text style={styles.photoTitle}>Agregar fotos</Text>
-          <Text style={styles.photoCaption}>0 / 10</Text>
-        </View>
+          <Text style={styles.photoCaption}>{mediaAssetIds.length} / 10</Text>
+        </Pressable>
 
         <View style={styles.fieldGroup}>
           <Text style={styles.label}>¿Qué estás vendiendo?</Text>
@@ -52,6 +136,7 @@ export function SellScreen() {
             onChangeText={setTitle}
             placeholder="Ej. Bicicleta urbana Trek"
             placeholderTextColor={paltaTheme.color.textMuted}
+            maxLength={120}
             style={styles.input}
           />
         </View>
@@ -64,7 +149,10 @@ export function SellScreen() {
               return (
                 <Pressable
                   key={mode.key}
-                  onPress={() => setTradeMode(mode.key)}
+                  onPress={() => {
+                    setTradeMode(mode.key);
+                    if (mode.key !== 'sale') setPrice('');
+                  }}
                   style={[styles.choiceChip, selected && styles.choiceChipSelected]}
                 >
                   <Text
@@ -102,34 +190,32 @@ export function SellScreen() {
         <View style={styles.fieldGroup}>
           <Text style={styles.label}>Categoría</Text>
           <View style={styles.wrapRow}>
-            {marketCategories
-              .filter((item) => item.key !== 'all')
-              .map((item) => {
-                const selected = item.key === category;
-                return (
-                  <Pressable
-                    key={item.key}
-                    onPress={() => setCategory(item.key)}
-                    style={[styles.choiceChip, selected && styles.choiceChipSelected]}
+            {categoryChoices.map((item) => {
+              const selected = item.key === category;
+              return (
+                <Pressable
+                  key={item.key}
+                  onPress={() => setCategory(item.key)}
+                  style={[styles.choiceChip, selected && styles.choiceChipSelected]}
+                >
+                  <Text
+                    style={[
+                      styles.choiceChipText,
+                      selected && styles.choiceChipTextSelected,
+                    ]}
                   >
-                    <Text
-                      style={[
-                        styles.choiceChipText,
-                        selected && styles.choiceChipTextSelected,
-                      ]}
-                    >
-                      {item.label}
-                    </Text>
-                  </Pressable>
-                );
-              })}
+                    {item.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
           </View>
         </View>
 
         <View style={styles.fieldGroup}>
           <Text style={styles.label}>Zona de entrega</Text>
           <Pressable style={styles.locationRow}>
-            <View>
+            <View style={styles.locationTextBlock}>
               <Text style={styles.locationMain}>Vitacura</Text>
               <Text style={styles.locationSub}>
                 La ubicación exacta no se muestra públicamente
@@ -145,6 +231,7 @@ export function SellScreen() {
             value={description}
             onChangeText={setDescription}
             multiline
+            maxLength={4000}
             textAlignVertical="top"
             placeholder="Estado, tiempo de uso, detalles y forma de entrega"
             placeholderTextColor={paltaTheme.color.textMuted}
@@ -155,11 +242,24 @@ export function SellScreen() {
           </Text>
         </View>
 
+        {formError ? (
+          <View style={styles.errorBox}>
+            <Text style={styles.errorText}>{formError}</Text>
+          </View>
+        ) : null}
+
         <Pressable
-          style={({ pressed }) => [styles.publishButton, pressed && styles.pressed]}
-          onPress={() => router.back()}
+          disabled={publishing}
+          style={({ pressed }) => [
+            styles.publishButton,
+            pressed && styles.pressed,
+            publishing && styles.publishButtonDisabled,
+          ]}
+          onPress={publish}
         >
-          <Text style={styles.publishText}>Ver vista previa</Text>
+          <Text style={styles.publishText}>
+            {publishing ? 'Publicando…' : 'Publicar'}
+          </Text>
         </Pressable>
       </ScrollView>
     </SafeAreaView>
@@ -198,13 +298,22 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '800',
   },
-  headerSpacer: {
-    width: 44,
-  },
+  headerSpacer: { width: 44 },
   content: {
     padding: 18,
     paddingBottom: 40,
     gap: 24,
+  },
+  previewNotice: {
+    borderRadius: paltaTheme.radius.surface,
+    backgroundColor: paltaTheme.color.brandSoft,
+    padding: 12,
+  },
+  previewNoticeText: {
+    color: paltaTheme.color.brandPrimary,
+    fontSize: 11,
+    lineHeight: 16,
+    fontWeight: '700',
   },
   photoBox: {
     width: 112,
@@ -233,9 +342,7 @@ const styles = StyleSheet.create({
     color: paltaTheme.color.textMuted,
     fontSize: 11,
   },
-  fieldGroup: {
-    gap: 10,
-  },
+  fieldGroup: { gap: 10 },
   label: {
     color: paltaTheme.color.textPrimary,
     fontSize: 15,
@@ -317,6 +424,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
+  locationTextBlock: { flex: 1, paddingRight: 8 },
   locationMain: {
     color: paltaTheme.color.textPrimary,
     fontSize: 15,
@@ -347,6 +455,16 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 17,
   },
+  errorBox: {
+    borderRadius: paltaTheme.radius.control,
+    backgroundColor: paltaTheme.color.surfaceMuted,
+    padding: 12,
+  },
+  errorText: {
+    color: paltaTheme.color.danger,
+    fontSize: 12,
+    lineHeight: 17,
+  },
   publishButton: {
     minHeight: 54,
     borderRadius: paltaTheme.radius.control,
@@ -354,12 +472,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  publishButtonDisabled: { opacity: 0.5 },
   publishText: {
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '800',
   },
-  pressed: {
-    opacity: 0.84,
-  },
+  pressed: { opacity: 0.84 },
 });
