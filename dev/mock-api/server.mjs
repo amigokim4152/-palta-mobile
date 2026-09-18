@@ -1,8 +1,12 @@
 import http from 'node:http';
 import { randomUUID } from 'node:crypto';
+import { getDevelopmentWeatherHome } from './live-weather.mjs';
 
 const host = process.env.PALTA_MOCK_HOST ?? '127.0.0.1';
 const port = Number(process.env.PALTA_MOCK_PORT ?? '8787');
+const devLatitude = Number(process.env.PALTA_DEV_LAT ?? '-33.385');
+const devLongitude = Number(process.env.PALTA_DEV_LNG ?? '-70.575');
+const devLocality = process.env.PALTA_DEV_LOCALITY ?? 'Vitacura';
 
 const businesses = [
   {
@@ -65,31 +69,29 @@ const server = http.createServer(async (req, res) => {
     const url = new URL(req.url, `http://${req.headers.host ?? `${host}:${port}`}`);
 
     if (req.method === 'GET' && url.pathname === '/health') {
-      return json(res, 200, { ok: true, service: 'palta-mock-api', version: '0.3.0' });
+      return json(res, 200, { ok: true, service: 'palta-mock-api', version: '0.4.0' });
     }
 
     if (req.method === 'GET' && url.pathname === '/v1/home') {
       const observedAt = new Date().toISOString();
+      const weather = await getDevelopmentWeatherHome({
+        latitude: devLatitude,
+        longitude: devLongitude,
+        localityLabel: devLocality,
+      });
+
       return json(res, 200, {
         generated_at: observedAt,
-        locality_label: 'Vitacura',
+        locality_label: devLocality,
         source_state: [
-          { source_domain: 'weather', data_mode: 'demo', observed_at: observedAt },
+          weather.sourceState,
           { source_domain: 'mobility', data_mode: 'demo', observed_at: observedAt },
           { source_domain: 'care', data_mode: 'demo', observed_at: observedAt },
           { source_domain: 'public-life', data_mode: 'demo', observed_at: observedAt },
           { source_domain: 'news', data_mode: 'demo', observed_at: observedAt },
         ],
         glance: [
-          {
-            id: 'weather-current',
-            label: 'HOY',
-            value: '23°',
-            detail: '17° / 25°',
-            source_domain: 'weather',
-            data_mode: 'demo',
-            observed_at: observedAt,
-          },
+          ...(weather.glance ? [weather.glance] : []),
           {
             id: 'bus-405',
             label: 'BUS 405',
