@@ -2,7 +2,10 @@ import React, { useState } from 'react';
 import { useRouter } from 'expo-router';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import type { PaltaLocale } from '../../../../src/localization/index';
+import {
+  surfaceT,
+  type PaltaLocale,
+} from '../../../../src/localization/index';
 import { useLocalization } from '../../providers/LocalizationProvider';
 
 const OPTIONS: Array<{
@@ -78,7 +81,7 @@ export default function LanguageSettingsScreen() {
       </View>
 
       {error ? (
-        <Text style={styles.error}>No se pudo guardar el idioma. Inténtalo de nuevo.</Text>
+        <Text style={styles.error}>{surfaceT('async.errorTitle', locale)}</Text>
       ) : null}
     </View>
   );
