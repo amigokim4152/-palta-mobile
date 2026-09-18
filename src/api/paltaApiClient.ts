@@ -27,16 +27,47 @@ export type HomeApiResponse = {
   items: HomeApiItem[];
 };
 
+export type PaltaRecordClass = 'production' | 'sample' | 'discovery_candidate';
+export type OwnerVerificationStatus = 'unverified' | 'claimed' | 'verified' | 'suspended';
+
+export type BusinessEvidence = {
+  source_type?: string;
+  source_url?: string;
+  coordinate_source?: string;
+  checked_at?: string;
+  fact_verification_status?: string;
+};
+
+export type BusinessContact = {
+  phone?: string;
+  whatsapp?: string;
+  website?: string;
+  instagram?: string;
+  email?: string;
+};
+
+export type BusinessHours = {
+  day?: string;
+  open?: string;
+  close?: string;
+  raw?: string;
+};
+
 export type LocalSearchItem = {
   entity_id: string;
   entity_type: 'place' | 'business' | 'public_service' | 'event';
   name: string;
   category_key?: string;
+  record_class?: PaltaRecordClass;
   distance_m?: number;
-  verification_status?: string;
+  verification_status?: OwnerVerificationStatus | string;
+  fact_verification_status?: string;
+  owner_verification_status?: OwnerVerificationStatus | string;
   operational_state?: string;
   operational_confirmed_at?: string;
   next_open_at?: string;
+  address?: string;
+  commune?: string;
   /** Exact public point is absent for area-only or hidden-location businesses. */
   location?: { lat: number; lng: number };
 };
@@ -45,13 +76,29 @@ export type BusinessApiDetail = {
   id: string;
   name: string;
   category_key?: string;
-  verification_status: 'unverified' | 'claimed' | 'verified' | 'suspended';
+  record_class?: PaltaRecordClass;
+  public_listing_status?: string;
+  verification_status: OwnerVerificationStatus;
+  fact_verification_status?: string;
+  owner_verification_status?: OwnerVerificationStatus;
   opening_status?: string;
+  address?: string;
+  commune?: string;
+  region?: string;
+  location_precision?: string;
+  map_eligible?: boolean;
   location?: { lat: number; lng: number };
-  contact?: {
-    phone?: string;
-    whatsapp?: string;
-  };
+  parking?: string;
+  hours?: BusinessHours[];
+  hours_raw?: string[];
+  hours_summary?: string;
+  hours_note?: string;
+  service_labels?: string[];
+  contact?: BusinessContact;
+  store_locator_url?: string;
+  media_source_url?: string;
+  enabled_capabilities?: string[];
+  evidence?: BusinessEvidence;
 };
 
 export type CareApiTrack = {
