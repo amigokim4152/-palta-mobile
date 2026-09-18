@@ -9,12 +9,7 @@
     {
       "key": "businesses",
       "route": "/(tabs)/businesses",
-      "purpose": "local business discovery, relationship and action"
-    },
-    {
-      "key": "neighborhood",
-      "route": "/(tabs)/neighborhood",
-      "purpose": "local map and broader neighborhood discovery/action"
+      "purpose": "full-map local business discovery, relationship and action"
     },
     {
       "key": "community",
