@@ -8,6 +8,7 @@ export type MarketVerticalKey =
 
 export type MarketSellerKind = 'person' | 'business';
 export type MarketMapMode = 'optional' | 'recommended';
+export type MarketCanonicalDomain = 'autos' | 'real_estate';
 
 export type MarketVerticalDefinition = {
   key: MarketVerticalKey;
@@ -19,6 +20,11 @@ export type MarketVerticalDefinition = {
   businessReferenceAllowed: boolean;
   comparisonUseful: boolean;
   supportedTradeModes: readonly MarketTradeMode[];
+  /**
+   * Optional canonical owner of structured vertical truth.
+   * Mercado links to this domain by stable ids and never copies its object graph.
+   */
+  canonicalDomain?: MarketCanonicalDomain;
 };
 
 /**
@@ -28,6 +34,10 @@ export type MarketVerticalDefinition = {
  * A Mercado listing is also distinct from a canonical Business. Verticals may
  * allow an optional Business id reference, but never embed or duplicate the
  * Business object.
+ *
+ * Vehicles and properties also have dedicated canonical domains. Mercado owns
+ * discovery/transaction intent, while Autos/Real Estate own structured vehicle
+ * and physical-property facts respectively.
  */
 export const marketVerticals = [
   {
@@ -51,6 +61,7 @@ export const marketVerticals = [
     businessReferenceAllowed: true,
     comparisonUseful: true,
     supportedTradeModes: ['sale'],
+    canonicalDomain: 'autos',
   },
   {
     key: 'property',
@@ -62,6 +73,7 @@ export const marketVerticals = [
     businessReferenceAllowed: true,
     comparisonUseful: true,
     supportedTradeModes: ['sale', 'rent'],
+    canonicalDomain: 'real_estate',
   },
   {
     key: 'local_produce',
