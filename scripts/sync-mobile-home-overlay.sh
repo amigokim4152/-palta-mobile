@@ -26,6 +26,7 @@ files=(
   "app/search/index.tsx"
   "app/context/[contextId].tsx"
   "app/community/[communitySpaceId].tsx"
+  "app/community/[communitySpaceId]/post/[postId].tsx"
   "features/home/HomeScreen.tsx"
   "features/community/CommunityScreen.tsx"
   "features/community/communityRuntime.ts"
