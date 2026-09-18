@@ -16,6 +16,11 @@ export type PlaySourceAssemblyInput = Readonly<{
   municipalEvents?: readonly MunicipalEventPlayInput[];
   businessExposures?: readonly ResolvedBusinessPlayExposure[];
   publicPrograms?: readonly PlayDiscoveryItem[];
+  /**
+   * Already-normalized items from cinema/showtime, ticketing, tourism or other
+   * discovery providers. Provider-specific schemas must be adapted upstream.
+   */
+  catalogItems?: readonly PlayDiscoveryItem[];
   calendar: MunicipalPlayProjectionContext;
 }>;
 
@@ -29,6 +34,7 @@ export type PlaySourceAssembly = Readonly<{
     municipal: number;
     publicProgram: number;
     business: number;
+    catalog: number;
     accepted: number;
     rejected: number;
   }>;
@@ -40,7 +46,8 @@ export type PlaySourceAssembly = Readonly<{
  * Data ownership stays upstream:
  * - municipal/public event facts remain owned by the public-data layer;
  * - canonical Business identity/offerings remain owned by Business Core;
- * - Play only assembles their read projections for discovery.
+ * - cinema/ticket/tourism providers own their operational source facts;
+ * - Play only assembles normalized read projections for discovery.
  */
 export function assemblePlaySources(input: PlaySourceAssemblyInput): PlaySourceAssembly {
   const municipal = projectMunicipalEventsToPlay(
@@ -51,8 +58,11 @@ export function assemblePlaySources(input: PlaySourceAssemblyInput): PlaySourceA
   const publicPrograms = (input.publicPrograms ?? []).filter(
     (item) => item.sourceKind === 'public_program' || item.sourceKind === 'place',
   );
+  const catalog = (input.catalogItems ?? []).filter(
+    (item) => item.sourceKind === 'partner_feed' || item.sourceKind === 'editorial',
+  );
 
-  const candidates = [...municipal, ...publicPrograms, ...business];
+  const candidates = [...municipal, ...publicPrograms, ...catalog, ...business];
   const items: PlayDiscoveryItem[] = [];
   const rejected: Array<{ itemId: string; issues: readonly string[] }> = [];
 
@@ -72,6 +82,7 @@ export function assemblePlaySources(input: PlaySourceAssemblyInput): PlaySourceA
       municipal: municipal.length,
       publicProgram: publicPrograms.length,
       business: business.length,
+      catalog: catalog.length,
       accepted: items.length,
       rejected: rejected.length,
     },
