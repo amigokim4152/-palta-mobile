@@ -184,7 +184,7 @@ export function projectCanonicalOfferingToPlay(input: {
   const contentKind = inferPlayContentKind({
     category: offering.offeringType,
     title: offering.title,
-    venue: venue?.name,
+    ...(venue?.name ? { venue: venue.name } : {}),
     tags: offering.categoryIds,
   });
   const businessId = offering.canonicalBusinessId ?? venue?.canonicalBusinessId;
@@ -202,7 +202,7 @@ export function projectCanonicalOfferingToPlay(input: {
     comuna: venue?.comuna ?? 'Chile',
     ...(venue?.name ? { venue: venue.name } : {}),
     scheduleLabel: offering.availability.mode === 'on_request' ? 'Reserva previa' : 'Consulta disponibilidad',
-    isFree: offering.price?.free,
+    ...(offering.price?.free !== undefined ? { isFree: offering.price.free } : {}),
     registrationRequired: Boolean(offering.bookingRequired),
     ...(offering.ageMin !== undefined
       ? { audienceLabel: offering.familyFriendly ? `Familiar · ${offering.ageMin}+` : `${offering.ageMin}+` }
@@ -231,22 +231,28 @@ export function projectCanonicalCatalogToPlay(
 ): PlayDiscoveryItem[] {
   const venues = new Map(catalog.venues.map((venue) => [venue.venueId, venue]));
   const events = catalog.events
-    .map((event) => projectCanonicalEventToPlay({
-      event,
-      venue: event.venueId ? venues.get(event.venueId) : undefined,
-      evidence: catalog.sourceEvidence,
-      sources: catalog.sources,
-      context,
-    }))
+    .map((event) => {
+      const venue = event.venueId ? venues.get(event.venueId) : undefined;
+      return projectCanonicalEventToPlay({
+        event,
+        ...(venue ? { venue } : {}),
+        evidence: catalog.sourceEvidence,
+        sources: catalog.sources,
+        context,
+      });
+    })
     .filter((item): item is PlayDiscoveryItem => Boolean(item));
   const offerings = catalog.offerings
-    .map((offering) => projectCanonicalOfferingToPlay({
-      offering,
-      venue: offering.venueId ? venues.get(offering.venueId) : undefined,
-      evidence: catalog.sourceEvidence,
-      sources: catalog.sources,
-      context,
-    }))
+    .map((offering) => {
+      const venue = offering.venueId ? venues.get(offering.venueId) : undefined;
+      return projectCanonicalOfferingToPlay({
+        offering,
+        ...(venue ? { venue } : {}),
+        evidence: catalog.sourceEvidence,
+        sources: catalog.sources,
+        context,
+      });
+    })
     .filter((item): item is PlayDiscoveryItem => Boolean(item));
   return [...events, ...offerings];
 }
