@@ -25,10 +25,13 @@ command -v node >/dev/null 2>&1 || fail "node is required"
 command -v git >/dev/null 2>&1 || fail "git is required"
 
 REMOTE_REF="$REMOTE_NAME/$TARGET_BRANCH"
+REMOTE_DEST="refs/remotes/$REMOTE_NAME/$TARGET_BRANCH"
 
 safe_fast_forward_loop() {
   while true; do
-    if git fetch --quiet "$REMOTE_NAME" "$TARGET_BRANCH"; then
+    # Use an explicit destination ref so REMOTE_REF is guaranteed to represent
+    # the just-fetched branch instead of relying on FETCH_HEAD semantics.
+    if git fetch --quiet "$REMOTE_NAME" "$TARGET_BRANCH:$REMOTE_DEST"; then
       LOCAL_SHA="$(git rev-parse HEAD)"
       REMOTE_SHA="$(git rev-parse "$REMOTE_REF")"
 
