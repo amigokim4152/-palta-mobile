@@ -1,0 +1,252 @@
+{
+  "dataset": "palta_food_independent_outlet_discoveries_rm",
+  "observed_at": "2026-09-18",
+  "policy": {
+    "factual_fields_only": true,
+    "collect_images": false,
+    "merchant_authorization_status": "pending",
+    "live_publish_allowed": false
+  },
+  "records": [
+    {
+      "outlet_key": "cl-rm-quilicura-illadi-sushi-bernardo-ohiggins-43",
+      "brand_name": "Illadi Sushi",
+      "outlet_name": "Quilicura",
+      "address": "Av. Bernardo O'Higgins 43",
+      "comuna": "Quilicura",
+      "identity_status": "verified",
+      "public_contact": {"phone": "+56963971211", "whatsapp": "+56963971211", "website": "https://www.illadi.cl/"},
+      "evidence": [{"kind": "official_website", "url": "https://www.illadi.cl/", "observed_at": "2026-09-18"}]
+    },
+    {
+      "outlet_key": "cl-rm-estacion-central-tommy-beans-turbus-alameda-3750",
+      "brand_name": "Tommy Beans",
+      "outlet_name": "Turbus Estación Central",
+      "address": "Avenida Libertador Bernardo O'Higgins 3750",
+      "comuna": "Estación Central",
+      "identity_status": "verified",
+      "public_contact": {"website": "https://www.tommybeans.cl/locales/"},
+      "evidence": [{"kind": "official_website", "url": "https://www.tommybeans.cl/locales/", "observed_at": "2026-09-18"}]
+    },
+    {
+      "outlet_key": "cl-rm-la-florida-tommy-beans-florida-center-6100",
+      "brand_name": "Tommy Beans",
+      "outlet_name": "Florida Center",
+      "address": "Avenida Vicuña Mackenna Oriente 6100",
+      "comuna": "La Florida",
+      "identity_status": "verified",
+      "public_contact": {"website": "https://www.tommybeans.cl/locales/"},
+      "evidence": [{"kind": "official_website", "url": "https://www.tommybeans.cl/locales/", "observed_at": "2026-09-18"}]
+    },
+    {
+      "outlet_key": "cl-rm-la-florida-tommy-beans-vicuna-mackenna-7196",
+      "brand_name": "Tommy Beans",
+      "outlet_name": "Vicuña Mackenna",
+      "address": "Avenida Vicuña Mackenna 7196",
+      "comuna": "La Florida",
+      "identity_status": "verified",
+      "public_contact": {"website": "https://www.tommybeans.cl/locales/"},
+      "evidence": [{"kind": "official_website", "url": "https://www.tommybeans.cl/locales/", "observed_at": "2026-09-18"}]
+    },
+    {
+      "outlet_key": "cl-rm-maipu-tommy-beans-midmall-camino-melipilla-15900",
+      "brand_name": "Tommy Beans",
+      "outlet_name": "MidMall Outlet Maipú",
+      "address": "Camino a Melipilla 15900",
+      "comuna": "Maipú",
+      "identity_status": "verified",
+      "public_contact": {"website": "https://www.tommybeans.cl/locales/"},
+      "evidence": [{"kind": "official_website", "url": "https://www.tommybeans.cl/locales/", "observed_at": "2026-09-18"}]
+    },
+    {
+      "outlet_key": "cl-rm-maipu-tommy-beans-arauco-maipu-americo-vespucio-399",
+      "brand_name": "Tommy Beans",
+      "outlet_name": "Mall Arauco Maipú",
+      "address": "Avenida Américo Vespucio 399",
+      "comuna": "Maipú",
+      "identity_status": "verified",
+      "public_contact": {"website": "https://www.tommybeans.cl/locales/"},
+      "evidence": [{"kind": "official_website", "url": "https://www.tommybeans.cl/locales/", "observed_at": "2026-09-18"}]
+    },
+    {
+      "outlet_key": "cl-rm-puente-alto-tommy-beans-plaza-tobalaba-camilo-henriquez-3296",
+      "brand_name": "Tommy Beans",
+      "outlet_name": "Mall Plaza Tobalaba",
+      "address": "Avenida Camilo Henríquez 3296",
+      "comuna": "Puente Alto",
+      "identity_status": "verified",
+      "public_contact": {"website": "https://www.tommybeans.cl/locales/"},
+      "evidence": [{"kind": "official_website", "url": "https://www.tommybeans.cl/locales/", "observed_at": "2026-09-18"}]
+    },
+    {
+      "outlet_key": "cl-rm-san-bernardo-tommy-beans-plaza-sur-20040",
+      "brand_name": "Tommy Beans",
+      "outlet_name": "Mall Plaza Sur",
+      "address": "Avenida Presidente Jorge Alessandri Rodríguez 20040",
+      "comuna": "San Bernardo",
+      "identity_status": "verified",
+      "public_contact": {"website": "https://www.tommybeans.cl/locales/"},
+      "evidence": [{"kind": "official_website", "url": "https://www.tommybeans.cl/locales/", "observed_at": "2026-09-18"}]
+    },
+    {
+      "outlet_key": "cl-rm-huechuraba-tommy-beans-plaza-norte-santa-elena-1895",
+      "brand_name": "Tommy Beans",
+      "outlet_name": "Mall Plaza Norte",
+      "address": "Santa Elena de Huechuraba 1895",
+      "comuna": "Huechuraba",
+      "identity_status": "verified",
+      "public_contact": {"website": "https://www.tommybeans.cl/locales/"},
+      "evidence": [{"kind": "official_website", "url": "https://www.tommybeans.cl/locales/", "observed_at": "2026-09-18"}]
+    },
+    {
+      "outlet_key": "cl-rm-cerrillos-tommy-beans-plaza-oeste-americo-vespucio-1501",
+      "brand_name": "Tommy Beans",
+      "outlet_name": "Mall Plaza Oeste",
+      "address": "Avenida Américo Vespucio 1501",
+      "comuna": "Cerrillos",
+      "identity_status": "verified",
+      "public_contact": {"website": "https://www.tommybeans.cl/locales/"},
+      "evidence": [{"kind": "official_website", "url": "https://www.tommybeans.cl/locales/", "observed_at": "2026-09-18"}]
+    },
+    {
+      "outlet_key": "cl-rm-nunoa-tommy-beans-portal-nunoa-jose-pedro-alessandri-1166",
+      "brand_name": "Tommy Beans",
+      "outlet_name": "Portal Ñuñoa",
+      "address": "Avenida José Pedro Alessandri 1166",
+      "comuna": "Ñuñoa",
+      "identity_status": "verified",
+      "public_contact": {"website": "https://www.tommybeans.cl/locales/"},
+      "evidence": [{"kind": "official_website", "url": "https://www.tommybeans.cl/locales/", "observed_at": "2026-09-18"}]
+    },
+    {
+      "outlet_key": "cl-rm-la-florida-tarragona-florida-center-6100",
+      "brand_name": "Tarragona",
+      "outlet_name": "Mall Florida Center",
+      "address": "Avenida Vicuña Mackenna Oriente 6100",
+      "comuna": "La Florida",
+      "identity_status": "verified",
+      "public_contact": {"website": "https://www.tarragona.cl/locales/"},
+      "evidence": [{"kind": "official_website", "url": "https://www.tarragona.cl/locales/", "observed_at": "2026-09-18"}]
+    },
+    {
+      "outlet_key": "cl-rm-maipu-tarragona-pajaritos-3000",
+      "brand_name": "Tarragona",
+      "outlet_name": "Pajaritos",
+      "address": "Avenida Los Pajaritos 3000",
+      "comuna": "Maipú",
+      "identity_status": "verified",
+      "public_contact": {"website": "https://www.tarragona.cl/locales/"},
+      "evidence": [{"kind": "official_website", "url": "https://www.tarragona.cl/locales/", "observed_at": "2026-09-18"}]
+    },
+    {
+      "outlet_key": "cl-rm-puente-alto-tarragona-jumbo-concha-y-toro-26",
+      "brand_name": "Tarragona",
+      "outlet_name": "Jumbo Puente Alto",
+      "address": "Avenida Concha y Toro 26",
+      "comuna": "Puente Alto",
+      "identity_status": "verified",
+      "public_contact": {"website": "https://www.tarragona.cl/locales/"},
+      "evidence": [{"kind": "official_website", "url": "https://www.tarragona.cl/locales/", "observed_at": "2026-09-18"}]
+    },
+    {
+      "outlet_key": "cl-rm-independencia-tarragona-barrio-independencia-565",
+      "brand_name": "Tarragona",
+      "outlet_name": "Mall Barrio Independencia",
+      "address": "Avenida Independencia 565",
+      "comuna": "Independencia",
+      "identity_status": "verified",
+      "public_contact": {"website": "https://www.tarragona.cl/locales/"},
+      "evidence": [{"kind": "official_website", "url": "https://www.tarragona.cl/locales/", "observed_at": "2026-09-18"}]
+    },
+    {
+      "outlet_key": "cl-rm-san-miguel-tarragona-gran-avenida-6150",
+      "brand_name": "Tarragona",
+      "outlet_name": "Lider Gran Avenida",
+      "address": "Gran Avenida José Miguel Carrera 6150",
+      "comuna": "San Miguel",
+      "identity_status": "verified",
+      "public_contact": {"website": "https://www.tarragona.cl/locales/"},
+      "evidence": [{"kind": "official_website", "url": "https://www.tarragona.cl/locales/", "observed_at": "2026-09-18"}]
+    },
+    {
+      "outlet_key": "cl-rm-huechuraba-tarragona-plaza-norte-americo-vespucio-1737",
+      "brand_name": "Tarragona",
+      "outlet_name": "Mall Plaza Norte",
+      "address": "Avenida Américo Vespucio 1737",
+      "comuna": "Huechuraba",
+      "identity_status": "verified",
+      "public_contact": {"website": "https://www.tarragona.cl/locales/"},
+      "evidence": [{"kind": "official_website", "url": "https://www.tarragona.cl/locales/", "observed_at": "2026-09-18"}]
+    },
+    {
+      "outlet_key": "cl-rm-estacion-central-schopdog-plaza-alameda-3470",
+      "brand_name": "Schopdog",
+      "outlet_name": "Mall Plaza Alameda",
+      "address": "Av. Libertador Bernardo O'Higgins 3470, Local T-413/T-417",
+      "comuna": "Estación Central",
+      "identity_status": "verified",
+      "public_contact": {"website": "https://schopdog.cl/locales/"},
+      "evidence": [{"kind": "official_website", "url": "https://schopdog.cl/locales/", "observed_at": "2026-09-18"}]
+    },
+    {
+      "outlet_key": "cl-rm-estacion-central-schopdog-arauco-estacion-3156-local-36",
+      "brand_name": "Schopdog",
+      "outlet_name": "Mall Arauco Estación",
+      "address": "Av. Libertador Bernardo O'Higgins 3156, Local 36",
+      "comuna": "Estación Central",
+      "identity_status": "verified",
+      "public_contact": {"website": "https://schopdog.cl/locales/"},
+      "evidence": [{"kind": "official_website", "url": "https://schopdog.cl/locales/", "observed_at": "2026-09-18"}]
+    },
+    {
+      "outlet_key": "cl-rm-puente-alto-schopdog-concha-y-toro-1060-local-4",
+      "brand_name": "Schopdog",
+      "outlet_name": "Plazuela Puente Alto",
+      "address": "Concha y Toro 1060, Local 4",
+      "comuna": "Puente Alto",
+      "identity_status": "verified",
+      "public_contact": {"website": "https://schopdog.cl/locales/"},
+      "evidence": [{"kind": "official_website", "url": "https://schopdog.cl/locales/", "observed_at": "2026-09-18"}]
+    },
+    {
+      "outlet_key": "cl-rm-puente-alto-juan-maestro-jumbo-concha-y-toro-26",
+      "brand_name": "Juan Maestro",
+      "outlet_name": "Jumbo Puente Alto",
+      "address": "Avenida Concha y Toro 26",
+      "comuna": "Puente Alto",
+      "identity_status": "verified",
+      "public_contact": {"website": "https://www.juanmaestro.cl/Nuestroslocales"},
+      "evidence": [{"kind": "official_website", "url": "https://www.juanmaestro.cl/Nuestroslocales", "observed_at": "2026-09-18"}]
+    },
+    {
+      "outlet_key": "cl-rm-la-florida-juan-maestro-vicuna-mackenna-7196",
+      "brand_name": "Juan Maestro",
+      "outlet_name": "Lider Vicuña Mackenna",
+      "address": "Avenida Vicuña Mackenna 7196",
+      "comuna": "La Florida",
+      "identity_status": "verified",
+      "public_contact": {"website": "https://www.juanmaestro.cl/Nuestroslocales"},
+      "evidence": [{"kind": "official_website", "url": "https://www.juanmaestro.cl/Nuestroslocales", "observed_at": "2026-09-18"}]
+    },
+    {
+      "outlet_key": "cl-rm-la-cisterna-juan-maestro-intermodal-americo-vespucio-33",
+      "brand_name": "Juan Maestro",
+      "outlet_name": "Intermodal La Cisterna",
+      "address": "Avenida Américo Vespucio 33",
+      "comuna": "La Cisterna",
+      "identity_status": "verified",
+      "public_contact": {"website": "https://www.juanmaestro.cl/Nuestroslocales"},
+      "evidence": [{"kind": "official_website", "url": "https://www.juanmaestro.cl/Nuestroslocales", "observed_at": "2026-09-18"}]
+    },
+    {
+      "outlet_key": "cl-rm-la-florida-juan-maestro-florida-center-6100",
+      "brand_name": "Juan Maestro",
+      "outlet_name": "Florida Center",
+      "address": "Avenida Vicuña Mackenna Oriente 6100",
+      "comuna": "La Florida",
+      "identity_status": "verified",
+      "public_contact": {"website": "https://www.juanmaestro.cl/Nuestroslocales"},
+      "evidence": [{"kind": "official_website", "url": "https://www.juanmaestro.cl/Nuestroslocales", "observed_at": "2026-09-18"}]
+    }
+  ]
+}
