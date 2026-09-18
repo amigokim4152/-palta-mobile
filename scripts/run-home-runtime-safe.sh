@@ -125,9 +125,19 @@ sync_ref_file \
   "live development weather bridge"
 
 sync_ref_file \
+  "dev/mock-api/live-vitacura.mjs" \
+  "$ROOT/dev/mock-api/live-vitacura.mjs" \
+  "official Vitacura content bridge"
+
+sync_ref_file \
   "dev/mock-api/server.mjs" \
   "$ROOT/dev/mock-api/server.mjs" \
   "Home development API"
+
+sync_ref_file \
+  "dev/mock-api/smoke.mjs" \
+  "$ROOT/dev/mock-api/smoke.mjs" \
+  "Home development smoke test"
 
 # A stale mock server would hide the new Home payload even when the UI files are correct.
 if lsof -nP -iTCP:"$MOCK_PORT" -sTCP:LISTEN -t >/dev/null 2>&1; then
