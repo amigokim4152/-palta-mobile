@@ -82,12 +82,26 @@
         "scripts/check-local-business-relationship-loop.mjs",
         "scripts/check-local-business-screen-reference.mjs",
         "scripts/check-mobile-runtime-shell.mjs",
-        "package.json"
+        "package.json",
+        "src/adapters/supabaseBusinessOnboardingAdapter.ts",
+        "src/adapters/supabaseChileAdministrativeAreaAdapter.ts",
+        "src/adapters/supabaseLocalBusinessDiscoveryAdapter.ts",
+        "src/verticalSlice/businessRegistrationPersistenceFlow.ts"
       ],
       "reviewed_contract_paths": [
         "src/business/localBusinessDiscoveryPreview.ts",
         "src/business/foodVertical.ts",
-        "src/api/businessQuotesApiClient.ts"
+        "src/api/businessQuotesApiClient.ts",
+        "src/business/businessOnboarding.ts",
+        "src/business/businessReservation.ts",
+        "src/business/businessSurfaceProjection.ts",
+        "src/business/foodMerchantFulfillment.ts",
+        "src/business/localBusinessDiscovery.ts",
+        "src/business/businessLocationProfile.ts",
+        "src/adapters/supabaseBusinessOnboardingAdapter.ts",
+        "src/adapters/supabaseChileAdministrativeAreaAdapter.ts",
+        "src/adapters/supabaseLocalBusinessDiscoveryAdapter.ts",
+        "src/verticalSlice/businessRegistrationPersistenceFlow.ts"
       ]
     },
     {

@@ -120,36 +120,41 @@ function validateQuoteDetail(value: unknown, label: string): BusinessQuoteApiDet
   return result as BusinessQuoteApiDetail;
 }
 
+function validateBusinessInboxItem(value: unknown, label: string): BusinessQuoteInboxItem {
+  const row = expectObject(value, label);
+  if (
+    typeof row.id !== 'string' ||
+    typeof row.care_track_id !== 'string' ||
+    typeof row.description !== 'string' ||
+    typeof row.status !== 'string' ||
+    typeof row.created_at !== 'string' ||
+    typeof row.selected !== 'boolean' ||
+    typeof row.can_respond !== 'boolean'
+  ) {
+    throw new Error(`${label} returned invalid business quote inbox item`);
+  }
+  if ('recipient_business_ids' in row || 'responses' in row || 'selected_business_id' in row) {
+    throw new Error(`${label} leaked cross-business quote data`);
+  }
+  if (row.response !== undefined) {
+    const response = expectObject(row.response, `${label} response`);
+    if (typeof response.id !== 'string') {
+      throw new Error(`${label} returned invalid own quote response`);
+    }
+    if ('business_id' in response || 'business_name' in response || 'selected' in response) {
+      throw new Error(`${label} own response must stay business-local`);
+    }
+  }
+  return row as BusinessQuoteInboxItem;
+}
+
 function validateBusinessInbox(value: unknown, label: string): BusinessQuoteInboxApiResponse {
   const result = expectObject(value, label);
   if (typeof result.business_id !== 'string' || !Array.isArray(result.items)) {
     throw new Error(`${label} returned invalid business quote inbox`);
   }
   for (const item of result.items as unknown[]) {
-    const row = expectObject(item, `${label} item`);
-    if (
-      typeof row.id !== 'string' ||
-      typeof row.care_track_id !== 'string' ||
-      typeof row.description !== 'string' ||
-      typeof row.status !== 'string' ||
-      typeof row.created_at !== 'string' ||
-      typeof row.selected !== 'boolean' ||
-      typeof row.can_respond !== 'boolean'
-    ) {
-      throw new Error(`${label} returned invalid business quote inbox item`);
-    }
-    if ('recipient_business_ids' in row || 'responses' in row || 'selected_business_id' in row) {
-      throw new Error(`${label} leaked cross-business quote data`);
-    }
-    if (row.response !== undefined) {
-      const response = expectObject(row.response, `${label} item response`);
-      if (typeof response.id !== 'string') {
-        throw new Error(`${label} returned invalid own quote response`);
-      }
-      if ('business_id' in response || 'business_name' in response || 'selected' in response) {
-        throw new Error(`${label} own response must stay business-local`);
-      }
-    }
+    validateBusinessInboxItem(item, `${label} item`);
   }
   return result as BusinessQuoteInboxApiResponse;
 }
@@ -231,8 +236,8 @@ export class BusinessQuotesApiClient {
     quoteRequestId: string,
     businessId: string,
     input: SubmitBusinessQuoteResponseInput,
-  ): Promise<BusinessQuoteApiDetail> {
-    return validateQuoteDetail(
+  ): Promise<BusinessQuoteInboxItem> {
+    return validateBusinessInboxItem(
       await this.request(
         `/v1/local-business/quotes/${encodeURIComponent(quoteRequestId)}/responses/${encodeURIComponent(businessId)}`,
         {

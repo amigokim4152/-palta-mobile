@@ -1,3 +1,5 @@
+import type { FoodFulfillmentMode } from './foodFulfillment.js';
+
 export type FoodVerticalCategoryId =
   | 'all'
   | 'burgers'
@@ -197,24 +199,39 @@ export function matchesFoodVerticalCategory(
 }
 
 /**
- * Local Business owns only the discovery intent. The actual order lifecycle is
- * handed to the shared Commerce Core rather than duplicated in this feature.
+ * Local Business owns only the discovery/order intent. The actual order,
+ * payment and fulfillment lifecycle is handed to the shared Commerce Core.
  */
 export type FoodOrderIntent = Readonly<{
   businessId: string;
   intent: 'food_order';
   preferredFulfillment?: 'delivery' | 'pickup' | 'dine_in';
+  preferredDeliveryMode?: Exclude<FoodFulfillmentMode, 'pickup'>;
 }>;
 
 export function createFoodOrderIntent(
   businessId: string,
   preferredFulfillment?: FoodOrderIntent['preferredFulfillment'],
+  preferredDeliveryMode?: FoodOrderIntent['preferredDeliveryMode'],
 ): FoodOrderIntent {
   const cleanBusinessId = businessId.trim();
   if (!cleanBusinessId) throw new Error('business_id_required');
+  if (preferredDeliveryMode && preferredFulfillment && preferredFulfillment !== 'delivery') {
+    throw new Error('delivery_mode_requires_delivery_fulfillment');
+  }
   return {
     businessId: cleanBusinessId,
     intent: 'food_order',
     ...(preferredFulfillment ? { preferredFulfillment } : {}),
+    ...(preferredDeliveryMode ? { preferredDeliveryMode } : {}),
   };
+}
+
+export function createFoodOrderIntentForMode(
+  businessId: string,
+  mode: FoodFulfillmentMode,
+): FoodOrderIntent {
+  return mode === 'pickup'
+    ? createFoodOrderIntent(businessId, 'pickup')
+    : createFoodOrderIntent(businessId, 'delivery', mode);
 }

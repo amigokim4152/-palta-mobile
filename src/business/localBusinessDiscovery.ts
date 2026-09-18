@@ -33,8 +33,12 @@ export type LocalBusinessShortcut = {
   query: string;
 };
 
+/**
+ * Generic Business discovery shortcuts only. Consumer verticals that change the
+ * task model (food ordering, real estate, vehicle marketplace, etc.) enter from
+ * their own top-level intent surface rather than pretending to be a text filter.
+ */
 export const LOCAL_BUSINESS_SHORTCUTS: readonly LocalBusinessShortcut[] = [
-  { id: 'food', label: 'Comida', query: 'comida restaurante' },
   { id: 'beauty', label: 'Belleza', query: 'peluquería belleza barbería' },
   { id: 'home', label: 'Hogar', query: 'reparación mantención hogar' },
   { id: 'auto', label: 'Auto', query: 'taller neumáticos auto' },
