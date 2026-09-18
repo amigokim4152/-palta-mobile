@@ -71,6 +71,12 @@ jobs:
         working-directory: .
         run: node scripts/check-mobile-runtime-composition.mjs
 
+      - name: Report parallel source and ownership drift
+        working-directory: .
+        run: |
+          git fetch --quiet origin '+refs/heads/integration/*:refs/remotes/origin/integration/*'
+          node scripts/check-runtime-source-drift.mjs
+
       - name: Materialize actual composed simulator runtime shell
         working-directory: .
         run: node scripts/compose-mobile-runtime.mjs
