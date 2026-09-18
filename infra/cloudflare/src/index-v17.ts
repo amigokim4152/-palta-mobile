@@ -5,6 +5,12 @@ import {
   toLocalSearchItem,
   type BusinessSnapshot,
 } from '../../../src/local/businessSnapshot';
+import {
+  findProductionPlace,
+  placeToLocalSearchItem,
+  searchProductionPlaces,
+  type LocalPlaceSnapshot,
+} from '../../../src/local/localPlaceSnapshot';
 
 type BaseFetch = typeof v16Worker.fetch;
 type BaseEnv = Parameters<BaseFetch>[1];
@@ -13,17 +19,20 @@ type R2JsonObject = {
   body: ReadableStream;
 };
 
-type BusinessR2Bucket = {
+type JsonR2Bucket = {
   get(key: string): Promise<R2JsonObject | null>;
 };
 
 type Env = BaseEnv & {
-  MAPS: BusinessR2Bucket;
+  MAPS: JsonR2Bucket;
   BUSINESS_OBJECT_KEY?: string;
+  LOCAL_PLACE_OBJECT_KEY?: string;
 };
 
 const DEFAULT_BUSINESS_OBJECT_KEY =
   'palta/cl/local-business/current/businesses.json';
+const DEFAULT_LOCAL_PLACE_OBJECT_KEY =
+  'palta/cl/local-place/current/places.json';
 
 function apiHeaders(cacheControl = 'public, max-age=60, s-maxage=300'): Headers {
   return new Headers({
@@ -50,17 +59,31 @@ function apiJson(
   });
 }
 
-async function loadBusinessSnapshot(env: Env): Promise<BusinessSnapshot | null> {
-  const key = env.BUSINESS_OBJECT_KEY ?? DEFAULT_BUSINESS_OBJECT_KEY;
+async function loadJsonObject<T>(env: Env, key: string, label: string): Promise<T | null> {
   const object = await env.MAPS.get(key);
   if (!object) return null;
-
   const text = await new Response(object.body).text();
-  const parsed = JSON.parse(text) as BusinessSnapshot;
+  const parsed = JSON.parse(text) as T & { items?: unknown[] };
   if (!parsed || !Array.isArray(parsed.items)) {
-    throw new Error('invalid_business_snapshot');
+    throw new Error(`invalid_${label}_snapshot`);
   }
-  return parsed;
+  return parsed as T;
+}
+
+function loadBusinessSnapshot(env: Env): Promise<BusinessSnapshot | null> {
+  return loadJsonObject<BusinessSnapshot>(
+    env,
+    env.BUSINESS_OBJECT_KEY ?? DEFAULT_BUSINESS_OBJECT_KEY,
+    'business',
+  );
+}
+
+function loadLocalPlaceSnapshot(env: Env): Promise<LocalPlaceSnapshot | null> {
+  return loadJsonObject<LocalPlaceSnapshot>(
+    env,
+    env.LOCAL_PLACE_OBJECT_KEY ?? DEFAULT_LOCAL_PLACE_OBJECT_KEY,
+    'local_place',
+  );
 }
 
 function numberParam(url: URL, key: string): number | null {
@@ -89,27 +112,45 @@ async function localSearch(request: Request, env: Env, url: URL): Promise<Respon
   const radiusM = Math.min(Math.max(Math.round(requestedRadius), 50), 50_000);
   const query = url.searchParams.get('q')?.trim() || undefined;
 
-  const snapshot = await loadBusinessSnapshot(env);
-  if (!snapshot) {
+  const [businessSnapshot, placeSnapshot] = await Promise.all([
+    loadBusinessSnapshot(env),
+    loadLocalPlaceSnapshot(env),
+  ]);
+  if (!businessSnapshot && !placeSnapshot) {
     return apiJson(
       request,
-      { error: 'business_snapshot_unavailable' },
+      { error: 'local_snapshots_unavailable' },
       503,
       'no-store',
     );
   }
 
-  const matches = searchProductionBusinesses(snapshot, {
+  const searchInput = {
     latitude,
     longitude,
     radiusM,
     ...(query ? { query } : {}),
+  };
+  const businessItems = businessSnapshot
+    ? searchProductionBusinesses(businessSnapshot, searchInput).map(toLocalSearchItem)
+    : [];
+  const placeItems = placeSnapshot
+    ? searchProductionPlaces(placeSnapshot, searchInput).map(placeToLocalSearchItem)
+    : [];
+  const items = [...businessItems, ...placeItems].sort((a, b) => {
+    const left = Number(a.distance_m ?? Number.MAX_SAFE_INTEGER);
+    const right = Number(b.distance_m ?? Number.MAX_SAFE_INTEGER);
+    return left - right || String(a.name ?? '').localeCompare(String(b.name ?? ''));
   });
 
   return apiJson(request, {
-    checked_at: snapshot.checked_at,
+    checked_at: {
+      business: businessSnapshot?.checked_at,
+      local_place: placeSnapshot?.checked_at,
+    },
     radius_m: radiusM,
-    items: matches.map(toLocalSearchItem),
+    partial: !businessSnapshot || !placeSnapshot,
+    items,
   });
 }
 
@@ -120,19 +161,29 @@ async function businessDetail(
 ): Promise<Response> {
   const snapshot = await loadBusinessSnapshot(env);
   if (!snapshot) {
-    return apiJson(
-      request,
-      { error: 'business_snapshot_unavailable' },
-      503,
-      'no-store',
-    );
+    return apiJson(request, { error: 'business_snapshot_unavailable' }, 503, 'no-store');
   }
-
   const business = findProductionBusiness(snapshot, businessId);
   if (!business) {
     return apiJson(request, { error: 'business_not_found' }, 404, 'no-store');
   }
   return apiJson(request, business);
+}
+
+async function placeDetail(
+  request: Request,
+  env: Env,
+  placeId: string,
+): Promise<Response> {
+  const snapshot = await loadLocalPlaceSnapshot(env);
+  if (!snapshot) {
+    return apiJson(request, { error: 'local_place_snapshot_unavailable' }, 503, 'no-store');
+  }
+  const place = findProductionPlace(snapshot, placeId);
+  if (!place) {
+    return apiJson(request, { error: 'place_not_found' }, 404, 'no-store');
+  }
+  return apiJson(request, place);
 }
 
 export default {
@@ -153,7 +204,7 @@ export default {
         return apiJson(
           request,
           {
-            error: 'business_snapshot_error',
+            error: 'local_snapshot_error',
             detail: error instanceof Error ? error.message : 'unknown_error',
           },
           500,
@@ -163,21 +214,31 @@ export default {
     }
 
     const businessMatch = url.pathname.match(/^\/v1\/business\/([^/]+)$/);
-    if (
-      businessMatch &&
-      (request.method === 'GET' || request.method === 'HEAD')
-    ) {
+    if (businessMatch && (request.method === 'GET' || request.method === 'HEAD')) {
       try {
-        return await businessDetail(
-          request,
-          env,
-          decodeURIComponent(businessMatch[1]!),
-        );
+        return await businessDetail(request, env, decodeURIComponent(businessMatch[1]!));
       } catch (error) {
         return apiJson(
           request,
           {
             error: 'business_snapshot_error',
+            detail: error instanceof Error ? error.message : 'unknown_error',
+          },
+          500,
+          'no-store',
+        );
+      }
+    }
+
+    const placeMatch = url.pathname.match(/^\/v1\/place\/([^/]+)$/);
+    if (placeMatch && (request.method === 'GET' || request.method === 'HEAD')) {
+      try {
+        return await placeDetail(request, env, decodeURIComponent(placeMatch[1]!));
+      } catch (error) {
+        return apiJson(
+          request,
+          {
+            error: 'local_place_snapshot_error',
             detail: error instanceof Error ? error.message : 'unknown_error',
           },
           500,
