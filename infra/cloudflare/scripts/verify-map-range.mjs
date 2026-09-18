@@ -14,6 +14,8 @@ const manifestUrl = `${origin}/maps/cl/manifest.json`;
 const styleUrl = `${origin}/maps/cl/style.json`;
 const metadataUrl = `${origin}/maps/cl/metadata.json`;
 const mapUrl = `${origin}/maps/cl/basemap.pmtiles`;
+const fontUrl = `${origin}/maps/cl/fonts/NotoSans.ttf`;
+const fontLicenseUrl = `${origin}/maps/cl/fonts/OFL.txt`;
 
 const manifestResponse = await fetch(manifestUrl);
 assert(
@@ -23,9 +25,15 @@ assert(
 const manifest = await manifestResponse.json();
 assert(manifest.country === 'CL', 'Manifest country must be CL');
 assert(typeof manifest.version === 'string', 'Manifest version missing');
+assert(manifest.style_version === 'palta-v1.2', 'Unexpected map style version');
 assert(manifest.pmtiles_url === mapUrl, 'Manifest PMTiles URL mismatch');
 assert(manifest.style_url === styleUrl, 'Manifest style URL mismatch');
 assert(manifest.metadata_url === metadataUrl, 'Manifest metadata URL mismatch');
+assert(manifest.font_url === fontUrl, 'Manifest font URL mismatch');
+assert(
+  manifest.font_license_url === fontLicenseUrl,
+  'Manifest font license URL mismatch',
+);
 
 const styleResponse = await fetch(styleUrl);
 assert(styleResponse.status === 200, `Style expected 200, got ${styleResponse.status}`);
@@ -35,6 +43,31 @@ assert(style.sources?.chile?.type === 'vector', 'Chile vector source missing');
 assert(
   style.sources?.chile?.url === `pmtiles://${mapUrl}`,
   'Style PMTiles source mismatch',
+);
+assert(
+  style['font-faces']?.['Noto Sans']?.[0]?.url === fontUrl,
+  'Self-hosted Noto Sans font-face missing',
+);
+
+const layerIds = new Set((style.layers ?? []).map((layer) => layer?.id));
+for (const id of ['place-labels', 'road-labels', 'water-labels', 'poi-labels']) {
+  assert(layerIds.has(id), `Style label layer missing: ${id}`);
+}
+
+const fontHead = await fetch(fontUrl, { method: 'HEAD' });
+assert(fontHead.status === 200, `Font HEAD expected 200, got ${fontHead.status}`);
+const fontSize = Number(fontHead.headers.get('content-length'));
+assert(fontSize === 2049096, `Unexpected Noto Sans size: ${fontSize}`);
+const fontContentType = fontHead.headers.get('content-type') ?? '';
+assert(
+  /font\/ttf|application\/x-font-ttf|application\/octet-stream/i.test(fontContentType),
+  `Unexpected Noto Sans Content-Type: ${fontContentType}`,
+);
+
+const licenseHead = await fetch(fontLicenseUrl, { method: 'HEAD' });
+assert(
+  licenseHead.status === 200,
+  `Font license HEAD expected 200, got ${licenseHead.status}`,
 );
 
 const metadataResponse = await fetch(metadataUrl);
@@ -51,6 +84,9 @@ assert(Array.isArray(metadata.center), 'PMTiles center missing');
 const vectorLayers = Array.isArray(metadata.metadata?.vector_layers)
   ? metadata.metadata.vector_layers.map((layer) => layer?.id).filter(Boolean)
   : [];
+for (const id of ['places', 'roads', 'water', 'pois']) {
+  assert(vectorLayers.includes(id), `PMTiles label source layer missing: ${id}`);
+}
 
 const head = await fetch(mapUrl, { method: 'HEAD' });
 assert(head.status === 200, `HEAD expected 200, got ${head.status}`);
@@ -99,6 +135,8 @@ console.log(
       manifestUrl,
       styleUrl,
       metadataUrl,
+      fontUrl,
+      fontSize,
       mapUrl,
       immutableUrl: manifest.immutable_version_url,
       fullSize,
@@ -107,6 +145,7 @@ console.log(
       bounds: metadata.bounds,
       center: metadata.center,
       vectorLayers,
+      labelLayers: ['place-labels', 'road-labels', 'water-labels', 'poi-labels'],
       firstRange: range.headers.get('content-range'),
       suffixRange: suffix.headers.get('content-range'),
     },
