@@ -27,6 +27,28 @@ assert(home.body.items.some((item) => item.surface === 'useful_today'), 'Home PA
 const careHomeItem = home.body.items.find((item) => item.care_track_id === 'care-demo-1');
 assert(careHomeItem?.action_target === '/care/care-demo-1', 'Home Care deep link missing');
 
+const profile = await json('/v1/profile');
+assert(profile.response.ok, 'profile read failed');
+assert(profile.body.preferred_language === 'es-CL', 'profile language missing');
+assert(profile.body.timezone === 'America/Santiago', 'profile timezone missing');
+const profileUpdate = await json('/v1/profile', {
+  method: 'PATCH',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ preferred_name: '  Palta   Smoke  ' }),
+});
+assert(
+  profileUpdate.response.ok && profileUpdate.body.preferred_name === 'Palta Smoke',
+  'profile preferred name normalization/update failed',
+);
+const profileReadBack = await json('/v1/profile');
+assert(profileReadBack.body.preferred_name === 'Palta Smoke', 'profile update did not persist');
+const profileClear = await json('/v1/profile', {
+  method: 'PATCH',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ preferred_name: null }),
+});
+assert(profileClear.response.ok && profileClear.body.preferred_name === undefined, 'profile clear failed');
+
 const notifications = await json('/v1/notifications');
 assert(notifications.response.ok && Array.isArray(notifications.body.items), 'notifications failed');
 assert(notifications.body.items.length >= 2, 'notification seed missing');
@@ -118,6 +140,7 @@ console.log(JSON.stringify({
   homeItems: home.body.items.length,
   homeGlance: home.body.glance.length,
   locality: home.body.context.locality.label,
+  profileUpdate: 'ok',
   unreadBefore: notifications.body.summary.unread_count,
   unreadAfter,
   localItems: local.body.items.length,
