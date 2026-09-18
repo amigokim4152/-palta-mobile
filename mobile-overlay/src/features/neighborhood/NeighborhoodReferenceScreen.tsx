@@ -11,6 +11,15 @@ import {
 import { useAdaptiveExperience } from '../../accessibility/useAdaptiveExperience';
 import { paltaTheme } from '../../theme/paltaTheme';
 
+const REFERENCE_PINS: readonly {
+  left: `${number}%`;
+  top: `${number}%`;
+}[] = [
+  { left: '22%', top: '30%' },
+  { left: '61%', top: '39%' },
+  { left: '45%', top: '66%' },
+];
+
 export function NeighborhoodReferenceScreen() {
   const [mode, setMode] = useState<ReferenceMode>('normal');
   const adaptive = useAdaptiveExperience(fontScaleByReferenceMode[mode]);
@@ -77,11 +86,7 @@ export function NeighborhoodReferenceScreen() {
             }}
           />
 
-          {[
-            { left: '22%', top: '30%' },
-            { left: '61%', top: '39%' },
-            { left: '45%', top: '66%' },
-          ].map((position, index) => (
+          {REFERENCE_PINS.map((position, index) => (
             <View
               key={String(index)}
               style={{
