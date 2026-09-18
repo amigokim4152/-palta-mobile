@@ -1,4 +1,5 @@
 import type {
+  BusinessId,
   ListingPublisherType,
   PropertyTransactionType,
   PropertyType,
@@ -15,6 +16,8 @@ export type RealEstateListingDraft = {
   transactionType: PropertyTransactionType;
   propertyType: PropertyType;
   publisherType: ListingPublisherType;
+  /** Required before a broker/agency draft can be submitted. */
+  publisherBusinessId?: BusinessId;
   comuna: string;
   sectorOrAddress: string;
   priceClp?: number;
