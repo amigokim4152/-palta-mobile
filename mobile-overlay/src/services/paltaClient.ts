@@ -3,6 +3,8 @@ import {
   type CareApiTrack,
   type HomeApiResponse,
   type LocalSearchItem,
+  type NotificationApiItem,
+  type NotificationApiResponse,
 } from '../../../src/api/paltaApiClient';
 import { parseRuntimeEnv } from '../../../src/config/runtimeEnv';
 import { createPaltaApiClient } from '../../../src/api/paltaApiFactory';
@@ -10,6 +12,8 @@ import type { AuthPort } from '../../../src/ports/authPort';
 
 export type MobilePaltaClient = {
   getHome(): Promise<HomeApiResponse>;
+  getNotifications(): Promise<NotificationApiResponse>;
+  markNotificationRead(id: string): Promise<NotificationApiItem>;
   searchLocal(input: {
     latitude: number;
     longitude: number;
