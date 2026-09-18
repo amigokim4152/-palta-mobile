@@ -37,7 +37,25 @@ sync_file "mobile-overlay/src/app/(tabs)/index.tsx" "$APP_DIR/src/app/(tabs)/ind
 sync_file "mobile-overlay/src/app/(tabs)/_layout.tsx" "$APP_DIR/src/app/(tabs)/_layout.tsx" "tab layout / initial Home route"
 sync_file "mobile-overlay/src/theme/paltaTheme.ts" "$APP_DIR/src/theme/paltaTheme.ts" "Palta theme"
 sync_file "mobile-overlay/src/components/ScreenFrame.tsx" "$APP_DIR/src/components/ScreenFrame.tsx" "Home screen frame"
+sync_file "src/accessibility/focusLayout.ts" "$APP_DIR/src/accessibility/focusLayout.ts" "adaptive focus layout policy"
 sync_file "mobile-overlay/src/accessibility/useAdaptiveExperience.ts" "$APP_DIR/src/accessibility/useAdaptiveExperience.ts" "adaptive Home layout"
+
+# The overlay version references the repository-root accessibility policy.
+# Once copied into apps/mobile/src/accessibility, bind it to the local snapshot
+# so Metro never attempts to resolve the non-existent apps/src path.
+node - "$APP_DIR/src/accessibility/useAdaptiveExperience.ts" <<'NODE'
+const fs = require('fs');
+const file = process.argv[2];
+const before = fs.readFileSync(file, 'utf8');
+const after = before
+  .replaceAll("from '../../../src/accessibility/focusLayout'", "from './focusLayout'")
+  .replaceAll('from "../../../src/accessibility/focusLayout"', 'from "./focusLayout"');
+if (after !== before) fs.writeFileSync(file, after);
+if (!fs.readFileSync(file, 'utf8').includes("from './focusLayout'")) {
+  console.error('FAIL: adaptive Home layout still points outside apps/mobile');
+  process.exit(1);
+}
+NODE
 
 TMP_RUNNER="$(mktemp /tmp/palta-home-first-screen-runner.XXXXXX.sh)"
 trap 'rm -f "$TMP_RUNNER"' EXIT
