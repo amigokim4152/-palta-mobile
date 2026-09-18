@@ -19,6 +19,15 @@ export function useAsyncResource<T>(
   } as AsyncResource<T>);
   const generation = useRef(0);
 
+  // Keep the latest callbacks without making their render-time identity a
+  // trigger for the effect below. Screens are allowed to pass inline
+  // predicates/loaders without causing refresh -> setState -> render loops.
+  const loaderRef = useRef(loader);
+  loaderRef.current = loader;
+
+  const isEmptyRef = useRef(options?.isEmpty);
+  isEmptyRef.current = options?.isEmpty;
+
   const refresh = useCallback(async () => {
     if (!enabled) return;
 
@@ -31,10 +40,10 @@ export function useAsyncResource<T>(
     }));
 
     try {
-      const data = await loader();
+      const data = await loaderRef.current();
       if (current !== generation.current) return;
       setState({
-        status: options?.isEmpty?.(data) ? 'empty' : 'ready',
+        status: isEmptyRef.current?.(data) ? 'empty' : 'ready',
         data,
       });
     } catch (error) {
@@ -47,7 +56,7 @@ export function useAsyncResource<T>(
         message: error instanceof Error ? error.message : 'Unknown error',
       }));
     }
-  }, [enabled, loader, options?.isEmpty]);
+  }, [enabled]);
 
   useEffect(() => {
     if (!enabled) return;
