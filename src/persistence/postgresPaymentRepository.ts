@@ -1,5 +1,6 @@
 import type { CommerceOutboxEvent } from '../commerce/outbox.js';
 import type {
+  CardFundingType,
   Money,
   PaymentEvent,
   PaymentIntent,
@@ -38,6 +39,9 @@ type PaymentIntentRow = {
   authorization_code: string | null;
   card_brand: string | null;
   card_last4: string | null;
+  card_funding_type: CardFundingType | null;
+  installment_count: number | string | null;
+  installment_amount_minor: number | string | null;
   fee_minor: number | string | null;
   settlement_status: SettlementStatus;
   settlement_reference: string | null;
@@ -67,6 +71,9 @@ const PAYMENT_COLUMNS = `
   authorization_code,
   card_brand,
   card_last4,
+  card_funding_type,
+  installment_count,
+  installment_amount_minor,
   fee_minor,
   settlement_status,
   settlement_reference,
@@ -125,6 +132,25 @@ function rowToIntent(row: PaymentIntentRow): PaymentIntent {
   if (row.authorization_code !== null) intent.authorizationCode = row.authorization_code;
   if (row.card_brand !== null) intent.cardBrand = row.card_brand;
   if (row.card_last4 !== null) intent.cardLast4 = row.card_last4;
+  if (row.card_funding_type !== null) intent.cardFundingType = row.card_funding_type;
+  if (row.installment_count !== null) {
+    intent.installmentCount = positiveSafeInteger(
+      row.installment_count,
+      'payment installment_count',
+    );
+  }
+  if (row.installment_amount_minor !== null) {
+    if (row.installment_count === null) {
+      throw new Error('payment installment_amount_minor requires installment_count.');
+    }
+    intent.installmentAmount = {
+      currency: row.currency,
+      amountMinor: positiveSafeInteger(
+        row.installment_amount_minor,
+        'payment installment_amount_minor',
+      ),
+    };
+  }
   if (row.fee_minor !== null) {
     intent.fee = {
       currency: row.currency,
@@ -152,11 +178,41 @@ function assertProcessedAmount(intent: PaymentIntent): void {
   }
 }
 
+function assertCardEvidence(intent: PaymentIntent): void {
+  if (
+    intent.cardFundingType !== undefined &&
+    !(['debit', 'credit', 'prepaid', 'unknown'] as const).includes(intent.cardFundingType)
+  ) {
+    throw new Error('Payment cardFundingType is invalid.');
+  }
+  if (
+    intent.installmentCount !== undefined &&
+    (!Number.isSafeInteger(intent.installmentCount) || intent.installmentCount <= 0)
+  ) {
+    throw new Error('Payment installmentCount must be a positive safe integer.');
+  }
+  if (intent.installmentAmount !== undefined) {
+    if (intent.installmentCount === undefined) {
+      throw new Error('Payment installmentAmount requires installmentCount.');
+    }
+    if (intent.installmentAmount.currency !== intent.amount.currency) {
+      throw new Error('Payment installmentAmount currency must match requested amount currency.');
+    }
+    if (
+      !Number.isSafeInteger(intent.installmentAmount.amountMinor) ||
+      intent.installmentAmount.amountMinor <= 0
+    ) {
+      throw new Error('Payment installmentAmount must be a positive safe integer.');
+    }
+  }
+}
+
 function assertCommitShape(commit: PaymentAtomicCommit): void {
   if (commit.event.paymentIntentId !== commit.intent.id) {
     throw new Error('Payment event belongs to another PaymentIntent.');
   }
   assertProcessedAmount(commit.intent);
+  assertCardEvidence(commit.intent);
   if (commit.expectedRevision === null) {
     if (commit.intent.revision !== 0) {
       throw new PaymentConcurrencyError('New PaymentIntent must start at revision 0.');
@@ -369,6 +425,9 @@ export class PostgresPaymentRepository implements CommercePaymentQueryRepository
             authorization_code,
             card_brand,
             card_last4,
+            card_funding_type,
+            installment_count,
+            installment_amount_minor,
             fee_minor,
             settlement_status,
             settlement_reference,
@@ -376,7 +435,7 @@ export class PostgresPaymentRepository implements CommercePaymentQueryRepository
             created_at,
             updated_at
           ) values (
-            $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24
+            $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27
           )
           returning ${PAYMENT_COLUMNS}`,
           [
@@ -398,6 +457,9 @@ export class PostgresPaymentRepository implements CommercePaymentQueryRepository
             commit.intent.authorizationCode ?? null,
             commit.intent.cardBrand ?? null,
             commit.intent.cardLast4 ?? null,
+            commit.intent.cardFundingType ?? null,
+            commit.intent.installmentCount ?? null,
+            commit.intent.installmentAmount?.amountMinor ?? null,
             commit.intent.fee?.amountMinor ?? null,
             commit.intent.settlementStatus,
             commit.intent.settlementReference ?? null,
@@ -429,12 +491,15 @@ export class PostgresPaymentRepository implements CommercePaymentQueryRepository
           authorization_code = $11,
           card_brand = $12,
           card_last4 = $13,
-          fee_minor = $14,
-          settlement_status = $15,
-          settlement_reference = $16,
-          revision = $17,
-          updated_at = $18,
-          processed_amount_minor = $19
+          card_funding_type = $14,
+          installment_count = $15,
+          installment_amount_minor = $16,
+          fee_minor = $17,
+          settlement_status = $18,
+          settlement_reference = $19,
+          revision = $20,
+          updated_at = $21,
+          processed_amount_minor = $22
         where business_id = $1 and id = $2 and revision = $3
         returning ${PAYMENT_COLUMNS}`,
         [
@@ -451,6 +516,9 @@ export class PostgresPaymentRepository implements CommercePaymentQueryRepository
           commit.intent.authorizationCode ?? null,
           commit.intent.cardBrand ?? null,
           commit.intent.cardLast4 ?? null,
+          commit.intent.cardFundingType ?? null,
+          commit.intent.installmentCount ?? null,
+          commit.intent.installmentAmount?.amountMinor ?? null,
           commit.intent.fee?.amountMinor ?? null,
           commit.intent.settlementStatus,
           commit.intent.settlementReference ?? null,
