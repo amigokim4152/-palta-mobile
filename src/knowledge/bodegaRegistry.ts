@@ -1,11 +1,10 @@
 import type { KnowledgeDomain, KnowledgeDomainProfile } from './contracts.js';
 
-const updatedAt = '2026-09-18T07:55:00Z';
+const updatedAt = '2026-09-18T22:00:00-03:00';
 
 export const BODEGA_DOMAIN_REGISTRY: KnowledgeDomainProfile[] = [
   { domain: 'health', maturity: 'standalone', canonicalEntityCount: 0, deepGuideCount: 0, relationCount: 0, supportedLocales: ['es-CL'], publicSurface: 'palta-health', updatedAt },
   { domain: 'pets', maturity: 'standalone', canonicalEntityCount: 0, deepGuideCount: 0, relationCount: 0, supportedLocales: ['es-CL'], publicSurface: 'palta-pets', updatedAt },
-  { domain: 'news', maturity: 'standalone', canonicalEntityCount: 0, deepGuideCount: 0, relationCount: 0, supportedLocales: ['es-CL'], publicSurface: 'palta-news', updatedAt },
   { domain: 'food', maturity: 'growing', canonicalEntityCount: 0, deepGuideCount: 0, relationCount: 0, supportedLocales: ['es-CL'], updatedAt },
   { domain: 'education', maturity: 'growing', canonicalEntityCount: 0, deepGuideCount: 0, relationCount: 0, supportedLocales: ['es-CL'], updatedAt },
   { domain: 'music', maturity: 'seed', canonicalEntityCount: 0, deepGuideCount: 0, relationCount: 0, supportedLocales: ['es-CL'], updatedAt },
