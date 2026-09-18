@@ -198,6 +198,9 @@ restore_ref_file "$HOME_REF" "mobile-overlay/src/components/home/ActionSurface.t
 restore_ref_file "$HOME_REF" "mobile-overlay/src/components/home/GlanceCluster.tsx" "$APP_DIR/src/components/home/GlanceCluster.tsx" "Home glance cluster"
 restore_ref_file "$HOME_REF" "mobile-overlay/src/components/home/SummaryListRow.tsx" "$APP_DIR/src/components/home/SummaryListRow.tsx" "Home summary row"
 
+restore_ref_file "$HOME_REF" "mobile-overlay/src/features/home/demoLegacyLifeCards.ts" "$APP_DIR/src/features/home/demoLegacyLifeCards.ts" "complete Home life-card demo fixtures"
+bind_home_view_to_generated_core "$APP_DIR/src/features/home/demoLegacyLifeCards.ts"
+
 restore_ref_file "$HOME_REF" "mobile-overlay/src/features/home/HomeScreen.tsx" "$APP_DIR/src/features/home/HomeScreen.tsx" "function-first Home screen"
 bind_home_view_to_generated_core "$APP_DIR/src/features/home/HomeScreen.tsx"
 
