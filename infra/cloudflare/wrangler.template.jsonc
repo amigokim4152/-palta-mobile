@@ -5,12 +5,19 @@
   "compatibility_date": "2026-09-16",
   "workers_dev": true,
   "vars": {
-    "MAP_OBJECT_KEY": "maps/santiago/santiago.pmtiles"
+    "MAP_OBJECT_KEY": "maps/santiago/santiago.pmtiles",
+    "NEWS_PUBLIC_ENABLED": "false"
   },
   "r2_buckets": [
     {
       "binding": "MAPS",
       "bucket_name": "__REUSE_EXISTING_R2_BUCKET_AFTER_INVENTORY__"
     }
+    // Add NEWS_PUBLIC only after the existing Cloudflare/R2 inventory is confirmed.
+    // Do not create a duplicate bucket just for News. Example after inventory:
+    // ,{
+    //   "binding": "NEWS_PUBLIC",
+    //   "bucket_name": "<confirmed-existing-public-content-bucket>"
+    // }
   ]
 }
