@@ -37,150 +37,104 @@ const SELECTION_PADDING = {
   left: 24,
 } as const;
 
-const CATEGORY_MARKER_LABEL = [
+// MapLibre's RN typings model style expressions as mutable tuples. Keep these
+// expressions mutable at the type boundary so strict TypeScript does not turn
+// valid style expressions into incompatible readonly tuples.
+const CATEGORY_MARKER_LABEL: any = [
   'match',
   ['get', 'categoryKey'],
-  'auto_repair',
-  '⚙',
-  'home_repair',
-  '⚒',
-  'pharmacy',
-  '✚',
-  'clinic',
-  '✚',
-  'cesfam',
-  '✚',
-  'hospital',
-  '✚',
-  'restaurant',
-  '🍴',
-  'cafe',
-  '☕',
-  'bakery',
-  '🍞',
-  'grocery',
-  '🛒',
-  'supermarket',
-  '🛒',
-  'feria',
-  '🛒',
-  'pet',
-  '🐾',
-  'veterinary',
-  '🐾',
-  'school',
-  '✎',
-  'education',
-  '✎',
-  'university',
-  '✎',
-  'hotel',
-  '⌂',
-  'beauty',
-  '✂',
-  'barber',
-  '✂',
-  'municipality',
-  '⚑',
-  'townhall',
-  '⚑',
-  'metro',
-  'Ⓜ',
-  'metro_station',
-  'Ⓜ',
-  'station',
-  '↔',
-  'bus_stop',
-  '↔',
-  'public_transport',
-  '↔',
-  'fuel',
-  '⛽',
-  'police',
-  '⚑',
-  'fire_station',
-  '✦',
-  'park',
-  '♣',
-  'plaza',
-  '♣',
-  'service',
+  'auto_repair', '⚙',
+  'home_repair', '⚒',
+  'pharmacy', '✚',
+  'clinic', '✚',
+  'cesfam', '✚',
+  'hospital', '✚',
+  'restaurant', '🍴',
+  'cafe', '☕',
+  'bakery', '🍞',
+  'grocery', '🛒',
+  'supermarket', '🛒',
+  'feria', '🛒',
+  'pet', '🐾',
+  'veterinary', '🐾',
+  'school', '✎',
+  'education', '✎',
+  'university', '✎',
+  'hotel', '⌂',
+  'beauty', '✂',
+  'barber', '✂',
+  'municipality', '⚑',
+  'townhall', '⚑',
+  'metro', 'Ⓜ',
+  'metro_station', 'Ⓜ',
+  'station', '↔',
+  'bus_stop', '↔',
+  'public_transport', '↔',
+  'fuel', '⛽',
+  'police', '⚑',
+  'fire_station', '✦',
+  'park', '♣',
+  'plaza', '♣',
+  'service', '•',
   '•',
-  '•',
-] as const;
+];
 
-const ENTITY_MARKER_COLOR = [
+const ENTITY_MARKER_COLOR: any = [
   'case',
   ['==', ['get', 'selected'], true],
   paltaTheme.color.brandFresh,
   [
     'match',
     ['get', 'entityType'],
-    'business',
-    paltaTheme.color.brandPrimary,
-    'public_service',
-    paltaTheme.color.info,
-    'event',
-    '#A96414',
-    'place',
-    '#59655E',
+    'business', paltaTheme.color.brandPrimary,
+    'public_service', paltaTheme.color.info,
+    'event', '#A96414',
+    'place', '#59655E',
     paltaTheme.color.brandPrimary,
   ],
-] as const;
+];
 
-const OPERATIONAL_OPACITY = [
+const OPERATIONAL_OPACITY: any = [
   'match',
   ['get', 'operationalState'],
   ['closed_now', 'closed', 'temporarily_closed'],
   0.56,
   0.98,
-] as const;
+];
 
-const TIER_VISIBILITY = [
+const TIER_VISIBILITY: any = [
   'case',
-  ['==', ['get', 'selected'], true],
-  1,
-  ['==', ['get', 'markerTier'], 'anchor'],
-  ['step', ['zoom'], 0, 12.4, 1],
-  ['==', ['get', 'markerTier'], 'local'],
-  ['step', ['zoom'], 0, 13.6, 1],
+  ['==', ['get', 'selected'], true], 1,
+  ['==', ['get', 'markerTier'], 'anchor'], ['step', ['zoom'], 0, 12.4, 1],
+  ['==', ['get', 'markerTier'], 'local'], ['step', ['zoom'], 0, 13.6, 1],
   ['step', ['zoom'], 0, 14.6, 1],
-] as const;
+];
 
-const MARKER_OPACITY = ['*', OPERATIONAL_OPACITY, TIER_VISIBILITY] as const;
+const MARKER_OPACITY: any = ['*', OPERATIONAL_OPACITY, TIER_VISIBILITY];
 
-const MARKER_OUTER_RADIUS = [
+const MARKER_OUTER_RADIUS: any = [
   'case',
-  ['==', ['get', 'selected'], true],
-  16,
-  ['==', ['get', 'markerTier'], 'anchor'],
-  ['step', ['zoom'], 0, 12.4, 12],
-  ['==', ['get', 'markerTier'], 'local'],
-  ['step', ['zoom'], 0, 13.6, 11.5],
+  ['==', ['get', 'selected'], true], 16,
+  ['==', ['get', 'markerTier'], 'anchor'], ['step', ['zoom'], 0, 12.4, 12],
+  ['==', ['get', 'markerTier'], 'local'], ['step', ['zoom'], 0, 13.6, 11.5],
   ['step', ['zoom'], 0, 14.6, 11],
-] as const;
+];
 
-const MARKER_INNER_RADIUS = [
+const MARKER_INNER_RADIUS: any = [
   'case',
-  ['==', ['get', 'selected'], true],
-  11,
-  ['==', ['get', 'markerTier'], 'anchor'],
-  ['step', ['zoom'], 0, 12.4, 8.5],
-  ['==', ['get', 'markerTier'], 'local'],
-  ['step', ['zoom'], 0, 13.6, 8],
+  ['==', ['get', 'selected'], true], 11,
+  ['==', ['get', 'markerTier'], 'anchor'], ['step', ['zoom'], 0, 12.4, 8.5],
+  ['==', ['get', 'markerTier'], 'local'], ['step', ['zoom'], 0, 13.6, 8],
   ['step', ['zoom'], 0, 14.6, 7.5],
-] as const;
+];
 
-const MARKER_TEXT_SIZE = [
+const MARKER_TEXT_SIZE: any = [
   'case',
-  ['==', ['get', 'selected'], true],
-  11.5,
-  ['==', ['get', 'markerTier'], 'anchor'],
-  ['step', ['zoom'], 0, 12.4, 9.5],
-  ['==', ['get', 'markerTier'], 'local'],
-  ['step', ['zoom'], 0, 13.6, 9.2],
+  ['==', ['get', 'selected'], true], 11.5,
+  ['==', ['get', 'markerTier'], 'anchor'], ['step', ['zoom'], 0, 12.4, 9.5],
+  ['==', ['get', 'markerTier'], 'local'], ['step', ['zoom'], 0, 13.6, 9.2],
   ['step', ['zoom'], 0, 14.6, 9],
-] as const;
+];
 
 export function NeighborhoodMap({
   mapStyle,
@@ -203,10 +157,7 @@ export function NeighborhoodMap({
           type: 'Feature' as const,
           geometry: {
             type: 'Point' as const,
-            coordinates: [initialCenter.longitude, initialCenter.latitude] as [
-              number,
-              number,
-            ],
+            coordinates: [initialCenter.longitude, initialCenter.latitude] as [number, number],
           },
           properties: {},
         },
@@ -250,7 +201,6 @@ export function NeighborhoodMap({
           onPress={(event) => {
             const feature = event.nativeEvent.features?.[0];
             if (!feature) return;
-
             const clusterId = feature.properties?.cluster_id;
             if (
               typeof clusterId === 'number' &&
@@ -258,19 +208,16 @@ export function NeighborhoodMap({
               Array.isArray(feature.geometry.coordinates)
             ) {
               const coordinates = feature.geometry.coordinates;
-              void sourceRef.current
-                ?.getClusterExpansionZoom(clusterId)
-                .then((zoom) => {
-                  cameraRef.current?.easeTo({
-                    center: [Number(coordinates[0]), Number(coordinates[1])],
-                    zoom,
-                    duration: 220,
-                    easing: 'ease',
-                  });
+              void sourceRef.current?.getClusterExpansionZoom(clusterId).then((zoom) => {
+                cameraRef.current?.easeTo({
+                  center: [Number(coordinates[0]), Number(coordinates[1])],
+                  zoom,
+                  duration: 220,
+                  easing: 'ease',
                 });
+              });
               return;
             }
-
             const entityId = feature.properties?.entityId;
             if (
               typeof entityId === 'string' &&
@@ -288,55 +235,32 @@ export function NeighborhoodMap({
             }
           }}
         >
-          <Layer
-            id="palta-local-point-halo"
-            type="circle"
-            filter={['!', ['has', 'point_count']]}
-            paint={{
-              'circle-color': '#FFFFFF',
-              'circle-radius': MARKER_OUTER_RADIUS,
-              'circle-opacity': TIER_VISIBILITY,
-              'circle-stroke-color': 'rgba(24,32,27,0.08)',
-              'circle-stroke-width': 1,
-            }}
-          />
-          <Layer
-            id="palta-local-points"
-            type="circle"
-            filter={['!', ['has', 'point_count']]}
-            paint={{
-              'circle-color': ENTITY_MARKER_COLOR,
-              'circle-radius': MARKER_INNER_RADIUS,
-              'circle-stroke-color': '#FFFFFF',
-              'circle-stroke-width': 1.4,
-              'circle-opacity': MARKER_OPACITY,
-            }}
-          />
-          <Layer
-            id="palta-local-category-mark"
-            type="symbol"
-            filter={['!', ['has', 'point_count']]}
-            layout={{
-              'text-field': CATEGORY_MARKER_LABEL,
-              'text-font': ['Noto Sans Symbols 2'],
-              'text-size': MARKER_TEXT_SIZE,
-              'text-allow-overlap': true,
-              'text-ignore-placement': true,
-            }}
-            paint={{
-              'text-color': '#FFFFFF',
-              'text-opacity': MARKER_OPACITY,
-            }}
-          />
+          <Layer id="palta-local-point-halo" type="circle" filter={['!', ['has', 'point_count']]} paint={{
+            'circle-color': '#FFFFFF',
+            'circle-radius': MARKER_OUTER_RADIUS,
+            'circle-opacity': TIER_VISIBILITY,
+            'circle-stroke-color': 'rgba(24,32,27,0.08)',
+            'circle-stroke-width': 1,
+          }} />
+          <Layer id="palta-local-points" type="circle" filter={['!', ['has', 'point_count']]} paint={{
+            'circle-color': ENTITY_MARKER_COLOR,
+            'circle-radius': MARKER_INNER_RADIUS,
+            'circle-stroke-color': '#FFFFFF',
+            'circle-stroke-width': 1.4,
+            'circle-opacity': MARKER_OPACITY,
+          }} />
+          <Layer id="palta-local-category-mark" type="symbol" filter={['!', ['has', 'point_count']]} layout={{
+            'text-field': CATEGORY_MARKER_LABEL,
+            'text-font': ['Noto Sans Symbols 2'],
+            'text-size': MARKER_TEXT_SIZE,
+            'text-allow-overlap': true,
+            'text-ignore-placement': true,
+          }} paint={{ 'text-color': '#FFFFFF', 'text-opacity': MARKER_OPACITY }} />
           <Layer
             id="palta-local-verified-mark"
             type="symbol"
             minzoom={13.6}
-            filter={[
-              'all',
-              ['!', ['has', 'point_count']],
-              ['==', ['get', 'verificationStatus'], 'verified'],
-            ]}
+            filter={['all', ['!', ['has', 'point_count']], ['==', ['get', 'verificationStatus'], 'verified']]}
             layout={{
               'text-field': '✓',
               'text-font': ['Noto Sans'],
@@ -355,11 +279,7 @@ export function NeighborhoodMap({
           <Layer
             id="palta-local-selected-label"
             type="symbol"
-            filter={[
-              'all',
-              ['!', ['has', 'point_count']],
-              ['==', ['get', 'selected'], true],
-            ]}
+            filter={['all', ['!', ['has', 'point_count']], ['==', ['get', 'selected'], true]]}
             layout={{
               'text-field': ['get', 'title'],
               'text-font': ['Noto Sans'],
@@ -377,83 +297,41 @@ export function NeighborhoodMap({
               'text-halo-blur': 0.4,
             }}
           />
-          <Layer
-            id="palta-local-cluster-halo"
-            type="circle"
-            filter={['has', 'point_count']}
-            paint={{
-              'circle-color': '#FFFFFF',
-              'circle-radius': [
-                'step',
-                ['get', 'point_count'],
-                18,
-                10,
-                22,
-                50,
-                26,
-              ],
-              'circle-opacity': 0.98,
-            }}
-          />
-          <Layer
-            id="palta-local-clusters"
-            type="circle"
-            filter={['has', 'point_count']}
-            paint={{
-              'circle-color': paltaTheme.color.brandPrimary,
-              'circle-radius': [
-                'step',
-                ['get', 'point_count'],
-                14,
-                10,
-                18,
-                50,
-                22,
-              ],
-              'circle-stroke-color': '#FFFFFF',
-              'circle-stroke-width': 1.5,
-              'circle-opacity': 0.96,
-            }}
-          />
-          <Layer
-            id="palta-local-cluster-count"
-            type="symbol"
-            filter={['has', 'point_count']}
-            layout={{
-              'text-field': ['get', 'point_count_abbreviated'],
-              'text-font': ['Noto Sans'],
-              'text-size': 11,
-              'text-allow-overlap': true,
-              'text-ignore-placement': true,
-            }}
-            paint={{
-              'text-color': '#FFFFFF',
-            }}
-          />
+          <Layer id="palta-local-cluster-halo" type="circle" filter={['has', 'point_count']} paint={{
+            'circle-color': '#FFFFFF',
+            'circle-radius': ['step', ['get', 'point_count'], 18, 10, 22, 50, 26],
+            'circle-opacity': 0.98,
+          }} />
+          <Layer id="palta-local-clusters" type="circle" filter={['has', 'point_count']} paint={{
+            'circle-color': paltaTheme.color.brandPrimary,
+            'circle-radius': ['step', ['get', 'point_count'], 14, 10, 18, 50, 22],
+            'circle-stroke-color': '#FFFFFF',
+            'circle-stroke-width': 1.5,
+            'circle-opacity': 0.96,
+          }} />
+          <Layer id="palta-local-cluster-count" type="symbol" filter={['has', 'point_count']} layout={{
+            'text-field': ['get', 'point_count_abbreviated'],
+            'text-font': ['Noto Sans'],
+            'text-size': 11,
+            'text-allow-overlap': true,
+            'text-ignore-placement': true,
+          }} paint={{ 'text-color': '#FFFFFF' }} />
         </GeoJSONSource>
 
         <GeoJSONSource id="palta-active-location" data={activeLocationData}>
-          <Layer
-            id="palta-active-location-halo"
-            type="circle"
-            paint={{
-              'circle-color': '#FFFFFF',
-              'circle-radius': 12,
-              'circle-opacity': 0.99,
-              'circle-stroke-color': '#D8E5F2',
-              'circle-stroke-width': 1,
-            }}
-          />
-          <Layer
-            id="palta-active-location-dot"
-            type="circle"
-            paint={{
-              'circle-color': '#2F7DD1',
-              'circle-radius': 6.5,
-              'circle-stroke-color': '#FFFFFF',
-              'circle-stroke-width': 1.5,
-            }}
-          />
+          <Layer id="palta-active-location-halo" type="circle" paint={{
+            'circle-color': '#FFFFFF',
+            'circle-radius': 12,
+            'circle-opacity': 0.99,
+            'circle-stroke-color': '#D8E5F2',
+            'circle-stroke-width': 1,
+          }} />
+          <Layer id="palta-active-location-dot" type="circle" paint={{
+            'circle-color': '#2F7DD1',
+            'circle-radius': 6.5,
+            'circle-stroke-color': '#FFFFFF',
+            'circle-stroke-width': 1.5,
+          }} />
         </GeoJSONSource>
       </Map>
 
@@ -461,13 +339,11 @@ export function NeighborhoodMap({
         accessibilityRole="button"
         accessibilityLabel="Volver a mi ubicación"
         hitSlop={10}
-        onPress={() =>
-          cameraRef.current?.easeTo({
-            center: [initialCenter.longitude, initialCenter.latitude],
-            duration: 220,
-            easing: 'ease',
-          })
-        }
+        onPress={() => cameraRef.current?.easeTo({
+          center: [initialCenter.longitude, initialCenter.latitude],
+          duration: 220,
+          easing: 'ease',
+        })}
         style={{
           position: 'absolute',
           right: 8,
