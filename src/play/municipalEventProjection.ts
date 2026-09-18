@@ -1,4 +1,9 @@
-import type { PlayDiscoveryItem, PlayThemeKey } from './playDiscovery.js';
+import type {
+  PlayDiscoveryAction,
+  PlayDiscoveryItem,
+  PlayThemeKey,
+} from './playDiscovery.js';
+import { inferPlayContentKind } from './playContentTaxonomy.js';
 
 export type MunicipalEventPlayInput = Readonly<{
   id: string;
@@ -10,6 +15,9 @@ export type MunicipalEventPlayInput = Readonly<{
   endDate?: string;
   isFree?: boolean;
   requiresRegistration?: boolean;
+  registrationUrl?: string;
+  ticketUrl?: string;
+  reservationUrl?: string;
   audience?: string;
   category?: string;
   imageUrl?: string;
@@ -17,6 +25,7 @@ export type MunicipalEventPlayInput = Readonly<{
   sourceUrl?: string;
   verifiedAt?: string;
   outdoor?: boolean;
+  /** Resolved by shared location/map infrastructure; Play does not calculate it. */
   distanceM?: number;
   distanceLabel?: string;
 }>;
@@ -80,11 +89,31 @@ function scheduleLabel(input: MunicipalEventPlayInput, context: MunicipalPlayPro
   return input.startTime ? `${prefix} · ${input.startTime}` : prefix;
 }
 
+function primaryAction(input: MunicipalEventPlayInput): PlayDiscoveryAction | undefined {
+  if (input.requiresRegistration && input.registrationUrl) {
+    return { kind: 'registration', url: input.registrationUrl, label: 'Inscribirme' };
+  }
+  if (input.ticketUrl) {
+    return { kind: 'ticket', url: input.ticketUrl, label: 'Ver entradas' };
+  }
+  if (input.reservationUrl) {
+    return { kind: 'reservation', url: input.reservationUrl, label: 'Reservar' };
+  }
+  return undefined;
+}
+
 export function projectMunicipalEventToPlay(input: MunicipalEventPlayInput, context: MunicipalPlayProjectionContext): PlayDiscoveryItem {
   const tags = experienceTags(input);
+  const action = primaryAction(input);
   return {
     id: `municipal:${input.id}`,
     sourceKind: 'municipal_event',
+    contentKind: inferPlayContentKind({
+      ...(input.category ? { category: input.category } : {}),
+      title: input.title,
+      ...(input.venue ? { venue: input.venue } : {}),
+      tags,
+    }),
     title: input.title,
     comuna: input.comuna,
     ...(input.venue ? { venue: input.venue } : {}),
@@ -98,6 +127,7 @@ export function projectMunicipalEventToPlay(input: MunicipalEventPlayInput, cont
     ...(input.distanceM !== undefined ? { distanceM: input.distanceM } : {}),
     ...(input.distanceLabel ? { distanceLabel: input.distanceLabel } : {}),
     ...(tags.length ? { experienceTags: tags } : {}),
+    ...(action ? { primaryAction: action } : {}),
     themeTags: inferThemeTags(input, context),
     source: {
       authority: input.sourceName,
