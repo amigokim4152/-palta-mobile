@@ -1,4 +1,8 @@
 import { createPaltaApiClient } from '../src/api/paltaApiFactory.js';
+import {
+  authBrokerUserId,
+  paltaUserIdFromAuthBrokerUserId,
+} from '../src/auth/accountModel.js';
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
@@ -30,13 +34,18 @@ let requestedPath = '';
 let requestedMethod = '';
 let requestedBody: Record<string, unknown> | null = null;
 let authorization = '';
+const authUserId = authBrokerUserId('user-test');
 const client = createPaltaApiClient({
   baseUrl: 'https://api.test',
   auth: {
     async getState() {
       return {
         status: 'signed_in' as const,
-        session: { userId: 'user-test', accessToken: 'token-test' },
+        session: {
+          authUserId,
+          paltaUserId: paltaUserIdFromAuthBrokerUserId(authUserId),
+          accessToken: 'token-test',
+        },
       };
     },
     async getAccessToken() {
