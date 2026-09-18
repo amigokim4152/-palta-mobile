@@ -10,6 +10,7 @@ import type { PaltaUserId } from '../../../src/auth/accountModel';
 import type {
   AuthCapabilities,
   AuthProvider,
+  AuthState,
   InteractiveAuthPort,
 } from '../../../src/ports/authPort';
 import { AuthPortError } from '../../../src/ports/authPort';
@@ -19,7 +20,17 @@ import {
   type SupabaseAuthBridge,
 } from './supabaseAuthAdapter';
 
-let singleton: InteractiveAuthPort | null = null;
+export type GoldenUserInteractiveAuthPort = InteractiveAuthPort & {
+  isGoldenUserAuthEnabled(): boolean;
+  signInAsGoldenUser(): Promise<AuthState>;
+};
+
+type GoldenUserConfig = {
+  email: string;
+  password: string;
+};
+
+let singleton: GoldenUserInteractiveAuthPort | null = null;
 let appStateBound = false;
 
 function getPublicConfig() {
@@ -48,6 +59,36 @@ function getPublicConfig() {
   }
 
   return { url, key };
+}
+
+function getGoldenUserConfig(required = false): GoldenUserConfig | null {
+  const enabled = process.env.EXPO_PUBLIC_ENABLE_GOLDEN_USER_AUTH?.trim() === 'true';
+  if (!enabled) return null;
+
+  const environment = process.env.EXPO_PUBLIC_ENV?.trim().toLowerCase();
+  if (environment === 'production' || environment === 'prod') {
+    if (required) {
+      throw new AuthPortError(
+        'configuration_error',
+        'Golden User 테스트 로그인은 production에서 사용할 수 없습니다.',
+      );
+    }
+    return null;
+  }
+
+  const email = process.env.EXPO_PUBLIC_GOLDEN_USER_EMAIL?.trim();
+  const password = process.env.EXPO_PUBLIC_GOLDEN_USER_PASSWORD;
+  if (!email || !password) {
+    if (required) {
+      throw new AuthPortError(
+        'configuration_error',
+        'Golden User 테스트 계정 설정이 없습니다. 개발 환경 설정을 확인해 주세요.',
+      );
+    }
+    return null;
+  }
+
+  return { email, password };
 }
 
 const secureStorage = {
@@ -89,7 +130,7 @@ function codeFromRedirect(url: string): string {
   return code;
 }
 
-export function createSupabaseAuthPort(): InteractiveAuthPort {
+export function createSupabaseAuthPort(): GoldenUserInteractiveAuthPort {
   if (singleton) return singleton;
 
   const { url, key } = getPublicConfig();
@@ -180,9 +221,6 @@ export function createSupabaseAuthPort(): InteractiveAuthPort {
     return value;
   };
 
-  // ASWebAuthenticationSession and Expo Linking can observe the same custom-
-  // scheme callback. Exchange each one-time PKCE code at most once so a
-  // duplicate callback cannot turn a successful login into a provider error.
   const exchangedCodes = new Set<string>();
   const exchangeInFlight = new Map<string, Promise<void>>();
   const rememberExchangedCode = (code: string) => {
@@ -325,6 +363,36 @@ export function createSupabaseAuthPort(): InteractiveAuthPort {
     handleRedirect: exchangeRedirect,
   };
 
-  singleton = new SupabaseAuthAdapter(bridge);
+  const adapter = new SupabaseAuthAdapter(bridge);
+  singleton = Object.assign(adapter, {
+    isGoldenUserAuthEnabled() {
+      return getGoldenUserConfig(false) !== null;
+    },
+
+    async signInAsGoldenUser(): Promise<AuthState> {
+      const config = getGoldenUserConfig(true);
+      if (!config) {
+        throw new AuthPortError(
+          'configuration_error',
+          'Golden User 테스트 로그인이 비활성화되어 있습니다.',
+        );
+      }
+
+      const { data, error } = await client.auth.signInWithPassword({
+        email: config.email,
+        password: config.password,
+      });
+      if (error || !data.session) {
+        throw new AuthPortError(
+          'provider_error',
+          'Golden User 001 테스트 계정으로 로그인하지 못했습니다. 서버 측 테스트 계정 프로비저닝을 확인해 주세요.',
+          error,
+        );
+      }
+
+      return adapter.getState();
+    },
+  });
+
   return singleton;
 }
