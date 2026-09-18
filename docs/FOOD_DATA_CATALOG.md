@@ -29,9 +29,17 @@ Do not assume `one Uber Eats listing = one canonical Palta Business`.
 
 The model is:
 
-`Canonical Business / Brand -> Outlet -> Platform Listing -> Menu Snapshot -> Section -> Item`
+`Canonical Business / Brand -> Outlet -> Platform Presence -> Listing history -> Menu Snapshot -> Section -> Item`
 
-A shared address can represent a normal multi-brand venue, a ghost kitchen, a virtual brand or bad source data. Same-address listings therefore remain distinct until identity evidence is sufficient.
+Three distinct identity problems are already present in the RM corpus:
+
+- several separately named delivery listings can share one public address;
+- a listing name can imply one comuna while its exposed address points to another;
+- one verified physical outlet can have an old closed platform listing ID and a different active listing ID later.
+
+Therefore neither platform listing ID, brand name nor street address can independently define a Palta Business or Outlet.
+
+A shared address can represent a normal multi-brand venue, a ghost kitchen, a virtual brand or bad source data. Same-address listings therefore remain distinct until identity evidence is sufficient. A historical/replaced listing remains attached to the same outlet as evidence and must not create a duplicate business.
 
 ### Identity statuses
 
@@ -49,22 +57,28 @@ Always preserve the original merchant/platform facts:
 
 - source restaurant/listing name
 - source category labels
+- source address text when relevant
 - source menu section name
 - source menu item name
 - observed price
+- observed availability / closed state
 
 Normalization is a second layer. A menu item can then receive independent dimensions such as:
 
-- `dishFamily`: completo/hotdog, sandwich, burger, pizza, sushi roll, chicken, rice dish, seafood, empanada/pastry, fries/side, bakery, dessert, beverage, other.
-- `cuisineTags`: Chilean, Peruvian, Japanese, Korean, Chinese, American, Italian, Latin American, other.
-- `servingFormat`: single, combo, share, family, promotion, meal deal, unknown.
+- `dishFamily`: completo/hotdog, sandwich, burger, pizza, sushi roll, chicken, rice dish, noodle dish, soup/stew, seafood, empanada/pastry, salad/bowl, bakery, dessert, ice cream, coffee/tea, beverage, other.
+- `cuisineTags`: Chilean, Peruvian, Japanese, Korean, Chinese, American, Italian, Mexican, Venezuelan, Middle Eastern, Indian, Latin American, other.
+- `servingFormat`: single, combo, share, family, promotion, meal deal, by weight, unknown.
 - later: meal occasion, dietary facts, ingredients, preparation style, portion size and modifier groups when evidence exists.
 
 Do not force a single category when the product naturally belongs to several dimensions.
 
+### Never classify from the brand name alone
+
+A restaurant brand can be misleading about what is actually sold. The corpus already contains a business whose name suggests burgers while the observed menu prominently sells pollo asado, arepitas and large family meals. Classification must be driven by menu evidence, not the merchant name.
+
 ## Why Uber Eats categories cannot become Palta categories
 
-Real listings demonstrate platform-category overloading. A sushi outlet can simultaneously be tagged Japanese, Asian, Sushi, Korean, Burgers, Chicken, Seafood, budget and family-meal. A chicken shop can sell completos, sandwiches, sushi promotions and chorrillanas. These labels are useful retrieval signals but are too noisy for a clean Palta IA.
+Real listings demonstrate platform-category overloading. A sushi outlet can simultaneously be tagged Japanese, Asian, Sushi, Korean, Burgers, Chicken, Seafood, budget and family-meal. A shawarma outlet can be tagged Asian, Korean, Burger, Poke, American, Greek and Arab while the actual menu is clearly centered on shawarma. These labels are useful retrieval signals but are too noisy for a clean Palta IA.
 
 Palta consumer categories should be designed only after corpus analysis of actual menu-item frequencies and co-occurrence.
 
@@ -72,15 +86,24 @@ Palta consumer categories should be designed only after corpus analysis of actua
 
 1. Collect raw listings and menu snapshots at scale.
 2. Normalize obvious dish families without changing source names.
-3. Count item frequency, section frequency and cuisine/dish co-occurrence.
-4. Identify Chile-specific stable concepts (for example completo, churrasco, chorrillana, pollo asado, empanada, ceviche, hand roll).
-5. Separate high-frequency dish intent from cuisine intent.
-6. Build a small consumer-facing category set from observed demand/supply, while keeping a deeper searchable taxonomy underneath.
-7. Re-run the analysis periodically because menus and platform supply change.
+3. Count item frequency, section frequency and platform-tag/dish co-occurrence.
+4. Track unmatched menu items instead of forcing them into a catch-all category.
+5. Identify Chile-specific stable concepts (for example completo, churrasco, chorrillana, pollo asado, empanada, ceviche, hand roll, pastel de choclo).
+6. Separate high-frequency dish intent from cuisine intent and commerce format.
+7. Build a small consumer-facing category set from observed supply, while keeping a deeper searchable taxonomy underneath.
+8. Re-run the analysis periodically because menus and platform supply change.
+
+The research scripts intentionally call their classification outputs `signals`; they are provisional analytical labels, not the final product taxonomy.
+
+## Research sufficiency gate
+
+`data/food/chile/rm/corpus-coverage.json` defines the current pre-freeze gate. The navigation can be prototyped earlier, but consumer taxonomy v1 should not be treated as stable until the gate is met. `scripts/report-food-corpus-gate.mjs` reports progress without failing CI; `--strict` is reserved for a later freeze process.
 
 ## Freshness
 
-Menu price, availability and opening data are observations, not permanent truth. Every snapshot must carry `observedAt`. Historical snapshots may be retained for change detection, but current UI must not present stale prices or availability as current facts.
+Menu price, availability and opening data are observations, not permanent truth. Every snapshot must carry an observation date/time. Historical snapshots may be retained for change detection, but current UI must not present stale prices or availability as current facts.
+
+A platform-closed listing does not prove the physical business permanently closed. Likewise, a replacement listing ID can appear for a still-active outlet. Platform availability and physical business lifecycle remain separate facts.
 
 ## Copyright / source handling
 
