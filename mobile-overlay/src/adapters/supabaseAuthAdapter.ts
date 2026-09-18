@@ -4,6 +4,7 @@ import {
   resolveCanonicalAccount,
 } from '../../../src/auth/accountResolver';
 import type {
+  AuthCapabilities,
   AuthProvider,
   AuthState,
   AuthSubscriptionErrorListener,
@@ -27,6 +28,7 @@ export type ProviderSession =
 // Provider SDK details stay behind this bridge; Core only sees InteractiveAuthPort.
 export type SupabaseAuthBridge = {
   getSession(): Promise<ProviderSession>;
+  getCapabilities(): Promise<AuthCapabilities>;
   signOut(): Promise<void>;
   subscribe(listener: (session: ProviderSession) => void): () => void;
   accountExists(userId: PaltaUserId): Promise<boolean>;
@@ -88,6 +90,10 @@ export class SupabaseAuthAdapter implements InteractiveAuthPort {
     return this.resolveSession(await this.bridge.getSession());
   }
 
+  async getCapabilities(): Promise<AuthCapabilities> {
+    return this.bridge.getCapabilities();
+  }
+
   async getAccessToken(): Promise<string | null> {
     const state = await this.getState();
     return state.status === 'signed_in' ? state.session.accessToken : null;
@@ -110,11 +116,25 @@ export class SupabaseAuthAdapter implements InteractiveAuthPort {
   }
 
   async signInWithOAuth(provider: AuthProvider): Promise<AuthState> {
+    const capabilities = await this.bridge.getCapabilities();
+    if (!capabilities[provider]) {
+      throw new AuthPortError(
+        'provider_unavailable',
+        `${provider} 로그인은 현재 사용할 수 없습니다.`,
+      );
+    }
     await this.bridge.signInWithOAuth(provider);
     return this.getState();
   }
 
   async signInWithEmail(email: string): Promise<EmailSignInResult> {
+    const capabilities = await this.bridge.getCapabilities();
+    if (!capabilities.email) {
+      throw new AuthPortError(
+        'provider_unavailable',
+        '이메일 로그인은 현재 사용할 수 없습니다.',
+      );
+    }
     await this.bridge.signInWithEmail(email);
     return { status: 'link_sent' };
   }
