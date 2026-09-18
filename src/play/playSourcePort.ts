@@ -1,4 +1,8 @@
 import type { ResolvedBusinessPlayExposure } from './businessPlayProjection.js';
+import type {
+  CanonicalDiscoveryCatalog,
+  CanonicalPlayProjectionContext,
+} from './canonicalDiscoveryProjection.js';
 import type { MunicipalEventPlayInput, MunicipalPlayProjectionContext } from './municipalEventProjection.js';
 import type { PlayDiscoveryItem } from './playDiscovery.js';
 import { assemblePlaySources, type PlaySourceAssembly } from './playSourceAssembler.js';
@@ -8,6 +12,7 @@ export type PlaySourceLocation = Readonly<{
   latitude?: number;
   longitude?: number;
   radiusM?: number;
+  maxTravelTimeMinutes?: number;
 }>;
 
 export type PlaySourceRequest = Readonly<{
@@ -21,6 +26,8 @@ export type PlaySourceSnapshot = Readonly<{
   municipalEvents: readonly MunicipalEventPlayInput[];
   businessExposures: readonly ResolvedBusinessPlayExposure[];
   publicPrograms: readonly PlayDiscoveryItem[];
+  /** Canonical Venue/Event/Offering graph shared by Play, Map, Search and Business. */
+  canonicalCatalog?: CanonicalDiscoveryCatalog;
   /** Normalized cinema/showtime, ticketing, tourism or editorial discovery items. */
   catalogItems?: readonly PlayDiscoveryItem[];
   fetchedAt: string;
@@ -29,12 +36,7 @@ export type PlaySourceSnapshot = Readonly<{
 
 /**
  * Infrastructure boundary for Play discovery.
- *
- * Implementations may read from a Worker snapshot, API, cache or another Palta
- * service, but the Play screen never knows which transport is used. Production
- * adapters must return normalized facts/projections only; they must not expose a
- * Base44-specific shape, a ticket partner schema or the municipal engine's
- * research-draft intake schema.
+ * Provider-specific payloads never cross this boundary.
  */
 export interface PlaySourcePort {
   readSnapshot(request: PlaySourceRequest): Promise<PlaySourceSnapshot>;
@@ -50,8 +52,9 @@ export function validatePlaySourceRequest(request: PlaySourceRequest): readonly 
   if (!validIsoDate(request.toIsoDate)) issues.push('to_date_invalid');
   if (request.fromIsoDate > request.toIsoDate) issues.push('date_range_invalid');
   if (!request.locale.trim()) issues.push('locale_required');
-  if (request.location?.radiusM !== undefined && request.location.radiusM <= 0) {
-    issues.push('radius_m_invalid');
+  if (request.location?.radiusM !== undefined && request.location.radiusM <= 0) issues.push('radius_m_invalid');
+  if (request.location?.maxTravelTimeMinutes !== undefined && request.location.maxTravelTimeMinutes <= 0) {
+    issues.push('max_travel_time_invalid');
   }
   return [...new Set(issues)];
 }
@@ -60,6 +63,7 @@ export async function loadPlaySourceAssembly(input: {
   port: PlaySourcePort;
   request: PlaySourceRequest;
   calendar: MunicipalPlayProjectionContext;
+  canonicalContext?: CanonicalPlayProjectionContext;
 }): Promise<PlaySourceAssembly> {
   const issues = validatePlaySourceRequest(input.request);
   if (issues.length) throw new Error(`invalid_play_source_request:${issues.join(',')}`);
@@ -69,6 +73,9 @@ export async function loadPlaySourceAssembly(input: {
     municipalEvents: snapshot.municipalEvents,
     businessExposures: snapshot.businessExposures,
     publicPrograms: snapshot.publicPrograms,
+    ...(snapshot.canonicalCatalog && input.canonicalContext
+      ? { canonicalCatalog: snapshot.canonicalCatalog, canonicalContext: input.canonicalContext }
+      : {}),
     ...(snapshot.catalogItems ? { catalogItems: snapshot.catalogItems } : {}),
     calendar: input.calendar,
   });
