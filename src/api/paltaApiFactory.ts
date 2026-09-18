@@ -1,4 +1,5 @@
 import type { AuthPort } from '../ports/authPort.js';
+import { PublicDataApiClient } from './publicDataApiClient.js';
 import {
   PaltaApiClient,
   type FetchLike,
@@ -15,5 +16,15 @@ export function createPaltaApiClient(input: {
     ...(input.auth
       ? { getAccessToken: () => input.auth!.getAccessToken() }
       : {}),
+  });
+}
+
+export function createPublicDataApiClient(input: {
+  baseUrl: string;
+  fetch: FetchLike;
+}): PublicDataApiClient {
+  return new PublicDataApiClient({
+    baseUrl: input.baseUrl,
+    fetch: input.fetch,
   });
 }
