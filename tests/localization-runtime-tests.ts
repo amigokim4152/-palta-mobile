@@ -10,6 +10,7 @@ import {
   discoveryT,
   resolveLocalizedContent,
   resolvePreferredLocale,
+  resolveSignedInLocalePreference,
   surfaceT,
   t,
   tryNormalizeLocale,
@@ -44,6 +45,36 @@ assert(
     deviceLocales: ['ko-KR'],
   }) === 'es-CL',
   'An explicit account language must override the device language.',
+);
+
+const signedInRemote = resolveSignedInLocalePreference({
+  remoteLocale: 'en',
+  remoteExplicit: true,
+  localExplicitLocale: 'ko',
+  deviceLocales: ['zh-CN'],
+});
+assert(
+  signedInRemote.locale === 'en' && !signedInRemote.promoteLocalToAccount,
+  'An explicit account locale must win after sign-in.',
+);
+const signedInLocal = resolveSignedInLocalePreference({
+  remoteLocale: 'es-CL',
+  remoteExplicit: false,
+  localExplicitLocale: 'ko-KR',
+  deviceLocales: ['en-US'],
+});
+assert(
+  signedInLocal.locale === 'ko' && signedInLocal.promoteLocalToAccount,
+  'A pre-auth explicit local choice must be promoted when the account has no explicit locale.',
+);
+const signedInDevice = resolveSignedInLocalePreference({
+  remoteLocale: 'es-CL',
+  remoteExplicit: false,
+  deviceLocales: ['zh-CN'],
+});
+assert(
+  signedInDevice.locale === 'zh-Hans' && !signedInDevice.promoteLocalToAccount,
+  'Device locale should win only when there is no explicit remote or local choice.',
 );
 
 assert(t('nav.home', 'ko') === '홈', 'Korean tab label should resolve.');
