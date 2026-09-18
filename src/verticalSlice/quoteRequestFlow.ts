@@ -5,10 +5,15 @@ import {
 } from '../mobile/offlineMutationQueue.js';
 import { toAppPath } from '../navigation/deepLink.js';
 
+export type QuoteRequestSourceContext = 'business_detail';
+
 export type QuoteRequestInput = {
   businessId: string;
-  description: string;
+  /** User-authored text. Preserve it in the language the user entered. */
+  description?: string;
   photoRefs?: string[];
+  /** Language-neutral machine context; never replace this with display copy. */
+  sourceContext?: QuoteRequestSourceContext;
 };
 
 export type QuoteFlowResult =
@@ -22,6 +27,18 @@ export type QuoteFlowResult =
       mutation: OfflineMutation<QuoteRequestInput>;
       nextPath: '/';
     };
+
+function carePayload(request: QuoteRequestInput): Record<string, unknown> {
+  return {
+    ...(request.description?.trim()
+      ? { description: request.description }
+      : {}),
+    photo_refs: request.photoRefs ?? [],
+    ...(request.sourceContext
+      ? { source_context: request.sourceContext }
+      : {}),
+  };
+}
 
 export async function requestBusinessQuote(input: {
   online: boolean;
@@ -47,10 +64,7 @@ export async function requestBusinessQuote(input: {
     intentKey: 'local_business_quote',
     subjectEntityId: input.request.businessId,
     actionType: 'quote_request',
-    payload: {
-      description: input.request.description,
-      photo_refs: input.request.photoRefs ?? [],
-    },
+    payload: carePayload(input.request),
     idempotencyKey: input.mutationId,
   });
 

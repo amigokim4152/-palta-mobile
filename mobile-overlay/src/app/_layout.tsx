@@ -2,6 +2,10 @@ import { Stack } from 'expo-router';
 import { PreviewBuildWatcher } from '../components/dev/PreviewBuildWatcher';
 import { AuthGate } from '../features/auth/AuthGate';
 import { AuthRuntimeProvider } from '../providers/AuthRuntimeProvider';
+import {
+  LocalizationProvider,
+  PreviewLocalizationProvider,
+} from '../providers/LocalizationProvider';
 import { MarketRuntimeBootstrap } from '../providers/MarketRuntimeBootstrap';
 import { MutationSyncBootstrap } from '../providers/MutationSyncBootstrap';
 import { PaltaSQLiteProvider } from '../providers/PaltaSQLiteProvider';
@@ -25,14 +29,20 @@ export default function RootLayout() {
     __DEV__ && process.env.EXPO_PUBLIC_PALTA_PREVIEW === '1';
 
   if (previewMode) {
-    return <PaltaAppRuntime />;
+    return (
+      <PreviewLocalizationProvider>
+        <PaltaAppRuntime />
+      </PreviewLocalizationProvider>
+    );
   }
 
   return (
     <AuthRuntimeProvider>
-      <AuthGate>
-        <PaltaAppRuntime />
-      </AuthGate>
+      <LocalizationProvider>
+        <AuthGate>
+          <PaltaAppRuntime />
+        </AuthGate>
+      </LocalizationProvider>
     </AuthRuntimeProvider>
   );
 }

@@ -6,9 +6,12 @@ import type {
 import { isRetryableMutationError } from '../../../src/api/retryPolicy';
 import type { MobilePaltaClient } from './paltaClient';
 
+type QuoteSourceContext = 'business_detail';
+
 type QuotePayload = {
   businessId: string;
-  description: string;
+  description?: string;
+  sourceContext?: QuoteSourceContext;
   photoRefs?: string[];
 };
 
@@ -16,16 +19,29 @@ function readQuotePayload(
   mutation: OfflineMutation,
 ): QuotePayload | null {
   const payload = mutation.payload;
-  if (
-    typeof payload.businessId !== 'string' ||
-    typeof payload.description !== 'string'
-  ) {
+  if (typeof payload.businessId !== 'string') {
+    return null;
+  }
+
+  const description =
+    typeof payload.description === 'string' && payload.description.trim()
+      ? payload.description
+      : undefined;
+  const sourceContext =
+    payload.sourceContext === 'business_detail'
+      ? payload.sourceContext
+      : undefined;
+
+  // Accept both the legacy user-description shape and the new language-neutral
+  // system-origin shape. Empty machine-generated requests are invalid.
+  if (!description && !sourceContext) {
     return null;
   }
 
   return {
     businessId: payload.businessId,
-    description: payload.description,
+    ...(description ? { description } : {}),
+    ...(sourceContext ? { sourceContext } : {}),
     ...(Array.isArray(payload.photoRefs)
       ? {
           photoRefs: payload.photoRefs.filter(
@@ -65,8 +81,13 @@ export function createMobileMutationExecutor(
         subjectEntityId: payload.businessId,
         actionType: 'quote_request',
         payload: {
-          description: payload.description,
+          ...(payload.description
+            ? { description: payload.description }
+            : {}),
           photo_refs: payload.photoRefs ?? [],
+          ...(payload.sourceContext
+            ? { source_context: payload.sourceContext }
+            : {}),
         },
         idempotencyKey: mutation.id,
       });
