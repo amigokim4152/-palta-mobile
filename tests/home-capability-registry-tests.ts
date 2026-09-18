@@ -7,6 +7,10 @@ import {
   HOME_LIFE_CARD_PARITY,
   requiredLegacyLifeCardCapabilityKeys,
 } from '../src/home/homeLifeCardParity.js';
+import {
+  eligibleLifeCardDefinitions,
+  isLifeCardGeoScopeEligible,
+} from '../src/home/homeLifeCardEligibility.js';
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
@@ -110,6 +114,49 @@ for (const key of legacyCapabilityKeys) {
     `Complete demo must preserve legacy life-card capability: ${key}`,
   );
 }
+
+for (const definition of HOME_LIFE_CARD_PARITY) {
+  assert(
+    isLifeCardGeoScopeEligible(definition.geoScope, { mode: 'complete_demo' }),
+    `Complete demo must show life-card capability regardless of geography: ${definition.capabilityKey}`,
+  );
+}
+
+const santiagoKeys = new Set(
+  eligibleLifeCardDefinitions(HOME_LIFE_CARD_PARITY, {
+    localityKey: 'vitacura',
+    traits: ['urban_metro'],
+    mode: 'production',
+  }).map((definition) => definition.capabilityKey),
+);
+assert(santiagoKeys.has('today.vehicle_restriction'), 'RM should allow vehicle restriction capability');
+assert(!santiagoKeys.has('today.marine_alert'), 'RM inland Home must not surface marine alerts by geography alone');
+assert(!santiagoKeys.has('today.border_crossing'), 'RM inland Home must not surface border crossing by geography alone');
+
+const coastalKeys = new Set(
+  eligibleLifeCardDefinitions(HOME_LIFE_CARD_PARITY, {
+    localityKey: 'valparaiso',
+    traits: ['coastal', 'urban'],
+    mode: 'production',
+  }).map((definition) => definition.capabilityKey),
+);
+assert(coastalKeys.has('today.maritime_forecast'), 'Coastal Home should allow maritime forecast');
+assert(coastalKeys.has('today.marine_alert'), 'Coastal Home should allow marine alerts');
+assert(coastalKeys.has('today.tide'), 'Coastal Home should allow tide context');
+assert(coastalKeys.has('now.tsunami_alert'), 'Coastal Home should allow tsunami alert capability');
+assert(!coastalKeys.has('today.border_crossing'), 'Coastal-only context must not imply border crossing');
+
+const borderMountainKeys = new Set(
+  eligibleLifeCardDefinitions(HOME_LIFE_CARD_PARITY, {
+    localityKey: 'los-andes',
+    traits: ['inland', 'border', 'foothill'],
+    mode: 'production',
+  }).map((definition) => definition.capabilityKey),
+);
+assert(borderMountainKeys.has('today.border_crossing'), 'Border locality should allow border crossing');
+assert(borderMountainKeys.has('today.road_condition'), 'Foothill locality should allow mountain road condition');
+assert(borderMountainKeys.has('now.snow_ice'), 'Foothill locality should allow snow/ice warnings');
+assert(!borderMountainKeys.has('today.marine_alert'), 'Inland border locality must not surface marine alerts');
 
 console.log(
   `PASS: Home capability registry (${keys.length} capabilities; ${legacyCapabilityKeys.length} legacy life-card capabilities preserved)`,
