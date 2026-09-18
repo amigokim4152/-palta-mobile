@@ -70,15 +70,17 @@ restore_ref_file() {
 }
 
 # Overlay files live one directory shallower than apps/mobile. After copying
-# them into apps/mobile, imports that target the repository-level src/ folder
-# must go up one additional directory.
+# them into apps/mobile, only repository-root imports need one more ../.
+# Match the full import prefix so repeated runs are idempotent.
 adjust_repo_root_imports_for_mobile() {
   FILE_PATH="$1"
   node - "$FILE_PATH" <<'NODE'
 const fs = require('fs');
 const path = process.argv[2];
 const before = fs.readFileSync(path, 'utf8');
-const after = before.replaceAll('../../../../src/', '../../../../../src/');
+const after = before
+  .replaceAll("from '../../../../src/", "from '../../../../../src/")
+  .replaceAll('from "../../../../src/', 'from "../../../../../src/');
 if (after !== before) fs.writeFileSync(path, after);
 NODE
 }
@@ -100,11 +102,11 @@ restore_ref_file \
   "last working Barrio screen"
 adjust_repo_root_imports_for_mobile "$APP_DIR/src/features/neighborhood/NeighborhoodScreen.tsx"
 
-# Fail early if the copied runtime files still contain the overlay-relative path.
-if grep -q "../../../../src/" "$APP_DIR/src/components/map/NeighborhoodMap.tsx"; then
+# Fail early only when an exact four-level overlay import remains.
+if grep -q "from '../../../../src/" "$APP_DIR/src/components/map/NeighborhoodMap.tsx"; then
   fail "NeighborhoodMap still has an overlay-relative repository import."
 fi
-if grep -q "../../../../src/" "$APP_DIR/src/features/neighborhood/NeighborhoodScreen.tsx"; then
+if grep -q "from '../../../../src/" "$APP_DIR/src/features/neighborhood/NeighborhoodScreen.tsx"; then
   fail "NeighborhoodScreen still has an overlay-relative repository import."
 fi
 info "Verified mobile repository imports are adjusted for apps/mobile depth."
