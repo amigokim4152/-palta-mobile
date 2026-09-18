@@ -1,4 +1,5 @@
-import { Pressable, Text, View } from "react-native";
+import { Pressable, Text, View } from 'react-native';
+import { paltaTheme } from '../theme/paltaTheme';
 
 export type HomeCandidateCardProps = {
   eyebrow: string;
@@ -8,19 +9,55 @@ export type HomeCandidateCardProps = {
   onPress?: () => void;
 };
 
-export function HomeCandidateCard({
-  eyebrow,
-  title,
-  body,
-  actionLabel,
-  onPress
-}: HomeCandidateCardProps) {
+export function HomeCandidateCard({ eyebrow, title, body, actionLabel, onPress }: HomeCandidateCardProps) {
   return (
-    <Pressable onPress={onPress} disabled={!onPress} style={{ paddingVertical: 16, borderBottomWidth: 1 }}>
-      <Text style={{ fontSize: 12, fontWeight: "700", opacity: 0.6 }}>{eyebrow}</Text>
-      <Text style={{ marginTop: 6, fontSize: 19, fontWeight: "650" }}>{title}</Text>
-      {body ? <Text style={{ marginTop: 6, lineHeight: 20, opacity: 0.8 }}>{body}</Text> : null}
-      {actionLabel ? <Text style={{ marginTop: 10, fontWeight: "700" }}>{actionLabel}</Text> : null}
+    <Pressable
+      accessibilityRole={onPress ? 'button' : undefined}
+      onPress={onPress}
+      disabled={!onPress}
+      style={({ pressed }) => ({
+        minHeight: paltaTheme.touch.minimum,
+        paddingVertical: paltaTheme.spacing.md,
+        borderBottomWidth: 1,
+        borderBottomColor: paltaTheme.color.divider,
+        opacity: pressed ? 0.72 : 1,
+      })}
+    >
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: paltaTheme.spacing.xs }}>
+        <View
+          style={{
+            width: 6,
+            height: 6,
+            borderRadius: paltaTheme.radius.pill,
+            backgroundColor: paltaTheme.color.brandFresh,
+          }}
+        />
+        <Text allowFontScaling style={{ color: paltaTheme.color.textMuted, fontSize: 12, fontWeight: '700' }}>
+          {eyebrow}
+        </Text>
+      </View>
+      <Text
+        allowFontScaling
+        style={{ marginTop: 7, color: paltaTheme.color.textPrimary, fontSize: 18, lineHeight: 24, fontWeight: '700' }}
+      >
+        {title}
+      </Text>
+      {body ? (
+        <Text
+          allowFontScaling
+          style={{ marginTop: 5, color: paltaTheme.color.textSecondary, fontSize: 15, lineHeight: 21 }}
+        >
+          {body}
+        </Text>
+      ) : null}
+      {actionLabel ? (
+        <Text
+          allowFontScaling
+          style={{ marginTop: paltaTheme.spacing.sm, color: paltaTheme.color.brandPrimary, fontSize: 14, fontWeight: '700' }}
+        >
+          {actionLabel}
+        </Text>
+      ) : null}
     </Pressable>
   );
 }
