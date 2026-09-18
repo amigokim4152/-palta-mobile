@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-09-17T23:10:00-03:00",
+  "updatedAt": "2026-09-18T04:42:00-03:00",
   "sourceOfTruthBranch": "integration/platform-runtime-foundation-v1",
   "publicApi": {
     "productionOrigin": "https://api.somospalta.cl/v1",
@@ -29,10 +29,19 @@
       "productionSecretsAllowed": false
     },
     "development": {
-      "status": "not_provisioned",
+      "status": "database_provisioned_schema_applied_pending_cloudflare_runtime",
       "supabase": {
-        "projectId": null,
-        "region": "sa-east-1"
+        "projectId": "rqbpbauhkdgsrkbwmkmg",
+        "projectUrl": "https://rqbpbauhkdgsrkbwmkmg.supabase.co",
+        "region": "sa-east-1",
+        "plan": "free",
+        "publishableKeyId": "b29f0e3c-61a2-49e0-8717-c3a001176069",
+        "migrationHead": "0022_business_rls_context_helper",
+        "schemaStatus": "applied",
+        "clientLedgerAccess": "denied",
+        "performanceAdvisor": "clear_except_unused_indexes_on_empty_dev_database",
+        "securityAdvisor": "palta_rls_ok_postgis_public_schema_findings_open",
+        "rlsRoleSwitchSmoke": "not_verified_admin_connection_cannot_set_role"
       },
       "cloudflare": {
         "apiWorker": null,
