@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Pressable,
   SafeAreaView,
@@ -12,9 +12,9 @@ import {
   marketMessagePresetText,
   type MarketMessagePreset,
 } from '../../../../src/market/marketMessageIntent';
+import type { MarketPublicListing } from '../../../../src/market/marketPersistenceContract';
 import { paltaTheme } from '../../theme/paltaTheme';
-import { marketPreviewListings } from './marketPreviewData';
-import { marketSellerTrustPreviewByListing } from './marketPreviewTrust';
+import { getMarketRuntime } from './marketRuntime';
 
 const presets: MarketMessagePreset[] = [
   'availability',
@@ -25,29 +25,60 @@ const presets: MarketMessagePreset[] = [
 
 export function MarketMessageHandoffScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const runtime = useMemo(() => getMarketRuntime(), []);
+  const [listing, setListing] = useState<MarketPublicListing | null>();
   const [preset, setPreset] = useState<MarketMessagePreset>('availability');
   const [prepared, setPrepared] = useState(false);
 
-  const listing = __DEV__
-    ? marketPreviewListings.find((item) => item.id === id)
-    : undefined;
-  const trust = id ? marketSellerTrustPreviewByListing[id] : undefined;
+  useEffect(() => {
+    if (!id || !runtime.read) {
+      setListing(null);
+      return;
+    }
+    let active = true;
+    runtime.read
+      .getPublicListing(id)
+      .then((next) => {
+        if (active) setListing(next);
+      })
+      .catch(() => {
+        if (active) setListing(null);
+      });
+    return () => {
+      active = false;
+    };
+  }, [id, runtime]);
 
   const intent = useMemo(() => {
-    if (!listing || !trust) return undefined;
+    if (!listing) return undefined;
     return buildMarketMessageIntent({
       listingId: listing.id,
       listingTitle: listing.title,
-      sellerActorId: trust.sellerActorId,
+      sellerActorId: listing.seller.sellerUserId,
       preset,
     });
-  }, [listing, preset, trust]);
+  }, [listing, preset]);
+
+  if (listing === undefined) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.center}>
+          <Text style={styles.title}>Preparando conversación…</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   if (!listing || !intent) {
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.center}>
           <Text style={styles.title}>No se puede iniciar el mensaje</Text>
+          <Text style={styles.centerBody}>
+            {runtime.mode === 'unavailable'
+              ? runtime.unavailableReason
+              : 'La publicación ya no está disponible.'}
+          </Text>
           <Pressable style={styles.primaryButton} onPress={() => router.back()}>
             <Text style={styles.primaryButtonText}>Volver</Text>
           </Pressable>
@@ -73,7 +104,7 @@ export function MarketMessageHandoffScreen() {
             {listing.title}
           </Text>
           <Text style={styles.sellerLine}>
-            {listing.sellerName} · {listing.comuna}
+            {listing.seller.displayName} · {listing.location.comunaName}
           </Text>
         </View>
 
@@ -106,7 +137,7 @@ export function MarketMessageHandoffScreen() {
         <View style={styles.coreBoundaryBox}>
           <Text style={styles.coreBoundaryTitle}>Message Core</Text>
           <Text style={styles.coreBoundaryBody}>
-            La conversación se abrirá como transacción vinculada a esta publicación. Mercado no crea un chat separado.
+            La conversación será una transacción vinculada a esta publicación. Mercado conserva el contexto; Mensajes conserva la conversación.
           </Text>
         </View>
 
@@ -118,7 +149,7 @@ export function MarketMessageHandoffScreen() {
             </Text>
             <Text style={styles.readyBody}>Mensaje: {intent.initialText}</Text>
             <Text style={styles.pendingText}>
-              La pantalla compartida de Mensajes todavía está pendiente de integración en el runtime compuesto.
+              La UI compartida de Mensajes sigue pendiente de integración. No se crea un chat paralelo dentro de Mercado.
             </Text>
           </View>
         ) : null}
@@ -282,6 +313,12 @@ const styles = StyleSheet.create({
     color: paltaTheme.color.textPrimary,
     fontSize: 18,
     fontWeight: '800',
+    textAlign: 'center',
+  },
+  centerBody: {
+    color: paltaTheme.color.textSecondary,
+    fontSize: 13,
+    lineHeight: 19,
     textAlign: 'center',
   },
 });
