@@ -1,6 +1,6 @@
 const base = process.argv[2];
 const expectedStyleVersion =
-  process.env.PALTA_EXPECTED_MAP_STYLE_VERSION ?? 'palta-v1.5';
+  process.env.PALTA_EXPECTED_MAP_STYLE_VERSION ?? 'palta-v1.6';
 
 if (!base) {
   console.error('Usage: node verify-map-range.mjs https://host.example');
@@ -66,65 +66,94 @@ const layers = style.layers ?? [];
 const layerIds = new Set(layers.map((layer) => layer?.id));
 for (const id of [
   'place-labels',
+  'road-labels-highway',
   'road-labels',
   'road-labels-local',
   'water-labels',
   'poi-labels',
+  'roads-highway-casing',
+  'roads-highway-fill',
+  'roads-primary-casing',
+  'roads-primary-fill',
+  'roads-secondary-casing',
+  'roads-secondary-fill',
+  'roads-tertiary-fill',
 ]) {
-  assert(layerIds.has(id), `Style label layer missing: ${id}`);
+  assert(layerIds.has(id), `Style hierarchy layer missing: ${id}`);
+}
+assert(!layerIds.has('roads-major'), 'Legacy flat roads-major layer must be removed');
+
+const hierarchyChecks = [
+  ['roads-highway-fill', ['motorway', 'trunk']],
+  ['roads-primary-fill', ['primary']],
+  ['roads-secondary-fill', ['secondary']],
+  ['roads-tertiary-fill', ['tertiary']],
+];
+for (const [id, values] of hierarchyChecks) {
+  const layer = layers.find((item) => item?.id === id);
+  const filter = JSON.stringify(layer?.filter ?? null);
+  assert(filter.includes('kind_detail'), `${id} must use kind_detail`);
+  for (const value of values) {
+    assert(filter.includes(value), `${id} missing ${value}`);
+  }
 }
 
-const roadsMajor = layers.find((layer) => layer?.id === 'roads-major');
-const roadsMajorFilter = JSON.stringify(roadsMajor?.filter ?? null);
+const highwayLabels = layers.find((layer) => layer?.id === 'road-labels-highway');
+const highwayFilter = JSON.stringify(highwayLabels?.filter ?? null);
+for (const value of ['motorway', 'trunk']) {
+  assert(highwayFilter.includes(value), `Highway labels missing ${value}`);
+}
 assert(
-  roadsMajorFilter.includes('highway') && roadsMajorFilter.includes('major_road'),
-  `roads-major must use Protomaps kind values, got ${roadsMajorFilter}`,
+  highwayLabels?.layout?.['symbol-placement'] === 'line',
+  'Highway names must follow road geometry',
+);
+assert(
+  highwayLabels?.layout?.['text-rotation-alignment'] === 'map',
+  'Highway labels must rotate with the road',
+);
+assert(
+  Number(highwayLabels?.layout?.['symbol-spacing']) >= 1000,
+  'Highway names repeat too frequently',
 );
 
 const roadLabels = layers.find((layer) => layer?.id === 'road-labels');
 const roadLabelFilter = JSON.stringify(roadLabels?.filter ?? null);
-assert(
-  roadLabelFilter.includes('kind_detail'),
-  `Major road labels must use kind_detail: ${roadLabelFilter}`,
-);
-for (const value of ['motorway', 'trunk', 'primary', 'secondary']) {
-  assert(
-    roadLabelFilter.includes(value),
-    `Major road labels missing ${value}: ${roadLabelFilter}`,
-  );
+for (const value of ['primary', 'secondary']) {
+  assert(roadLabelFilter.includes(value), `Arterial labels missing ${value}`);
 }
 assert(
   !roadLabelFilter.includes('tertiary'),
-  'Tertiary roads must not appear in major-road labels',
+  'Tertiary roads must not appear in arterial labels',
 );
 assert(
-  Number(roadLabels?.minzoom) >= 11.8,
-  `Major road labels are too dense: ${roadLabels?.minzoom}`,
+  roadLabels?.layout?.['symbol-placement'] === 'line',
+  'Arterial road names must follow road geometry',
 );
 assert(
-  Number(roadLabels?.layout?.['symbol-spacing']) >= 600,
-  'Major road label spacing regressed below product-safe density',
+  Number(roadLabels?.layout?.['symbol-spacing']) >= 850,
+  'Arterial road names repeat too frequently',
+);
+assert(
+  Number(roadLabels?.minzoom) >= 11.5,
+  `Arterial road labels are too dense: ${roadLabels?.minzoom}`,
 );
 
 const localRoadLabels = layers.find((layer) => layer?.id === 'road-labels-local');
 const localRoadFilter = JSON.stringify(localRoadLabels?.filter ?? null);
-assert(
-  localRoadFilter.includes('kind_detail'),
-  `Local road labels must use kind_detail: ${localRoadFilter}`,
-);
 for (const value of ['tertiary', 'residential', 'service']) {
-  assert(
-    localRoadFilter.includes(value),
-    `Local road labels missing ${value}: ${localRoadFilter}`,
-  );
+  assert(localRoadFilter.includes(value), `Local road labels missing ${value}`);
 }
 assert(
-  Number(localRoadLabels?.minzoom) >= 15.3,
+  localRoadLabels?.layout?.['symbol-placement'] === 'line',
+  'Local road names must follow road geometry',
+);
+assert(
+  Number(localRoadLabels?.minzoom) >= 15.6,
   `Local road labels must wait until close zoom: ${localRoadLabels?.minzoom}`,
 );
 assert(
-  Number(localRoadLabels?.layout?.['symbol-spacing']) >= 900,
-  'Local road label spacing regressed below product-safe density',
+  Number(localRoadLabels?.layout?.['symbol-spacing']) >= 1200,
+  'Local road names repeat too frequently',
 );
 
 const placeLabels = layers.find((layer) => layer?.id === 'place-labels');
@@ -142,7 +171,7 @@ assert(
   'Basemap POI labels must not compete with Palta business discovery',
 );
 assert(
-  Number(poiLabels?.minzoom) >= 15,
+  Number(poiLabels?.minzoom) >= 15.2,
   `POI labels must wait until close zoom: ${poiLabels?.minzoom}`,
 );
 
@@ -189,7 +218,7 @@ for (const id of ['places', 'roads', 'water', 'pois']) {
 const roadsDefinition = vectorLayerDefinitions.find((layer) => layer?.id === 'roads');
 assert(
   roadsDefinition?.fields?.kind_detail === 'String',
-  'roads must expose kind_detail for label hierarchy',
+  'roads must expose kind_detail for visual hierarchy',
 );
 
 const head = await fetch(mapUrl, { method: 'HEAD' });
@@ -249,8 +278,18 @@ console.log(
       bounds: metadata.bounds,
       center: metadata.center,
       vectorLayers,
+      roadHierarchyLayers: [
+        'roads-highway-casing',
+        'roads-highway-fill',
+        'roads-primary-casing',
+        'roads-primary-fill',
+        'roads-secondary-casing',
+        'roads-secondary-fill',
+        'roads-tertiary-fill',
+      ],
       labelLayers: [
         'place-labels',
+        'road-labels-highway',
         'road-labels',
         'road-labels-local',
         'water-labels',
