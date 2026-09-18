@@ -1,10 +1,9 @@
-import { LocalBusinessDiscoveryScreen } from '../../features/business/LocalBusinessDiscoveryScreen';
+import { BusinessDiscoveryExperience } from '../../features/business/BusinessDiscoveryExperience';
 
 /**
  * Primary Local Business surface.
  *
- * This is intentionally a thin route wrapper: the same canonical discovery
- * experience is reused by legacy/deep-link routes instead of creating a
- * second Local Business implementation.
+ * The tab and legacy/deep-link route share the same canonical discovery
+ * experience so search, map, selection and return state stay consistent.
  */
-export default LocalBusinessDiscoveryScreen;
+export default BusinessDiscoveryExperience;
