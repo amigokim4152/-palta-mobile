@@ -60,7 +60,7 @@ export function NeighborhoodMap({
       style: mapStyle,
       center: [initialCenter.longitude, initialCenter.latitude],
       zoom: initialZoom,
-      attributionControl: true,
+      attributionControl: {},
     });
 
     mapRef.current = map;
