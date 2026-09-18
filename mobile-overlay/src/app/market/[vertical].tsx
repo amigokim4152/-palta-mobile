@@ -1,4 +1,4 @@
-import { useLocalSearchParams } from 'expo-router';
+import { Redirect, useLocalSearchParams } from 'expo-router';
 import { Text, View } from 'react-native';
 import { ScreenFrame } from '../../components/ScreenFrame';
 import { SectionHeading } from '../../components/common/SectionHeading';
@@ -13,12 +13,12 @@ type MarketRouteDefinition = {
 
 /**
  * Route/display copy is intentionally UI-local so the canonical Mercado policy
- * stays language-neutral. This table also keeps the live overlay compatible
- * with the reviewed 8b955c4 contract until the new canonical policy is promoted.
+ * stays language-neutral. Vehicles and properties are independent product
+ * verticals: Mercado is their discovery entry point, not their screen/data owner.
  */
 const MARKET_ROUTE_UI: Record<MarketRouteVertical, MarketRouteDefinition> = {
   secondhand: { title: 'Usados' },
-  vehicles: { title: 'Vehículos' },
+  vehicles: { title: 'Autos' },
   property: { title: 'Propiedades' },
   local_produce: { title: 'Productos locales' },
 };
@@ -41,6 +41,17 @@ export default function MarketVerticalScreen() {
         <Text>Categoría no válida.</Text>
       </ScreenFrame>
     );
+  }
+
+  // Autos and Propiedades keep their own full-screen product surfaces and
+  // canonical domain truth. These Mercado routes remain as compatibility/deep
+  // link handoffs so older links never fall back to a generic listing screen.
+  if (resolvedVertical === 'vehicles') {
+    return <Redirect href={mode === 'create' ? '/autos/sell?source=mercado' : '/autos?source=mercado'} />;
+  }
+
+  if (resolvedVertical === 'property') {
+    return <Redirect href={mode === 'create' ? '/propiedades/create?source=mercado' : '/propiedades?source=mercado'} />;
   }
 
   if (mode !== 'create') {
