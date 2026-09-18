@@ -14,6 +14,7 @@ import {
   isMarketListingPublic,
 } from '../src/market/marketLifecycle.js';
 import { buildMarketMessageIntent } from '../src/market/marketMessageIntent.js';
+import { openMarketMessagingFlow } from '../src/market/marketMessagingFlow.js';
 import {
   assertMarketListingDraft,
   canReviewMarketTransactionRecord,
@@ -130,9 +131,74 @@ const messageIntent = buildMarketMessageIntent({
   sellerActorId: sellerId,
   preset: 'availability',
 });
-assert(messageIntent.conversationType === 'transaction', 'Mercado must use transaction conversation type.');
-assert(messageIntent.context.relation === 'listing', 'Mercado message context must remain listing-bound.');
-assert(messageIntent.context.resourceId === listing.id, 'Message intent must carry listing id.');
+assert(messageIntent.sourceCore === 'market', 'Mercado message intent must identify its owning Core.');
+assert(messageIntent.listing.id === listing.id, 'Message intent must carry listing id for transaction creation.');
+assert(messageIntent.counterparty.actorId === sellerId, 'Message intent must preserve seller actor identity.');
+assert(
+  !('conversationType' in messageIntent),
+  'Mercado must not define durable Message Core conversation identity/type.',
+);
+
+let ensuredCounterparty: string | undefined;
+let openedConversationId: string | undefined;
+let openedResourceId: string | undefined;
+let startTransactionCalls = 0;
+const coordinatingTransaction: MarketTransactionRecord = {
+  ...transaction,
+  status: 'coordinating',
+  conversationId: 'conversation-1',
+};
+const messagingResult = await openMarketMessagingFlow({
+  intent: messageIntent,
+  market: {
+    async startTransaction(command) {
+      startTransactionCalls += 1;
+      assert(command.listingId === listing.id, 'Messaging flow must start transaction for the selected listing.');
+      assert(command.conversationId === 'conversation-1', 'Transaction must persist the durable conversation reference.');
+      return coordinatingTransaction;
+    },
+  },
+  messaging: {
+    async ensurePeerConversation(input) {
+      ensuredCounterparty = input.counterpartyUserId;
+      return { conversationId: 'conversation-1' };
+    },
+    async openConversation(input) {
+      openedConversationId = input.conversationId;
+      openedResourceId = input.focus.resourceId;
+      assert(input.focus.resourceType === 'market_transaction', 'Messaging focus must use the Market transaction, not the listing.');
+      assert(input.initialText === messageIntent.initialText, 'Quick message must survive the handoff.');
+    },
+  },
+});
+assert(ensuredCounterparty === sellerId, 'Messaging flow must ensure the seller relationship.');
+assert(startTransactionCalls === 1, 'Messaging flow must ensure one Mercado transaction per attempt.');
+assert(openedConversationId === 'conversation-1', 'Messaging flow must open the durable conversation.');
+assert(openedResourceId === transaction.id, 'Messaging flow must focus the transaction scope resource.');
+assert(messagingResult.transactionStatus === 'coordinating', 'Starting chat must not reserve the listing.');
+
+let mismatchRejected = false;
+try {
+  await openMarketMessagingFlow({
+    intent: messageIntent,
+    market: {
+      async startTransaction() {
+        return { ...coordinatingTransaction, conversationId: 'conversation-other' };
+      },
+    },
+    messaging: {
+      async ensurePeerConversation() {
+        return { conversationId: 'conversation-1' };
+      },
+      async openConversation() {
+        throw new Error('Should not open a mismatched relationship.');
+      },
+    },
+  });
+} catch {
+  mismatchRejected = true;
+}
+assert(mismatchRejected, 'Messaging flow must reject a transaction bound to a different conversation.');
 
 const hideIntent = buildMarketHideListingIntent({
   listingId: listing.id,
@@ -180,4 +246,4 @@ assertThrows(
   'Free listing must not persist a sale price.',
 );
 
-console.log('PASS: Mercado lifecycle, privacy, transaction snapshot, Message Core and Safety handoff contracts');
+console.log('PASS: Mercado lifecycle, privacy, durable messaging, transaction snapshot and Safety contracts');
