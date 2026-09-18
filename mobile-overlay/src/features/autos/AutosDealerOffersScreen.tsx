@@ -76,6 +76,20 @@ export function AutosDealerOffersScreen() {
               El siguiente paso es coordinar inspección y lugar. La oferta sólo puede ajustarse por diferencias reales con la información declarada, dejando motivo y evidencia.
             </Text>
             <Pressable
+              accessibilityRole="button"
+              onPress={() => router.push(`/autos/sale-care/${encodeURIComponent(view.request.id)}`)}
+              style={({ pressed }) => ({
+                minHeight: 50,
+                marginTop: paltaTheme.spacing.xs,
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: paltaTheme.radius.control,
+                backgroundColor: pressed ? paltaTheme.color.brandMid : paltaTheme.color.brandPrimary,
+              })}
+            >
+              <Text style={{ fontSize: 14, fontWeight: '900', color: paltaTheme.color.surface }}>Coordinar y seguir la venta</Text>
+            </Pressable>
+            <Pressable
               onPress={() => router.push(`/autos/dealer/${encodeURIComponent(selectedOffer.offer.businessId)}`)}
               style={{ marginTop: paltaTheme.spacing.xs }}
             >
