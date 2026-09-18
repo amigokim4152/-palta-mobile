@@ -1,0 +1,281 @@
+{
+  "dataset": "palta_food_observations_rm",
+  "observed_at": "2026-09-18",
+  "currency": "CLP",
+  "scope": "Región Metropolitana de Santiago",
+  "records": [
+    {
+      "outlet": {
+        "outlet_key": "cl-rm-recoleta-fuente-recoleta-dominica-311",
+        "brand_name": "Fuente Recoleta",
+        "outlet_name": "Santiago",
+        "address": "Calle Domínica 311",
+        "comuna": "Recoleta",
+        "region": "Región Metropolitana",
+        "postal_code": "8420000",
+        "identity_status": "platform_only"
+      },
+      "listing": {
+        "platform": "uber_eats",
+        "listing_id": "bNMAWQJlQe-oeT9pv9KYuw",
+        "listing_name": "Fuente Recoleta (Santiago)",
+        "url": "https://www.ubereats.com/cl/store/fuente-recoleta-santiago/bNMAWQJlQe-oeT9pv9KYuw",
+        "platform_categories": ["Latinoamericana", "Sudamericana", "Portuguesa"],
+        "delivery_supported": true
+      },
+      "menu_snapshot": {
+        "sections": ["Matadero Palma"],
+        "sample_items": [
+          {"name": "Mechada Solo", "price_clp": 5990},
+          {"name": "Mechada Especial Mayo", "price_clp": 6490},
+          {"name": "Mechada Alemán", "price_clp": 6990}
+        ]
+      },
+      "evidence": [
+        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/fuente-recoleta-santiago/bNMAWQJlQe-oeT9pv9KYuw", "observed_at": "2026-09-18"}
+      ]
+    },
+    {
+      "outlet": {
+        "outlet_key": "cl-rm-recoleta-sushi-po-las-galaxias-1276",
+        "brand_name": "Sushi Po",
+        "outlet_name": "Recoleta",
+        "address": "Las Galaxias 1276",
+        "comuna": "Recoleta",
+        "region": "Región Metropolitana",
+        "postal_code": "8420000",
+        "identity_status": "platform_only"
+      },
+      "listing": {
+        "platform": "uber_eats",
+        "listing_id": "D4DUSSCATweClNCaEPZeGw",
+        "listing_name": "Sushi Po - Recoleta",
+        "url": "https://www.ubereats.com/cl/store/sushi-po-recoleta/D4DUSSCATweClNCaEPZeGw",
+        "platform_categories": ["Sushi"],
+        "delivery_supported": true,
+        "pickup_supported": true,
+        "scheduled_orders_supported": true
+      },
+      "menu_snapshot": {
+        "sections": ["Menú Promociones"],
+        "sample_items": [
+          {"name": "Promo 55 Mixta", "price_clp": 21990},
+          {"name": "Promo 60 VIP", "price_clp": 22490},
+          {"name": "Promo 40 Mixta", "price_clp": 17690}
+        ]
+      },
+      "evidence": [
+        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/sushi-po-recoleta/D4DUSSCATweClNCaEPZeGw", "observed_at": "2026-09-18"}
+      ]
+    },
+    {
+      "outlet": {
+        "outlet_key": "cl-rm-huechuraba-bogl-bogl-pedro-fontova-7280",
+        "brand_name": "BogL BogL",
+        "outlet_name": "Huechuraba",
+        "address": "Avenida Pedro Fontova 7280",
+        "comuna": "Huechuraba",
+        "region": "Región Metropolitana",
+        "postal_code": "8580000",
+        "identity_status": "platform_only"
+      },
+      "listing": {
+        "platform": "uber_eats",
+        "listing_id": "RX2OtyuVVZ2i0omnHXEYaw",
+        "listing_name": "BogL BogL (Huechuraba)",
+        "url": "https://www.ubereats.com/cl/store/bogl-bogl-huechuraba/RX2OtyuVVZ2i0omnHXEYaw",
+        "platform_categories": ["Coreana", "Asiática", "BBQ"],
+        "delivery_supported": true,
+        "pickup_supported": true,
+        "scheduled_orders_supported": true
+      },
+      "menu_snapshot": {
+        "sections": ["Menú"],
+        "sample_items": [
+          {"name": "Bulgogi", "price_clp": 10990},
+          {"name": "Tteokbokki", "price_clp": 8990}
+        ]
+      },
+      "evidence": [
+        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/bogl-bogl-huechuraba/RX2OtyuVVZ2i0omnHXEYaw", "observed_at": "2026-09-18"}
+      ]
+    },
+    {
+      "outlet": {
+        "outlet_key": "cl-rm-huechuraba-street-wrap-pedro-fontova-6651",
+        "brand_name": "Street Wrap",
+        "outlet_name": "Huechuraba",
+        "address": "Av. Pedro Fontova 6651, Local 24",
+        "comuna": "Huechuraba",
+        "region": "Región Metropolitana",
+        "postal_code": "8580000",
+        "identity_status": "platform_only"
+      },
+      "listing": {
+        "platform": "uber_eats",
+        "listing_id": "4MGrD9XMVJugQSYnNtktFg",
+        "listing_name": "Street Wrap - Huechuraba",
+        "url": "https://www.ubereats.com/cl/store/street-wrap-huechuraba/4MGrD9XMVJugQSYnNtktFg",
+        "platform_categories": ["Saludable", "Vegetariana", "Ensaladas"],
+        "delivery_supported": true,
+        "pickup_supported": true,
+        "scheduled_orders_supported": true
+      },
+      "menu_snapshot": {
+        "sections": ["Ding Dong", "Street Frieds", "Se tu propio Chef!"],
+        "sample_items": [
+          {"name": "Arma tu Wrap Ding Dong", "price_clp": 9390},
+          {"name": "Combo Ding Dong", "price_clp": 11990},
+          {"name": "La Mexicana", "price_clp": 8490},
+          {"name": "La Gringa", "price_clp": 8490},
+          {"name": "Canadian Fusión", "price_clp": 8490},
+          {"name": "Arma tu Bowl", "price_clp": 9390},
+          {"name": "Arma tu Ensalada", "price_clp": 9390}
+        ]
+      },
+      "evidence": [
+        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/street-wrap-huechuraba/4MGrD9XMVJugQSYnNtktFg", "observed_at": "2026-09-18"}
+      ]
+    },
+    {
+      "outlet": {
+        "outlet_key": "cl-rm-independencia-los-chamos-burger-independencia-1920",
+        "brand_name": "Los Chamos Burger",
+        "outlet_name": "Independencia",
+        "address": "Avenida Independencia 1920",
+        "comuna": "Independencia",
+        "region": "Región Metropolitana",
+        "postal_code": "7591538",
+        "identity_status": "platform_only",
+        "identity_note": "Brand name suggests burgers, but observed menu prominence includes pollo asado, arepitas and family sharing meals. Do not infer dish taxonomy from brand name."
+      },
+      "listing": {
+        "platform": "uber_eats",
+        "listing_id": "7UBpGBZqWBaKQ4_gUnmJAA",
+        "listing_name": "Los Chamos Burger (Independencia)",
+        "url": "https://www.ubereats.com/cl/store/los-chamos-burger-independencia/7UBpGBZqWBaKQ4_gUnmJAA",
+        "platform_categories": ["Hamburguesas", "Sándwich", "Sándwiches", "Comida rápida", "Ambiente familiar"],
+        "delivery_supported": true,
+        "pickup_supported": true
+      },
+      "menu_snapshot": {
+        "sections": ["Pollo Asado", "Combo para Compartir"],
+        "sample_items": [
+          {"name": "1/4 de Pollo", "price_clp": 11680},
+          {"name": "1/2 de Pollo", "price_clp": 20780},
+          {"name": "Pollo Entero", "price_clp": 36380},
+          {"name": "Para Compartir (4 personas)", "price_clp": 38980},
+          {"name": "Super Familiar (8 personas)", "price_clp": 77980}
+        ]
+      },
+      "evidence": [
+        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/los-chamos-burger-independencia/7UBpGBZqWBaKQ4_gUnmJAA", "observed_at": "2026-09-18"}
+      ]
+    },
+    {
+      "outlet": {
+        "outlet_key": "cl-rm-independencia-fritomania-cruz-1501",
+        "brand_name": "Fritomanía",
+        "outlet_name": "Independencia",
+        "address": "Cruz 1501",
+        "comuna": "Independencia",
+        "region": "Región Metropolitana",
+        "postal_code": "8380000",
+        "identity_status": "platform_only"
+      },
+      "listing": {
+        "platform": "uber_eats",
+        "listing_id": "XCiS911KVl6I3JD4Mu0ZmQ",
+        "listing_name": "Fritomanía - Independencia",
+        "url": "https://www.ubereats.com/cl/store/fritomania-independencia/XCiS911KVl6I3JD4Mu0ZmQ",
+        "platform_categories": ["Venezolana", "Latinoamericana", "Hamburguesas"],
+        "delivery_supported": true,
+        "pickup_supported": true,
+        "scheduled_orders_supported": true
+      },
+      "menu_snapshot": {
+        "sections": ["Artículos destacados"],
+        "sample_items": [
+          {"name": "Combo Junior", "price_clp": 18990},
+          {"name": "Cheeseburger Doble", "price_clp": 4995},
+          {"name": "Zu Burger", "price_clp": 7200},
+          {"name": "50 Unidades de Tequeños, Pasteles o Mandocas", "price_clp": 24990},
+          {"name": "Patacón Especial", "price_clp": 9990},
+          {"name": "Tequeyoyo", "price_clp": 1800},
+          {"name": "Combo Familiar", "price_clp": 28990},
+          {"name": "1 Arepa o Tumbarrancho", "price_clp": 7490},
+          {"name": "Cachapa Sencilla", "price_clp": 10990}
+        ]
+      },
+      "evidence": [
+        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/fritomania-independencia/XCiS911KVl6I3JD4Mu0ZmQ", "observed_at": "2026-09-18"}
+      ]
+    },
+    {
+      "outlet": {
+        "outlet_key": "cl-rm-independencia-astoria-av-independencia-565",
+        "brand_name": "Astoria",
+        "outlet_name": "Mall Independencia",
+        "address": "Avenida Independencia 565, Local FC 04",
+        "comuna": "Independencia",
+        "region": "Región Metropolitana",
+        "postal_code": "8380538",
+        "identity_status": "platform_only"
+      },
+      "listing": {
+        "platform": "uber_eats",
+        "listing_id": "y8YHn12sViG43qLiKqJXsw",
+        "listing_name": "Astoria- Mall Independencia",
+        "url": "https://www.ubereats.com/cl/store/astoria-mall-independencia/y8YHn12sViG43qLiKqJXsw",
+        "platform_categories": ["Ensaladas", "Americana", "Vegetariana"],
+        "delivery_supported": true
+      },
+      "menu_snapshot": {
+        "sections": ["Menú Ejecutivo", "Agregados", "Ensaladas"],
+        "sample_items": [
+          {"name": "Pastel de Choclo + Ensalada Surtida + Sopaipilla con Pebre", "price_clp": 23990},
+          {"name": "Lasaña + Ensalada Surtida + Sopaipilla con Pebre", "price_clp": 19990},
+          {"name": "300Grs. Pechuga de Pollo + Papas Fritas+ Ensalada Surtida + Sopaipilla con Pebre", "price_clp": 10100},
+          {"name": "Ensalada Mediterránea", "price_clp": 5990},
+          {"name": "Atún Salad", "price_clp": 5990},
+          {"name": "Ensalada Vegetariana", "price_clp": 5990}
+        ]
+      },
+      "evidence": [
+        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/astoria-mall-independencia/y8YHn12sViG43qLiKqJXsw", "observed_at": "2026-09-18"}
+      ]
+    },
+    {
+      "outlet": {
+        "outlet_key": "cl-rm-independencia-poked-av-independencia-1424",
+        "brand_name": "Poked",
+        "outlet_name": "Independencia",
+        "address": "Avenida Independencia 1424",
+        "comuna": "Independencia",
+        "region": "Región Metropolitana",
+        "postal_code": "8380391",
+        "identity_status": "platform_only"
+      },
+      "listing": {
+        "platform": "uber_eats",
+        "listing_id": "SdYHr9-NULWiAEeJFdnHlw",
+        "listing_name": "Poked - (Independencia)",
+        "url": "https://www.ubereats.com/cl/store/poked-independencia/SdYHr9-NULWiAEeJFdnHlw",
+        "platform_categories": ["Hawaiana", "Poke", "Pescados y mariscos"],
+        "delivery_supported": true,
+        "pickup_supported": true,
+        "scheduled_orders_supported": true
+      },
+      "menu_snapshot": {
+        "sections": ["Artículos destacados"],
+        "sample_items": [
+          {"name": "Chicken Teriyaki Poke + Bebida Gratis", "price_clp": 5984},
+          {"name": "1 Gohan + 1 Crispy Handroll + 1 Bebida", "price_clp": 15890}
+        ]
+      },
+      "evidence": [
+        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/poked-independencia/SdYHr9-NULWiAEeJFdnHlw", "observed_at": "2026-09-18"}
+      ]
+    }
+  ]
+}
