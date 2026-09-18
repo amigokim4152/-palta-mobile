@@ -23,7 +23,7 @@ export function SummaryListRow({
       disabled={!onPress}
       style={{
         minHeight: paltaTheme.touch.minimum,
-        paddingVertical: 13,
+        paddingVertical: 10,
         borderBottomWidth: 1,
         borderColor: paltaTheme.color.divider,
       }}
@@ -31,7 +31,7 @@ export function SummaryListRow({
       <View
         style={{
           flexDirection: stackMeta ? 'column' : 'row',
-          alignItems: stackMeta ? 'flex-start' : 'flex-start',
+          alignItems: 'flex-start',
           justifyContent: 'space-between',
           gap: 8,
         }}
@@ -40,8 +40,8 @@ export function SummaryListRow({
           allowFontScaling
           style={{
             flexShrink: 1,
-            fontSize: 17,
-            lineHeight: 23,
+            fontSize: 16,
+            lineHeight: 22,
             fontWeight: '650',
             color: paltaTheme.color.textPrimary,
           }}
@@ -53,8 +53,8 @@ export function SummaryListRow({
             allowFontScaling
             style={{
               flexShrink: 0,
-              fontSize: 14,
-              lineHeight: 21,
+              fontSize: 13,
+              lineHeight: 19,
               color: paltaTheme.color.textSecondary,
             }}
           >
@@ -67,9 +67,9 @@ export function SummaryListRow({
         <Text
           allowFontScaling
           style={{
-            marginTop: 4,
-            fontSize: 14,
-            lineHeight: 20,
+            marginTop: 3,
+            fontSize: 13,
+            lineHeight: 18,
             color: paltaTheme.color.textSecondary,
           }}
         >
@@ -81,7 +81,7 @@ export function SummaryListRow({
         <Text
           allowFontScaling
           style={{
-            marginTop: 8,
+            marginTop: 6,
             fontWeight: '700',
             color: paltaTheme.color.brandPrimary,
           }}
