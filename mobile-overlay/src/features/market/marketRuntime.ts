@@ -2,7 +2,7 @@ import type {
   MarketMutationPort,
   MarketReadPort,
 } from '../../../../src/market/marketApiContract';
-import type { MarketMessageIntent } from '../../../../src/market/marketMessageIntent';
+import type { MarketMessagingPort } from '../../../../src/market/marketMessagingFlow';
 import type { MarketLocationSummary } from '../../../../src/market/marketPersistenceContract';
 import type { MarketSafetyIntent } from '../../../../src/market/marketSafetyIntent';
 import { createMarketDevelopmentRuntime } from './marketRuntimeDevelopment';
@@ -23,8 +23,8 @@ export type MarketRuntime = {
     currentAssetIds: readonly string[];
     maxAssets: number;
   }) => Promise<string[]>;
-  /** Shared Message Core consumes the canonical Mercado handoff intent. */
-  openMessageIntent?: (intent: MarketMessageIntent) => Promise<void>;
+  /** Shared Message Core relationship/opening bridge. */
+  messaging?: MarketMessagingPort;
   /** Shared Safety/Moderation boundary owns hide/report persistence and audit. */
   handleSafetyIntent?: (intent: MarketSafetyIntent) => Promise<void>;
   resolveMediaAssetUrl: (mediaAssetId: string) => string | undefined;
@@ -52,8 +52,7 @@ export function getMarketRuntime(): MarketRuntime {
   return {
     mode: 'unavailable',
     resolveMediaAssetUrl: () => undefined,
-    unavailableReason:
-      'Mercado todavía no tiene un adaptador de datos instalado para este runtime.',
+    unavailableReason: 'Mercado no está disponible en este momento.',
   };
 }
 
