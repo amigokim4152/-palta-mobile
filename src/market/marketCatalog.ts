@@ -1,4 +1,4 @@
-export type MarketTradeMode = 'sale' | 'free' | 'exchange' | 'wanted';
+export type MarketTradeMode = 'sale' | 'rent' | 'free' | 'exchange' | 'wanted';
 
 export type MarketCategoryKey =
   | 'all'
@@ -9,8 +9,13 @@ export type MarketCategoryKey =
   | 'fashion'
   | 'hobby';
 
+/**
+ * UI options for the current secondhand create flow.
+ * Property rent is a canonical Mercado trade mode but is intentionally not
+ * exposed by this secondhand-specific picker.
+ */
 export const marketTradeModes: Array<{
-  key: MarketTradeMode;
+  key: Exclude<MarketTradeMode, 'rent'>;
   label: string;
 }> = [
   { key: 'sale', label: 'Vender' },
