@@ -38,6 +38,18 @@ export function installMarketRuntime(runtime: MarketRuntime): () => void {
   };
 }
 
+/**
+ * Type-compatible scaffold only. Runtime composition replaces this with the
+ * Mercado-owned implementation before preview builds execute.
+ */
+export function createMarketPreviewRuntime(): MarketRuntime {
+  return {
+    mode: 'unavailable',
+    resolveMediaAssetUrl: () => undefined,
+    unavailableReason: 'Mercado preview runtime is not composed yet.',
+  };
+}
+
 export function getMarketRuntime(): MarketRuntime {
   if (installedRuntime) return installedRuntime;
   return {
