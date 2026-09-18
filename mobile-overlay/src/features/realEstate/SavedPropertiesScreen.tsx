@@ -4,18 +4,20 @@ import { buildRealEstateQueryString } from '../../../../src/realEstate/realEstat
 import { PaltaButton } from '../../components/common/PaltaButton';
 import { paltaTheme } from '../../theme/paltaTheme';
 import { PropertyListingCard } from './PropertyListingCard';
-import { PROPERTY_DEMO_LISTINGS } from './propertyDemoData';
+import { useSavedRealEstateListingItems } from './useSavedRealEstateListingItems';
 import { useSavedRealEstateListings } from './useSavedRealEstateListings';
 import { useSavedRealEstateSearches } from './useSavedRealEstateSearches';
 
 export function SavedPropertiesScreen() {
   const savedListings = useSavedRealEstateListings();
   const savedSearches = useSavedRealEstateSearches();
-  const listings = PROPERTY_DEMO_LISTINGS.filter((item) => savedListings.savedIds.has(item.listing.id));
+  const savedListingItems = useSavedRealEstateListingItems(savedListings.savedIds);
 
   function openSearch(queryString: string) {
     router.push(queryString ? `/propiedades?${queryString}` : '/propiedades');
   }
+
+  const listingsLoading = savedListings.loading || savedListingItems.loading;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: paltaTheme.color.canvas }}>
@@ -40,10 +42,22 @@ export function SavedPropertiesScreen() {
             Propiedades guardadas
           </Text>
 
-          {savedListings.loading ? (
+          {listingsLoading ? (
             <Text style={{ color: paltaTheme.color.textSecondary }}>Cargando guardados…</Text>
-          ) : listings.length ? (
-            listings.map((item) => (
+          ) : savedListingItems.error ? (
+            <View
+              style={{
+                padding: paltaTheme.spacing.md,
+                borderRadius: paltaTheme.radius.surface,
+                backgroundColor: paltaTheme.color.surface,
+                borderWidth: 1,
+                borderColor: paltaTheme.color.divider,
+              }}
+            >
+              <Text style={{ color: paltaTheme.color.textSecondary }}>{savedListingItems.error}</Text>
+            </View>
+          ) : savedListingItems.items.length ? (
+            savedListingItems.items.map((item) => (
               <PropertyListingCard
                 key={item.listing.id}
                 item={item}
