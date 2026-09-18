@@ -1,6 +1,6 @@
 const base = process.argv[2];
 const expectedStyleVersion =
-  process.env.PALTA_EXPECTED_MAP_STYLE_VERSION ?? 'palta-v1.6';
+  process.env.PALTA_EXPECTED_MAP_STYLE_VERSION ?? 'palta-v1.7';
 
 if (!base) {
   console.error('Usage: node verify-map-range.mjs https://host.example');
@@ -17,6 +17,7 @@ const styleUrl = `${origin}/maps/cl/style.json`;
 const metadataUrl = `${origin}/maps/cl/metadata.json`;
 const mapUrl = `${origin}/maps/cl/basemap.pmtiles`;
 const fontUrl = `${origin}/maps/cl/fonts/NotoSans.ttf`;
+const symbolFontUrl = `${origin}/maps/cl/fonts/NotoSansSymbols2.ttf`;
 const fontLicenseUrl = `${origin}/maps/cl/fonts/OFL.txt`;
 
 const manifestResponse = await fetch(manifestUrl);
@@ -35,6 +36,10 @@ assert(manifest.pmtiles_url === mapUrl, 'Manifest PMTiles URL mismatch');
 assert(manifest.style_url === styleUrl, 'Manifest style URL mismatch');
 assert(manifest.metadata_url === metadataUrl, 'Manifest metadata URL mismatch');
 assert(manifest.font_url === fontUrl, 'Manifest font URL mismatch');
+assert(
+  manifest.symbol_font_url === symbolFontUrl,
+  'Manifest symbol font URL mismatch',
+);
 assert(
   manifest.font_license_url === fontLicenseUrl,
   'Manifest font license URL mismatch',
@@ -60,6 +65,10 @@ assert(
 assert(
   style['font-faces']?.['Noto Sans']?.[0]?.url === fontUrl,
   'Self-hosted Noto Sans font-face missing',
+);
+assert(
+  style['font-faces']?.['Noto Sans Symbols 2']?.[0]?.url === symbolFontUrl,
+  'Self-hosted Noto Sans Symbols 2 font-face missing',
 );
 
 const layers = style.layers ?? [];
@@ -185,6 +194,17 @@ assert(
   `Unexpected Noto Sans Content-Type: ${fontContentType}`,
 );
 
+const symbolFontHead = await fetch(symbolFontUrl, { method: 'HEAD' });
+assert(
+  symbolFontHead.status === 200,
+  `Symbol font HEAD expected 200, got ${symbolFontHead.status}`,
+);
+const symbolFontSize = Number(symbolFontHead.headers.get('content-length'));
+assert(
+  Number.isFinite(symbolFontSize) && symbolFontSize > 100000,
+  `Unexpected Noto Sans Symbols 2 size: ${symbolFontSize}`,
+);
+
 const licenseHead = await fetch(fontLicenseUrl, { method: 'HEAD' });
 assert(
   licenseHead.status === 200,
@@ -270,6 +290,8 @@ console.log(
       metadataUrl,
       fontUrl,
       fontSize,
+      symbolFontUrl,
+      symbolFontSize,
       mapUrl,
       immutableUrl: manifest.immutable_version_url,
       fullSize,
