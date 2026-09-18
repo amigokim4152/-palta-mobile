@@ -152,8 +152,9 @@ function snapshotFromRecord(
 
 export function createSiiTasacionSnapshotAdapter(
   snapshot: SiiTasacionSnapshot,
+  options: { allowPartialForTests?: boolean } = {},
 ): ChileVehicleDataAdapter {
-  const validation = validateSiiTasacionSnapshot(snapshot, { allowPartialForTests: snapshot.rowCount < SII_LIVIANOS_2026_DATASET.minimumExpectedRows });
+  const validation = validateSiiTasacionSnapshot(snapshot, options);
   if (!validation.valid) {
     throw new Error(`Invalid SII tasacion snapshot: ${validation.reasons.join(',')}`);
   }
