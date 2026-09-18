@@ -15,6 +15,7 @@ import { ErrorState, LoadingState } from '../../../components/AsyncStateBlock';
 import { useAsyncResource } from '../../../hooks/useAsyncResource';
 import { mobileRuntime } from '../../../services/paltaClient';
 import { paltaTheme } from '../../../theme/paltaTheme';
+import { FoodFulfillmentSummary } from './FoodFulfillmentSummary';
 
 function whatsappUrl(business: BusinessApiDetail): string | undefined {
   const linked = business.channel_links?.find((link) => link.provider === 'whatsapp')?.url;
@@ -224,6 +225,8 @@ export function FoodBusinessExperience() {
               </Text>
             ) : null}
           </View>
+
+          <FoodFulfillmentSummary business={business} />
 
           <View
             style={{
