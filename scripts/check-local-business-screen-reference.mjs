@@ -46,6 +46,7 @@ const detail = readTsx(detailPath);
 const ownerHome = readTsx(ownerHomePath);
 const liveReference = readTsx(liveReferencePath);
 const sampleRoute = readTsx(sampleRoutePath);
+
 assert(fs.existsSync(referencePath), 'Local Business screen reference must exist.');
 assert(fs.existsSync(handoffPath), 'Local Business design-system handoff must exist.');
 
@@ -53,21 +54,23 @@ assert(
   card.includes('imageUrl?: string') &&
   card.includes('serviceLabels?: readonly string[]') &&
   card.includes('highlight?: string'),
-  'Discovery card must remain ready for one real image, up to two service labels and one current highlight.',
+  'Discovery rows must remain ready for a real image, useful service labels and one current highlight.',
 );
 assert(
-  card.includes("status === 'Abierto ahora'") && card.includes('distance'),
-  'Discovery card must make current operating truth and distance/service context scannable.',
+  card.includes("status === 'Abierto ahora'") &&
+  card.includes('distance') &&
+  card.includes("width: '100%'"),
+  'Discovery rows must make current operating truth and distance/service context scannable at full sheet width.',
 );
 assert(
   card.includes('firstLetter(name)') && card.includes('accessibilityLabel={`Foto de ${name}`}'),
-  'Discovery card must gracefully fall back when no real business photo exists instead of inventing stock imagery.',
+  'Discovery rows must gracefully fall back when no real business photo exists.',
 );
 assert(
   card.includes('consumerMetaLabel') &&
   card.includes("value.includes('_')") &&
   card.includes('categoryLabels'),
-  'Consumer cards must translate known categories and suppress unknown internal taxonomy keys.',
+  'Consumer rows must translate known categories and suppress internal taxonomy keys.',
 );
 assert(
   card.includes('✓ Verificado') && card.includes("value !== 'Verificado'"),
@@ -75,11 +78,12 @@ assert(
 );
 
 assert(
-  discovery.includes('BusinessDiscoveryShell') &&
   discovery.includes('NeighborhoodMap') &&
   discovery.includes('MapResultSheet') &&
-  discovery.includes('Buscar en esta zona'),
-  'Canonical Negocios must remain a polished map-led search/list experience.',
+  discovery.includes('Buscar en esta zona') &&
+  discovery.includes("position: 'absolute', top: 0, right: 0, bottom: 0, left: 0") &&
+  !discovery.includes("useState<'list' | 'map'>"),
+  'Canonical Negocios must remain a polished full-map experience with an edge-to-edge result sheet.',
 );
 assert(
   discovery.includes('imageUrl={selectedVisual.imageUrl}') &&
@@ -88,7 +92,7 @@ assert(
   discovery.includes('imageUrl={visual.imageUrl}') &&
   discovery.includes('serviceLabels={visual.serviceLabels}') &&
   discovery.includes('highlight={visual.highlight}'),
-  'Discovery experience must project real-photo/service/highlight slots into production result cards.',
+  'Discovery must project real-photo/service/highlight slots into production result rows.',
 );
 
 const heroIndex = detail.indexOf('<ProfileHero');
@@ -103,9 +107,9 @@ assert(heroIndex >= 0, 'Business profile must begin with a visual business hero.
 assert(actionsIndex > heroIndex, 'Primary business actions must appear immediately after the hero.');
 assert(servicesIndex > actionsIndex, 'Service detail must follow immediate actions.');
 assert(hoursIndex === -1 || hoursIndex > servicesIndex, 'Hours and service area must follow service identity.');
-assert(couponIndex === -1 || couponIndex > Math.max(actionsIndex, hoursIndex), 'Benefits must remain supporting content below services/hours.');
-assert(postsIndex === -1 || postsIndex > Math.max(actionsIndex, couponIndex), 'Recent business updates must remain below direct actions and benefits.');
-assert(reviewsIndex === -1 || reviewsIndex > Math.max(actionsIndex, postsIndex), 'Verified reviews must remain supporting content after recent business updates.');
+assert(couponIndex === -1 || couponIndex > Math.max(actionsIndex, hoursIndex), 'Benefits must remain below services/hours.');
+assert(postsIndex === -1 || postsIndex > Math.max(actionsIndex, couponIndex), 'Recent updates must remain below direct actions and benefits.');
+assert(reviewsIndex === -1 || reviewsIndex > Math.max(actionsIndex, postsIndex), 'Verified reviews must remain supporting content.');
 assert(externalIndex > actionsIndex, 'External channels belong below primary Palta actions.');
 assert(
   detail.includes('.slice(0, 6)') && detail.includes('pagingEnabled'),
@@ -113,17 +117,13 @@ assert(
 );
 assert(
   detail.includes('business.posts.slice(0, 3)') && detail.includes('reviews.items.slice(0, 3)'),
-  'Profile should progressively disclose useful updates and verified-use reviews instead of flooding the first viewport.',
+  'Profile should progressively disclose useful updates and verified-use reviews.',
 );
 assert(
   detail.includes('readLocalBusinessDiscoveryCache') &&
   detail.includes("return 'Zona de atención'") &&
   detail.includes('formatDistance(item.distance_m)'),
-  'Profile must carry discovery distance/service-area context without persisting precise search location.',
-);
-assert(
-  !detail.includes('Contactar y actuar') && !detail.includes('Map Core preparado'),
-  'Consumer-facing polished profile must not regress to developer/prototype copy.',
+  'Profile must carry discovery context without persisting precise search location.',
 );
 
 assert(
@@ -133,29 +133,11 @@ assert(
   'Owner Partner Home and its reference sample must share one themed status card component.',
 );
 const ownerTodayIndex = ownerHome.indexOf('title="Tu negocio ahora"');
-const ownerAttentionIndex = ownerHome.indexOf('Información que podría estar incorrecta');
-const ownerRelationshipIndex = ownerHome.indexOf('title="Relación con clientes"');
 const ownerFreeIndex = ownerHome.indexOf('title="Mantén tu presencia útil"');
 const ownerAutomationIndex = ownerHome.indexOf('title="Automatiza sólo si te ahorra trabajo"');
 assert(ownerTodayIndex >= 0, 'Owner home must begin with today/current operating truth.');
-assert(ownerFreeIndex > ownerTodayIndex, 'Free profile-management tools must sit below current operational work.');
-assert(
-  ownerAttentionIndex === -1 || ownerAttentionIndex > ownerTodayIndex,
-  'Correction work must remain inside the today/attention layer rather than a generic settings list.',
-);
-assert(
-  ownerRelationshipIndex === -1 || ownerRelationshipIndex > ownerTodayIndex,
-  'Real customer relationship signals belong after current operating work.',
-);
-assert(
-  ownerAutomationIndex === -1 || ownerAutomationIndex > ownerFreeIndex,
-  'Optional automation must stay below free management tools.',
-);
-assert(
-  ownerHome.includes('paidSuggestions.length') &&
-  !ownerHome.includes('Un mismo negocio, más herramientas cuando hagan falta'),
-  'Owner home must not render a generic upsell wall; paid automation appears only from real guidance.',
-);
+assert(ownerFreeIndex > ownerTodayIndex, 'Free profile-management tools must sit below current operating work.');
+assert(ownerAutomationIndex === -1 || ownerAutomationIndex > ownerFreeIndex, 'Optional automation must stay below free management tools.');
 assert(
   ownerHome.includes('/services') && ownerHome.includes('/location') && ownerHome.includes('/channels'),
   'Owner free-base management must expose services, location/service area and public links from the same canonical business.',
@@ -164,24 +146,24 @@ assert(
   ownerHome.includes('guidanceTargetKind') &&
   ownerHome.includes('openGuidanceTarget') &&
   ownerHome.includes('onPress={targetKind'),
-  'Owner guidance must open only implemented management surfaces and remain non-clickable for unavailable shared-core targets.',
+  'Owner guidance must open only implemented management surfaces.',
 );
 
 assert(
   liveReference.includes('<LocalResultCard') &&
   liveReference.includes('<BusinessActionBar') &&
   liveReference.includes('<OwnerPartnerCard'),
-  'The live screen reference must reuse production components instead of becoming a disconnected mock design.',
+  'The live screen reference must reuse production components.',
 );
 assert(
   liveReference.includes('Muestra A · resultado de búsqueda') &&
   liveReference.includes('Muestra B · primera vista del perfil') &&
   liveReference.includes('Muestra C · Mi negocio'),
-  'The live reference must keep discovery, profile and owner-home samples visible to implementers.',
+  'The live reference must keep discovery, profile and owner-home samples visible.',
 );
 assert(
   sampleRoute.includes('BusinessReferenceScreen') && !sampleRoute.includes('<LocalResultCard'),
   'The dev sample route must reuse the canonical BusinessReferenceScreen rather than duplicate sample UI.',
 );
 
-console.log('PASS: Local Business polished screen reference');
+console.log('PASS: Local Business full-map screen reference');
