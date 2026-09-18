@@ -4,6 +4,7 @@ import {
   DEFAULT_LOCALE,
   DEFAULT_REGION,
   DEFAULT_TIMEZONE,
+  businessVerificationLabel,
   careT,
   createLanguageContext,
   discoveryT,
@@ -83,6 +84,10 @@ assert(
 assert(
   surfaceT('async.retry', 'zh-Hans') === '重试',
   'Shared async controls should not fall back to Spanish when a translation exists.',
+);
+assert(
+  businessVerificationLabel('verified', 'ko') === '인증됨',
+  'Business verification status should use the selected Palta locale.',
 );
 
 const content = {
