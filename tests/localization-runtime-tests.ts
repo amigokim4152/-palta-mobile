@@ -9,6 +9,7 @@ import {
   discoveryT,
   resolveLocalizedContent,
   resolvePreferredLocale,
+  surfaceT,
   t,
   tryNormalizeLocale,
 } from '../src/localization/index.js';
@@ -73,6 +74,15 @@ assert(
   careT('care.state', 'ko', { state: '기다리는 중' }) ===
     '현재 상태: 기다리는 중',
   'Care copy should preserve locale-specific interpolation order.',
+);
+assert(
+  surfaceT('context.subtitle', 'ko', { id: 'travel-001' }) ===
+    '임시 문맥 · travel-001',
+  'Secondary surfaces should share the selected Palta locale.',
+);
+assert(
+  surfaceT('async.retry', 'zh-Hans') === '重试',
+  'Shared async controls should not fall back to Spanish when a translation exists.',
 );
 
 const content = {
