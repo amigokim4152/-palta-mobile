@@ -22,3 +22,5 @@ jobs:
         run: npm test
       - name: Supabase Local Business discovery adapter
         run: node dist/tests/supabase-local-business-discovery-adapter-tests.js
+      - name: Supabase Business onboarding persistence adapter
+        run: node dist/tests/supabase-business-onboarding-adapter-tests.js
