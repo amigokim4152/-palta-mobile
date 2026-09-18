@@ -2,6 +2,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Image, Pressable, SafeAreaView, ScrollView, Text, View } from 'react-native';
 import { paltaTheme } from '../../theme/paltaTheme';
 import { findAutosDemoListing } from './autosDemoData';
+import { toggleAutosListingSaved, useAutosDemoState } from './autosDemoState';
 
 function formatClp(value: number) {
   return `$${new Intl.NumberFormat('es-CL').format(value)}`;
@@ -26,7 +27,10 @@ function Spec({ label, value }: { label: string; value: string }) {
 
 export function VehicleListingDetailScreen() {
   const { listingId } = useLocalSearchParams<{ listingId: string }>();
-  const item = findAutosDemoListing(listingId);
+  const demoState = useAutosDemoState();
+  const item =
+    demoState.publishedListings.find((candidate) => candidate.listing.id === listingId) ??
+    findAutosDemoListing(listingId);
 
   if (!item) {
     return (
@@ -40,6 +44,7 @@ export function VehicleListingDetailScreen() {
   }
 
   const { vehicle, listing } = item;
+  const saved = demoState.savedListingIds.includes(listing.id);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: paltaTheme.color.canvas }}>
@@ -96,7 +101,7 @@ export function VehicleListingDetailScreen() {
               {listing.verifiedSeller ? 'Identidad del vendedor verificada · demo' : 'Verificación pendiente · demo'}
             </Text>
             {listing.publisherBusinessId ? (
-              <Pressable onPress={() => router.push(`/business/${encodeURIComponent(listing.publisherBusinessId!)}`)} style={{ marginTop: 6 }}>
+              <Pressable onPress={() => router.push(`/business/${encodeURIComponent(listing.publisherBusinessId)}`)} style={{ marginTop: 6 }}>
                 <Text style={{ fontWeight: '800', color: paltaTheme.color.brandPrimary }}>Ver perfil del negocio ›</Text>
               </Pressable>
             ) : null}
@@ -105,10 +110,18 @@ export function VehicleListingDetailScreen() {
       </ScrollView>
 
       <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, flexDirection: 'row', gap: paltaTheme.spacing.xs, padding: paltaTheme.spacing.sm, paddingBottom: paltaTheme.spacing.md, borderTopWidth: 1, borderColor: paltaTheme.color.divider, backgroundColor: paltaTheme.color.surface }}>
-        <Pressable style={{ minWidth: 52, minHeight: 52, alignItems: 'center', justifyContent: 'center', borderRadius: paltaTheme.radius.surface, borderWidth: 1, borderColor: paltaTheme.color.divider }}>
-          <Text style={{ fontSize: 22, color: paltaTheme.color.textPrimary }}>♡</Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={saved ? 'Quitar de guardados' : 'Guardar auto'}
+          onPress={() => toggleAutosListingSaved(listing.id)}
+          style={{ minWidth: 52, minHeight: 52, alignItems: 'center', justifyContent: 'center', borderRadius: paltaTheme.radius.surface, borderWidth: 1, borderColor: paltaTheme.color.divider }}
+        >
+          <Text style={{ fontSize: 22, color: saved ? paltaTheme.color.brandPrimary : paltaTheme.color.textPrimary }}>{saved ? '♥' : '♡'}</Text>
         </Pressable>
-        <Pressable style={{ flex: 1, minHeight: 52, alignItems: 'center', justifyContent: 'center', borderRadius: paltaTheme.radius.surface, backgroundColor: paltaTheme.color.brandPrimary }}>
+        <Pressable
+          accessibilityRole="button"
+          style={{ flex: 1, minHeight: 52, alignItems: 'center', justifyContent: 'center', borderRadius: paltaTheme.radius.surface, backgroundColor: paltaTheme.color.brandPrimary }}
+        >
           <Text style={{ fontSize: 15, fontWeight: '900', color: paltaTheme.color.surface }}>Consultar</Text>
         </Pressable>
       </View>
