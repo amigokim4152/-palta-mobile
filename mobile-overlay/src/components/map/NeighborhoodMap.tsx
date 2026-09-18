@@ -1,3 +1,4 @@
+import type { ComponentProps } from 'react';
 import {
   Camera,
   GeoJSONSource,
@@ -8,7 +9,7 @@ import type { MapFeature } from '../../../../src/adapters/mapCore';
 import { toPointFeatureCollection } from '../../../../src/map/mapFeatureCollection';
 
 type Props = {
-  mapStyle: string;
+  mapStyle: ComponentProps<typeof Map>['mapStyle'];
   features: readonly MapFeature[];
   initialCenter: {
     latitude: number;
