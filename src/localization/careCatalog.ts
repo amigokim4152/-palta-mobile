@@ -15,6 +15,8 @@ export const CARE_ES = {
   'care.timeline.done': 'Completado',
   'care.timeline.current': 'Actual',
   'care.timeline.upcoming': 'Próximo',
+  'care.intent.localBusinessQuote': 'Cotización con negocio local',
+  'care.waiting.businessResponse': 'respuesta del negocio',
 } as const;
 
 export type CareCopyKey = keyof typeof CARE_ES;
@@ -36,6 +38,8 @@ const KO: CareCatalog = {
   'care.timeline.done': '완료됨',
   'care.timeline.current': '현재 단계',
   'care.timeline.upcoming': '다음 단계',
+  'care.intent.localBusinessQuote': '동네업체 견적 요청',
+  'care.waiting.businessResponse': '업체 답변',
 };
 
 const EN: CareCatalog = {
@@ -53,6 +57,8 @@ const EN: CareCatalog = {
   'care.timeline.done': 'Completed',
   'care.timeline.current': 'Current',
   'care.timeline.upcoming': 'Upcoming',
+  'care.intent.localBusinessQuote': 'Local business quote',
+  'care.waiting.businessResponse': 'business response',
 };
 
 const ZH_HANS: CareCatalog = {
@@ -70,6 +76,8 @@ const ZH_HANS: CareCatalog = {
   'care.timeline.done': '已完成',
   'care.timeline.current': '当前阶段',
   'care.timeline.upcoming': '下一阶段',
+  'care.intent.localBusinessQuote': '本地商家询价',
+  'care.waiting.businessResponse': '商家回复',
 };
 
 const CATALOGS: Record<PaltaLocale, CareCatalog> = {
@@ -77,6 +85,14 @@ const CATALOGS: Record<PaltaLocale, CareCatalog> = {
   ko: KO,
   en: EN,
   'zh-Hans': ZH_HANS,
+};
+
+const INTENT_KEYS: Record<string, CareCopyKey> = {
+  local_business_quote: 'care.intent.localBusinessQuote',
+};
+
+const WAITING_KEYS: Record<string, CareCopyKey> = {
+  business_response: 'care.waiting.businessResponse',
 };
 
 function interpolate(template: string, values?: CareInterpolation): string {
@@ -94,4 +110,14 @@ export function careT(
 ): string {
   const translated = CATALOGS[locale][key];
   return interpolate(translated?.trim() ? translated : CARE_ES[key], values);
+}
+
+export function careIntentLabel(intentKey: string, locale: PaltaLocale): string {
+  const copyKey = INTENT_KEYS[intentKey];
+  return copyKey ? careT(copyKey, locale) : intentKey;
+}
+
+export function careWaitingForLabel(waitingFor: string, locale: PaltaLocale): string {
+  const copyKey = WAITING_KEYS[waitingFor];
+  return copyKey ? careT(copyKey, locale) : waitingFor;
 }
