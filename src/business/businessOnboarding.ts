@@ -202,6 +202,9 @@ export function evaluateOnboardingReadiness(draft: BusinessOnboardingDraft): Onb
   const needsServiceArea = draft.presenceModes.includes('customer_site') || draft.presenceModes.includes('mobile_event') || draft.presenceModes.includes('mixed');
   if (needsStorefront && !draft.anchorLocation) missing.push('storefront_location');
   if (needsServiceArea && draft.serviceAreaIds.length === 0) missing.push('service_area');
+  if (!draft.publicContact.phone?.trim() && !draft.publicContact.whatsapp?.trim()) {
+    missing.push('public_contact');
+  }
   const readyForVerification = missing.length === 0;
   return {
     readyForVerification,
