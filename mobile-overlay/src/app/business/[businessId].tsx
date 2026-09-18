@@ -107,7 +107,7 @@ export default function BusinessDetailScreen() {
   if (state.status === 'error' && !state.data) {
     return (
       <ScreenFrame title={t('business.genericTitle')}>
-        <ErrorState message={state.message} onRetry={() => void refresh()} />
+        <ErrorState onRetry={() => void refresh()} />
       </ScreenFrame>
     );
   }
@@ -166,7 +166,7 @@ export default function BusinessDetailScreen() {
         ) : null}
 
         {state.status === 'error' ? (
-          <ErrorState message={state.message} onRetry={() => void refresh()} />
+          <ErrorState onRetry={() => void refresh()} />
         ) : null}
 
         <Text style={{ opacity: 0.55 }}>
