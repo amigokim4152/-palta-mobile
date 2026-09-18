@@ -18,7 +18,7 @@
   },
   "environments": {
     "local": {
-      "status": "planned",
+      "status": "partially_operational_on_existing_mac",
       "apiBaseUrl": "http://localhost:8787",
       "databaseProjectId": null,
       "r2ObjectResource": null,
@@ -94,7 +94,11 @@
   },
   "mobile": {
     "runtime": "expo-router-native",
-    "stagingSource": "mobile-overlay",
+    "canonicalTargetPath": "apps/mobile",
+    "currentLocalRuntimePath": "apps/mobile",
+    "sourceControlStatus": "local_runtime_exists_but_apps_mobile_not_committed",
+    "versionControlledRecoverySource": "mobile-overlay",
+    "duplicateAppCreationAllowed": false,
     "mapRuntime": "maplibre-react-native",
     "expoGoAccepted": false,
     "clientAllowedSecrets": [
@@ -103,10 +107,20 @@
       "EXPO_PUBLIC_SUPABASE_URL",
       "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
       "EXPO_PUBLIC_MAP_STYLE_URL"
+    ],
+    "promotionGates": [
+      "inspect_existing_local_apps_mobile",
+      "sanitize_secrets_and_machine_artifacts",
+      "commit_safe_source_config_and_lockfile",
+      "fresh_checkout_dependency_install_verified",
+      "ios_native_build_verified_from_committed_tree",
+      "android_native_build_verified_before_beta",
+      "remove_normal_runtime_dependency_on_untracked_local_state"
     ]
   },
   "rules": [
     "main remains untouched until integration verification",
+    "do not create a second Palta mobile app while apps/mobile exists locally",
     "no provider secret or database owner credential in mobile or GitHub",
     "Postgres is canonical truth for money/fiscal/business state",
     "queues carry canonical IDs rather than sensitive payloads",
