@@ -2,7 +2,7 @@ export const SUPPORTED_LOCALES = ['es-CL', 'ko', 'en', 'zh-Hans'] as const;
 
 export type PaltaLocale = (typeof SUPPORTED_LOCALES)[number];
 
-export const DEFAULT_LOCALE: PaltaLocale = 'es-CL';
+export const DEFAULT_LOCALE = 'es-CL' as const;
 export const DEFAULT_REGION = 'CL' as const;
 export const DEFAULT_TIMEZONE = 'America/Santiago' as const;
 export const DEFAULT_CURRENCY = 'CLP' as const;
