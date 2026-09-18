@@ -27,6 +27,35 @@ assert(home.body.items.some((item) => item.surface === 'useful_today'), 'Home PA
 const careHomeItem = home.body.items.find((item) => item.care_track_id === 'care-demo-1');
 assert(careHomeItem?.action_target === '/care/care-demo-1', 'Home Care deep link missing');
 
+const notifications = await json('/v1/notifications');
+assert(notifications.response.ok && Array.isArray(notifications.body.items), 'notifications failed');
+assert(notifications.body.items.length >= 2, 'notification seed missing');
+assert(
+  notifications.body.summary?.unread_count === home.body.context.unread_notification_count,
+  'Home unread count must come from the notification inbox state',
+);
+const unreadNotification = notifications.body.items.find((item) => !item.read_at);
+assert(unreadNotification, 'an unread notification is required for the smoke flow');
+const markRead = await json(
+  `/v1/notifications/${encodeURIComponent(unreadNotification.id)}/read`,
+  { method: 'POST' },
+);
+assert(
+  markRead.response.ok && typeof markRead.body.read_at === 'string',
+  'notification read transition failed',
+);
+const notificationsAfterRead = await json('/v1/notifications');
+assert(
+  notificationsAfterRead.body.summary.unread_count === notifications.body.summary.unread_count - 1,
+  'notification unread count did not decrease',
+);
+const homeAfterRead = await json('/v1/home?locale=es-CL');
+assert(
+  homeAfterRead.body.context.unread_notification_count ===
+    notificationsAfterRead.body.summary.unread_count,
+  'Home unread count did not reflect notification read state',
+);
+
 const local = await json('/v1/local/search?lat=-33.39&lng=-70.57&radius_m=5000');
 assert(local.response.ok && local.body.items.length >= 2, 'local search failed');
 const businessId = local.body.items[0].entity_id;
@@ -80,6 +109,8 @@ console.log(JSON.stringify({
   homeItems: home.body.items.length,
   homeGlance: home.body.glance.length,
   locality: home.body.context.locality.label,
+  unreadBefore: notifications.body.summary.unread_count,
+  unreadAfter: notificationsAfterRead.body.summary.unread_count,
   localItems: local.body.items.length,
   businessId,
   careId: care.body.id,
