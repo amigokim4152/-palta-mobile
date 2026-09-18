@@ -39,26 +39,13 @@ function offeringKey(item: PlayDiscoveryItem): string | undefined {
   return `business:${businessId}:kind:${item.contentKind}`;
 }
 
-/**
- * Conservative cross-source identity. Events use title+venue+exact minute so the
- * same show discovered from municipality/venue/ticketing can merge while distinct
- * showtimes remain separate. Offerings keep their canonical offering identity.
- */
 export function playCanonicalKey(item: PlayDiscoveryItem): string {
   if (item.canonicalKey?.trim()) return item.canonicalKey.trim();
   if (item.eventId || item.startAt) return eventFingerprint(item);
-
   const canonicalOffering = offeringKey(item);
   if (canonicalOffering) return canonicalOffering;
   if (item.placeId?.trim()) return `place:${item.placeId.trim()}:kind:${item.contentKind}`;
-
-  return [
-    'play',
-    item.contentKind,
-    normalize(item.title),
-    normalize(item.comuna),
-    normalize(item.venue),
-  ].join(':');
+  return ['play', item.contentKind, normalize(item.title), normalize(item.comuna), normalize(item.venue)].join(':');
 }
 
 function uniqueStrings(values: readonly string[]): string[] {
@@ -107,13 +94,15 @@ function provenanceRank(item: PlayDiscoveryItem): number {
 }
 
 function preferredItem(items: readonly PlayDiscoveryItem[]): PlayDiscoveryItem {
-  return [...items].sort((left, right) => {
+  const first = [...items].sort((left, right) => {
     const provenance = provenanceRank(left) - provenanceRank(right);
     if (provenance !== 0) return provenance;
     if (Boolean(left.imageUrl) !== Boolean(right.imageUrl)) return left.imageUrl ? -1 : 1;
     if (Boolean(left.primaryAction) !== Boolean(right.primaryAction)) return left.primaryAction ? -1 : 1;
     return left.id.localeCompare(right.id);
-  })[0] as PlayDiscoveryItem;
+  })[0];
+  if (!first) throw new Error('play_canonical_group_empty');
+  return first;
 }
 
 function minimumMetric(
@@ -137,6 +126,15 @@ export function mergePlayDiscoveryGroup(items: readonly PlayDiscoveryItem[]): Pl
   const alternateActions = primaryAction
     ? allActions.filter((action) => actionIdentity(action) !== actionIdentity(primaryAction))
     : allActions;
+  const eventId = preferred.eventId ?? items.find((item) => item.eventId)?.eventId;
+  const venueId = preferred.venueId ?? items.find((item) => item.venueId)?.venueId;
+  const offeringId = preferred.offeringId ?? items.find((item) => item.offeringId)?.offeringId;
+  const organizerIds = uniqueStrings(items.flatMap((item) => item.organizerIds ?? []));
+  const imageUrl = preferred.imageUrl ?? items.find((item) => item.imageUrl)?.imageUrl;
+  const isFree = items.some((item) => item.isFree === true) ? true : preferred.isFree;
+  const registrationRequired = items.some((item) => item.registrationRequired === true)
+    ? true
+    : preferred.registrationRequired;
   const travelTimeMinutes = minimumMetric(items, (item) => item.travelTimeMinutes);
   const distanceM = minimumMetric(items, (item) => item.distanceM);
   const nearest = travelTimeMinutes !== undefined
@@ -148,17 +146,15 @@ export function mergePlayDiscoveryGroup(items: readonly PlayDiscoveryItem[]): Pl
   return {
     ...preferred,
     canonicalKey: key,
-    eventId: preferred.eventId ?? items.find((item) => item.eventId)?.eventId,
-    venueId: preferred.venueId ?? items.find((item) => item.venueId)?.venueId,
-    offeringId: preferred.offeringId ?? items.find((item) => item.offeringId)?.offeringId,
-    organizerIds: uniqueStrings(items.flatMap((item) => item.organizerIds ?? [])),
+    ...(eventId ? { eventId } : {}),
+    ...(venueId ? { venueId } : {}),
+    ...(offeringId ? { offeringId } : {}),
+    ...(organizerIds.length ? { organizerIds } : {}),
     themeTags: uniqueStrings(items.flatMap((item) => item.themeTags)) as PlayDiscoveryItem['themeTags'],
     experienceTags: uniqueStrings(items.flatMap((item) => item.experienceTags ?? [])),
-    isFree: items.some((item) => item.isFree === true) ? true : preferred.isFree,
-    registrationRequired: items.some((item) => item.registrationRequired === true) ? true : preferred.registrationRequired,
-    ...(preferred.imageUrl ?? items.find((item) => item.imageUrl)?.imageUrl
-      ? { imageUrl: preferred.imageUrl ?? items.find((item) => item.imageUrl)?.imageUrl }
-      : {}),
+    ...(isFree !== undefined ? { isFree } : {}),
+    ...(registrationRequired !== undefined ? { registrationRequired } : {}),
+    ...(imageUrl ? { imageUrl } : {}),
     ...(travelTimeMinutes !== undefined ? { travelTimeMinutes } : {}),
     ...(distanceM !== undefined ? { distanceM } : {}),
     ...(nearest?.distanceLabel ? { distanceLabel: nearest.distanceLabel } : {}),
