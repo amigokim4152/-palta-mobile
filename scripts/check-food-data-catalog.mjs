@@ -2,7 +2,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const root = path.resolve(process.cwd(), 'data/food/chile/rm');
-const files = fs.readdirSync(root).filter((name) => name.endsWith('.json')).sort();
+const files = fs.readdirSync(root)
+  .filter((name) => name.startsWith('food-observations-') && name.endsWith('.json'))
+  .sort();
 if (!files.length) throw new Error('food_catalog_missing_observation_files');
 
 const seenOutletKeys = new Set();
@@ -47,6 +49,10 @@ for (const name of files) {
     if (phone && !/^\+56\d{8,9}$/.test(phone)) {
       throw new Error(`${name}: invalid_public_phone:${outlet.outlet_key}`);
     }
+    const whatsapp = outlet.public_contact?.whatsapp;
+    if (whatsapp && !/^\+56\d{9}$/.test(whatsapp)) {
+      throw new Error(`${name}: invalid_public_whatsapp:${outlet.outlet_key}`);
+    }
 
     if (!Array.isArray(record.evidence) || !record.evidence.some((item) => item.kind === 'uber_eats')) {
       throw new Error(`${name}: uber_evidence_required:${outlet.outlet_key}`);
@@ -64,4 +70,4 @@ for (const name of files) {
   }
 }
 
-console.log(`PASS: food data catalog ${recordsChecked} outlets / ${menuItemsChecked} sampled menu items across ${files.length} files`);
+console.log(`PASS: food data catalog ${recordsChecked} outlets / ${menuItemsChecked} sampled menu items across ${files.length} observation files`);
