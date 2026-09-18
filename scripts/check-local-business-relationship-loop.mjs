@@ -32,6 +32,12 @@ assert(
   'A followed business must expose a direct path from the profile action area into the relationship feed.',
 );
 assert(
+  actionBar.includes("capability === 'inquiry'") &&
+    actionBar.includes('/messages/business/${encodeURIComponent(businessId)}') &&
+    actionBar.includes('useLocalSearchParams'),
+  'Consultar must hand off the current Business profile to the shared Messaging route instead of implementing a Local Business chat.',
+);
+assert(
   following.includes('getFollowedBusinessUpdates()') &&
     following.includes('item.kind') &&
     following.includes("router.push(`/business/${encodeURIComponent(item.business_id)}`)"),
@@ -47,4 +53,4 @@ assert(
   'Following must not silently grant marketing or notification consent.',
 );
 
-console.log('PASS: Local Business follow → updates/benefits → profile relationship loop');
+console.log('PASS: Local Business follow/update loop + Shared Messaging inquiry handoff');
