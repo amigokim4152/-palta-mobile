@@ -14,7 +14,7 @@ import {
   hasRequiredVehicleCaptures,
   type VehicleCaptureSlotId,
 } from '../../../../src/autos/autosCaptureFlow';
-import { estimateChileVehicleTransaction } from '../../../../src/autos/chileVehicleTransaction';
+import { buildVehicleSalePreparation } from '../../../../src/autos/autosSalePreparation';
 import { paltaTheme } from '../../theme/paltaTheme';
 import { createDemoAcquisitionRequest } from './autosAcquisitionDemoState';
 import { publishDemoVehicle } from './autosDemoState';
@@ -137,10 +137,12 @@ export function VehicleSellDemoScreen() {
   );
   const requiredPhotosReady = hasRequiredVehicleCaptures(capturedSlots);
   const priceValue = digits(price);
-  const directSaleEstimate = useMemo(
-    () => estimateChileVehicleTransaction({ salePriceClp: priceValue, costBearer: 'buyer' }),
+  const directSalePreparation = useMemo(
+    () => buildVehicleSalePreparation({ snapshots: [], salePriceClp: priceValue, costBearer: 'buyer' }),
     [priceValue],
   );
+  const directSaleEstimate = directSalePreparation.transactionEstimate;
+  const directSaleHasOfficialFiscalFloor = directSalePreparation.estimateConfidence === 'official_floor_applied';
 
   function toggleCapture(slotId: VehicleCaptureSlotId) {
     setCapturedSlots((current) =>
@@ -379,13 +381,20 @@ export function VehicleSellDemoScreen() {
                 <Field label="Precio que quieres pedir" value={price} onChangeText={setPrice} keyboardType="number-pad" />
                 {priceValue > 0 ? (
                   <View style={{ padding: paltaTheme.spacing.md, gap: 8, borderRadius: paltaTheme.radius.surface, borderWidth: 1, borderColor: paltaTheme.color.divider, backgroundColor: paltaTheme.color.surface }}>
-                    <Text style={{ fontSize: 14, fontWeight: '900', color: paltaTheme.color.textPrimary }}>Así se verían los costos</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: paltaTheme.spacing.sm }}>
+                      <Text style={{ flex: 1, fontSize: 14, fontWeight: '900', color: paltaTheme.color.textPrimary }}>Así se verían los costos</Text>
+                      <View style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: paltaTheme.radius.pill, backgroundColor: directSaleHasOfficialFiscalFloor ? paltaTheme.color.brandSoft : paltaTheme.color.surfaceMuted }}>
+                        <Text style={{ fontSize: 10, fontWeight: '900', color: directSaleHasOfficialFiscalFloor ? paltaTheme.color.brandPrimary : paltaTheme.color.textMuted }}>
+                          {directSaleHasOfficialFiscalFloor ? 'SII verificado' : 'Estimación mínima'}
+                        </Text>
+                      </View>
+                    </View>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: paltaTheme.spacing.md }}>
                       <Text style={{ fontSize: 12, color: paltaTheme.color.textSecondary }}>Precio de venta</Text>
                       <Text style={{ fontSize: 12, fontWeight: '800', color: paltaTheme.color.textPrimary }}>{clp(priceValue)}</Text>
                     </View>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: paltaTheme.spacing.md }}>
-                      <Text style={{ fontSize: 12, color: paltaTheme.color.textSecondary }}>Impuesto transferencia · 1,5%</Text>
+                      <Text style={{ fontSize: 12, color: paltaTheme.color.textSecondary }}>Impuesto de transferencia{directSaleHasOfficialFiscalFloor ? '' : ' · mínimo'}</Text>
                       <Text style={{ fontSize: 12, fontWeight: '800', color: paltaTheme.color.textPrimary }}>{clp(directSaleEstimate.transferTaxClp)}</Text>
                     </View>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: paltaTheme.spacing.md }}>
@@ -400,7 +409,9 @@ export function VehicleSellDemoScreen() {
                     <Text style={{ fontSize: 12, color: paltaTheme.color.textSecondary }}>Si el comprador asume los costos de transferencia:</Text>
                     <Text style={{ fontSize: 23, fontWeight: '900', color: paltaTheme.color.brandPrimary }}>Tú recibirías aprox. {clp(directSaleEstimate.sellerEstimatedNetClp)}</Text>
                     <Text style={{ fontSize: 12, lineHeight: 18, color: paltaTheme.color.textMuted }}>
-                      El comprador desembolsaría aprox. {clp(directSaleEstimate.buyerEstimatedOutlayClp)}. Cuando conectemos la referencia SII, Palta aplicará automáticamente la base legal correspondiente sin pedirte calcular nada.
+                      El comprador desembolsaría aprox. {clp(directSaleEstimate.buyerEstimatedOutlayClp)}. {directSaleHasOfficialFiscalFloor
+                        ? 'La estimación ya incorpora la tasación fiscal SII resuelta para este vehículo.'
+                        : 'Todavía no hay una tasación SII única resuelta para este vehículo; por eso mostramos el mínimo conocido y lo afinaremos automáticamente cuando la fuente oficial quede vinculada.'}
                     </Text>
                   </View>
                 ) : null}
@@ -409,7 +420,7 @@ export function VehicleSellDemoScreen() {
               <View style={{ padding: paltaTheme.spacing.md, gap: 5, borderRadius: paltaTheme.radius.surface, borderWidth: 1, borderColor: paltaTheme.color.divider, backgroundColor: paltaTheme.color.surface }}>
                 <Text style={{ fontSize: 14, fontWeight: '900', color: paltaTheme.color.textPrimary }}>Tú no eliges a ciegas</Text>
                 <Text style={{ fontSize: 12, lineHeight: 18, color: paltaTheme.color.textSecondary }}>
-                  Compararemos monto, tipo de oferta, necesidad de inspección, historial de respeto de ofertas y condiciones de pago. Tu contacto y ubicación exacta siguen privados hasta que elijas una automotora.
+                  Compararemos monto, tipo de oferta, necesidad de inspección, historial de respeto de ofertas y condiciones de pago. Tu contacto y ubicación exacta siguen privados incluso después de elegir una automotora; sólo se comparten si los autorizas para coordinar.
                 </Text>
               </View>
             )}
