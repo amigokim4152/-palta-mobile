@@ -25,12 +25,14 @@ fi
 if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   pass "inside git repository"
   BRANCH="$(git branch --show-current 2>/dev/null || true)"
-  if [ "$BRANCH" = "integration/foundation-authorization-policy-v1" ]; then
-    pass "safe integration branch selected"
-  elif [ "$BRANCH" = "main" ]; then
-    fail "currently on main; do not apply Palta prep work here"
-  else
+  if [ "$BRANCH" = "main" ]; then
+    fail "currently on main; implementation work must stay on an integration branch"
+  elif [[ "$BRANCH" == integration/* ]]; then
+    pass "safe integration branch selected ($BRANCH)"
+  elif [ -n "$BRANCH" ]; then
     warn "current branch is '$BRANCH'; verify before modifying files"
+  else
+    warn "detached HEAD; verify the target ref before modifying files"
   fi
 
   if [ -z "$(git status --porcelain)" ]; then
