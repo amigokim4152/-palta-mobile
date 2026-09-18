@@ -1,3 +1,5 @@
+import type { PlayContentKind } from './playContentTaxonomy.js';
+
 export const playThemeKeys = [
   'today',
   'weekend',
@@ -9,11 +11,14 @@ export const playThemeKeys = [
 
 export type PlayThemeKey = (typeof playThemeKeys)[number];
 
+/** Where the discovery fact/projection came from. This is not what the item is. */
 export type PlaySourceKind =
   | 'municipal_event'
   | 'public_program'
   | 'place'
-  | 'business';
+  | 'business'
+  | 'partner_feed'
+  | 'editorial';
 
 export type PlayDiscoverySource = {
   authority: string;
@@ -43,6 +48,8 @@ export type PlayBusinessProjectionRef = Readonly<{
 export type PlayDiscoveryItem = {
   id: string;
   sourceKind: PlaySourceKind;
+  /** What the user can do, independent of the upstream provider/category vocabulary. */
+  contentKind: PlayContentKind;
   title: string;
   comuna: string;
   venue?: string;
@@ -95,6 +102,7 @@ function isHttpUrl(value: string): boolean {
 export function validatePlayDiscoveryItem(item: PlayDiscoveryItem): readonly string[] {
   const issues: string[] = [];
   if (!item.id.trim()) issues.push('play_item_id_required');
+  if (!item.contentKind?.trim()) issues.push('content_kind_required');
   if (!item.title.trim()) issues.push('title_required');
   if (!item.comuna.trim()) issues.push('comuna_required');
   if (!item.scheduleLabel.trim()) issues.push('schedule_required');
@@ -127,6 +135,11 @@ function compareDistance(left: PlayDiscoveryItem, right: PlayDiscoveryItem): num
   return 0;
 }
 
+/**
+ * Organic discovery ordering. Deliberately accepts no commercial capability,
+ * commission or partner payout input. Monetization is joined only after this
+ * selection step.
+ */
 export function selectPlayDiscoveryItems(
   items: readonly PlayDiscoveryItem[],
   context: PlayDiscoveryContext = {},
