@@ -45,6 +45,30 @@ function listingWire(input?: {
   };
 }
 
+function transactionWire(input?: { status?: 'coordinating' | 'completed' }) {
+  const status = input?.status ?? 'completed';
+  return {
+    id: 'transaction-1',
+    listing_id: 'listing-1',
+    seller_user_id: 'seller-1',
+    buyer_user_id: 'buyer-1',
+    status,
+    listing_snapshot: {
+      listing_id: 'listing-1',
+      title: 'Bicicleta urbana',
+      category: 'sports',
+      trade_mode: 'sale',
+      price_clp: 120000,
+      comuna_name: 'Vitacura',
+      media_asset_id: 'media-1',
+    },
+    conversation_id: 'conversation-1',
+    created_at: '2026-09-18T12:05:00Z',
+    updated_at: status === 'completed' ? '2026-09-18T13:00:00Z' : '2026-09-18T12:05:00Z',
+    ...(status === 'completed' ? { completed_at: '2026-09-18T13:00:00Z' } : {}),
+  };
+}
+
 const transport: MarketHttpTransport = {
   async request(input) {
     requests.push(input);
@@ -70,30 +94,16 @@ const transport: MarketHttpTransport = {
       return {
         status: 200,
         payload: {
-          items: [
-            {
-              id: 'transaction-1',
-              listing_id: 'listing-1',
-              seller_user_id: 'seller-1',
-              buyer_user_id: 'buyer-1',
-              status: 'completed',
-              listing_snapshot: {
-                listing_id: 'listing-1',
-                title: 'Bicicleta urbana',
-                category: 'sports',
-                trade_mode: 'sale',
-                price_clp: 120000,
-                comuna_name: 'Vitacura',
-                media_asset_id: 'media-1',
-              },
-              conversation_id: 'conversation-1',
-              created_at: '2026-09-18T12:05:00Z',
-              updated_at: '2026-09-18T13:00:00Z',
-              completed_at: '2026-09-18T13:00:00Z',
-            },
-          ],
+          items: [transactionWire()],
           next_cursor: 'next-1',
         },
+      };
+    }
+
+    if (input.method === 'POST' && input.path === '/v1/market/transactions') {
+      return {
+        status: 200,
+        payload: transactionWire({ status: 'coordinating' }),
       };
     }
 
@@ -145,4 +155,20 @@ const transactionsRequest = requests[2];
 assert(transactionsRequest?.auth === 'required', 'My transactions must require authentication.');
 assert(transactionsRequest?.query?.limit === 10, 'Cursor query values must be preserved.');
 
-console.log('PASS: Mercado HTTP adapter auth, snake_case parsing and explicit price clearing');
+const started = await ports.mutation.startTransaction({
+  listingId: 'listing-1',
+  conversationId: 'conversation-1',
+});
+assert(started.status === 'coordinating', 'Starting a message transaction must stay coordinating.');
+assert(started.conversationId === 'conversation-1', 'Started transaction must preserve conversation reference.');
+const startRequest = requests[3];
+assert(startRequest?.auth === 'required', 'Starting a transaction must require authentication.');
+assert(startRequest?.method === 'POST', 'Starting a transaction must use POST.');
+const startBody = startRequest?.body as Record<string, unknown> | undefined;
+assert(startBody?.listing_id === 'listing-1', 'Transaction start must serialize listing_id.');
+assert(
+  startBody?.conversation_id === 'conversation-1',
+  'Transaction start must serialize the durable conversation_id.',
+);
+
+console.log('PASS: Mercado HTTP adapter auth, snake_case parsing, conversation binding and explicit price clearing');
