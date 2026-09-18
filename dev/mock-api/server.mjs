@@ -200,6 +200,27 @@ function currentPostItems(business) {
     .sort((a, b) => Date.parse(b.published_at ?? '1970-01-01') - Date.parse(a.published_at ?? '1970-01-01'));
 }
 
+function discoveryPreviewFor(business) {
+  const imageUrl = (business.photo_urls ?? [])
+    .map(normalizeSafePublicUrl)
+    .find(Boolean);
+  const serviceLabels = [...new Set(
+    (business.service_labels ?? [])
+      .filter((value) => typeof value === 'string')
+      .map((value) => value.trim())
+      .filter(Boolean),
+  )].slice(0, 2);
+  const activeCoupon = activeCouponItems(business.id)[0];
+  const recentPost = currentPostItems(business)[0];
+  const highlight = activeCoupon?.title ?? recentPost?.title;
+
+  return {
+    ...(imageUrl ? { image_url: imageUrl } : {}),
+    ...(serviceLabels.length ? { service_labels: serviceLabels } : {}),
+    ...(highlight ? { highlight } : {}),
+  };
+}
+
 function followedUpdateItems() {
   const items = [];
   for (const business of businesses) {
@@ -350,6 +371,7 @@ const server = http.createServer(async (req, res) => {
           operational_confirmed_at: business.operational_confirmed_at,
           distance_m: index === 0 ? 850 : 1200,
           location: business.location,
+          ...discoveryPreviewFor(business),
         })),
       });
     }
