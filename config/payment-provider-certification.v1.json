@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-09-17",
+  "policy": {
+    "connectedRequiresMoreThanCredentials": true,
+    "unknownCapabilityIsSupported": false,
+    "productionRequiresVerifiedProviderPath": true,
+    "evidenceRequiredForCertification": true
+  },
+  "providers": {
+    "transbank_pos_integrado": {
+      "provider": "Transbank",
+      "integrationMode": "POS Integrado",
+      "codeAdapter": "present",
+      "publicTechnicalDocumentation": "confirmed",
+      "publicExampleProjects": "confirmed",
+      "physicalOrAgentPath": "confirmed",
+      "sandboxOrTestCredentialAccess": "not_acquired",
+      "providerAccount": "not_acquired",
+      "formalCertificationProcedure": "provider_contact_required",
+      "productionEnablement": "not_started",
+      "lostResponseRecovery": {
+        "documented": true,
+        "mechanism": "ultima_venta_ticket_boleta_comparison",
+        "paltaRuntimeCoverage": "modeled_not_physically_verified"
+      },
+      "requiredVerification": [
+        "obtain current integrator onboarding/certification instructions",
+        "obtain supported terminal/agent versions",
+        "obtain test device or approved test path",
+        "verify sale debit",
+        "verify sale credit",
+        "verify prepaid behavior where terminal/product exposes it",
+        "verify cuotas",
+        "verify cancellation/reversal",
+        "verify ultima venta after lost response",
+        "verify close/session behavior",
+        "verify production activation requirements"
+      ],
+      "sources": [
+        "https://proyectos-ejemplo.transbankdevelopers.cl/",
+        "https://pos-serial.transbankdevelopers.cl/",
+        "https://www.transbankdevelopers.cl/files/manual-integracion-pos-autoservicio-20-1.pdf"
+      ]
+    },
+    "mercado_pago_point": {
+      "provider": "Mercado Pago",
+      "integrationMode": "Point API / PDV",
+      "codeAdapter": "present",
+      "publicTechnicalDocumentation": "confirmed",
+      "testCredentials": "documented_not_acquired",
+      "providerAccount": "not_acquired_for_palta_integration",
+      "terminalRequirement": "Point Smart compatible terminal",
+      "terminalBinding": "store_plus_pos_plus_terminal_then_PDV_mode",
+      "thirdPartyMerchantAuthorization": "oauth_authorization_code_required_for_production",
+      "formalCertificationProcedure": "not_publicly_identified_as_separate_gate",
+      "productionEnablement": "not_started",
+      "requiredVerification": [
+        "create Mercado Pago developer application",
+        "obtain test credentials",
+        "create/bind test store and POS",
+        "associate terminal and activate PDV mode",
+        "run simulated transaction-state tests",
+        "verify real-device behavior with permitted production test path",
+        "verify OAuth onboarding for third-party merchants",
+        "verify order idempotency and terminal-busy handling",
+        "verify cancel/refund/status reconciliation",
+        "verify production credential rotation and revocation"
+      ],
+      "sources": [
+        "https://www.mercadopago.cl/developers/es/reference/in-person-payments/point/overview",
+        "https://www.mercadopago.cl/developers/es/docs/mp-point-v2/configure-terminal?scope=prod",
+        "https://www.mercadopago.cl/developers/es/docs/mp-point-v2/integration-test?scope=prod",
+        "https://www.mercadopago.cl/developers/es/docs/mp-point-v2/create-application?scope=prod"
+      ]
+    },
+    "getnet_pos_integrado": {
+      "provider": "Getnet Chile",
+      "integrationMode": "POS Integrado",
+      "codeAdapter": "not_present",
+      "publicProductAvailability": "confirmed",
+      "publicTechnicalDocumentation": "insufficiently_verified",
+      "sandboxOrTestCredentialAccess": "not_acquired",
+      "providerAccount": "not_acquired",
+      "formalCertificationProcedure": "provider_contact_required",
+      "productionEnablement": "not_started",
+      "requiredVerification": [
+        "obtain developer/integrator technical documentation",
+        "obtain sandbox/test credentials or simulator path",
+        "obtain supported terminal/device matrix",
+        "confirm debit/prepaid/credit selection behavior",
+        "confirm cuotas behavior",
+        "confirm lost-response reconciliation mechanism",
+        "confirm refund/cancel semantics",
+        "confirm webhook/callback behavior if applicable",
+        "confirm integrator certification/homologation steps",
+        "confirm third-party merchant onboarding/authorization model"
+      ],
+      "sources": [
+        "https://www.getnet.cl/",
+        "https://www.getnet.cl/hazte-cliente"
+      ]
+    }
+  }
+}
