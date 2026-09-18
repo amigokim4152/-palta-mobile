@@ -19,4 +19,13 @@ Implementation precedence when wording differs:
 5. Infrastructure Master for provider/runtime/operations constraints.
 6. This staging package as executable extraction only.
 
+## Repository cross-domain implementation contracts
+
+These repository documents are mandatory execution rules for feature development where applicable. Feature branches must consume them rather than recreating competing local architecture.
+
+- `docs/LOCALIZATION_RUNTIME_V1.md` — **mandatory for every user-visible surface and every domain exposing localized data.** Language is independent from Chile region/jurisdiction; canonical data remains language-neutral; static UI copy uses shared catalogs; translations are additive presentation data; originals are preserved; events/notifications are not duplicated per language; raw technical errors are never user copy.
+- Other domain-specific contracts in `docs/` remain authoritative for their implementation boundary unless superseded by a higher-precedence source or an explicit current user decision.
+
+When adding a new module, developers must check relevant cross-domain contracts before creating new providers, stores, canonical enums, API fields, persistence, or presentation rules.
+
 Do not copy large source documents into the application repository. Keep small executable contracts/tests in code and link back to the authoritative source.
