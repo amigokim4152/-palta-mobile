@@ -54,6 +54,38 @@
       ]
     }
   ],
+  "core_integrations": [
+    {
+      "id": "auth_profile",
+      "source_branch": "integration/auth-profile-core-v1",
+      "status": "pending_contract_integration",
+      "observed_source_sha": "09b740817e7eb0429076b02ba54dff6f81d5f6e4"
+    },
+    {
+      "id": "messaging",
+      "source_branch": "integration/message-core-v1",
+      "status": "pending_contract_integration",
+      "observed_source_sha": "8ff34340b4105738f67cab8b0df1a75f1a5d4961"
+    },
+    {
+      "id": "commerce",
+      "source_branch": "integration/commercial-core-v1",
+      "status": "pending_contract_integration",
+      "observed_source_sha": "e50c50abdfc413a673090282341c024440ead7b6"
+    },
+    {
+      "id": "localization",
+      "source_branch": "integration/localization-core-v1",
+      "status": "pending_contract_integration",
+      "observed_source_sha": "b0c5ebcc2a9c238088bed40c7503adec125c4ee6"
+    },
+    {
+      "id": "map_runtime",
+      "source_branch": "integration/map-runtime-v1",
+      "status": "pending_contract_integration",
+      "observed_source_sha": "af25246dce61a634270b90d9c4d4ea7b2113b399"
+    }
+  ],
   "planned_core_integrations": [
     "integration/auth-profile-core-v1",
     "integration/message-core-v1",
