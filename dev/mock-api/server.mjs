@@ -37,6 +37,27 @@ const careTracks = new Map([
   }],
 ]);
 
+const notificationItems = [
+  {
+    id: 'notification-care-demo-1',
+    title: 'Tu solicitud sigue en curso',
+    body: 'Puedes revisar el seguimiento del taller desde aquí.',
+    source_domain: 'care',
+    created_at: new Date(Date.now() - 12 * 60 * 1000).toISOString(),
+    importance: 'important',
+    target: '/care/care-demo-1',
+  },
+  {
+    id: 'notification-local-demo-1',
+    title: 'Información importante para tu zona',
+    body: 'Palta puede avisarte cuando una novedad local requiera atención.',
+    source_domain: 'public-life',
+    created_at: new Date(Date.now() - 35 * 60 * 1000).toISOString(),
+    importance: 'normal',
+    target: '/context/location',
+  },
+];
+
 function json(res, status, body) {
   const payload = JSON.stringify(body);
   res.writeHead(status, {
@@ -61,12 +82,34 @@ function isoAfter(ms) {
   return new Date(Date.now() + ms).toISOString();
 }
 
+function buildNotificationResponse() {
+  const unread = notificationItems.filter((item) => !item.read_at);
+  const importantUnread = unread.filter((item) => item.importance === 'important');
+  const urgentUnread = unread.filter((item) => item.importance === 'urgent');
+  const latestUnreadAt = unread
+    .map((item) => item.created_at)
+    .sort((a, b) => Date.parse(b) - Date.parse(a))[0];
+
+  return {
+    items: [...notificationItems].sort(
+      (a, b) => Date.parse(b.created_at) - Date.parse(a.created_at),
+    ),
+    summary: {
+      unread_count: unread.length,
+      important_unread_count: importantUnread.length,
+      urgent_unread_count: urgentUnread.length,
+      ...(latestUnreadAt ? { latest_unread_at: latestUnreadAt } : {}),
+    },
+  };
+}
+
 function buildFunctionalHomeMock() {
   const observedAt = new Date().toISOString();
   const weatherExpiresAt = isoAfter(30 * 60 * 1000);
   const mobilityExpiresAt = isoAfter(2 * 60 * 1000);
   const tomorrowMorning = new Date(Date.now() + 24 * 60 * 60 * 1000);
   tomorrowMorning.setHours(10, 30, 0, 0);
+  const notificationSummary = buildNotificationResponse().summary;
 
   return {
     contract_version: 'functional-home-v1',
@@ -79,7 +122,7 @@ function buildFunctionalHomeMock() {
         change_target: '/context/location',
       },
       notifications_target: '/activity/notifications',
-      unread_notification_count: 2,
+      unread_notification_count: notificationSummary.unread_count,
       profile_target: '/context/profile',
     },
     glance: [
@@ -195,11 +238,26 @@ const server = http.createServer(async (req, res) => {
     const url = new URL(req.url, `http://${req.headers.host ?? `${host}:${port}`}`);
 
     if (req.method === 'GET' && url.pathname === '/health') {
-      return json(res, 200, { ok: true, service: 'palta-mock-api', version: '0.2.0' });
+      return json(res, 200, { ok: true, service: 'palta-mock-api', version: '0.3.0' });
     }
 
     if (req.method === 'GET' && url.pathname === '/v1/home') {
       return json(res, 200, buildFunctionalHomeMock());
+    }
+
+    if (req.method === 'GET' && url.pathname === '/v1/notifications') {
+      return json(res, 200, buildNotificationResponse());
+    }
+
+    const notificationReadMatch = url.pathname.match(
+      /^\/v1\/notifications\/([^/]+)\/read$/,
+    );
+    if (req.method === 'POST' && notificationReadMatch) {
+      const id = decodeURIComponent(notificationReadMatch[1]);
+      const item = notificationItems.find((candidate) => candidate.id === id);
+      if (!item) return json(res, 404, { error: 'notification_not_found' });
+      if (!item.read_at) item.read_at = new Date().toISOString();
+      return json(res, 200, item);
     }
 
     if (req.method === 'GET' && url.pathname === '/v1/local/search') {
