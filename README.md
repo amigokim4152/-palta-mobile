@@ -1,219 +1,59 @@
-# palta-app-prep-v4.5
+# Palta Mobile
 
-Local staging package for the Palta app implementation handoff.
+Official mobile application repository for Somos Palta.
 
-This is **not deployed** and **not merged to GitHub**. It exists to make the repository step immediate once GitHub access is available.
+## Canonical identity
 
-The core is intentionally UI-framework-neutral until the mobile repository/runtime decision is explicitly made.
+- Public brand: `Somos Palta`
+- App display name: `Palta`
+- Repository name: `palta-mobile`
+- Internal namespace: `palta`
+- iOS bundle identifier: `cl.somospalta.app`
+- Android application ID: `cl.somospalta.app`
+- Deep-link scheme: `palta`
 
-Commands:
+If GitHub still displays the repository as `-palta-mobile`, the repository-level rename has not yet been completed. Do not create a replacement repository; preserve this repository and its full history. See `docs/REPOSITORY_RENAME_RUNBOOK.md`.
+
+## Repository role
+
+This repository contains the Palta mobile/runtime implementation, provider-neutral product cores, adapter boundaries, infrastructure contracts, and integration verification. The implementation is developed on `integration/*` branches. `main` remains the minimal baseline until an explicit verified merge decision is made.
+
+Provider-specific integrations belong behind adapters and infrastructure boundaries. Product code must not depend on Base44, NAREVU, Chile-K, or other legacy product identifiers as current namespaces.
+
+## Verification
+
+Use Node.js 22 or newer.
 
 ```bash
-npm run typecheck
-npm test
+npm ci
+npm run verify
 ```
 
-The code intentionally contains no external runtime dependencies.
+The verification path includes TypeScript checks, executable core tests, provider-independence checks, and CI database preflight where configured. A check that could not run is `NOT VERIFIED`, not `PASS`.
 
-CI staging is included at `.github/workflows/core-check.yml`. It installs the exact TypeScript dev dependency, then runs typecheck and core tests on integration branches and pull requests.
+## Mobile runtime identifiers
 
+The Expo configuration uses:
 
-## v2 additions — 2026-09-16
-- Benchmark-derived mobile interaction decisions
-- Concrete 5-surface screen blueprint
-- Provider readiness matrix and at-home setup order
-- Initial provider simplification: Supabase + Cloudflare + Expo
-- Expo Router mobile overlay (NOT VERIFIED until dependencies/native build)
+```text
+name: Palta
+slug: palta
+scheme: palta
+iOS: cl.somospalta.app
+Android: cl.somospalta.app
+```
 
+These are stable technical identifiers and should not be changed merely because a repository or marketing label changes.
 
-## v2.2 additions — 2026-09-16
-- Implementation-level Home/Neighborhood contracts
-- Local Business verification/action flow
-- API + DB preflight contracts
-- Static mobile structure prototype
-- Mobile overlay state/components
-- Neon fallback account state verified without changing Supabase-first v1 decision
+## Key documents
 
+- `docs/NAMING_AND_REPOSITORY_STANDARD.md` — canonical naming rules
+- `docs/REPOSITORY_RENAME_RUNBOOK.md` — repository rename and post-rename verification
+- `docs/IMPLEMENTATION_HANDOFF.md` — original implementation handoff context
+- `docs/BUILD_ORDER.md` — build and merge discipline
+- `docs/APP_SHELL_ROUTE_CONTRACT.md` — app shell routing contract
+- `docs/FIRST_VERTICAL_SLICE.md` — first end-to-end vertical slice
 
-## v2.3 additions
-- Map Core adapter boundary
-- Palta API client
-- offline mutation queue
-- deep-link parser
-- runtime env validation
-- Supabase explicit grants/RLS draft
+## Core direction
 
-
-## v2.4 additions
-- zero-dependency local Palta Mock API
-- real HTTP smoke flow for Home → Local Search → Business → Care
-
-
-## v2.5 additions
-- API-driven Home screen
-- API-driven Neighborhood results
-- API-driven Business detail
-- API-driven Care detail
-- recoverable loading/error/empty states
-- explicit development-location flow instead of fake life-area truth
-- physical-iPhone private-LAN mock API support in development only
-
-
-## v2.6 additions
-- provider-neutral Location Core
-- explicit exploring/current/home/work separation
-- MutationQueueStore port
-- deterministic mutation sync engine
-- retryable vs terminal offline failure handling
-- Expo Location/SQLite adapter boundaries
-
-
-## v2.7 additions
-- Expo Location foreground adapter
-- Expo SQLite persistent mutation queue adapter
-- MapLibre Neighborhood map surface
-- canonical GeoJSON map projection
-- foreground-only native permission config
-
-
-## v2.8 additions
-- Location/MapLibre/SQLite adapters are connected into the mobile flow
-- map browsing uses a separate search origin
-- retryable quote failures are persisted
-- side-effect retries are idempotent
-
-
-## v2.9 additions
-- Cloudflare/R2 PMTiles Range Worker preflight
-- read-only map route
-- exact range verification script
-- caching strategy that does not attempt to cache 206 via Cache API
-
-
-## v3.0 — provider independence hardening
-- AuthPort
-- DatabasePort
-- ObjectStoragePort
-- NotificationPort
-- EdgeRuntimePort
-- KeyValueStorePort
-- ProviderRegistry
-- generic notification routing
-- Supabase auth adapter template outside core
-- read-only local environment preflight
-
-
-## v3.1
-- Auth provider injection
-- public/private surface access policy
-- provider-neutral notification envelope
-- automated vendor-leakage gate
-
-
-## v3.2
-- Event Core port
-- provider-neutral asset IDs
-- provider-neutral release manifests
-- cost guard logic
-
-
-## v3.3
-- safe integration-branch tooling
-- non-destructive local asset inventory
-- guarded Expo bootstrap
-- deterministic at-home execution order
-
-
-## v3.4
-- reusable mobile component system
-- accessibility interaction semantics
-- Home density policy
-- Business action priority/verification policy
-- Care timeline
-- Neighborhood map result sheet policy
-
-
-## v3.5
-- common component system integrated into actual Home/Neighborhood/Business/Care screens
-- Home density policy applied to API response
-- Neighborhood result sheet/filter UI connected to state
-- Business actions resolved from capabilities
-- Care timeline connected to API state
-
-
-## v3.6
-- Community first surface
-- Market vertical surface + contextual create
-- Play first surface
-- Context Space promotion policy
-
-
-## v3.7
-- Palta Experience System v1
-- presentation priority and surface decision rules
-- adaptive large-text Focus Layout
-- Reading Experience contract
-- semantic haptic intent contract
-- accessibility/discoverability QA rules
-
-
-## v3.8
-- inspectable Home reference UI
-- Normal/Large/Accessibility simulations
-- actual device font-scale adapter
-- Palta semantic visual candidate tokens
-- Reading Surface reference
-
-
-## v3.9
-- inspectable reference set: Home / Barrio / Business / Care / Reading
-- provider-neutral HapticsPort and SpeechPort
-- Expo adapter templates for computer/device phase
-
-
-## v4.0
-- scalable provider-neutral Payment Core
-- shared Commerce models for permanent / temporary / mobile outlets
-- TradingSession and Order contracts
-- transaction ledger and payment routing
-- system-wide expansion rules
-
-
-## v4.1
-- Security & Privacy foundation
-- deny-by-default authorization
-- business least-privilege roles
-- data classification/minimization
-- webhook replay protection
-- secrets policy
-- audit/abuse/security gates
-
-
-## v4.2
-- Life Event Exposure Guidance
-- evidence-aware common-sense prompts
-- direct/connect/confirm/user-action levels
-- stolen vehicle / lost phone / lost keys starter playbooks
-
-
-## v4.3
-- Service Exchange & Partner Core
-- quote routing by industry/service category
-- fair organic provider competition
-- progressive partner integrations
-- revenue guardrails that preserve user trust
-
-
-## v4.4
-- development start/runbook and blocker recovery
-- one-computer continuity plan
-- provider activation matrix
-- local/environment preflight scripts
-- GitHub Core CI template
-
-
-## v4.5
-- computer-first readiness inspection
-- install-once development setup
-- explicit deferred-provider tooling
-- controlled Day Zero development start
+The application is organized around reusable Palta cores rather than isolated screens. Current major areas include Home, Community, Local Business, Commerce/Payment/POS, Care/Event, Location/Map, Messaging, and supporting provider-neutral infrastructure.
