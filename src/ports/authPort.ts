@@ -20,6 +20,12 @@ export type AuthState =
 
 export type AuthProvider = Extract<IdentityProvider, 'apple' | 'google'>;
 
+export type AuthCapabilities = {
+  apple: boolean;
+  google: boolean;
+  email: boolean;
+};
+
 export type EmailSignInResult = {
   status: 'link_sent';
 };
@@ -27,6 +33,7 @@ export type EmailSignInResult = {
 export type AuthPortErrorCode =
   | 'configuration_error'
   | 'provider_error'
+  | 'provider_unavailable'
   | 'oauth_cancelled'
   | 'invalid_redirect'
   | 'account_bootstrap_missing'
@@ -63,6 +70,7 @@ export interface AuthPort {
 }
 
 export interface InteractiveAuthPort extends AuthPort {
+  getCapabilities(): Promise<AuthCapabilities>;
   signInWithOAuth(provider: AuthProvider): Promise<AuthState>;
   signInWithEmail(email: string): Promise<EmailSignInResult>;
   handleRedirect(url: string): Promise<AuthState>;
