@@ -108,20 +108,39 @@ function TimelineRow({ item }: { item: ConversationTimelineApiItem }) {
 }
 
 export function ConversationScreen() {
-  const { conversationId, businessName } = useLocalSearchParams<{
+  const {
+    conversationId,
+    businessName,
+    contextLabel,
+    contextSourceCore,
+    contextResourceType,
+    contextResourceId,
+    initialText,
+  } = useLocalSearchParams<{
     conversationId?: string;
     businessId?: string;
     businessName?: string;
+    contextLabel?: string;
+    contextSourceCore?: string;
+    contextResourceType?: string;
+    contextResourceId?: string;
+    initialText?: string;
   }>();
   const [items, setItems] = useState<ConversationTimelineApiItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [draft, setDraft] = useState('');
+  const [draft, setDraft] = useState(() => initialText?.trim() ?? '');
   const [sending, setSending] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
 
-  const title = useMemo(() => businessName?.trim() || 'Consulta', [businessName]);
+  const title = useMemo(
+    () => businessName?.trim() || contextLabel?.trim() || 'Conversación',
+    [businessName, contextLabel],
+  );
+  const hasContext = Boolean(
+    contextSourceCore && contextResourceType && contextResourceId && contextLabel,
+  );
 
   const loadTimeline = useCallback(async (mode: 'initial' | 'refresh' = 'refresh') => {
     if (!conversationId) {
@@ -255,6 +274,29 @@ export function ConversationScreen() {
           </Pressable>
         </View>
 
+        {hasContext ? (
+          <View
+            style={{
+              paddingHorizontal: paltaTheme.spacing.md,
+              paddingVertical: paltaTheme.spacing.xs,
+              backgroundColor: paltaTheme.color.brandSoft,
+              borderBottomWidth: 1,
+              borderBottomColor: paltaTheme.color.divider,
+            }}
+          >
+            <Text
+              numberOfLines={1}
+              style={{
+                fontSize: 12,
+                fontWeight: '800',
+                color: paltaTheme.color.brandPrimary,
+              }}
+            >
+              {contextSourceCore === 'market' ? 'Mercado' : 'Contexto'} · {contextLabel}
+            </Text>
+          </View>
+        ) : null}
+
         <ScrollView
           ref={scrollRef}
           style={{ flex: 1 }}
@@ -282,10 +324,10 @@ export function ConversationScreen() {
           ) : (
             <View style={{ alignItems: 'center', gap: 5 }}>
               <Text style={{ fontSize: 18, fontWeight: '800', color: paltaTheme.color.textPrimary }}>
-                Inicia la consulta
+                Inicia la conversación
               </Text>
               <Text style={{ textAlign: 'center', lineHeight: 20, color: paltaTheme.color.textMuted }}>
-                Escribe tu mensaje. El negocio podrá responder en esta misma conversación.
+                Escribe tu mensaje. Podrán seguir conversando aquí aunque cambie el contexto.
               </Text>
             </View>
           )}
@@ -313,7 +355,7 @@ export function ConversationScreen() {
           <TextInput
             value={draft}
             onChangeText={setDraft}
-            placeholder="Escribe tu consulta"
+            placeholder="Escribe un mensaje"
             placeholderTextColor={paltaTheme.color.textMuted}
             multiline
             maxLength={4000}
