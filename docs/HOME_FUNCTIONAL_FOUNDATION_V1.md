@@ -134,6 +134,8 @@ A card with an action must open the exact context:
 - municipal service/benefit
 - news/source detail
 
+An item declared as `action` must have a real executable target. If no target exists, it must be represented as an alert/status instead of a fake button.
+
 Returning to Home should preserve position/state when practical.
 
 ### C. Source trust and freshness
@@ -226,6 +228,33 @@ Do not polish final visuals during this sequence.
 14. Commerce/Delivery projection
 15. Health/Vehicle/Pets lifecycle projection
 16. Final visual design and motion polish after the functional set is visible
+
+## Current implementation status
+
+| Capability | Status | Notes |
+|---|---|---|
+| Functional Home payload + semantic surfaces | DONE | `Glance / AHORA / EN CURSO / PRÓXIMO / PARA HOY` contract exists and is validated. |
+| Effective locality / profile context | DONE | Explicit context, home area, current GPS and saved areas stay distinct; GPS is not promoted into a durable home fact. |
+| Notification inbox summary | DONE | Unread/important/urgent counts and latest unread state are modeled. |
+| Personalized correction intents | DONE | Not relevant, wrong subject, already done, incorrect information and hide-type have typed effects. |
+| Real action/deep-link requirement | DONE | `kind: action` is invalid without an executable target. |
+| Source trust / freshness | DONE | `live/cached/scheduled/demo/unavailable` and expiry rules are enforced. |
+| Cache / offline startup | DONE | Last-known Home may render offline while expired realtime Glance signals are filtered independently. |
+| Care/Event -> Home | DONE | Waiting, result, follow-up, blocked, completion and confirmed schedules map to Home semantics. |
+| Confirmed schedule primitive | DONE | Shared by school/health/vehicle/pet/admin/reservation domains; unconfirmed dates do not enter PRÓXIMO. |
+| Weather -> Home | DONE | Ordinary weather stays in Glance; severe/relevant rain may promote. |
+| Municipal benefits/services -> Home | DONE | Verification, locality, eligibility and validity gates are enforced. |
+| Local news -> Home | DONE | Locality, recency, relevance and dedupe rules are enforced; unavailable news never becomes filler. |
+| Bus ETA / Metro operational state -> Home | DONE | ETA requires verified realtime data; normal state stays compact, disruption may promote. |
+| Journey route planning -> Home | PENDING RECONCILIATION | Existing Journey branch must be merged/reconciled; trip duration must never masquerade as stop ETA. |
+| CommerceOrder -> Home | DONE | Only the authenticated customer's order is projected; payment/ready states promote, terminal states disappear. |
+| Delivery -> Home | PENDING RECONCILIATION | Rich delivery state exists in Commercial Core and must be reused rather than copied. |
+| Community -> Home | PENDING RECONCILIATION | Community runtime/trust-scope branch exists; generic feed engagement must not be projected into Home. |
+| School -> Home | PRIMITIVE READY | Confirmed schedules already work; direct school/community relationship binding remains. |
+| Health -> Home | PRIMITIVES READY | Care + schedule primitives are ready; verified health source/asset binding remains. |
+| Vehicle -> Home | PRIMITIVE READY | Schedule/subject primitives are ready; verified vehicle asset lifecycle binding remains. |
+| Pets -> Home | PRIMITIVE READY | Schedule/subject primitives are ready; verified pet lifecycle binding remains. |
+| Final Home visual design | DEFERRED | Visual shell remains provisional until required functional bindings are working. |
 
 ## Definition of done for a Home capability
 
