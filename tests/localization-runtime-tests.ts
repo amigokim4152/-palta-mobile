@@ -1,3 +1,4 @@
+import { PaltaApiClient } from '../src/api/paltaApiClient.js';
 import { careStateLabel } from '../src/care/careTimeline.js';
 import {
   DEFAULT_CURRENCY,
@@ -119,6 +120,78 @@ assert(
 assert(
   businessVerificationLabel('verified', 'ko') === '인증됨',
   'Business verification status should use the selected Palta locale.',
+);
+
+const requestedUrls: string[] = [];
+const localizedApi = new PaltaApiClient({
+  baseUrl: 'https://api.somospalta.cl',
+  fetch: async (url) => {
+    requestedUrls.push(url);
+    return {
+      ok: true,
+      status: 200,
+      async json() {
+        if (url.includes('/v1/local/search')) {
+          return {
+            items: [
+              {
+                entity_id: 'biz-pharmacy-1',
+                entity_type: 'business',
+                name: 'Farmacia ejemplo',
+                category_key: 'pharmacy',
+                category_label: '약국',
+                verification_status: 'verified',
+                location: { lat: -33.39, lng: -70.57 },
+              },
+            ],
+          };
+        }
+        if (url.includes('/v1/business/')) {
+          return {
+            id: 'biz-pharmacy-1',
+            name: 'Farmacia ejemplo',
+            category_key: 'pharmacy',
+            category_label: '药房',
+            verification_status: 'verified',
+            opening_status: 'open',
+            opening_status_label: '营业中',
+          };
+        }
+        return { items: [] };
+      },
+    };
+  },
+});
+
+const localizedSearch = await localizedApi.searchLocal({
+  latitude: -33.39,
+  longitude: -70.57,
+  locale: 'ko',
+});
+assert(
+  requestedUrls[0]?.includes('locale=ko'),
+  'Local search must forward the selected Palta locale when supplied.',
+);
+assert(
+  localizedSearch[0]?.category_key === 'pharmacy' &&
+    localizedSearch[0]?.category_label === '약국',
+  'Localized search responses must preserve the canonical key and additive display label.',
+);
+
+const localizedBusiness = await localizedApi.getBusiness(
+  'biz-pharmacy-1',
+  'zh-Hans',
+);
+assert(
+  requestedUrls[1]?.includes('locale=zh-Hans'),
+  'Business detail must forward the selected Palta locale when supplied.',
+);
+assert(
+  localizedBusiness.category_key === 'pharmacy' &&
+    localizedBusiness.category_label === '药房' &&
+    localizedBusiness.opening_status === 'open' &&
+    localizedBusiness.opening_status_label === '营业中',
+  'Business detail must keep canonical status keys alongside localized display labels.',
 );
 
 const content = {
