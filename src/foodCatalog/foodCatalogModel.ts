@@ -9,6 +9,8 @@ export type FoodSourceKind =
   | 'uber_eats'
   | 'official_website'
   | 'official_social'
+  | 'merchant_registration'
+  | 'public_registry'
   | 'rappi'
   | 'google_business'
   | 'waze'
@@ -187,6 +189,14 @@ function mergeEvidence(
   return [...merged.values()];
 }
 
+function mergePublicContact(
+  source: PublicBusinessContact | undefined,
+  overlay: PublicBusinessContact | undefined,
+): PublicBusinessContact | undefined {
+  const merged = { ...(source ?? {}), ...(overlay ?? {}) };
+  return Object.keys(merged).length ? merged : undefined;
+}
+
 /**
  * Build the best currently supported outlet projection while preserving the raw
  * observation separately. Corroboration can improve identity/contact fields but
@@ -201,19 +211,24 @@ export function applyOutletCorroboration(
     throw new Error('food_outlet_corroboration_key_mismatch');
   }
 
+  const address = corroboration.address ?? source.address;
+  const comuna = corroboration.comuna ?? source.comuna;
+  const region = corroboration.region ?? source.region;
+  const postalCode = corroboration.postalCode ?? source.postalCode;
+  const location = corroboration.location ?? source.location;
+  const publicContact = mergePublicContact(source.publicContact, corroboration.publicContact);
+  const identityNote = corroboration.identityNote ?? source.identityNote;
+
   return {
     ...source,
-    address: corroboration.address ?? source.address,
-    comuna: corroboration.comuna ?? source.comuna,
-    region: corroboration.region ?? source.region,
-    postalCode: corroboration.postalCode ?? source.postalCode,
-    location: corroboration.location ?? source.location,
-    publicContact: {
-      ...(source.publicContact ?? {}),
-      ...(corroboration.publicContact ?? {}),
-    },
+    ...(address !== undefined ? { address } : {}),
+    ...(comuna !== undefined ? { comuna } : {}),
+    ...(region !== undefined ? { region } : {}),
+    ...(postalCode !== undefined ? { postalCode } : {}),
+    ...(location !== undefined ? { location } : {}),
+    ...(publicContact !== undefined ? { publicContact } : {}),
     identityStatus: corroboration.identityStatus,
-    identityNote: corroboration.identityNote ?? source.identityNote,
+    ...(identityNote !== undefined ? { identityNote } : {}),
     evidence: mergeEvidence(source.evidence, corroboration.evidence),
   };
 }
