@@ -97,6 +97,10 @@ export function upgradeChileStyleV17(input: any, origin: string): any {
     ...(style.metadata ?? {}),
     'palta:style-version': MAP_STYLE_VERSION,
   };
+  // Native MapLibre requires a glyph endpoint for text shaping. Keep the
+  // self-hosted font-face for rendering, with OpenMapTiles glyph PBFs as the
+  // portable glyph-range source used by iOS/Android Native.
+  style.glyphs = 'https://fonts.openmaptiles.org/{fontstack}/{range}.pbf';
   style['font-faces'] = {
     ...(style['font-faces'] ?? {}),
     'Noto Sans Symbols 2': [
