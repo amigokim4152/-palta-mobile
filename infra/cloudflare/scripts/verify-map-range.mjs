@@ -50,6 +50,10 @@ assert(styleResponse.status === 200, `Style expected 200, got ${styleResponse.st
 const style = await styleResponse.json();
 assert(style.version === 8, 'MapLibre style version must be 8');
 assert(
+  style.glyphs === 'https://fonts.openmaptiles.org/{fontstack}/{range}.pbf',
+  'Native MapLibre glyph fallback URL missing',
+);
+assert(
   style.metadata?.['palta:style-version'] === expectedStyleVersion,
   'Style metadata version mismatch',
 );
