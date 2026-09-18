@@ -12,6 +12,7 @@ export default function CommunityThreadScreen() {
   const { communitySpaceId, postId } = useLocalSearchParams<{ communitySpaceId: string; postId: string }>();
   const [comment, setComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [acknowledging, setAcknowledging] = useState(false);
   const load = useCallback(() => {
     if (!communitySpaceId || !postId) throw new Error('Community thread ID missing');
     return communityRuntime.loadPost(communitySpaceId, postId);
@@ -36,12 +37,51 @@ export default function CommunityThreadScreen() {
     }
   };
 
+  const acknowledge = async () => {
+    if (acknowledging || thread.post.acknowledged) return;
+    setAcknowledging(true);
+    try {
+      await communityRuntime.acknowledgePost(communitySpaceId, postId);
+      await refresh();
+    } finally {
+      setAcknowledging(false);
+    }
+  };
+
   return (
     <ScreenFrame title={thread.communityName} subtitle="Conversación">
       <View style={{ gap: paltaTheme.spacing.lg }}>
         <View style={{ paddingBottom: paltaTheme.spacing.md, borderBottomWidth: 1, borderBottomColor: paltaTheme.color.divider }}>
-          <Text style={{ fontSize: 12, color: paltaTheme.color.textMuted }}>{thread.post.author} · {thread.post.timeLabel}</Text>
+          <View style={{ flexDirection: 'row', gap: 7, flexWrap: 'wrap' }}>
+            <Text style={{ fontSize: 12, color: paltaTheme.color.textMuted }}>{thread.post.author} · {thread.post.timeLabel}</Text>
+            {thread.post.sensitive ? <Text style={{ fontSize: 12, fontWeight: '700', color: paltaTheme.color.brandPrimary }}>Privado</Text> : null}
+          </View>
+          {thread.post.title ? <Text style={{ marginTop: 7, fontSize: 18, fontWeight: '700', color: paltaTheme.color.textPrimary }}>{thread.post.title}</Text> : null}
           <Text style={{ marginTop: 8, fontSize: 17, lineHeight: 24, color: paltaTheme.color.textPrimary }}>{thread.post.body}</Text>
+
+          {thread.post.requiresAcknowledgement ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={thread.post.acknowledged ? 'Ya confirmado' : 'Confirmar que revisaste esta información'}
+              disabled={acknowledging || thread.post.acknowledged}
+              onPress={() => void acknowledge()}
+              style={({ pressed }) => ({
+                minHeight: paltaTheme.touch.minimum,
+                alignSelf: 'flex-start',
+                justifyContent: 'center',
+                marginTop: paltaTheme.spacing.md,
+                paddingHorizontal: paltaTheme.spacing.md,
+                borderRadius: paltaTheme.radius.pill,
+                backgroundColor: thread.post.acknowledged ? paltaTheme.color.surfaceMuted : paltaTheme.color.brandSoft,
+                opacity: pressed ? 0.72 : 1,
+              })}
+            >
+              <Text style={{ color: thread.post.acknowledged ? paltaTheme.color.textMuted : paltaTheme.color.brandPrimary, fontWeight: '700' }}>
+                {thread.post.acknowledged ? 'Confirmado' : acknowledging ? 'Confirmando…' : 'Confirmar'}
+              </Text>
+            </Pressable>
+          ) : null}
+
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: paltaTheme.spacing.sm, marginTop: paltaTheme.spacing.md }}>
             <Pressable
               accessibilityRole="button"
@@ -85,7 +125,7 @@ export default function CommunityThreadScreen() {
             <PaltaButton label={submitting ? 'Publicando…' : 'Comentar'} onPress={() => void submit()} disabled={!comment.trim() || submitting} />
           </View>
         ) : (
-          <Text style={{ color: paltaTheme.color.textSecondary }}>Únete a esta comunidad para participar en la conversación.</Text>
+          <Text style={{ color: paltaTheme.color.textSecondary }}>Necesitas una membresía activa para participar en esta conversación.</Text>
         )}
       </View>
     </ScreenFrame>
