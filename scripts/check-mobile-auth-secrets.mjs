@@ -1,15 +1,53 @@
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { extname, join, relative } from 'node:path';
 
-const roots = ['mobile-overlay', 'apps/mobile'];
+// Scan only material that is bundled into, configures, or directly defines the
+// mobile runtime. Trusted developer/server provisioning utilities under
+// apps/mobile/scripts are deliberately outside this surface and must never be
+// imported by runtime code.
+const roots = [
+  'mobile-overlay',
+  'apps/mobile/src',
+  'apps/mobile/app.config.ts',
+  'apps/mobile/package.json',
+];
 const allowedExtensions = new Set([
-  '.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs', '.json', '.yml', '.yaml', '.env', '.md',
+  '.ts',
+  '.tsx',
+  '.js',
+  '.jsx',
+  '.mjs',
+  '.cjs',
+  '.json',
+  '.yml',
+  '.yaml',
+  '.env',
+  '.md',
 ]);
 const forbidden = [
-  { label: 'Supabase secret key', pattern: /sb_secret_[A-Za-z0-9._-]+/i },
-  { label: 'Supabase service-role environment variable', pattern: /SUPABASE_SERVICE_ROLE(?:_KEY)?/i },
+  { label: 'Supabase secret key value', pattern: /sb_secret_[A-Za-z0-9._-]+/i },
+  { label: 'Supabase secret-key environment variable', pattern: /SUPABASE_SECRET_KEY/i },
+  {
+    label: 'Supabase service-role environment variable',
+    pattern: /SUPABASE_SERVICE_ROLE(?:_KEY)?/i,
+  },
   { label: 'Supabase JWT secret', pattern: /SUPABASE_JWT_SECRET/i },
-  { label: 'service_role credential reference', pattern: /service[_-]?role\s*(?:key|secret|token)/i },
+  {
+    label: 'service_role credential reference',
+    pattern: /service[_-]?role\s*(?:key|secret|token)/i,
+  },
+  {
+    label: 'public environment variable carrying credential material',
+    pattern: /EXPO_PUBLIC_[A-Z0-9_]*(?:PASSWORD|SECRET|SERVICE_ROLE|PRIVATE_KEY|TOKEN)/i,
+  },
+  {
+    label: 'Golden User mobile password/auth shortcut',
+    pattern: /(?:EXPO_PUBLIC_GOLDEN_USER_PASSWORD|signInAsGoldenUser|isGoldenUserAuthEnabled)/i,
+  },
+  {
+    label: 'password-based Supabase login in mobile runtime',
+    pattern: /\.auth\.signInWithPassword\s*\(/i,
+  },
   {
     label: 'hardcoded Supabase project URL in mobile source',
     pattern: /https:\/\/[a-z0-9-]+\.supabase\.co/i,
@@ -44,9 +82,13 @@ function scan(path) {
 for (const root of roots) scan(join(process.cwd(), root));
 
 if (violations.length > 0) {
-  console.error('FAIL: privileged or environment-bound Supabase credential material found in mobile surface');
+  console.error(
+    'FAIL: privileged, password-based, or environment-bound Auth material found in mobile runtime surface',
+  );
   for (const violation of violations) console.error(`- ${violation}`);
   process.exit(1);
 }
 
-console.log('PASS: mobile Auth surface contains no privileged credentials or hardcoded Supabase environment binding');
+console.log(
+  'PASS: mobile Auth runtime contains publishable-only configuration and no password/admin shortcut',
+);
