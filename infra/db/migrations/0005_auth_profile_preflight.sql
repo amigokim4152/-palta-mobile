@@ -87,6 +87,10 @@ alter table home_candidate
   add constraint home_candidate_user_fk
   foreign key (user_id) references palta_private.accounts(palta_user_id);
 
+alter table community_space
+  add constraint community_space_creator_fk
+  foreign key (created_by_user_id) references palta_private.accounts(palta_user_id);
+
 alter table community_membership
   add constraint community_membership_user_fk
   foreign key (user_id) references palta_private.accounts(palta_user_id);
