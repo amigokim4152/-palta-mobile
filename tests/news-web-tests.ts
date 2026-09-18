@@ -1,11 +1,13 @@
 import {
   assertPublicNewsProjectionSafe,
   type PublicNewsHome,
+  type PublicNewsStory,
   type PublicNewsVoiceContribution,
   type PublicNewsVoicesPage,
 } from '../src/news/publicContracts.js';
 import {
   toNewsHomeViewModel,
+  toNewsStoryViewModel,
   toNewsVoicesViewModel,
 } from '../src/news/newsWebModel.js';
 import {
@@ -66,6 +68,16 @@ const voice: PublicNewsVoiceContribution = {
   mediaRights: 'none_required',
 };
 assertPublicNewsProjectionSafe(voice);
+
+const voiceStory: PublicNewsStory = {
+  ...voice,
+  body: ['Texto completo de la contribución.'],
+};
+const voiceStoryView = toNewsStoryViewModel(voiceStory);
+assert(voiceStoryView.story.voiceType === 'essay', 'Local Voice story detail must retain contribution type.');
+assert(voiceStoryView.story.contributorLabel === 'Autor de ejemplo', 'Local Voice story detail must retain contributor attribution.');
+assert(voiceStoryView.story.mediaRights === 'none_required', 'Local Voice story detail must retain media-rights state.');
+assert(voiceStoryView.sourceLink === undefined, 'Local Voice detail must not fabricate an external source URL.');
 
 const voicesPayload: PublicNewsVoicesPage = {
   schemaVersion: 1, locale: 'es-CL', generatedAt: '2026-09-18T07:00:00-03:00',
