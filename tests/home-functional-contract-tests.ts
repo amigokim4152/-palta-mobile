@@ -48,6 +48,16 @@ const validUpcoming: HomeFunctionalItem = {
 assert(validateHomeFunctionalItem(validUpcoming).length === 0, 'Valid upcoming item should pass.');
 assert(canRenderHomeFunctionalItem(validUpcoming), 'Valid upcoming item should render.');
 
+const { action: _action, ...withoutAction } = validUpcoming;
+const fakeAction: HomeFunctionalItem = {
+  ...withoutAction,
+  id: 'fake-action',
+};
+assert(
+  validateHomeFunctionalItem(fakeAction).some((error) => error.includes('executable action target')),
+  'Action cards must not exist without a real executable target.',
+);
+
 const { scheduledAt: _scheduledAt, ...withoutSchedule } = validUpcoming;
 const missingSchedule: HomeFunctionalItem = {
   ...withoutSchedule,
@@ -128,7 +138,6 @@ assert(
   'An item must not silently appear in the wrong semantic Home section.',
 );
 
-// Home context must prefer a durable home area over incidental GPS when no explicit override exists.
 const resolvedHome = resolveHomeContext({
   profile: { preferredName: 'Ana' },
   locations: {
@@ -144,7 +153,6 @@ assert(resolvedHome.unreadNotificationCount === 3, 'Home context must carry unre
 assert(resolvedHome.profileLabel === 'Ana', 'Home context may use lightweight Core Profile presentation data.');
 assert(homeContextCreatesDurableLocationFact(resolvedHome), 'Confirmed home area is a durable location fact.');
 
-// Explicit current-location use is allowed for immediate relevance but must not become a durable life fact.
 const gpsContext = resolveHomeContext({
   locations: {
     currentLocation: { id: 'gps-centro', label: 'Santiago Centro' },
@@ -155,7 +163,6 @@ const gpsContext = resolveHomeContext({
 assert(gpsContext.localitySource === 'explicit', 'Explicit locality override should win for the active Home context.');
 assert(!homeContextCreatesDurableLocationFact(gpsContext), 'Explicit/current context must not silently become home data.');
 
-// Personalized correction actions are intents; destructive domain state is not fabricated in Home.
 const alreadyDone = createHomeCorrectionIntent({
   item: validUpcoming,
   reason: 'already_done',
@@ -188,7 +195,6 @@ const hideType = createHomeCorrectionIntent({
 });
 assert(shouldSuppressImmediately(hideType), 'Hide-type feedback may suppress presentation immediately.');
 
-// Notification inbox summary feeds Home without turning every Home item into a push.
 const notifications: NotificationInboxItem[] = [
   {
     id: 'n1',
