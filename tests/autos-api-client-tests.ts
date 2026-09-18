@@ -68,6 +68,58 @@ const fakeFetch = async (
     };
   }
 
+  if (url.endsWith('/v1/autos/acquisition-requests/req-1/selection')) {
+    return {
+      ok: true,
+      status: 200,
+      async json() {
+        return {
+          request_id: 'req-1',
+          status: 'offer_selected',
+          selected_offer_id: 'offer-1',
+          selected_business_id: 'biz-1',
+          contact_shared: false,
+          exact_location_shared: false,
+        };
+      },
+    };
+  }
+
+  if (url.endsWith('/v1/autos/acquisition-requests/req-1/coordination') && init?.method === 'POST') {
+    return {
+      ok: true,
+      status: 200,
+      async json() {
+        return {
+          request_id: 'req-1',
+          selected_business_id: 'biz-1',
+          contact_shared: true,
+          exact_location_shared: true,
+        };
+      },
+    };
+  }
+
+  if (url.endsWith('/v1/business/biz-1/autos/acquisition-requests/req-1/coordination')) {
+    return {
+      ok: true,
+      status: 200,
+      async json() {
+        return {
+          request_id: 'req-1',
+          business_id: 'biz-1',
+          selected: true,
+          phone: '+56911112222',
+          exact_location: {
+            latitude: -33.401,
+            longitude: -70.58,
+            label: 'Lugar acordado',
+          },
+        };
+      },
+    };
+  }
+
   if (url.includes('/v1/business/biz-1/autos/acquisition-requests/req-1/offers')) {
     return {
       ok: true,
@@ -150,6 +202,25 @@ const submitted = await api.submitDealerOffer('biz-1', 'req-1', {
 });
 assert(submitted.offer_id === 'offer-1', 'Verified business flow should receive submitted offer projection.');
 
+const selected = await api.selectAcquisitionOffer('req-1', 'offer-1');
+assert(selected.selected_business_id === 'biz-1', 'Offer selection should return the selected canonical Business.');
+assert(selected.contact_shared === false && selected.exact_location_shared === false, 'Offer selection must not share private coordination data.');
+
+const shared = await api.updateAcquisitionCoordination('req-1', {
+  contactConsent: 'share_selected_dealer',
+  phone: '+56911112222',
+  locationConsent: 'share_selected_dealer',
+  exactLocation: {
+    latitude: -33.401,
+    longitude: -70.58,
+    label: 'Lugar acordado',
+  },
+});
+assert(shared.contact_shared && shared.exact_location_shared, 'Coordination endpoint should separately confirm explicit sharing.');
+
+const dealerCoordination = await api.getDealerCoordination('biz-1', 'req-1');
+assert(dealerCoordination.phone === '+56911112222', 'Selected dealer projection may contain explicitly shared phone.');
+
 assert(
   seen.every((request) => request.init?.headers?.Authorization === 'Bearer token-autos-123'),
   'Every Autos API call must attach the current access token.',
@@ -165,8 +236,20 @@ assert(!('phone' in acquisitionBody), 'Dealer acquisition routing must not inclu
 assert(!('exact_location' in acquisitionBody), 'Dealer acquisition routing must not include exact location by default.');
 assert(acquisitionBody.comuna === 'Las Condes', 'Routing may use minimum necessary comuna context.');
 
+const selectionRequest = seen.find((request) => request.url.endsWith('/v1/autos/acquisition-requests/req-1/selection'));
+const selectionBody = JSON.parse(selectionRequest!.init!.body!) as Record<string, unknown>;
+assert(selectionBody.offer_id === 'offer-1', 'Selection should carry only the chosen offer reference.');
+assert(!('phone' in selectionBody) && !('exact_location' in selectionBody), 'Offer selection must not carry private coordination facts.');
+
+const coordinationRequest = seen.find(
+  (request) => request.url.endsWith('/v1/autos/acquisition-requests/req-1/coordination') && request.init?.method === 'POST',
+);
+const coordinationBody = JSON.parse(coordinationRequest!.init!.body!) as Record<string, unknown>;
+assert(coordinationBody.contact_consent === 'share_selected_dealer', 'Contact sharing must carry explicit consent.');
+assert(coordinationBody.location_consent === 'share_selected_dealer', 'Location sharing must carry explicit consent.');
+
 const salePreparationRequest = seen.find((request) => request.url.endsWith('/v1/autos/sale-preparation'));
 const salePreparationBody = JSON.parse(salePreparationRequest!.init!.body!) as Record<string, unknown>;
 assert(salePreparationBody.plate === 'ABCD12', 'Plate may be sent only to the authenticated Palta preparation endpoint when the user initiates lookup.');
 
-console.log('PASS: Autos API authentication, sale preparation and privacy boundary');
+console.log('PASS: Autos API authentication, sale preparation, offer selection and coordination privacy boundary');
