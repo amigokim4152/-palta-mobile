@@ -12,14 +12,29 @@ type Props = {
   onPress?: () => void;
 };
 
+const categoryLabels: Record<string, string> = {
+  auto_repair: 'Taller mecánico',
+  pharmacy: 'Farmacia',
+  restaurant: 'Restaurante',
+  cafe: 'Café',
+  bakery: 'Panadería',
+  beauty: 'Belleza',
+  home_repair: 'Hogar y reparación',
+  pet: 'Mascotas',
+  education: 'Clases y educación',
+  professional_service: 'Servicios profesionales',
+};
+
 function firstLetter(value: string) {
   return value.trim().charAt(0).toUpperCase() || 'P';
 }
 
-function isPublicMetaLabel(value: string) {
-  // Internal taxonomy keys such as `auto_repair` or `AUTO_MOTO_MOBILITY`
-  // are useful for contracts, never as consumer-facing copy.
-  return !value.includes('_');
+function consumerMetaLabel(value: string): string | undefined {
+  const known = categoryLabels[value];
+  if (known) return known;
+  // Never leak raw internal taxonomy keys such as AUTO_MOTO_MOBILITY.
+  if (value.includes('_')) return undefined;
+  return value;
 }
 
 export function LocalResultCard({
@@ -36,7 +51,9 @@ export function LocalResultCard({
     .split(' · ')
     .map((part) => part.trim())
     .filter(Boolean);
-  const secondaryMeta = rawSecondaryMeta.filter(isPublicMetaLabel);
+  const secondaryMeta = rawSecondaryMeta
+    .map(consumerMetaLabel)
+    .filter((value): value is string => Boolean(value));
   const labels = serviceLabels.filter(Boolean).slice(0, 2);
   const isOpenNow = status === 'Abierto ahora';
 
