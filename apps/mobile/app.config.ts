@@ -1,5 +1,8 @@
 import type { ExpoConfig } from 'expo/config';
 
+const webBaseUrl =
+  process.env.PALTA_WEB_BASE_URL ?? process.env.EXPO_PUBLIC_PALTA_WEB_BASE_URL;
+
 const config: ExpoConfig = {
   name: 'Palta',
   slug: 'palta',
@@ -26,7 +29,14 @@ const config: ExpoConfig = {
   ],
   ios: { bundleIdentifier: 'cl.somospalta.app' },
   android: { package: 'cl.somospalta.app' },
-  experiments: { typedRoutes: true },
+  web: {
+    bundler: 'metro',
+    output: 'single',
+  },
+  experiments: {
+    typedRoutes: true,
+    ...(webBaseUrl ? { baseUrl: webBaseUrl } : {}),
+  },
 };
 
 export default config;
