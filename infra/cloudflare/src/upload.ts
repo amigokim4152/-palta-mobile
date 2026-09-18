@@ -1,5 +1,4 @@
 type R2UploadedPart = { partNumber: number; etag: string };
-
 type R2MultipartUpload = {
   uploadId: string;
   key: string;
@@ -7,7 +6,6 @@ type R2MultipartUpload = {
   complete(parts: R2UploadedPart[]): Promise<unknown>;
   abort(): Promise<void>;
 };
-
 type R2BucketLike = {
   createMultipartUpload(
     key: string,
@@ -26,13 +24,15 @@ type R2BucketLike = {
     },
   ): Promise<unknown>;
 };
-
 type Env = {
   MAPS: R2BucketLike;
   UPLOAD_TOKEN: string;
 };
 
-const BUSINESS_PREFIX = 'palta/cl/local-business/';
+const LOCAL_JSON_PREFIXES = [
+  'palta/cl/local-business/',
+  'palta/cl/local-place/',
+] as const;
 const MAX_JSON_BYTES = 20 * 1024 * 1024;
 
 function json(value: unknown, status = 200): Response {
@@ -54,9 +54,9 @@ function requiredHeader(request: Request, name: string): string {
   return value;
 }
 
-function allowedBusinessKey(key: string): boolean {
+function allowedLocalJsonKey(key: string): boolean {
   return (
-    key.startsWith(BUSINESS_PREFIX) &&
+    LOCAL_JSON_PREFIXES.some((prefix) => key.startsWith(prefix)) &&
     key.endsWith('.json') &&
     !key.includes('..') &&
     !key.includes('\\')
@@ -68,7 +68,7 @@ export default {
     const url = new URL(request.url);
 
     if (url.pathname === '/health' && request.method === 'GET') {
-      return json({ ok: true, service: 'palta-map-uploader' });
+      return json({ ok: true, service: 'palta-data-uploader' });
     }
 
     if (!authOk(request, env)) return unauthorized();
@@ -76,8 +76,8 @@ export default {
     try {
       if (url.pathname === '/json' && request.method === 'PUT') {
         const key = requiredHeader(request, 'x-palta-key');
-        if (!allowedBusinessKey(key)) {
-          return json({ ok: false, error: 'business_json_key_not_allowed' }, 400);
+        if (!allowedLocalJsonKey(key)) {
+          return json({ ok: false, error: 'local_json_key_not_allowed' }, 400);
         }
 
         const contentLength = Number(request.headers.get('content-length') ?? '0');
@@ -116,7 +116,7 @@ export default {
             ...(sha256 ? { sha256 } : {}),
             ...(schemaVersion ? { schemaVersion } : {}),
             size: String(bytes.byteLength),
-            managedBy: 'palta-local-business-production',
+            managedBy: 'palta-local-data-production',
           },
         });
 
