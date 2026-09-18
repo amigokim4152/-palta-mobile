@@ -1,3 +1,4 @@
+import { router, useLocalSearchParams } from 'expo-router';
 import { View } from 'react-native';
 import {
   resolveBusinessActions,
@@ -37,10 +38,19 @@ export function BusinessActionBar({
   relationship?: { saved: boolean; following: boolean };
   onAction: (capability: BusinessCapability) => void;
 }) {
+  const { businessId } = useLocalSearchParams<{ businessId?: string }>();
   const actions = resolveBusinessActions({
     capabilities,
     verificationStatus,
   });
+
+  const runAction = (capability: BusinessCapability) => {
+    if (capability === 'inquiry' && businessId) {
+      router.push(`/messages/business/${encodeURIComponent(businessId)}`);
+      return;
+    }
+    onAction(capability);
+  };
 
   const relationshipActions = actions.filter(
     (action) => action.capability === 'save' || action.capability === 'follow',
@@ -64,7 +74,7 @@ export function BusinessActionBar({
               label={actionLabel(action.capability, relationship)}
               variant={index === 0 ? 'primary' : 'secondary'}
               disabled={!action.enabled}
-              onPress={() => onAction(action.capability)}
+              onPress={() => runAction(action.capability)}
               style={{ flexGrow: 1, flexBasis: directActions.length === 1 ? '100%' : '44%' }}
             />
           ))}
@@ -79,11 +89,19 @@ export function BusinessActionBar({
               label={actionLabel(action.capability, relationship)}
               variant="quiet"
               disabled={!action.enabled}
-              onPress={() => onAction(action.capability)}
+              onPress={() => runAction(action.capability)}
               style={{ flex: 1 }}
             />
           ))}
         </View>
+      ) : null}
+
+      {relationship.following ? (
+        <PaltaButton
+          label="Ver novedades y beneficios"
+          variant="quiet"
+          onPress={() => router.push('/local-businesses/following')}
+        />
       ) : null}
     </View>
   );
