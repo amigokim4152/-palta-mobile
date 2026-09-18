@@ -3,41 +3,39 @@ import path from 'node:path';
 
 const root = path.resolve(process.cwd(), process.argv[2] ?? 'data/food/chile/rm');
 
-const observationFiles = fs.readdirSync(root)
-  .filter((name) => name.startsWith('food-observations-') && name.endsWith('.json'))
-  .sort((a, b) => a.localeCompare(b, 'es'));
+const load = (prefix) => fs.readdirSync(root)
+  .filter((name) => name.startsWith(prefix) && name.endsWith('.json'))
+  .sort((a, b) => a.localeCompare(b, 'es'))
+  .flatMap((name) => {
+    const payload = JSON.parse(fs.readFileSync(path.join(root, name), 'utf8'));
+    return payload.records ?? [];
+  });
 
-const corroborationFiles = fs.readdirSync(root)
-  .filter((name) => name.startsWith('outlet-corroborations-') && name.endsWith('.json'))
-  .sort((a, b) => a.localeCompare(b, 'es'));
-
-const observations = observationFiles.flatMap((name) => {
-  const payload = JSON.parse(fs.readFileSync(path.join(root, name), 'utf8'));
-  return payload.records ?? [];
-});
-
-const corroborations = corroborationFiles.flatMap((name) => {
-  const payload = JSON.parse(fs.readFileSync(path.join(root, name), 'utf8'));
-  return payload.records ?? [];
-});
-
+const observations = load('food-observations-');
+const corroborations = load('outlet-corroborations-');
+const independentDiscoveries = load('independent-outlet-discoveries-');
 const corroborationByOutlet = new Map(corroborations.map((record) => [record.outlet_key, record]));
+const independentByOutlet = new Map(independentDiscoveries.map((record) => [record.outlet_key, record]));
 
-const mergeContact = (source, overlay) => ({
-  ...(source ?? {}),
-  ...(overlay ?? {}),
-});
+const mergeContact = (...sources) => Object.assign({}, ...sources.filter(Boolean));
+const outletKeys = new Set([
+  ...observations.map((record) => record.outlet?.outlet_key).filter(Boolean),
+  ...independentDiscoveries.map((record) => record.outlet_key).filter(Boolean),
+]);
+const observationByOutlet = new Map(observations.map((record) => [record.outlet?.outlet_key, record]));
 
-const queue = observations.map((record) => {
-  const outlet = record.outlet ?? {};
-  const overlay = corroborationByOutlet.get(outlet.outlet_key) ?? {};
-  const contact = mergeContact(outlet.public_contact, overlay.public_contact);
+const queue = [...outletKeys].map((outletKey) => {
+  const research = observationByOutlet.get(outletKey);
+  const sourceOutlet = research?.outlet ?? {};
+  const corroboration = corroborationByOutlet.get(outletKey) ?? {};
+  const independent = independentByOutlet.get(outletKey) ?? {};
+  const contact = mergeContact(sourceOutlet.public_contact, corroboration.public_contact, independent.public_contact);
+  const identityStatus = independent.identity_status ?? corroboration.identity_status ?? sourceOutlet.identity_status ?? 'platform_only';
+  const needsIdentityConfirmation = identityStatus === 'needs_review' || identityStatus === 'possible_virtual_brand';
   const whatsapp = contact.whatsapp ?? null;
   const phone = contact.phone ?? null;
   const website = contact.website ?? null;
   const hasContact = Boolean(whatsapp || phone || website);
-  const identityStatus = overlay.identity_status ?? outlet.identity_status ?? 'platform_only';
-  const needsIdentityConfirmation = identityStatus === 'needs_review' || identityStatus === 'possible_virtual_brand';
   const status = !hasContact
     ? 'needs_public_contact'
     : needsIdentityConfirmation
@@ -45,26 +43,22 @@ const queue = observations.map((record) => {
       : 'ready_to_contact';
 
   return {
-    outletKey: outlet.outlet_key,
-    brandName: outlet.brand_name,
-    outletName: outlet.outlet_name ?? null,
-    comuna: overlay.comuna ?? outlet.comuna ?? null,
-    address: overlay.address ?? outlet.address ?? null,
-    sourceAddress: outlet.address ?? null,
+    outletKey,
+    brandName: independent.brand_name ?? sourceOutlet.brand_name ?? null,
+    outletName: independent.outlet_name ?? sourceOutlet.outlet_name ?? null,
+    comuna: independent.comuna ?? corroboration.comuna ?? sourceOutlet.comuna ?? null,
+    address: independent.address ?? corroboration.address ?? sourceOutlet.address ?? null,
+    sourceAddress: sourceOutlet.address ?? null,
     identityStatus,
-    identityNote: overlay.identity_note ?? outlet.identity_note ?? null,
+    identityNote: independent.identity_note ?? corroboration.identity_note ?? sourceOutlet.identity_note ?? null,
+    discoveryLane: independent.outlet_key ? 'independent_source_first' : 'research_then_corroboration',
     whatsapp,
     phone,
     website,
     status,
     requestedScope: [
-      'business_identity',
-      'outlet_address',
-      'public_contact',
-      'opening_hours',
-      'menu_item_names',
-      'menu_prices',
-      'delivery_pickup_facts',
+      'business_identity', 'outlet_address', 'public_contact', 'opening_hours',
+      'menu_item_names', 'menu_prices', 'delivery_pickup_facts',
     ],
     collectImages: false,
     note: needsIdentityConfirmation
@@ -73,18 +67,10 @@ const queue = observations.map((record) => {
   };
 });
 
-const priority = {
-  ready_for_identity_confirmation: 0,
-  ready_to_contact: 1,
-  needs_public_contact: 2,
-};
-
-queue.sort((a, b) => {
-  const statusDelta = (priority[a.status] ?? 9) - (priority[b.status] ?? 9);
-  if (statusDelta !== 0) return statusDelta;
-  return String(a.comuna ?? '').localeCompare(String(b.comuna ?? ''), 'es') ||
-    String(a.brandName ?? '').localeCompare(String(b.brandName ?? ''), 'es');
-});
+const priority = { ready_for_identity_confirmation: 0, ready_to_contact: 1, needs_public_contact: 2 };
+queue.sort((a, b) => (priority[a.status] ?? 9) - (priority[b.status] ?? 9) ||
+  String(a.comuna ?? '').localeCompare(String(b.comuna ?? ''), 'es') ||
+  String(a.brandName ?? '').localeCompare(String(b.brandName ?? ''), 'es'));
 
 const identityConfirmation = queue.filter((item) => item.status === 'ready_for_identity_confirmation');
 const ready = queue.filter((item) => item.status === 'ready_to_contact');
@@ -102,6 +88,7 @@ console.log(JSON.stringify({
   },
   counts: {
     totalOutlets: queue.length,
+    independentSourceFirst: queue.filter((item) => item.discoveryLane === 'independent_source_first').length,
     readyForIdentityConfirmation: identityConfirmation.length,
     readyToContact: ready.length,
     needsPublicContact: missing.length,
