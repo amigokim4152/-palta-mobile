@@ -55,8 +55,6 @@ const increment = (map, key) => {
 const categoryCount = new Map();
 const sectionCount = new Map();
 const itemTokenCount = new Map();
-const dishSignalCount = new Map();
-const servingSignalCount = new Map();
 const addressListings = new Map();
 const sourceIdentityCount = new Map();
 const effectiveIdentityCount = new Map();
@@ -74,53 +72,11 @@ let currentListingCount = 0;
 let relatedListingCount = 0;
 let closedPlatformListings = 0;
 let overlayAppliedCount = 0;
-let unmatchedDishItemCount = 0;
 
 const stopwords = new Set([
   'de', 'del', 'la', 'el', 'los', 'las', 'con', 'y', 'a', 'en', 'para', 'por',
   'un', 'una', 'x', 'al', 'sin', 'mas', 'más', 'eleccion', 'elección', 'piezas',
 ]);
-
-// These are descriptive corpus signals, not consumer-facing Palta categories.
-// They are intentionally allowed to overlap. The source menu name is always preserved.
-const DISH_SIGNALS = [
-  ['completo_hotdog', /\b(completo|hot ?dog|perro caliente)\b/],
-  ['churrasco', /\bchurrasco\b/],
-  ['lomito', /\blomito\b/],
-  ['burger', /\b(hamburguesa|burger|smash)\b/],
-  ['pizza', /\bpizza\b/],
-  ['sushi_roll', /\b(sushi|roll|maki|hand ?roll|uramaki|nigiri|sashimi)\b/],
-  ['chicken', /\b(pollo|alita|alitas|broaster|fried chicken)\b/],
-  ['ceviche', /\bceviche\b/],
-  ['lomo_saltado', /\blomo salta(do|da)\b/],
-  ['chaufa', /\bchaufa\b/],
-  ['empanada', /\bempanada\b/],
-  ['tequeno', /\btequeno(s)?\b/],
-  ['shawarma_kebab', /\b(shawarma|shawerma|kebab)\b/],
-  ['arepa', /\barepa\b/],
-  ['taco_burrito', /\b(taco|tacos|burrito|burritos|quesadilla|nacho|nachos)\b/],
-  ['indian_curry', /\b(curry|masala|tikka|biryani|basmati)\b/],
-  ['ramen', /\bramen\b/],
-  ['bibimbap', /\bbibimbap\b/],
-  ['tteokbokki', /\b(tteokbokki|topokki|tokbokki)\b/],
-  ['noodle_pasta', /\b(tallarin|tallarines|pasta|fettuccine|spaghetti|noodle|noodles)\b/],
-  ['rice_dish', /\b(arroz|risotto)\b/],
-  ['salad_bowl', /\b(ensalada|bowl|poke)\b/],
-  ['seafood', /\b(marisco|mariscos|ostion|ostiones|macha|machas|jaiba|camaron|camarones|pescado)\b/],
-  ['bakery_pastry', /\b(pan|croissant|pastel|pasteleria|torta|queque|berlin|berlines)\b/],
-  ['ice_cream', /\b(helado|gelato)\b/],
-  ['coffee_tea', /\b(cafe|coffee|espresso|latte|capuccino|cappuccino|te|matcha)\b/],
-];
-
-const SERVING_SIGNALS = [
-  ['two_for_one', /\b(2 ?x ?1|2x1)\b/],
-  ['combo', /\b(combo|duo|dueto)\b/],
-  ['family', /\b(familiar|familia|family)\b/],
-  ['share', /\b(para compartir|compartir|tabla|banquete)\b/],
-  ['promotion', /\b(promo|promocion|oferta|descuento|ahorro)\b/],
-  ['meal_deal', /\b(menu|menú|colacion|colación)\b/],
-  ['by_weight', /\b(kg|kilo|gramos|gr\.)\b/],
-];
 
 function observeListing(listing, related = false) {
   if (!listing) return;
@@ -196,26 +152,10 @@ for (const record of records) {
   for (const item of menu.sample_items ?? []) {
     itemCount += 1;
     if (Number.isFinite(item.price_clp)) pricedItemCount += 1;
-
-    const normalizedName = normalize(item.name);
-    const tokens = normalizedName
+    const tokens = normalize(item.name)
       .split(/[^a-z0-9]+/)
       .filter((token) => token.length >= 3 && !stopwords.has(token));
     for (const token of new Set(tokens)) increment(itemTokenCount, token);
-
-    let matchedDish = false;
-    for (const [signal, pattern] of DISH_SIGNALS) {
-      if (pattern.test(normalizedName)) {
-        increment(dishSignalCount, signal);
-        matchedDish = true;
-      }
-    }
-    if (!matchedDish) unmatchedDishItemCount += 1;
-
-    const servingText = normalize(`${item.name ?? ''} ${item.source_section_name ?? ''}`);
-    for (const [signal, pattern] of SERVING_SIGNALS) {
-      if (pattern.test(servingText)) increment(servingSignalCount, signal);
-    }
   }
 }
 
@@ -260,15 +200,11 @@ const output = {
   topPlatformCategories: sortCounts(categoryCount),
   topMenuSections: sortCounts(sectionCount),
   topItemTokens: sortCounts(itemTokenCount, 50),
-  dishSignals: sortCounts(dishSignalCount, 50),
-  servingSignals: sortCounts(servingSignalCount, 30),
-  unmatchedDishItemCount,
-  unmatchedDishCoverage: itemCount ? Number((unmatchedDishItemCount / itemCount).toFixed(4)) : 0,
   sharedAddresses,
   duplicateListingIds: [...new Set(duplicateListingIds)],
   duplicateOutletKeys: [...new Set(duplicateOutletKeys)],
   repeatedBrands: sortCounts(new Map([...brandCount].filter(([, count]) => count > 1))),
-  note: 'Counts describe the observed corpus. Dish/serving signals are descriptive analysis aids, not consumer categories by themselves.',
+  note: 'General corpus analysis uses corroborated outlet overlays for identity/contact metrics. Taxonomy signals remain isolated in analyze-food-taxonomy-signals.mjs.',
 };
 
 console.log(JSON.stringify(output, null, 2));
