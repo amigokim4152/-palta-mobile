@@ -43,6 +43,24 @@ export type FoodOutletIdentity = Readonly<{
   evidence: readonly FoodSourceEvidence[];
 }>;
 
+/**
+ * Evidence overlay collected after the raw delivery-platform observation.
+ * This stays separate from the raw snapshot so source facts can always be
+ * audited and reprocessed when identity rules evolve.
+ */
+export type FoodOutletCorroboration = Readonly<{
+  outletKey: string;
+  identityStatus: Exclude<FoodEvidenceStatus, 'platform_only'>;
+  address?: string;
+  comuna?: string;
+  region?: string;
+  postalCode?: string;
+  location?: { lat: number; lng: number };
+  publicContact?: PublicBusinessContact;
+  identityNote?: string;
+  evidence: readonly FoodSourceEvidence[];
+}>;
+
 export type PlatformFoodListing = Readonly<{
   platform: 'uber_eats' | 'rappi' | 'other';
   listingId: string;
@@ -155,6 +173,50 @@ export type NormalizedFoodItem = Readonly<{
   canonicalDishName?: string;
   confidence: 'high' | 'medium' | 'low';
 }>;
+
+function evidenceKey(input: FoodSourceEvidence): string {
+  return `${input.kind}|${input.url}|${input.sourceListingId ?? ''}`;
+}
+
+function mergeEvidence(
+  source: readonly FoodSourceEvidence[],
+  overlay: readonly FoodSourceEvidence[],
+): readonly FoodSourceEvidence[] {
+  const merged = new Map<string, FoodSourceEvidence>();
+  for (const evidence of [...source, ...overlay]) merged.set(evidenceKey(evidence), evidence);
+  return [...merged.values()];
+}
+
+/**
+ * Build the best currently supported outlet projection while preserving the raw
+ * observation separately. Corroboration can improve identity/contact fields but
+ * cannot silently change the outlet key or brand identity.
+ */
+export function applyOutletCorroboration(
+  source: FoodOutletIdentity,
+  corroboration: FoodOutletCorroboration | undefined,
+): FoodOutletIdentity {
+  if (!corroboration) return source;
+  if (corroboration.outletKey !== source.outletKey) {
+    throw new Error('food_outlet_corroboration_key_mismatch');
+  }
+
+  return {
+    ...source,
+    address: corroboration.address ?? source.address,
+    comuna: corroboration.comuna ?? source.comuna,
+    region: corroboration.region ?? source.region,
+    postalCode: corroboration.postalCode ?? source.postalCode,
+    location: corroboration.location ?? source.location,
+    publicContact: {
+      ...(source.publicContact ?? {}),
+      ...(corroboration.publicContact ?? {}),
+    },
+    identityStatus: corroboration.identityStatus,
+    identityNote: corroboration.identityNote ?? source.identityNote,
+    evidence: mergeEvidence(source.evidence, corroboration.evidence),
+  };
+}
 
 /**
  * Platform categories are evidence, never the Palta taxonomy itself.
