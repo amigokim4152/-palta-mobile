@@ -29,6 +29,7 @@ import type { MarketRuntime } from './marketRuntime';
 const PREVIEW_CURRENT_USER_ID = 'preview-current-user';
 const previewMediaUrls = new Map<string, string>();
 const favoriteListingIds = new Set<string>();
+const hiddenListingIds = new Set<string>();
 const mutableStatuses = new Map<string, MarketListingStatus>();
 const createdListings = new Map<string, MarketListingRecord>();
 const transactions = new Map<string, MarketTransactionRecord>();
@@ -164,7 +165,10 @@ const read: MarketReadPort = {
   async discover(query) {
     const normalized = query.query?.trim().toLocaleLowerCase('es-CL') ?? '';
     let items = allRecords()
-      .filter((record) => isMarketListingPublic(record.status))
+      .filter(
+        (record) =>
+          !hiddenListingIds.has(record.id) && isMarketListingPublic(record.status),
+      )
       .map(toPublicListing)
       .filter((listing) => {
         if (query.category && listing.category !== query.category) return false;
@@ -187,6 +191,7 @@ const read: MarketReadPort = {
   },
 
   async getPublicListing(listingId) {
+    if (hiddenListingIds.has(listingId)) return null;
     const record = previewRecord(listingId);
     if (!record || !isMarketListingPublic(record.status)) return null;
     return toPublicListing(record);
@@ -243,11 +248,17 @@ const mutation: MarketMutationPort = {
     if (current.version !== command.expectedVersion) {
       throw new Error('Preview listing version conflict.');
     }
-    const { mediaAssetIds, ...patch } = command.patch;
-    const updated: MarketListingRecord = {
+    const { mediaAssetIds, priceClp, ...patch } = command.patch;
+    const nextBase: MarketListingRecord = {
       ...current,
       ...patch,
-      ...(mediaAssetIds
+    };
+    if (priceClp === null) delete nextBase.priceClp;
+    else if (typeof priceClp === 'number') nextBase.priceClp = priceClp;
+
+    const updated: MarketListingRecord = {
+      ...nextBase,
+      ...(mediaAssetIds !== undefined
         ? {
             media: mediaAssetIds.map((mediaAssetId, sortOrder) => ({
               mediaAssetId,
@@ -379,6 +390,11 @@ export function createMarketDevelopmentRuntime(): MarketRuntime {
     mode: 'development_preview',
     read,
     mutation,
+    async handleSafetyIntent(intent) {
+      if (intent.action === 'hide_listing') {
+        hiddenListingIds.add(intent.subject.listingId);
+      }
+    },
     resolveMediaAssetUrl(mediaAssetId) {
       return previewMediaUrls.get(mediaAssetId);
     },
