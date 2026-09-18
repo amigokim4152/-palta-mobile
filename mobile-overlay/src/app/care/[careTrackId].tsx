@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Pressable, Text, View } from 'react-native';
-import type { BusinessReservationApiDetail } from '../../../../../src/api/businessReservationsApiClient';
+import type { BusinessReservationApiDetail } from '../../../../src/api/businessReservationsApiClient';
 import {
   ErrorState,
   LoadingState,
