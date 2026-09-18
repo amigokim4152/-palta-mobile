@@ -11,6 +11,7 @@ import { LocalResultCard } from '../../components/LocalResultCard';
 import { FilterChip } from '../../components/common/FilterChip';
 import { MapResultSheet } from '../../components/neighborhood/MapResultSheet';
 import { NeighborhoodMap } from '../../components/map/NeighborhoodMap';
+import { PALTA_DEVELOPMENT_MAP_STYLE } from '../../components/map/paltaDevelopmentMapStyle';
 import { ScreenFrame } from '../../components/ScreenFrame';
 import { useAsyncResource } from '../../hooks/useAsyncResource';
 import { expoLocationAdapter } from '../../adapters/expoLocationAdapter';
@@ -86,6 +87,14 @@ export function NeighborhoodScreen() {
       })),
     [visibleResults, neighborhood.selectedEntityId],
   );
+
+  const resolvedMapStyle =
+    mobileRuntime.status === 'ready'
+      ? mobileRuntime.mapStyleUrl ??
+        (mobileRuntime.environment === 'development'
+          ? PALTA_DEVELOPMENT_MAP_STYLE
+          : undefined)
+      : undefined;
 
   async function useMyLocation() {
     setLocationBusy(true);
@@ -180,10 +189,9 @@ export function NeighborhoodScreen() {
     >
       <View style={{ flex: 1 }}>
         <View style={{ minHeight: 250, flex: 1 }}>
-          {mobileRuntime.status === 'ready' &&
-          mobileRuntime.mapStyleUrl ? (
+          {resolvedMapStyle ? (
             <NeighborhoodMap
-              mapStyle={mobileRuntime.mapStyleUrl}
+              mapStyle={resolvedMapStyle}
               features={mapFeatures}
               initialCenter={neighborhood.effectiveLocation}
               onSelectEntity={(entityId) =>
@@ -207,9 +215,9 @@ export function NeighborhoodScreen() {
                 borderWidth: 1,
               }}
             >
-              <Text>Map Core preparado</Text>
+              <Text>Mapa no disponible</Text>
               <Text style={{ marginTop: 6, opacity: 0.6 }}>
-                Falta conectar EXPO_PUBLIC_MAP_STYLE_URL.
+                Falta conectar el estilo de mapa.
               </Text>
             </View>
           )}
