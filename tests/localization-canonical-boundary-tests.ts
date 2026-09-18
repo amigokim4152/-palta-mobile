@@ -3,6 +3,7 @@ import {
   businessCapabilityLabel,
   careIntentLabel,
   careWaitingForLabel,
+  neighborhoodT,
 } from '../src/localization/index.js';
 import { requestBusinessQuote } from '../src/verticalSlice/quoteRequestFlow.js';
 
@@ -112,6 +113,11 @@ assert(
   businessCapabilityLabel('queue', 'ko') === '대기 등록' &&
     businessCapabilityLabel('inquiry', 'zh-Hans') === '咨询',
   'Business capability keys must have locale-aware presentation labels.',
+);
+assert(
+  neighborhoodT('neighborhood.a11y.mapResults', 'ko') === '지도 검색 결과' &&
+    neighborhoodT('neighborhood.a11y.showMoreMap', 'zh-Hans') === '显示更多地图',
+  'Neighborhood accessibility copy must follow the active locale.',
 );
 
 console.log('PASS: localization canonical boundary tests');
