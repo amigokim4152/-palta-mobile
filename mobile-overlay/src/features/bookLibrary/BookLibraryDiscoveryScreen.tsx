@@ -99,7 +99,7 @@ function LibraryCard({ library }: { library: NearbyLibraryCard }) {
           </Text>
           {library.upcoming_events.map((event) => (
             <View key={event.event_id} style={{ gap: 2 }}>
-              <Text allowFontScaling style={{ fontWeight: '650' }}>
+              <Text allowFontScaling style={{ fontWeight: '600' }}>
                 {event.title ?? 'Actividad'}
               </Text>
               <Text allowFontScaling style={{ fontSize: 13, opacity: 0.68 }}>
