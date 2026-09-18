@@ -9,6 +9,11 @@ dist/
 web-build/
 expo-env.d.ts
 
+# Palta runtime source
+# Materialized from the checked-out branch's mobile-overlay/src by
+# scripts/sync-mobile-runtime.mjs. mobile-overlay remains the versioned UI SOT.
+/src/
+
 # Native
 .kotlin/
 *.orig.*
