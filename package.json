@@ -6,7 +6,7 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "build": "tsc",
-    "test": "npm run build && node dist/tests/run-tests.js && node dist/tests/auth-profile-core-tests.js && node dist/tests/auth-profile-persistence-tests.js && node dist/tests/home-functional-contract-tests.js",
+    "test": "npm run build && node dist/tests/run-tests.js && node dist/tests/auth-profile-core-tests.js && node dist/tests/auth-profile-persistence-tests.js && node dist/tests/home-functional-contract-tests.js && node dist/tests/care-home-functional-tests.js",
     "mock:api": "node dev/mock-api/server.mjs",
     "mock:smoke": "node dev/mock-api/smoke.mjs",
     "check:independence": "node scripts/check-core-independence.mjs",
