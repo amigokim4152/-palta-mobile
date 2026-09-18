@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Pressable,
   SafeAreaView,
@@ -7,44 +7,105 @@ import {
   Text,
   View,
 } from 'react-native';
+import type {
+  MarketReviewTag,
+  MarketTransactionRecord,
+} from '../../../../src/market/marketPersistenceContract';
 import { paltaTheme } from '../../theme/paltaTheme';
-import { marketPreviewListings } from './marketPreviewData';
+import { getMarketRuntime } from './marketRuntime';
 
-const reviewTags = [
-  'Buena comunicación',
-  'Puntual',
-  'Amable',
-  'Producto como se describió',
-  'Coordinación fácil',
-] as const;
+const reviewTags: Array<{ key: MarketReviewTag; label: string }> = [
+  { key: 'good_communication', label: 'Buena comunicación' },
+  { key: 'punctual', label: 'Puntual' },
+  { key: 'kind', label: 'Amable' },
+  { key: 'as_described', label: 'Producto como se describió' },
+  { key: 'easy_coordination', label: 'Coordinación fácil' },
+];
 
 export function MarketReviewScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const [selected, setSelected] = useState<string[]>([]);
+  const runtime = useMemo(() => getMarketRuntime(), []);
+  const [transaction, setTransaction] = useState<MarketTransactionRecord | null>();
+  const [selected, setSelected] = useState<MarketReviewTag[]>([]);
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | undefined>();
 
-  const listing = __DEV__
-    ? marketPreviewListings.find((item) => item.id === id)
-    : undefined;
+  useEffect(() => {
+    if (!id || !runtime.read) {
+      setTransaction(null);
+      setError(runtime.unavailableReason ?? 'Mercado no está disponible.');
+      return;
+    }
+    let active = true;
+    runtime.read
+      .listMyTransactions({ limit: 50 })
+      .then((page) => {
+        if (!active) return;
+        const found = page.items.find((item) => item.id === id) ?? null;
+        setTransaction(found?.status === 'completed' ? found : null);
+        if (!found || found.status !== 'completed') {
+          setError('La reseña sólo está disponible después de completar la transacción.');
+        }
+      })
+      .catch(() => {
+        if (!active) return;
+        setTransaction(null);
+        setError('No pudimos cargar esta transacción.');
+      });
+    return () => {
+      active = false;
+    };
+  }, [id, runtime]);
 
-  if (!listing) {
+  function toggleTag(tag: MarketReviewTag) {
+    setSelected((current) =>
+      current.includes(tag)
+        ? current.filter((item) => item !== tag)
+        : [...current, tag],
+    );
+  }
+
+  async function submitReview() {
+    if (!transaction || !runtime.mutation || selected.length === 0 || submitting) {
+      return;
+    }
+    setSubmitting(true);
+    setError(undefined);
+    try {
+      await runtime.mutation.createReview({
+        transactionId: transaction.id,
+        tags: selected,
+      });
+      setSubmitted(true);
+    } catch {
+      setError('No pudimos guardar la reseña. Intenta nuevamente.');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  if (transaction === undefined) {
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.center}>
-          <Text style={styles.title}>No encontramos esta transacción</Text>
-          <Pressable style={styles.primaryButton} onPress={() => router.back()}>
-            <Text style={styles.primaryButtonText}>Volver</Text>
-          </Pressable>
+          <Text style={styles.title}>Cargando transacción…</Text>
         </View>
       </SafeAreaView>
     );
   }
 
-  function toggleTag(tag: string) {
-    setSelected((current) =>
-      current.includes(tag)
-        ? current.filter((item) => item !== tag)
-        : [...current, tag],
+  if (!transaction) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.center}>
+          <Text style={styles.title}>No encontramos una transacción para reseñar</Text>
+          {error ? <Text style={styles.centerBody}>{error}</Text> : null}
+          <Pressable style={styles.primaryButton} onPress={() => router.back()}>
+            <Text style={styles.primaryButtonText}>Volver</Text>
+          </Pressable>
+        </View>
+      </SafeAreaView>
     );
   }
 
@@ -61,15 +122,17 @@ export function MarketReviewScreen() {
       <View style={styles.content}>
         <View style={styles.contextCard}>
           <Text style={styles.contextLabel}>Artículo</Text>
-          <Text style={styles.contextTitle}>{listing.title}</Text>
-          <Text style={styles.contextMeta}>{listing.comuna}</Text>
+          <Text style={styles.contextTitle}>{transaction.listingSnapshot.title}</Text>
+          <Text style={styles.contextMeta}>
+            {transaction.listingSnapshot.comunaName}
+          </Text>
         </View>
 
         {submitted ? (
           <View style={styles.successCard}>
-            <Text style={styles.successTitle}>Reseña preparada</Text>
+            <Text style={styles.successTitle}>Reseña guardada</Text>
             <Text style={styles.successBody}>
-              Esta vista previa no publica datos reales. En producción la reseña se guardará después de una transacción completada.
+              Las señales de confianza quedan vinculadas a una transacción completada, no a comentarios públicos sueltos.
             </Text>
             <Pressable
               onPress={() => router.replace('/market/my-listings')}
@@ -83,21 +146,21 @@ export function MarketReviewScreen() {
             <View>
               <Text style={styles.title}>¿Cómo fue la coordinación?</Text>
               <Text style={styles.subtitle}>
-                Elige lo que corresponda. La confianza se construye con señales concretas, no con comentarios públicos innecesarios.
+                Elige señales concretas de la experiencia. No es necesario publicar información personal de la otra persona.
               </Text>
             </View>
 
             <View style={styles.tagWrap}>
               {reviewTags.map((tag) => {
-                const active = selected.includes(tag);
+                const active = selected.includes(tag.key);
                 return (
                   <Pressable
-                    key={tag}
-                    onPress={() => toggleTag(tag)}
+                    key={tag.key}
+                    onPress={() => toggleTag(tag.key)}
                     style={[styles.tag, active && styles.tagActive]}
                   >
                     <Text style={[styles.tagText, active && styles.tagTextActive]}>
-                      {active ? '✓ ' : ''}{tag}
+                      {active ? '✓ ' : ''}{tag.label}
                     </Text>
                   </Pressable>
                 );
@@ -111,15 +174,20 @@ export function MarketReviewScreen() {
               </Text>
             </View>
 
+            {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
             <Pressable
-              disabled={selected.length === 0}
-              onPress={() => setSubmitted(true)}
+              disabled={selected.length === 0 || submitting || !runtime.mutation}
+              onPress={submitReview}
               style={[
                 styles.primaryButton,
-                selected.length === 0 && styles.primaryButtonDisabled,
+                (selected.length === 0 || submitting || !runtime.mutation) &&
+                  styles.primaryButtonDisabled,
               ]}
             >
-              <Text style={styles.primaryButtonText}>Enviar reseña</Text>
+              <Text style={styles.primaryButtonText}>
+                {submitting ? 'Guardando…' : 'Enviar reseña'}
+              </Text>
             </Pressable>
           </>
         )}
@@ -221,6 +289,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 18,
   },
+  errorText: {
+    color: paltaTheme.color.danger,
+    fontSize: 12,
+    lineHeight: 17,
+  },
   primaryButton: {
     minHeight: 52,
     borderRadius: paltaTheme.radius.control,
@@ -255,5 +328,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 16,
     padding: 24,
+  },
+  centerBody: {
+    color: paltaTheme.color.textSecondary,
+    fontSize: 13,
+    lineHeight: 19,
+    textAlign: 'center',
   },
 });
