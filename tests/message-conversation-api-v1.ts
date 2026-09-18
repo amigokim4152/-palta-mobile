@@ -4,6 +4,7 @@ import {
   inboxActorFromApi,
   inboxCursorFromApi,
 } from '../src/messaging/conversationApiContract.js';
+import { conversationHttpContract } from '../src/messaging/conversationHttpContract.js';
 import type { ConversationInboxItem } from '../src/messaging/conversationDirectoryPort.js';
 
 function assert(condition: unknown, message: string): asserts condition {
@@ -34,6 +35,24 @@ try {
 }
 assert(partialCursorRejected, 'Partial Inbox cursor must be rejected instead of guessing pagination state.');
 
+assert(
+  conversationHttpContract.openBusinessConversation('business / 1') ===
+    '/v1/messages/businesses/business%20%2F%201/conversation',
+  'Business conversation HTTP path must encode canonical business identity.',
+);
+assert(
+  conversationHttpContract.openDirectUserConversation('user / 2') ===
+    '/v1/messages/users/user%20%2F%202/conversation',
+  'Direct user conversation HTTP path must encode counterpart identity.',
+);
+let emptyCounterpartRejected = false;
+try {
+  conversationHttpContract.openDirectUserConversation('   ');
+} catch {
+  emptyCounterpartRejected = true;
+}
+assert(emptyCounterpartRejected, 'Direct user conversation route must reject an empty counterpart id.');
+
 const conversation = {
   conversationId: '00000000-0000-4000-8000-000000000001',
   type: 'business' as const,
@@ -44,6 +63,17 @@ const conversation = {
 const openResponse = conversationToApi(conversation, false);
 assert(openResponse.conversation_id === conversation.conversationId, 'Open/reuse API must return durable conversation identity.');
 assert(openResponse.created === false, 'Open/reuse API must tell client when conversation was reused.');
+
+const directOpenResponse = conversationToApi(
+  {
+    ...conversation,
+    conversationId: '00000000-0000-4000-8000-000000000003',
+    type: 'direct',
+  },
+  true,
+);
+assert(directOpenResponse.conversation_type === 'direct', 'Direct-user open API must preserve direct relationship type.');
+assert(directOpenResponse.created === true, 'Direct-user open API must preserve create/reuse signal.');
 
 const items: ConversationInboxItem[] = [
   {
