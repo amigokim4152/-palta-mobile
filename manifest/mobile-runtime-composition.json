@@ -159,7 +159,7 @@
       "id": "messaging",
       "source_branch": "integration/message-core-v1",
       "status": "integrated",
-      "observed_source_sha": "31fcf039a37f557bbb62af6abaff38c01d1462ba"
+      "observed_source_sha": "ff90162819fc36e9d4b4816c0f77f11f2d5209ab"
     },
     {
       "id": "commerce",
