@@ -11,14 +11,19 @@ export const marketMessagePresetText: Record<MarketMessagePreset, string> = {
   coordinate: 'Hola, me interesa. ¿Podemos coordinar?',
 };
 
+/**
+ * Mercado-owned intent for contacting a seller.
+ *
+ * Conversation identity deliberately does not include the listing. Message Core
+ * owns the durable buyer<->seller relationship; Mercado later creates/ensures a
+ * transaction for this listing and asks Messaging to focus that relationship on
+ * the resulting market_transaction context.
+ */
 export interface MarketMessageIntent {
-  conversationType: 'transaction';
   sourceCore: 'market';
-  context: {
-    relation: 'listing';
-    resourceType: 'market_listing';
-    resourceId: string;
-    label: string;
+  listing: {
+    id: string;
+    title: string;
   };
   counterparty: {
     actorType: 'user';
@@ -34,13 +39,10 @@ export function buildMarketMessageIntent(input: {
   preset?: MarketMessagePreset;
 }): MarketMessageIntent {
   return {
-    conversationType: 'transaction',
     sourceCore: 'market',
-    context: {
-      relation: 'listing',
-      resourceType: 'market_listing',
-      resourceId: input.listingId,
-      label: input.listingTitle,
+    listing: {
+      id: input.listingId,
+      title: input.listingTitle,
     },
     counterparty: {
       actorType: 'user',
