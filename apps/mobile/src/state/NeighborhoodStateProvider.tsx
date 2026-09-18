@@ -20,7 +20,7 @@ const initialState: NeighborhoodState = {
   activeFilters: [],
   selectedEntityId: null,
   resultIds: ['business-taller-1', 'business-pharmacy-1'],
-  sheetSnap: 'half',
+  sheetSnap: 'peek',
   mapMovedSinceSearch: false,
   loading: 'idle',
   degraded: false,
