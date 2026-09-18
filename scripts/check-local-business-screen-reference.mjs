@@ -7,6 +7,7 @@ const cardPath = path.join(root, 'mobile-overlay/src/components/LocalResultCard.
 const discoveryPath = path.join(root, 'mobile-overlay/src/features/business/BusinessDiscoveryExperience.tsx');
 const detailPath = path.join(root, 'mobile-overlay/src/features/business/BusinessProfileExperience.tsx');
 const liveReferencePath = path.join(root, 'mobile-overlay/src/features/business/BusinessReferenceScreen.tsx');
+const sampleRoutePath = path.join(root, 'mobile-overlay/src/app/dev/local-business-samples.tsx');
 const referencePath = path.join(root, 'docs/LOCAL_BUSINESS_SCREEN_REFERENCE_V1.md');
 const handoffPath = path.join(root, 'docs/LOCAL_BUSINESS_DESIGN_SYSTEM_HANDOFF.md');
 
@@ -40,6 +41,7 @@ const card = readTsx(cardPath);
 const discovery = readTsx(discoveryPath);
 const detail = readTsx(detailPath);
 const liveReference = readTsx(liveReferencePath);
+const sampleRoute = readTsx(sampleRoutePath);
 assert(fs.existsSync(referencePath), 'Local Business screen reference must exist.');
 assert(fs.existsSync(handoffPath), 'Local Business design-system handoff must exist.');
 
@@ -58,8 +60,10 @@ assert(
   'Discovery card must gracefully fall back when no real business photo exists instead of inventing stock imagery.',
 );
 assert(
-  card.includes('isPublicMetaLabel') && card.includes("return !value.includes('_')"),
-  'Consumer cards must suppress internal taxonomy keys instead of rendering developer identifiers.',
+  card.includes('consumerMetaLabel') &&
+  card.includes("value.includes('_')") &&
+  card.includes('categoryLabels'),
+  'Consumer cards must translate known categories and suppress unknown internal taxonomy keys.',
 );
 
 assert(
@@ -70,6 +74,9 @@ assert(
   'Canonical Negocios must remain a polished map-led search/list experience.',
 );
 assert(
+  discovery.includes('imageUrl={selectedVisual.imageUrl}') &&
+  discovery.includes('serviceLabels={selectedVisual.serviceLabels}') &&
+  discovery.includes('highlight={selectedVisual.highlight}') &&
   discovery.includes('imageUrl={visual.imageUrl}') &&
   discovery.includes('serviceLabels={visual.serviceLabels}') &&
   discovery.includes('highlight={visual.highlight}'),
@@ -109,6 +116,10 @@ assert(
   liveReference.includes('Muestra A · resultado de búsqueda') &&
   liveReference.includes('Muestra B · primera vista del perfil'),
   'The live reference must keep both discovery-card and profile-first-viewport samples visible to implementers.',
+);
+assert(
+  sampleRoute.includes('BusinessReferenceScreen') && !sampleRoute.includes('<LocalResultCard'),
+  'The dev sample route must reuse the canonical BusinessReferenceScreen rather than duplicate sample UI.',
 );
 
 console.log('PASS: Local Business polished screen reference');
