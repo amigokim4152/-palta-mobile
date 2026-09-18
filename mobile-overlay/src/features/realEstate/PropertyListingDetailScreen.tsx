@@ -15,8 +15,10 @@ import type {
 import { PaltaButton } from '../../components/common/PaltaButton';
 import { paltaTheme } from '../../theme/paltaTheme';
 import { findPropertyDetailDemo } from './propertyDetailDemoData';
+import { PropertyMediaGallery } from './PropertyMediaGallery';
 import { SaveRealEstateSearchButton } from './SaveRealEstateSearchButton';
 import { useRealEstateListing } from './useRealEstateListing';
+import { useRealEstateListingMedia } from './useRealEstateListingMedia';
 import { useRealEstatePropertyContext } from './useRealEstatePropertyContext';
 import { useSavedRealEstateListings } from './useSavedRealEstateListings';
 
@@ -71,6 +73,7 @@ export function PropertyListingDetailScreen() {
   const listingId = typeof params.listingId === 'string' ? params.listingId : '';
   const { listing: item, loading, error } = useRealEstateListing(listingId);
   const propertyContext = useRealEstatePropertyContext(item?.property.id ?? '');
+  const listingMedia = useRealEstateListingMedia(listingId);
   const savedListings = useSavedRealEstateListings();
   const detail = findPropertyDetailDemo(listingId);
 
@@ -115,22 +118,12 @@ export function PropertyListingDetailScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: paltaTheme.color.canvas }}>
       <ScrollView contentContainerStyle={{ paddingBottom: 48 }}>
-        <View
-          style={{
-            height: 270,
-            margin: paltaTheme.spacing.md,
-            marginBottom: 0,
-            borderRadius: paltaTheme.radius.sheet,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: paltaTheme.color.brandSoft,
-          }}
-        >
-          <Text style={{ fontSize: 20, fontWeight: '900', color: paltaTheme.color.brandPrimary }}>
-            {REAL_ESTATE_PROPERTY_TYPE_LABELS[property.type]}
-          </Text>
-          <Text style={{ marginTop: 6, color: paltaTheme.color.textMuted }}>Galería de fotos · conectar media real</Text>
-        </View>
+        <PropertyMediaGallery
+          media={listingMedia.media}
+          loading={listingMedia.loading}
+          error={listingMedia.error}
+          fallbackLabel={REAL_ESTATE_PROPERTY_TYPE_LABELS[property.type]}
+        />
 
         <View style={{ padding: paltaTheme.spacing.md, gap: paltaTheme.spacing.lg }}>
           <View style={{ gap: 5 }}>
