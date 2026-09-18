@@ -77,15 +77,6 @@ export function retainMarketInterestSignals(
     .slice(0, MARKET_INTEREST_MAX_SIGNALS);
 }
 
-function addWeight<Key extends string>(
-  target: Partial<Record<Key, number>>,
-  key: Key | undefined,
-  weight: number,
-) {
-  if (!key) return;
-  target[key] = (target[key] ?? 0) + weight;
-}
-
 /**
  * Builds a compact preference profile without preserving raw search text or
  * exact location. Recent intent naturally wins because callers feed the bounded
@@ -110,10 +101,21 @@ export function buildMarketInterestProfile(
     const recencyWeight = Math.max(0.25, 1 - ageDays / MARKET_INTEREST_RETENTION_DAYS);
     const weight = Math.round(baseWeight * recencyWeight * 100) / 100;
 
-    addWeight(profile.verticalWeights, signal.vertical, weight);
-    addWeight(profile.categoryWeights, signal.category, weight);
-    addWeight(profile.productFamilyWeights, signal.productFamilyKey, weight);
-    addWeight(profile.priceBandWeights, signal.priceBand, weight);
+    profile.verticalWeights[signal.vertical] =
+      (profile.verticalWeights[signal.vertical] ?? 0) + weight;
+
+    if (signal.category) {
+      profile.categoryWeights[signal.category] =
+        (profile.categoryWeights[signal.category] ?? 0) + weight;
+    }
+    if (signal.productFamilyKey) {
+      profile.productFamilyWeights[signal.productFamilyKey] =
+        (profile.productFamilyWeights[signal.productFamilyKey] ?? 0) + weight;
+    }
+    if (signal.priceBand) {
+      profile.priceBandWeights[signal.priceBand] =
+        (profile.priceBandWeights[signal.priceBand] ?? 0) + weight;
+    }
   }
 
   return profile;
