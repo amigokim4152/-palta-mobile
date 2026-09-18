@@ -11,8 +11,15 @@ import {
 import { useAuthRuntime } from '../../providers/AuthRuntimeProvider';
 
 export function AuthGate({ children }: { children: ReactNode }) {
-  const { state, busy, signInWithEmail, signInWithOAuth, signOut, retry } =
-    useAuthRuntime();
+  const {
+    state,
+    capabilities,
+    busy,
+    signInWithEmail,
+    signInWithOAuth,
+    signOut,
+    retry,
+  } = useAuthRuntime();
   const [email, setEmail] = useState('');
 
   if (state.status === 'loading') {
@@ -40,6 +47,10 @@ export function AuthGate({ children }: { children: ReactNode }) {
       </View>
     );
   }
+
+  const socialLoginAvailable =
+    capabilities?.apple === true || capabilities?.google === true;
+  const emailLoginAvailable = capabilities?.email === true;
 
   return (
     <View style={styles.screen}>
@@ -71,46 +82,55 @@ export function AuthGate({ children }: { children: ReactNode }) {
           </View>
         ) : null}
 
-        <Pressable
-          accessibilityRole="button"
-          disabled={busy}
-          onPress={() => void signInWithOAuth('apple')}
-          style={styles.primaryButton}
-        >
-          <Text style={styles.primaryButtonText}>Apple로 계속</Text>
-        </Pressable>
+        {capabilities?.apple ? (
+          <Pressable
+            accessibilityRole="button"
+            disabled={busy}
+            onPress={() => void signInWithOAuth('apple')}
+            style={styles.primaryButton}
+          >
+            <Text style={styles.primaryButtonText}>Apple로 계속</Text>
+          </Pressable>
+        ) : null}
 
-        <Pressable
-          accessibilityRole="button"
-          disabled={busy}
-          onPress={() => void signInWithOAuth('google')}
-          style={styles.primaryButton}
-        >
-          <Text style={styles.primaryButtonText}>Google로 계속</Text>
-        </Pressable>
+        {capabilities?.google ? (
+          <Pressable
+            accessibilityRole="button"
+            disabled={busy}
+            onPress={() => void signInWithOAuth('google')}
+            style={styles.primaryButton}
+          >
+            <Text style={styles.primaryButtonText}>Google로 계속</Text>
+          </Pressable>
+        ) : null}
 
-        <TextInput
-          autoCapitalize="none"
-          autoComplete="email"
-          editable={!busy}
-          inputMode="email"
-          keyboardType="email-address"
-          onChangeText={setEmail}
-          placeholder="이메일"
-          style={styles.input}
-          value={email}
-        />
-        <Pressable
-          accessibilityRole="button"
-          disabled={busy || !email.trim()}
-          onPress={() => void signInWithEmail(email.trim())}
-          style={[
-            styles.secondaryButton,
-            (busy || !email.trim()) && styles.disabled,
-          ]}
-        >
-          <Text style={styles.secondaryButtonText}>이메일 링크 보내기</Text>
-        </Pressable>
+        {emailLoginAvailable ? (
+          <>
+            {socialLoginAvailable ? <View style={styles.divider} /> : null}
+            <TextInput
+              autoCapitalize="none"
+              autoComplete="email"
+              editable={!busy}
+              inputMode="email"
+              keyboardType="email-address"
+              onChangeText={setEmail}
+              placeholder="이메일"
+              style={styles.input}
+              value={email}
+            />
+            <Pressable
+              accessibilityRole="button"
+              disabled={busy || !email.trim()}
+              onPress={() => void signInWithEmail(email.trim())}
+              style={[
+                styles.secondaryButton,
+                (busy || !email.trim()) && styles.disabled,
+              ]}
+            >
+              <Text style={styles.secondaryButtonText}>이메일 링크 보내기</Text>
+            </Pressable>
+          </>
+        ) : null}
 
         {busy ? (
           <View style={styles.busyRow}>
@@ -146,6 +166,11 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: 28, fontWeight: '700' },
   subtitle: { fontSize: 16, marginBottom: 8 },
+  divider: {
+    height: 1,
+    backgroundColor: '#E4E4DE',
+    marginVertical: 2,
+  },
   input: {
     minHeight: 48,
     borderWidth: 1,
