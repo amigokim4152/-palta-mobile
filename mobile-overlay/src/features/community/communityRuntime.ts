@@ -43,29 +43,21 @@ const previewComments: Record<string, CommunityComment[]> = {
 
 const membershipOverrides = new Map<string, CommunityMembershipState>();
 const reactionOverrides = new Map<string, number>();
-
 function cardFor(spaceId: string) { return [...previewData.communities, ...previewData.discover].find((item) => item.id === spaceId); }
 function postsFor(spaceId: string): CommunityPostSummary[] { return previewData.feed.filter((item) => item.communityId === spaceId).map(({ id, author, timeLabel, body, commentCount, reactionCount }) => ({ id, author, timeLabel, body, commentCount: previewComments[id]?.length ?? commentCount, reactionCount: reactionOverrides.get(id) ?? reactionCount })); }
 
 const previewRuntime: CommunityRuntime = {
   async loadTab() { return previewData; },
-  async loadSpace(spaceId) {
-    const card = cardFor(spaceId);
-    if (!card) throw new Error('Community space not found');
-    const membershipState = membershipOverrides.get(spaceId) ?? (previewData.communities.some((item) => item.id === spaceId) ? 'active' : 'none');
-    return { id: spaceId, name: card.name, subtitle: card.meta, membershipState, canJoin: membershipState === 'none', joinLabel: membershipState === 'pending' ? 'Solicitud enviada' : 'Únete a esta comunidad', joinDescription: membershipState === 'pending' ? 'Te avisaremos cuando se apruebe.' : 'Al unirte podrás participar según las reglas de esta comunidad.', joinActionLabel: 'Unirme', posts: postsFor(spaceId) };
-  },
-  async loadPost(spaceId, postId) {
-    const card = cardFor(spaceId); const post = postsFor(spaceId).find((item) => item.id === postId);
-    if (!card || !post) throw new Error('Community post not found');
-    return { communityName: card.name, post, comments: previewComments[postId] ?? [], canComment: (membershipOverrides.get(spaceId) ?? (previewData.communities.some((item) => item.id === spaceId) ? 'active' : 'none')) === 'active' };
-  },
+  async loadSpace(spaceId) { const card = cardFor(spaceId); if (!card) throw new Error('Community space not found'); const membershipState = membershipOverrides.get(spaceId) ?? (previewData.communities.some((item) => item.id === spaceId) ? 'active' : 'none'); return { id: spaceId, name: card.name, subtitle: card.meta, membershipState, canJoin: membershipState === 'none', joinLabel: membershipState === 'pending' ? 'Solicitud enviada' : 'Únete a esta comunidad', joinDescription: membershipState === 'pending' ? 'Te avisaremos cuando se apruebe.' : 'Al unirte podrás participar según las reglas de esta comunidad.', joinActionLabel: 'Unirme', posts: postsFor(spaceId) }; },
+  async loadPost(spaceId, postId) { const card = cardFor(spaceId); const post = postsFor(spaceId).find((item) => item.id === postId); if (!card || !post) throw new Error('Community post not found'); return { communityName: card.name, post, comments: previewComments[postId] ?? [], canComment: (membershipOverrides.get(spaceId) ?? (previewData.communities.some((item) => item.id === spaceId) ? 'active' : 'none')) === 'active' }; },
   async joinSpace(spaceId) { membershipOverrides.set(spaceId, 'active'); },
   async addComment(_spaceId, postId, body) { const list = previewComments[postId] ?? (previewComments[postId] = []); list.push({ id: `comment-${Date.now()}`, author: 'Tú', body, timeLabel: 'Ahora' }); },
   async reactToPost(_spaceId, postId) { const original = previewData.feed.find((item) => item.id === postId)?.reactionCount ?? 0; reactionOverrides.set(postId, (reactionOverrides.get(postId) ?? original) + 1); },
 };
 
-const baseUrl = () => process.env.EXPO_PUBLIC_PALTA_API_URL?.replace(/\/$/, '');
+// Community uses the same canonical runtime base URL as Home, Care, Local and other Palta modules.
+// Preview data is allowed only when no API base URL is configured; a configured but failing API must surface an error.
+const baseUrl = () => process.env.EXPO_PUBLIC_PALTA_API_BASE_URL?.replace(/\/$/, '');
 async function request<T>(path: string, init?: RequestInit): Promise<T> { const base = baseUrl(); if (!base) throw new Error('Community API not configured'); const response = await fetch(`${base}${path}`, { headers: { 'Content-Type': 'application/json', ...(init?.headers ?? {}) }, ...init }); if (!response.ok) throw new Error(`Community API ${response.status}`); return (response.status === 204 ? undefined : await response.json()) as T; }
 
 const httpRuntime: CommunityRuntime = {
