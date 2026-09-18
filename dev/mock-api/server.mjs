@@ -73,11 +73,12 @@ const server = http.createServer(async (req, res) => {
     const url = new URL(req.url, `http://${req.headers.host ?? `${host}:${port}`}`);
 
     if (req.method === 'GET' && url.pathname === '/health') {
-      return json(res, 200, { ok: true, service: 'palta-mock-api', version: '0.5.0' });
+      return json(res, 200, { ok: true, service: 'palta-mock-api', version: '0.6.0' });
     }
 
     if (req.method === 'GET' && url.pathname === '/v1/home') {
       const observedAt = new Date().toISOString();
+      const upcomingAt = new Date(Date.now() + 18 * 60 * 60 * 1000).toISOString();
       const [weather, benefits, news] = await Promise.all([
         getDevelopmentWeatherHome({
           latitude: devLatitude,
@@ -95,6 +96,7 @@ const server = http.createServer(async (req, res) => {
           weather.sourceState,
           { source_domain: 'mobility', data_mode: 'demo', observed_at: observedAt },
           { source_domain: 'care', data_mode: 'demo', observed_at: observedAt },
+          { source_domain: 'school', data_mode: 'demo', observed_at: observedAt },
           benefits.sourceState,
           news.sourceState,
         ],
@@ -127,6 +129,15 @@ const server = http.createServer(async (req, res) => {
             source_domain: 'local_business',
             delivery: 'home',
             care_track_id: 'care-demo-1',
+          },
+          {
+            id: 'home-upcoming-demo-1',
+            kind: 'status',
+            title: 'Entrega de documento',
+            body: 'Ejemplo temporal para revisar la zona PRÓXIMO antes de conectar calendarios reales.',
+            source_domain: 'school',
+            delivery: 'home',
+            scheduled_at: upcomingAt,
           },
           ...(benefits.item ? [benefits.item] : []),
           ...news.items,
