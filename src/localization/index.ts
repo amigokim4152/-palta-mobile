@@ -37,6 +37,13 @@ export {
 } from './careCatalog.js';
 
 export {
+  SURFACE_ES,
+  surfaceT,
+  type SurfaceInterpolation,
+  type SurfaceKey,
+} from './surfaceCatalog.js';
+
+export {
   hasTranslation,
   resolveLocalizedContent,
   type ContentTranslation,
