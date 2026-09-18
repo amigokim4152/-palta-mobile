@@ -37,7 +37,10 @@ const SELECTION_PADDING = {
   left: 24,
 } as const;
 
-const CATEGORY_MARKER_LABEL = [
+// MapLibre's RN typings model style expressions as mutable tuples. Keep these
+// expressions mutable at the type boundary so strict TypeScript does not turn
+// valid style expressions into incompatible readonly tuples.
+const CATEGORY_MARKER_LABEL: any = [
   'match',
   ['get', 'categoryKey'],
   'auto_repair',
@@ -107,9 +110,9 @@ const CATEGORY_MARKER_LABEL = [
   'service',
   '•',
   '•',
-] as const;
+];
 
-const ENTITY_MARKER_COLOR = [
+const ENTITY_MARKER_COLOR: any = [
   'case',
   ['==', ['get', 'selected'], true],
   paltaTheme.color.brandFresh,
@@ -126,17 +129,17 @@ const ENTITY_MARKER_COLOR = [
     '#59655E',
     paltaTheme.color.brandPrimary,
   ],
-] as const;
+];
 
-const OPERATIONAL_OPACITY = [
+const OPERATIONAL_OPACITY: any = [
   'match',
   ['get', 'operationalState'],
   ['closed_now', 'closed', 'temporarily_closed'],
   0.56,
   0.98,
-] as const;
+];
 
-const TIER_VISIBILITY = [
+const TIER_VISIBILITY: any = [
   'case',
   ['==', ['get', 'selected'], true],
   1,
@@ -145,11 +148,11 @@ const TIER_VISIBILITY = [
   ['==', ['get', 'markerTier'], 'local'],
   ['step', ['zoom'], 0, 13.6, 1],
   ['step', ['zoom'], 0, 14.6, 1],
-] as const;
+];
 
-const MARKER_OPACITY = ['*', OPERATIONAL_OPACITY, TIER_VISIBILITY] as const;
+const MARKER_OPACITY: any = ['*', OPERATIONAL_OPACITY, TIER_VISIBILITY];
 
-const MARKER_OUTER_RADIUS = [
+const MARKER_OUTER_RADIUS: any = [
   'case',
   ['==', ['get', 'selected'], true],
   16,
@@ -158,9 +161,9 @@ const MARKER_OUTER_RADIUS = [
   ['==', ['get', 'markerTier'], 'local'],
   ['step', ['zoom'], 0, 13.6, 11.5],
   ['step', ['zoom'], 0, 14.6, 11],
-] as const;
+];
 
-const MARKER_INNER_RADIUS = [
+const MARKER_INNER_RADIUS: any = [
   'case',
   ['==', ['get', 'selected'], true],
   11,
@@ -169,9 +172,9 @@ const MARKER_INNER_RADIUS = [
   ['==', ['get', 'markerTier'], 'local'],
   ['step', ['zoom'], 0, 13.6, 8],
   ['step', ['zoom'], 0, 14.6, 7.5],
-] as const;
+];
 
-const MARKER_TEXT_SIZE = [
+const MARKER_TEXT_SIZE: any = [
   'case',
   ['==', ['get', 'selected'], true],
   11.5,
@@ -180,7 +183,7 @@ const MARKER_TEXT_SIZE = [
   ['==', ['get', 'markerTier'], 'local'],
   ['step', ['zoom'], 0, 13.6, 9.2],
   ['step', ['zoom'], 0, 14.6, 9],
-] as const;
+];
 
 export function NeighborhoodMap({
   mapStyle,
