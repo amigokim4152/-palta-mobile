@@ -1,3 +1,4 @@
+export * from './autosAcquisitionCoordination.js';
 export * from './autosApiClient.js';
 export * from './autosCaptureFlow.js';
 export * from './autosContracts.js';
