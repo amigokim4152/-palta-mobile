@@ -1,0 +1,44 @@
+name: Palta Mobile Runtime Check
+
+on:
+  push:
+    branches:
+      - 'integration/**'
+    paths:
+      - 'mobile-overlay/**'
+      - 'src/**'
+      - '.github/workflows/mobile-runtime-check.yml'
+  pull_request:
+    paths:
+      - 'mobile-overlay/**'
+      - 'src/**'
+      - '.github/workflows/mobile-runtime-check.yml'
+
+jobs:
+  verify-mobile-runtime:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile-overlay
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.13.0'
+          cache: npm
+          cache-dependency-path: mobile-overlay/package.json
+
+      - name: Install mobile dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Typecheck mobile app and canonical core
+        run: npm run typecheck
+
+      - name: Validate Expo config
+        run: npm run config
+
+      - name: Bundle iOS JavaScript
+        run: npm run bundle:ios
