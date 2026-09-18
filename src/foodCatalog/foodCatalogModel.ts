@@ -62,6 +62,17 @@ export type PlatformFoodListing = Readonly<{
   source: FoodSourceEvidence;
 }>;
 
+/**
+ * A physical outlet can acquire more than one platform listing over time. Keep
+ * the current listing and historical/replaced listings attached to the same
+ * outlet rather than creating duplicate canonical businesses.
+ */
+export type FoodOutletPlatformPresence = Readonly<{
+  outletKey: string;
+  currentListing?: PlatformFoodListing;
+  relatedListings: readonly PlatformFoodListing[];
+}>;
+
 export type RawMenuItem = Readonly<{
   sourceItemName: string;
   /** Current observed sell price. Never assume it is permanent. */
