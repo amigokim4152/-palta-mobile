@@ -78,6 +78,10 @@ function selectTheme(
   ).slice(0, limit);
 }
 
+/**
+ * Builds the Play landing feed without turning it into an infinite content feed.
+ * Stable public/municipal supply remains visible regardless of the selected theme.
+ */
 export function composePlayFeed(input: {
   items: readonly PlayDiscoveryItem[];
   locality?: string;

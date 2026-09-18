@@ -205,7 +205,10 @@
       "branch_owned_paths": [
         "mobile-overlay/src/features/play",
         "mobile-overlay/src/app/(tabs)/play.tsx",
-        "src/play"
+        "src/play",
+        "src/discovery/canonicalDiscovery.ts",
+        "src/discovery/dataSourceRegistry.ts",
+        "src/partners/commercialDeal.ts"
       ],
       "reviewed_contract_paths": [
         "src/play/playDiscovery.ts",
@@ -213,7 +216,17 @@
         "src/play/businessPlayProjection.ts",
         "src/play/municipalEventProjection.ts",
         "src/play/playFeedComposer.ts",
-        "src/play/contextSpacePolicy.ts"
+        "src/play/contextSpacePolicy.ts",
+        "src/discovery/canonicalDiscovery.ts",
+        "src/discovery/dataSourceRegistry.ts",
+        "src/partners/commercialDeal.ts",
+        "src/play/panoramaIdentity.ts",
+        "src/play/playCanonicalization.ts",
+        "src/play/playCommercialCapability.ts",
+        "src/play/playEventIntegration.ts",
+        "src/play/canonicalDiscoveryProjection.ts",
+        "src/play/playSourcePort.ts",
+        "src/play/playSourceAssembler.ts"
       ]
     }
   ],

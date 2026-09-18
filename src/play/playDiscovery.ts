@@ -2,10 +2,13 @@ import type { PlayContentKind } from './playContentTaxonomy.js';
 
 export const playThemeKeys = [
   'today',
-  'weekend',
-  'family',
-  'couple',
+  'nearby',
   'free',
+  'family',
+  'weekend',
+  'culture',
+  'food',
+  'couple',
   'outdoor',
   'birthday',
 ] as const;
@@ -81,10 +84,33 @@ export type PlayDiscoveryItem = {
   alternateSources?: readonly PlayDiscoverySource[];
 };
 
+/**
+ * Panorama consumes only coarse discovery context. Precise coordinates stay in
+ * shared Location/Map infrastructure and are never part of this contract.
+ */
 export type PlayDiscoveryContext = {
   locality?: string;
   selectedTheme?: PlayThemeKey;
+  /** Explicit user-selected interests, not inferred tracking history. */
+  interestContentKinds?: readonly PlayContentKind[];
+  maxNearbyDistanceM?: number;
+  maxNearbyTravelTimeMinutes?: number;
 };
+
+const cultureKinds: readonly PlayContentKind[] = [
+  'movie',
+  'live_performance',
+  'concert',
+  'theater',
+  'comedy',
+  'exhibition',
+  'museum',
+  'library',
+  'festival',
+  'workshop',
+];
+
+const foodKinds: readonly PlayContentKind[] = ['food_outing'];
 
 export function isPublicPlayItem(item: PlayDiscoveryItem): boolean {
   return item.sourceKind === 'municipal_event' || item.sourceKind === 'public_program';
@@ -94,8 +120,24 @@ export function isBusinessPlayItem(item: PlayDiscoveryItem): boolean {
   return item.sourceKind === 'business' && Boolean(item.businessProjection?.businessId ?? item.businessId);
 }
 
-export function matchesPlayTheme(item: PlayDiscoveryItem, theme: PlayThemeKey): boolean {
+function isNearby(item: PlayDiscoveryItem, context: PlayDiscoveryContext): boolean {
+  if (context.locality && item.comuna === context.locality) return true;
+  const maxTravel = context.maxNearbyTravelTimeMinutes ?? 30;
+  const maxDistance = context.maxNearbyDistanceM ?? 10_000;
+  if (item.travelTimeMinutes !== undefined && item.travelTimeMinutes <= maxTravel) return true;
+  if (item.distanceM !== undefined && item.distanceM <= maxDistance) return true;
+  return false;
+}
+
+export function matchesPlayTheme(
+  item: PlayDiscoveryItem,
+  theme: PlayThemeKey,
+  context: PlayDiscoveryContext = {},
+): boolean {
   if (theme === 'free' && item.isFree) return true;
+  if (theme === 'nearby') return isNearby(item, context);
+  if (theme === 'culture' && cultureKinds.includes(item.contentKind)) return true;
+  if (theme === 'food' && foodKinds.includes(item.contentKind)) return true;
   return item.themeTags.includes(theme);
 }
 
@@ -150,6 +192,17 @@ function compareStartTime(left: PlayDiscoveryItem, right: PlayDiscoveryItem): nu
   return 0;
 }
 
+function compareExplicitInterest(
+  left: PlayDiscoveryItem,
+  right: PlayDiscoveryItem,
+  interests?: readonly PlayContentKind[],
+): number {
+  if (!interests?.length) return 0;
+  const leftRank = interests.includes(left.contentKind) ? 0 : 1;
+  const rightRank = interests.includes(right.contentKind) ? 0 : 1;
+  return leftRank - rightRank;
+}
+
 /** Organic ordering never accepts commission or deal terms. */
 export function selectPlayDiscoveryItems(
   items: readonly PlayDiscoveryItem[],
@@ -157,7 +210,7 @@ export function selectPlayDiscoveryItems(
 ): PlayDiscoveryItem[] {
   const validItems = items.filter((item) => validatePlayDiscoveryItem(item).length === 0);
   const filtered = context.selectedTheme
-    ? validItems.filter((item) => matchesPlayTheme(item, context.selectedTheme as PlayThemeKey))
+    ? validItems.filter((item) => matchesPlayTheme(item, context.selectedTheme as PlayThemeKey, context))
     : [...validItems];
 
   return filtered.sort((left, right) => {
@@ -170,6 +223,8 @@ export function selectPlayDiscoveryItems(
     if (leftLocal !== rightLocal) return leftLocal - rightLocal;
     const timeOrder = compareStartTime(left, right);
     if (timeOrder !== 0) return timeOrder;
+    const interestOrder = compareExplicitInterest(left, right, context.interestContentKinds);
+    if (interestOrder !== 0) return interestOrder;
     const leftPublic = isPublicPlayItem(left) ? 0 : 1;
     const rightPublic = isPublicPlayItem(right) ? 0 : 1;
     if (leftPublic !== rightPublic) return leftPublic - rightPublic;
