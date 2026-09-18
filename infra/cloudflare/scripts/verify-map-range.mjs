@@ -223,22 +223,40 @@ for (const value of ['school', 'college', 'university']) {
   assert(educationFilter.includes(value), `Education landuse missing ${value}`);
 }
 
-const fontHead = await fetch(fontUrl, { method: 'HEAD' });
-assert(fontHead.status === 200, `Font HEAD expected 200, got ${fontHead.status}`);
-const fontSize = Number(fontHead.headers.get('content-length'));
+async function getAssetSize(url, label) {
+  const head = await fetch(url, { method: 'HEAD' });
+  assert(head.status === 200, `${label} HEAD expected 200, got ${head.status}`);
+  const headSize = Number(head.headers.get('content-length'));
+  if (Number.isFinite(headSize) && headSize > 0) {
+    return { size: headSize, headers: head.headers };
+  }
+
+  // Some runtimes omit Content-Length from HEAD responses even though the
+  // production edge exposes it to other HTTP clients. Fall back to a one-byte
+  // Range request; Content-Range carries the authoritative full object size.
+  const ranged = await fetch(url, { headers: { Range: 'bytes=0-0' } });
+  assert(ranged.status === 206, `${label} range expected 206, got ${ranged.status}`);
+  const contentRange = ranged.headers.get('content-range') ?? '';
+  const match = contentRange.match(/^bytes\\s+0-0\\/(\\d+)$/i);
+  const rangeSize = Number(match?.[1]);
+  assert(
+    Number.isFinite(rangeSize) && rangeSize > 0,
+    `${label} missing full size in Content-Range: ${contentRange}`,
+  );
+  return { size: rangeSize, headers: ranged.headers };
+}
+
+const fontAsset = await getAssetSize(fontUrl, 'Font');
+const fontSize = fontAsset.size;
 assert(fontSize === 2049096, `Unexpected Noto Sans size: ${fontSize}`);
-const fontContentType = fontHead.headers.get('content-type') ?? '';
+const fontContentType = fontAsset.headers.get('content-type') ?? '';
 assert(
-  /font\/ttf|application\/x-font-ttf|application\/octet-stream/i.test(fontContentType),
+  /font\\/ttf|application\\/x-font-ttf|application\\/octet-stream/i.test(fontContentType),
   `Unexpected Noto Sans Content-Type: ${fontContentType}`,
 );
 
-const symbolFontHead = await fetch(symbolFontUrl, { method: 'HEAD' });
-assert(
-  symbolFontHead.status === 200,
-  `Symbol font HEAD expected 200, got ${symbolFontHead.status}`,
-);
-const symbolFontSize = Number(symbolFontHead.headers.get('content-length'));
+const symbolFontAsset = await getAssetSize(symbolFontUrl, 'Symbol font');
+const symbolFontSize = symbolFontAsset.size;
 assert(
   Number.isFinite(symbolFontSize) && symbolFontSize > 100000,
   `Unexpected Noto Sans Symbols 2 size: ${symbolFontSize}`,
