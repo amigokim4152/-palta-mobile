@@ -34,10 +34,10 @@ const validUpcoming: HomeFunctionalItem = {
 assert(validateHomeFunctionalItem(validUpcoming).length === 0, 'Valid upcoming item should pass.');
 assert(canRenderHomeFunctionalItem(validUpcoming), 'Valid upcoming item should render.');
 
+const { scheduledAt: _scheduledAt, ...withoutSchedule } = validUpcoming;
 const missingSchedule: HomeFunctionalItem = {
-  ...validUpcoming,
+  ...withoutSchedule,
   id: 'appointment-missing-time',
-  scheduledAt: undefined,
 };
 assert(
   validateHomeFunctionalItem(missingSchedule).some((error) => error.includes('scheduledAt')),
