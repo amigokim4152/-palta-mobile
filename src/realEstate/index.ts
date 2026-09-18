@@ -1,3 +1,3 @@
-export * from './realEstateContracts';
-export * from './realEstateDiscovery';
-export * from './realEstateEntry';
+export * from './realEstateContracts.js';
+export * from './realEstateDiscovery.js';
+export * from './realEstateEntry.js';
