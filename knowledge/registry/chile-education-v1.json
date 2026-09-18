@@ -1,0 +1,20 @@
+{
+  "registry_version": 1,
+  "country": "CL",
+  "checked_at": "2026-09-18",
+  "frameworks": [
+    {
+      "id": "CL-CURRICULUM-1-6-BASICO-2012",
+      "level_range": "1_basico..6_basico",
+      "status": "current",
+      "legal_refs": ["Decreto 433/2012", "Decreto 439/2012"],
+      "source": "https://www.curriculumnacional.cl/sites/default/files/adjuntos/recursos/2026-04/Cartilla%20N1.pdf"
+    }
+  ],
+  "grades_seeded": ["1_basico"],
+  "objective_refs_seeded": ["MA01 OA 01", "LE01 OA 01"],
+  "notes": [
+    "This registry stores curriculum identity and links. It does not copy full official materials by default.",
+    "2024 public-consultation update proposals must not be labeled current unless MINEDUC formally activates them."
+  ]
+}
