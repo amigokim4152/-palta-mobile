@@ -23,7 +23,10 @@ const businessId = local.body.items[0].entity_id;
 const business = await json(`/v1/business/${encodeURIComponent(businessId)}`);
 assert(business.response.ok && business.body.id === businessId, 'business detail failed');
 
-const idempotencyKey = 'smoke-quote-1';
+// Use a unique idempotency key per smoke run so the same long-lived mock API
+// process can be verified repeatedly. The second POST in this run still
+// proves idempotency by reusing this exact key and expecting the same Care ID.
+const idempotencyKey = `smoke-quote-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 const care = await json('/v1/care', {
   method: 'POST',
   headers: {
@@ -38,7 +41,6 @@ const care = await json('/v1/care', {
   }),
 });
 assert(care.response.status === 201 && care.body.state === 'wait', 'care create failed');
-
 
 const careRepeat = await json('/v1/care', {
   method: 'POST',

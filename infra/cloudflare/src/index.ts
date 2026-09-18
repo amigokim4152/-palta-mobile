@@ -50,12 +50,19 @@ function applyObjectHeaders(
   headers.set('Cache-Control', 'public, max-age=300, s-maxage=3600');
 }
 
-function contentRange(
-  range: R2RangeLike,
+function contentRangeFromRequest(
+  rangeHeader: string,
   total: number,
-): { value: string; length: number } {
-  if ('suffix' in range) {
-    const length = Math.min(range.suffix, total);
+): { value: string; length: number } | null {
+  const match = /^bytes=(\d*)-(\d*)$/.exec(rangeHeader.trim());
+  if (!match) return null;
+
+  const [, startText, endText] = match;
+
+  if (startText === '' && endText !== '') {
+    const suffix = Number(endText);
+    if (!Number.isFinite(suffix) || suffix <= 0) return null;
+    const length = Math.min(suffix, total);
     const start = total - length;
     return {
       value: `bytes ${start}-${total - 1}/${total}`,
@@ -63,11 +70,21 @@ function contentRange(
     };
   }
 
-  const length = Math.min(range.length, total - range.offset);
-  return {
-    value: `bytes ${range.offset}-${range.offset + length - 1}/${total}`,
-    length,
-  };
+  if (startText !== '') {
+    const start = Number(startText);
+    if (!Number.isFinite(start) || start < 0 || start >= total) return null;
+
+    const requestedEnd = endText === '' ? total - 1 : Number(endText);
+    if (!Number.isFinite(requestedEnd) || requestedEnd < start) return null;
+
+    const end = Math.min(requestedEnd, total - 1);
+    return {
+      value: `bytes ${start}-${end}/${total}`,
+      length: end - start + 1,
+    };
+  }
+
+  return null;
 }
 
 async function serveMapObject(
@@ -103,14 +120,17 @@ async function serveMapObject(
     return new Response(null, { status: 412, headers });
   }
 
-  if (object.range) {
-    const resolved = contentRange(object.range, object.size);
-    headers.set('Content-Range', resolved.value);
-    headers.set('Content-Length', String(resolved.length));
-    return new Response(object.body, {
-      status: 206,
-      headers,
-    });
+  const rangeHeader = request.headers.get('Range');
+  if (object.range && rangeHeader) {
+    const resolved = contentRangeFromRequest(rangeHeader, object.size);
+    if (resolved) {
+      headers.set('Content-Range', resolved.value);
+      headers.set('Content-Length', String(resolved.length));
+      return new Response(object.body, {
+        status: 206,
+        headers,
+      });
+    }
   }
 
   headers.set('Content-Length', String(object.size));
