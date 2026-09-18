@@ -153,6 +153,8 @@ export const MARKET_API_ROUTES = {
   discover: 'GET /v1/market/listings',
   listing: 'GET /v1/market/listings/:listingId',
   myListings: 'GET /v1/market/me/listings',
+  favoriteState: 'GET /v1/market/listings/:listingId/favorite',
+  myTransactions: 'GET /v1/market/me/transactions',
   createListing: 'POST /v1/market/listings',
   updateListing: 'PATCH /v1/market/listings/:listingId',
   transitionListing: 'POST /v1/market/listings/:listingId/status',
