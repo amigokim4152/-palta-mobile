@@ -1,0 +1,129 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.somospalta.cl/contracts/public-news-story-v1.schema.json",
+  "title": "Palta Public News Story v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["storyId", "slug", "section", "title", "summary", "contentClass", "publishedAt", "geography", "topic", "source", "actions"],
+  "properties": {
+    "storyId": {"type": "string", "minLength": 1},
+    "slug": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
+    "section": {"enum": ["essential", "nearby", "chile", "local", "deep_dive", "voices"]},
+    "title": {"type": "string", "minLength": 1},
+    "summary": {"type": "string", "minLength": 1},
+    "standfirst": {"type": "string"},
+    "contentClass": {"enum": ["external_summary", "official_source", "palta_original", "deep_dive", "local_voice"]},
+    "publishedAt": {"type": "string", "format": "date-time"},
+    "updatedAt": {"type": "string", "format": "date-time"},
+    "geography": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["countryCode", "precision"],
+      "properties": {
+        "countryCode": {"const": "CL"},
+        "regionCode": {"type": "string"},
+        "regionName": {"type": "string"},
+        "comunaCode": {"type": "string"},
+        "comunaName": {"type": "string"},
+        "localityName": {"type": "string"},
+        "precision": {"enum": ["country", "region", "comuna", "locality", "place"]}
+      }
+    },
+    "topic": {"type": "string", "minLength": 1},
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["label", "attribution", "sourceType"],
+      "properties": {
+        "label": {"type": "string", "minLength": 1},
+        "url": {"type": "string", "format": "uri"},
+        "attribution": {"type": "string", "minLength": 1},
+        "sourceType": {"enum": ["official", "media", "local_media", "radio", "community", "contributor", "palta"]}
+      }
+    },
+    "mapContext": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "label", "latitude", "longitude"],
+      "properties": {
+        "status": {"const": "verified"},
+        "label": {"type": "string", "minLength": 1},
+        "latitude": {"type": "number", "minimum": -90, "maximum": 90},
+        "longitude": {"type": "number", "minimum": -180, "maximum": 180},
+        "zoomHint": {"type": "number", "minimum": 0, "maximum": 24}
+      }
+    },
+    "actions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kind", "label", "target"],
+        "properties": {
+          "kind": {"enum": ["map", "follow_place", "alerts", "save", "event", "benefit", "procedure", "transport", "community"]},
+          "label": {"type": "string", "minLength": 1},
+          "target": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "correctionState": {"enum": ["none", "updated", "corrected"]},
+    "updatedNotice": {"type": "string"},
+    "body": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "whyItMatters": {"type": "string"},
+    "knownUnknown": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["known", "unknown"],
+      "properties": {
+        "known": {"type": "array", "items": {"type": "string"}},
+        "unknown": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "timeline": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["at", "label"],
+        "properties": {
+          "at": {"type": "string", "format": "date-time"},
+          "label": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "voiceType": {"enum": ["essay", "interview", "field_note", "photo_essay", "student_art", "local_memory", "proposal"]},
+    "contributorLabel": {"type": "string", "minLength": 1},
+    "perspectiveDisclosure": {"type": "string", "minLength": 1},
+    "mediaRights": {"enum": ["none_required", "cleared"]}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"contentClass": {"const": "local_voice"}}, "required": ["contentClass"]},
+      "then": {
+        "required": ["voiceType", "contributorLabel", "perspectiveDisclosure", "mediaRights"],
+        "properties": {
+          "section": {"const": "voices"},
+          "source": {
+            "type": "object",
+            "required": ["sourceType"],
+            "properties": {"sourceType": {"const": "contributor"}}
+          }
+        }
+      },
+      "else": {
+        "not": {
+          "anyOf": [
+            {"required": ["voiceType"]},
+            {"required": ["contributorLabel"]},
+            {"required": ["perspectiveDisclosure"]},
+            {"required": ["mediaRights"]}
+          ]
+        }
+      }
+    },
+    {
+      "if": {"properties": {"section": {"const": "voices"}}, "required": ["section"]},
+      "then": {"properties": {"contentClass": {"const": "local_voice"}}}
+    }
+  ]
+}

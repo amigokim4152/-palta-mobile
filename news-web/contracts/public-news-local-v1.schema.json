@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.somospalta.cl/contracts/public-news-local-v1.schema.json",
+  "title": "Palta Public News Local Page v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "locale",
+    "generatedAt",
+    "publicationGate",
+    "geography",
+    "heading",
+    "current",
+    "briefs",
+    "trackedTopics",
+    "crossModuleLinks",
+    "voices"
+  ],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "locale": {"const": "es-CL"},
+    "generatedAt": {"type": "string", "format": "date-time"},
+    "publicationGate": {"enum": ["open", "closed"]},
+    "geography": {"$ref": "public-news-home-v1.schema.json#/$defs/geography"},
+    "heading": {"type": "string", "minLength": 1},
+    "current": {
+      "type": "array",
+      "items": {"$ref": "public-news-home-v1.schema.json#/$defs/brief"}
+    },
+    "briefs": {
+      "type": "array",
+      "items": {"$ref": "public-news-home-v1.schema.json#/$defs/brief"}
+    },
+    "trackedTopics": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/trackedTopic"}
+    },
+    "crossModuleLinks": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/moduleLink"}
+    },
+    "voices": {
+      "type": "array",
+      "items": {"$ref": "public-news-voices-v1.schema.json#/$defs/voiceContribution"}
+    }
+  },
+  "$defs": {
+    "trackedTopic": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["topicId", "label", "status", "evidenceCount"],
+      "properties": {
+        "topicId": {"type": "string", "minLength": 1},
+        "label": {"type": "string", "minLength": 1},
+        "status": {"enum": ["watching", "developing", "stable"]},
+        "evidenceCount": {"type": "integer", "minimum": 0},
+        "deepDiveSlug": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"}
+      }
+    },
+    "moduleLink": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["module", "label", "target", "reason"],
+      "properties": {
+        "module": {"enum": ["events", "benefits", "procedures", "transport", "community", "map"]},
+        "label": {"type": "string", "minLength": 1},
+        "target": {"type": "string", "minLength": 1},
+        "reason": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}

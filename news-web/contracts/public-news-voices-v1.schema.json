@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.somospalta.cl/contracts/public-news-voices-v1.schema.json",
+  "title": "Palta Public News Voices v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "locale", "generatedAt", "publicationGate", "disclosure", "contributions"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "locale": {"const": "es-CL"},
+    "generatedAt": {"type": "string", "format": "date-time"},
+    "publicationGate": {"enum": ["open", "closed"]},
+    "disclosure": {"type": "string", "minLength": 1},
+    "contributions": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/voiceContribution"}
+    }
+  },
+  "$defs": {
+    "voiceContribution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "storyId",
+        "slug",
+        "section",
+        "title",
+        "summary",
+        "contentClass",
+        "publishedAt",
+        "geography",
+        "topic",
+        "source",
+        "actions",
+        "voiceType",
+        "contributorLabel",
+        "perspectiveDisclosure",
+        "mediaRights"
+      ],
+      "properties": {
+        "storyId": {"type": "string", "minLength": 1},
+        "slug": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
+        "section": {"const": "voices"},
+        "title": {"type": "string", "minLength": 1},
+        "summary": {"type": "string", "minLength": 1},
+        "contentClass": {"const": "local_voice"},
+        "publishedAt": {"type": "string", "format": "date-time"},
+        "updatedAt": {"type": "string", "format": "date-time"},
+        "geography": {"$ref": "public-news-home-v1.schema.json#/$defs/geography"},
+        "topic": {"type": "string", "minLength": 1},
+        "source": {"$ref": "public-news-home-v1.schema.json#/$defs/source"},
+        "mapContext": {"$ref": "public-news-home-v1.schema.json#/$defs/mapContext"},
+        "actions": {
+          "type": "array",
+          "items": {"$ref": "public-news-home-v1.schema.json#/$defs/action"}
+        },
+        "correctionState": {"enum": ["none", "updated", "corrected"]},
+        "updatedNotice": {"type": "string"},
+        "voiceType": {
+          "enum": ["essay", "interview", "field_note", "photo_essay", "student_art", "local_memory", "proposal"]
+        },
+        "contributorLabel": {"type": "string", "minLength": 1},
+        "perspectiveDisclosure": {"type": "string", "minLength": 1},
+        "mediaRights": {"enum": ["none_required", "cleared"]}
+      }
+    }
+  }
+}

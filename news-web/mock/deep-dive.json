@@ -1,0 +1,44 @@
+{
+  "storyId": "demo-deep-001",
+  "slug": "demo-cuando-un-problema-se-repite",
+  "section": "deep_dive",
+  "title": "Cuando un problema local se repite, ¿qué hay detrás?",
+  "summary": "Una estructura de demostración para separar hechos, patrones comprobables, explicaciones distintas y preguntas abiertas.",
+  "standfirst": "La profundidad no consiste en escribir más: consiste en distinguir evidencia, contexto, interpretaciones y lo que todavía no sabemos.",
+  "contentClass": "deep_dive",
+  "publishedAt": "2026-09-18T07:30:00-03:00",
+  "geography": {
+    "countryCode": "CL",
+    "regionName": "Región Metropolitana de Santiago",
+    "precision": "region"
+  },
+  "topic": "vida_local",
+  "source": {
+    "label": "Palta · demostración",
+    "attribution": "Plantilla editorial ficticia para validar la experiencia Deep Dive.",
+    "sourceType": "palta"
+  },
+  "actions": [
+    {"kind": "community", "label": "Conversar en Comunidad", "target": "palta://community/topic/demo-deep-001"},
+    {"kind": "alerts", "label": "Seguir el tema", "target": "palta://news/follow/demo-deep-001"}
+  ],
+  "body": [
+    "El punto de partida son hechos corroborados. Una repetición observada puede justificar seguimiento, pero no se presenta por sí sola como prueba de una causa.",
+    "Los antecedentes necesarios se organizan para entender cuándo empezó el tema, qué cambió y qué fuentes materiales permiten sostener cada afirmación.",
+    "Cuando corresponde, se distinguen factores individuales, comunitarios y estructurales sin atribuir motivaciones no demostradas a personas concretas."
+  ],
+  "whyItMatters": "El análisis vuelve a la vida cotidiana: qué servicio puede cambiar, qué acción existe y qué señales conviene seguir.",
+  "knownUnknown": {
+    "known": [
+      "La plantilla separa hechos, contexto e interpretación.",
+      "Las explicaciones relevantes deben atribuirse a fuentes identificables."
+    ],
+    "unknown": [
+      "Una señal repetida no demuestra por sí sola causalidad.",
+      "Los datos ausentes permanecen abiertos hasta contar con evidencia suficiente."
+    ]
+  },
+  "timeline": [
+    {"at": "2026-09-18T07:30:00-03:00", "label": "Inicio ficticio del seguimiento"}
+  ]
+}

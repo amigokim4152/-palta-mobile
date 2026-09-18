@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "locale": "es-CL",
+  "generatedAt": "2026-09-18T07:00:00-03:00",
+  "publicationGate": "closed",
+  "disclosure": "Estas contribuciones expresan la experiencia o mirada de sus autores. No son hechos noticiosos verificados ni la posición editorial de Palta.",
+  "contributions": [
+    {
+      "storyId": "demo-voice-interview-001",
+      "slug": "demo-entrevista-trabajo-local",
+      "section": "voices",
+      "title": "Aprendí a conocer el barrio por cómo cambia cada mañana",
+      "summary": "Entrevista ficticia con una persona que trabaja diariamente en la comuna.",
+      "contentClass": "local_voice",
+      "publishedAt": "2026-09-17T17:00:00-03:00",
+      "geography": {"countryCode": "CL", "regionName": "Región Metropolitana de Santiago", "comunaName": "Vitacura", "precision": "comuna"},
+      "topic": "trabajo_local",
+      "source": {"label": "Colaborador de demostración", "attribution": "Contenido ficticio para validar la interfaz.", "sourceType": "contributor"},
+      "actions": [],
+      "voiceType": "interview",
+      "contributorLabel": "Persona entrevistada · demostración",
+      "perspectiveDisclosure": "Testimonio personal; no se presenta como hecho generalizable.",
+      "mediaRights": "none_required"
+    },
+    {
+      "storyId": "demo-voice-art-001",
+      "slug": "demo-arte-estudiantil-barrio",
+      "section": "voices",
+      "title": "Así imagino mi barrio dentro de diez años",
+      "summary": "Muestra ficticia para validar una colección de arte estudiantil sin ranking de popularidad.",
+      "contentClass": "local_voice",
+      "publishedAt": "2026-09-17T16:00:00-03:00",
+      "geography": {"countryCode": "CL", "regionName": "Región Metropolitana de Santiago", "comunaName": "Vitacura", "precision": "comuna"},
+      "topic": "muestra_comunitaria",
+      "source": {"label": "Autor de demostración", "attribution": "Obra ficticia; una publicación real exigiría consentimiento y derechos confirmados.", "sourceType": "contributor"},
+      "actions": [],
+      "voiceType": "student_art",
+      "contributorLabel": "Nombre artístico o iniciales · demostración",
+      "perspectiveDisclosure": "Expresión creativa; no constituye una afirmación factual de Palta.",
+      "mediaRights": "cleared"
+    }
+  ]
+}

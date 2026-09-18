@@ -1,0 +1,39 @@
+{
+  "storyId": "demo-road-001",
+  "slug": "demo-trabajos-viales-tramo-local",
+  "section": "nearby",
+  "title": "Trabajos viales afectarán un tramo local durante la mañana",
+  "summary": "Ejemplo de cómo presentar un cambio localizado de forma breve y accionable.",
+  "standfirst": "La futura nota real explicará qué cambia, dónde, durante cuánto tiempo y qué puede hacer una persona afectada.",
+  "contentClass": "external_summary",
+  "publishedAt": "2026-09-18T09:20:00-03:00",
+  "updatedAt": "2026-09-18T10:05:00-03:00",
+  "geography": {
+    "countryCode": "CL",
+    "regionName": "Región Metropolitana de Santiago",
+    "comunaName": "Vitacura",
+    "precision": "comuna"
+  },
+  "topic": "movilidad",
+  "source": {
+    "label": "Fuente local de demostración",
+    "attribution": "Resumen ficticio para validación de interfaz; no corresponde a una noticia real.",
+    "sourceType": "local_media"
+  },
+  "actions": [
+    {"kind": "map", "label": "Ver en el mapa", "target": "palta://map?context=demo-road-001"},
+    {"kind": "follow_place", "label": "Seguir Vitacura", "target": "palta://place/comuna/vitacura/follow"},
+    {"kind": "save", "label": "Guardar", "target": "palta://news/save/demo-road-001"}
+  ],
+  "correctionState": "updated",
+  "updatedNotice": "Ejemplo de aviso visible cuando cambia un dato material.",
+  "whyItMatters": "Este bloque solo debe aparecer cuando existe una consecuencia concreta respaldada por información verificable.",
+  "knownUnknown": {
+    "known": ["Existe un cambio de demostración con alcance local y horario definido."],
+    "unknown": ["No se presenta ningún dato real de obra, calle o autoridad en esta maqueta."]
+  },
+  "timeline": [
+    {"at": "2026-09-18T09:20:00-03:00", "label": "Publicación de demostración"},
+    {"at": "2026-09-18T10:05:00-03:00", "label": "Actualización de demostración"}
+  ]
+}

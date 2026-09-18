@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.somospalta.cl/contracts/public-news-home-v1.schema.json",
+  "title": "Palta Public News Home v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "locale", "generatedAt", "publicationGate", "sections"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "locale": {"const": "es-CL"},
+    "generatedAt": {"type": "string", "format": "date-time"},
+    "publicationGate": {"enum": ["open", "closed"]},
+    "sections": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["essential", "nearby", "chile", "local", "deep_dive", "voices"],
+      "properties": {
+        "essential": {"type": "array", "items": {"$ref": "#/$defs/brief"}},
+        "nearby": {"type": "array", "items": {"$ref": "#/$defs/brief"}},
+        "chile": {"type": "array", "items": {"$ref": "#/$defs/brief"}},
+        "local": {"type": "array", "items": {"$ref": "#/$defs/brief"}},
+        "deep_dive": {"type": "array", "items": {"$ref": "#/$defs/brief"}},
+        "voices": {"type": "array", "items": {"$ref": "#/$defs/brief"}}
+      }
+    }
+  },
+  "$defs": {
+    "geography": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["countryCode", "precision"],
+      "properties": {
+        "countryCode": {"const": "CL"},
+        "regionCode": {"type": "string"},
+        "regionName": {"type": "string"},
+        "comunaCode": {"type": "string"},
+        "comunaName": {"type": "string"},
+        "localityName": {"type": "string"},
+        "precision": {"enum": ["country", "region", "comuna", "locality", "place"]}
+      }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["label", "attribution", "sourceType"],
+      "properties": {
+        "label": {"type": "string", "minLength": 1},
+        "url": {"type": "string", "format": "uri"},
+        "attribution": {"type": "string", "minLength": 1},
+        "sourceType": {"enum": ["official", "media", "local_media", "radio", "community", "contributor", "palta"]}
+      }
+    },
+    "mapContext": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "label", "latitude", "longitude"],
+      "properties": {
+        "status": {"const": "verified"},
+        "label": {"type": "string", "minLength": 1},
+        "latitude": {"type": "number", "minimum": -90, "maximum": 90},
+        "longitude": {"type": "number", "minimum": -180, "maximum": 180},
+        "zoomHint": {"type": "number", "minimum": 0, "maximum": 24}
+      }
+    },
+    "action": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "label", "target"],
+      "properties": {
+        "kind": {"enum": ["map", "follow_place", "alerts", "save", "event", "benefit", "procedure", "transport", "community"]},
+        "label": {"type": "string", "minLength": 1},
+        "target": {"type": "string", "minLength": 1}
+      }
+    },
+    "brief": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["storyId", "slug", "section", "title", "summary", "contentClass", "publishedAt", "geography", "topic", "source", "actions"],
+      "properties": {
+        "storyId": {"type": "string", "minLength": 1},
+        "slug": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
+        "section": {"enum": ["essential", "nearby", "chile", "local", "deep_dive", "voices"]},
+        "title": {"type": "string", "minLength": 1},
+        "summary": {"type": "string", "minLength": 1},
+        "contentClass": {"enum": ["external_summary", "official_source", "palta_original", "deep_dive", "local_voice"]},
+        "publishedAt": {"type": "string", "format": "date-time"},
+        "updatedAt": {"type": "string", "format": "date-time"},
+        "geography": {"$ref": "#/$defs/geography"},
+        "topic": {"type": "string", "minLength": 1},
+        "source": {"$ref": "#/$defs/source"},
+        "mapContext": {"$ref": "#/$defs/mapContext"},
+        "actions": {"type": "array", "items": {"$ref": "#/$defs/action"}},
+        "correctionState": {"enum": ["none", "updated", "corrected"]},
+        "updatedNotice": {"type": "string"}
+      }
+    }
+  }
+}
