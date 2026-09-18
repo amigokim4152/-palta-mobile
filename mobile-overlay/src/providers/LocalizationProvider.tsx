@@ -7,7 +7,6 @@ import React, {
   useState,
   type ReactNode,
 } from 'react';
-import { getLocales } from 'expo-localization';
 import * as SecureStore from 'expo-secure-store';
 
 import {
@@ -34,9 +33,12 @@ type LocalizationContextValue = {
 const LocalizationContext = createContext<LocalizationContextValue | null>(null);
 
 function deviceLocales(): string[] {
-  return getLocales()
-    .map((locale) => locale.languageTag)
-    .filter((value): value is string => Boolean(value));
+  try {
+    const locale = Intl.DateTimeFormat().resolvedOptions().locale;
+    return locale ? [locale] : [];
+  } catch {
+    return [];
+  }
 }
 
 export function LocalizationProvider({ children }: { children: ReactNode }) {
