@@ -1,0 +1,74 @@
+name: Palta PWA Preview
+
+on:
+  push:
+    branches:
+      - integration/pwa-business-onboarding-v1
+    paths:
+      - 'mobile-overlay/**'
+      - 'src/**'
+      - '.github/workflows/pwa-preview-pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: palta-pwa-preview-pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile-overlay
+    env:
+      PALTA_WEB_BASE_URL: /palta-mobile
+      EXPO_PUBLIC_ENV: preview
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.13.0'
+          cache: npm
+          cache-dependency-path: mobile-overlay/package.json
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Export PWA
+        run: npm run bundle:web
+
+      - name: Add SPA fallback for direct links
+        run: cp .expo-export/web/index.html .expo-export/web/404.html
+
+      - name: Disable Jekyll
+        run: touch .expo-export/web/.nojekyll
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload PWA artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: mobile-overlay/.expo-export/web
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy PWA preview
+        id: deployment
+        uses: actions/deploy-pages@v4
