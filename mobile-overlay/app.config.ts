@@ -30,6 +30,10 @@ const config: ExpoConfig = {
   android: {
     package: 'cl.somospalta.app',
   },
+  web: {
+    bundler: 'metro',
+    output: 'single',
+  },
   experiments: {
     typedRoutes: true,
   },
