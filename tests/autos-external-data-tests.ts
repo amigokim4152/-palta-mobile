@@ -3,6 +3,7 @@ import {
   reconcileDealerSeedCandidate,
   type AutosDealerDirectorySnapshot,
 } from '../src/autos/autosDealerSeedIngestion.js';
+import { buildVehicleSalePreparation } from '../src/autos/autosSalePreparation.js';
 import {
   createSiiTasacionSnapshotAdapter,
   validateSiiTasacionSnapshot,
@@ -84,6 +85,24 @@ const missing = await siiAdapter.lookup({
 });
 assert(missing === null, 'Unknown vehicles should remain unresolved instead of receiving an invented value.');
 
+const officialPreparation = buildVehicleSalePreparation({
+  snapshots: byCode ? [byCode] : [],
+  salePriceClp: 14_000_000,
+  costBearer: 'buyer',
+});
+assert(officialPreparation.fiscalValuation.state === 'verified', 'Resolved SII valuation should be marked verified.');
+assert(officialPreparation.transactionEstimate.taxableBaseClp === 15_000_000, 'Verified fiscal value should apply the legal floor.');
+assert(officialPreparation.userActionRequiredNow === false, 'An official match should require no extra user input.');
+
+const minimumPreparation = buildVehicleSalePreparation({
+  snapshots: [],
+  salePriceClp: 14_000_000,
+  costBearer: 'buyer',
+});
+assert(minimumPreparation.estimateConfidence === 'minimum_without_fiscal_value', 'Missing SII data should produce a clearly limited estimate.');
+assert(minimumPreparation.transactionEstimate.taxableBaseClp === 14_000_000, 'Minimum estimate should use known sale price without inventing fiscal value.');
+assert(minimumPreparation.userActionRequiredNow === false, 'Missing public data should not block the selling flow prematurely.');
+
 const dealerSnapshot: AutosDealerDirectorySnapshot = {
   snapshotId: 'cavem-centro-test',
   source: 'cavem_public_directory',
@@ -135,4 +154,4 @@ assert(
 const unresolved = reconcileDealerSeedCandidate(candidates.find((candidate) => candidate.displayName.includes('BILBAO'))!, []);
 assert(unresolved.status === 'new_business_candidate', 'An unmatched public-directory row must remain a candidate, not a verified dealer.');
 
-console.log('PASS: Autos external data snapshot and dealer seed ingestion');
+console.log('PASS: Autos external data snapshot, dealer seed ingestion and sale preparation');
