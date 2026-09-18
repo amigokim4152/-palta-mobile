@@ -57,10 +57,19 @@ const previewComments: Record<string, CommunityComment[]> = {
 
 const membershipOverrides = new Map<string, CommunityMembershipState>();
 const reactionOverrides = new Map<string, number>();
+
+function projectedFeed(): CommunityFeedItem[] {
+  return previewData.feed.map((item) => ({
+    ...item,
+    commentCount: previewComments[item.id]?.length ?? item.commentCount,
+    reactionCount: reactionOverrides.get(item.id) ?? item.reactionCount,
+  }));
+}
+
 function cardFor(spaceId: string) { return [...previewData.communities, ...previewData.discover].find((item) => item.id === spaceId); }
-function postsFor(spaceId: string): CommunityPostSummary[] { return previewData.feed.filter((item) => item.communityId === spaceId).map(({ id, author, timeLabel, body, commentCount, reactionCount }) => ({ id, author, timeLabel, body, commentCount: previewComments[id]?.length ?? commentCount, reactionCount: reactionOverrides.get(id) ?? reactionCount })); }
+function postsFor(spaceId: string): CommunityPostSummary[] { return projectedFeed().filter((item) => item.communityId === spaceId).map(({ id, author, timeLabel, body, commentCount, reactionCount }) => ({ id, author, timeLabel, body, commentCount, reactionCount })); }
 const previewRuntime: CommunityRuntime = {
-  async loadTab() { return previewData; },
+  async loadTab() { return { ...previewData, feed: projectedFeed() }; },
   async loadSpace(spaceId) { const card = cardFor(spaceId); if (!card) throw new Error('Community space not found'); const membershipState = membershipOverrides.get(spaceId) ?? (previewData.communities.some((item) => item.id === spaceId) ? 'active' : 'none'); return { id: spaceId, name: card.name, subtitle: card.meta, membershipState, canJoin: membershipState === 'none', joinLabel: membershipState === 'pending' ? 'Solicitud enviada' : 'Únete a esta comunidad', joinDescription: membershipState === 'pending' ? 'Te avisaremos cuando se apruebe.' : 'Al unirte podrás participar según las reglas de esta comunidad.', joinActionLabel: 'Unirme', posts: postsFor(spaceId) }; },
   async loadPost(spaceId, postId) { const card = cardFor(spaceId); const post = postsFor(spaceId).find((item) => item.id === postId); if (!card || !post) throw new Error('Community post not found'); return { communityName: card.name, post, comments: previewComments[postId] ?? [], canComment: (membershipOverrides.get(spaceId) ?? (previewData.communities.some((item) => item.id === spaceId) ? 'active' : 'none')) === 'active' }; },
   async joinSpace(spaceId) { membershipOverrides.set(spaceId, 'active'); },
