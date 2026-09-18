@@ -65,9 +65,11 @@ assert(
   'Negocios must open directly on the map; results belong in the connected bottom sheet rather than a separate list-first screen.',
 );
 assert(
-  discovery.includes('initialCenter={neighborhood.camera?.center ?? neighborhood.effectiveLocation}') &&
+  discovery.includes('neighborhood.camera?.center ??') &&
+  discovery.includes('neighborhood.effectiveLocation ??') &&
+  discovery.includes('SANTIAGO_EXPLORATION_ORIGIN') &&
   discovery.includes('initialZoom={neighborhood.camera?.zoom ?? 14}'),
-  'Map must restore the persisted discovery camera when returning from detail/Care.',
+  'Map must restore the persisted discovery camera first, then fall back to user location or Santiago.',
 );
 assert(
   discovery.includes('selectedBusiness') &&
