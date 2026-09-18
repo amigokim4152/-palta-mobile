@@ -90,11 +90,11 @@ const serialized = serializeRealEstateListingQuery({
   minBedrooms: 2,
 });
 const restored = parseRealEstateListingQueryParams({
-  q: serialized.q,
-  transaction: serialized.transaction,
-  propertyType: serialized.propertyType,
-  maxPriceClp: serialized.maxPriceClp,
-  minBedrooms: serialized.minBedrooms,
+  ...(serialized.q !== undefined ? { q: serialized.q } : {}),
+  ...(serialized.transaction !== undefined ? { transaction: serialized.transaction } : {}),
+  ...(serialized.propertyType !== undefined ? { propertyType: serialized.propertyType } : {}),
+  ...(serialized.maxPriceClp !== undefined ? { maxPriceClp: serialized.maxPriceClp } : {}),
+  ...(serialized.minBedrooms !== undefined ? { minBedrooms: serialized.minBedrooms } : {}),
 });
 assert(restored.text === 'Providencia', 'Saved search must restore text.');
 assert(restored.transactionType === 'rent', 'Saved search must restore transaction type.');
@@ -153,6 +153,7 @@ const inquiry = createRealEstateInquiryDraft({
   financingQuestion: false,
 }, { id: 'inquiry-1', now: '2026-09-18T12:00:00Z' });
 assert(inquiry.status === 'ready_to_send', 'A valid inquiry may be prepared for sending.');
-assert(inquiry.status !== 'sent', 'Demo inquiry must never mark itself sent without Message/Care handoff.');
+const persistedInquiryStatus: string = inquiry.status;
+assert(persistedInquiryStatus !== 'sent', 'Demo inquiry must never mark itself sent without Message/Care handoff.');
 
 console.log('PASS: real-estate discovery, saved-search, publishing and inquiry core contracts');
