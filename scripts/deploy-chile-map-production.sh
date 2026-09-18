@@ -11,7 +11,7 @@ MAP_FILE="${PALTA_CHILE_MAP_FILE:-/Users/user/palta-data/work/maps/chile/basemap
 VERSION="${PALTA_MAP_VERSION:-2026.09.17.1}"
 BUCKET="${PALTA_MAP_BUCKET:-narevu-data}"
 OBJECT_KEY="palta/cl/maps/basemap/versions/${VERSION}/basemap.pmtiles"
-UPLOADER_BASE="${PALTA_MAP_UPLOADER_BASE:-https://palta-map-uploader.kimeuisin.workers.dev}"
+UPLOADER_BASE_OVERRIDE="${PALTA_MAP_UPLOADER_BASE:-}"
 PRODUCTION_BASE="${PALTA_MAP_PRODUCTION_BASE:-https://palta-map-edge.kimeuisin.workers.dev}"
 WRANGLER_VERSION="${PALTA_WRANGLER_VERSION:-4.133.0}"
 PART_SIZE_BYTES="${PALTA_MAP_PART_SIZE_BYTES:-52428800}"
@@ -28,7 +28,7 @@ info() {
   echo "[Palta Map Production] $1"
 }
 
-for cmd in git node npm npx curl python3 openssl shasum dd stat mktemp; do
+for cmd in git node npm npx curl python3 openssl shasum dd stat mktemp grep tail tee sleep; do
   command -v "$cmd" >/dev/null 2>&1 || fail "Required command not found: $cmd"
 done
 
@@ -60,15 +60,16 @@ TMP_DIR="$(mktemp -d /tmp/palta-map-production.XXXXXX)"
 UPLOAD_ID=""
 UPLOAD_COMPLETE=0
 UPLOADER_DEPLOYED=0
+UPLOADER_BASE=""
 
 cleanup() {
   set +e
-  if [ "$UPLOAD_COMPLETE" -eq 0 ] && [ -n "$UPLOAD_ID" ] && [ "$UPLOADER_DEPLOYED" -eq 1 ]; then
+  if [ "$UPLOAD_COMPLETE" -eq 0 ] && [ -n "$UPLOAD_ID" ] && [ "$UPLOADER_DEPLOYED" -eq 1 ] && [ -n "$UPLOADER_BASE" ]; then
     python3 - "$OBJECT_KEY" "$UPLOAD_ID" > "$TMP_DIR/abort.json" <<'PY'
 import json, sys
 print(json.dumps({"key": sys.argv[1], "uploadId": sys.argv[2]}))
 PY
-    curl -fsS \
+    curl -sS \
       -X POST \
       -H "Authorization: Bearer $TOKEN" \
       -H 'Content-Type: application/json' \
@@ -87,10 +88,50 @@ PY
 trap cleanup EXIT INT TERM
 
 info "Deploying temporary authenticated multipart uploader..."
+DEPLOY_LOG="$TMP_DIR/uploader-deploy.log"
 npx --yes "wrangler@${WRANGLER_VERSION}" deploy \
   --config "$UPLOADER_CONFIG" \
-  --var "UPLOAD_TOKEN:$TOKEN"
+  --var "UPLOAD_TOKEN:$TOKEN" 2>&1 | tee "$DEPLOY_LOG"
 UPLOADER_DEPLOYED=1
+
+if [ -n "$UPLOADER_BASE_OVERRIDE" ]; then
+  UPLOADER_BASE="${UPLOADER_BASE_OVERRIDE%/}"
+else
+  UPLOADER_BASE="$(grep -Eo 'https://[A-Za-z0-9.-]+\.workers\.dev' "$DEPLOY_LOG" | tail -1 || true)"
+fi
+[ -n "$UPLOADER_BASE" ] || fail "Could not discover deployed uploader URL from Wrangler output."
+info "Uploader endpoint: $UPLOADER_BASE"
+
+info "Waiting for uploader readiness..."
+READY=0
+for ATTEMPT in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
+  HEALTH_BODY="$TMP_DIR/health-${ATTEMPT}.json"
+  HEALTH_CODE="$(curl -sS -o "$HEALTH_BODY" -w '%{http_code}' "$UPLOADER_BASE/health" || true)"
+  if [ "$HEALTH_CODE" = "200" ]; then
+    if python3 - "$HEALTH_BODY" <<'PY'
+import json, sys
+try:
+    with open(sys.argv[1], encoding='utf-8') as f:
+        data = json.load(f)
+except Exception:
+    raise SystemExit(1)
+raise SystemExit(0 if data.get('ok') and data.get('service') == 'palta-map-uploader' else 1)
+PY
+    then
+      READY=1
+      break
+    fi
+  fi
+  info "Uploader not ready yet (attempt $ATTEMPT/15, HTTP ${HEALTH_CODE:-network-error}); retrying..."
+  sleep 2
+done
+
+if [ "$READY" -ne 1 ]; then
+  echo "Last uploader health response:" >&2
+  cat "$TMP_DIR/health-15.json" >&2 2>/dev/null || true
+  fail "Temporary uploader did not become ready at $UPLOADER_BASE"
+fi
+info "Uploader is ready."
 
 python3 - "$OBJECT_KEY" "$SHA256" "$FILE_SIZE" > "$TMP_DIR/start.json" <<'PY'
 import json, sys
@@ -102,12 +143,21 @@ print(json.dumps({
 PY
 
 info "Starting R2 multipart upload..."
-curl -fsS \
+START_CODE="$(curl -sS \
+  -o "$TMP_DIR/start-response.json" \
+  -w '%{http_code}' \
   -X POST \
   -H "Authorization: Bearer $TOKEN" \
   -H 'Content-Type: application/json' \
   --data-binary "@$TMP_DIR/start.json" \
-  "$UPLOADER_BASE/start" > "$TMP_DIR/start-response.json"
+  "$UPLOADER_BASE/start" || true)"
+
+if [ "$START_CODE" != "200" ]; then
+  echo "Uploader /start response (HTTP $START_CODE):" >&2
+  cat "$TMP_DIR/start-response.json" >&2 2>/dev/null || true
+  echo >&2
+  fail "Could not start R2 multipart upload."
+fi
 
 UPLOAD_ID="$(python3 - "$TMP_DIR/start-response.json" <<'PY'
 import json, sys
@@ -124,9 +174,13 @@ PART=1
 while [ "$PART" -le "$PART_COUNT" ]; do
   info "Uploading part $PART/$PART_COUNT..."
   RESPONSE_FILE="$TMP_DIR/part-${PART}.json"
+  HTTP_FILE="$TMP_DIR/part-${PART}.http"
 
+  set +e
   dd if="$MAP_FILE" bs="$PART_SIZE_BYTES" skip=$((PART - 1)) count=1 2>/dev/null \
-    | curl -fsS \
+    | curl -sS \
+        -o "$RESPONSE_FILE" \
+        -w '%{http_code}' \
         -X PUT \
         -H "Authorization: Bearer $TOKEN" \
         -H "X-Palta-Key: $OBJECT_KEY" \
@@ -134,7 +188,17 @@ while [ "$PART" -le "$PART_COUNT" ]; do
         -H "X-Palta-Part-Number: $PART" \
         -H 'Content-Type: application/octet-stream' \
         --data-binary @- \
-        "$UPLOADER_BASE/part" > "$RESPONSE_FILE"
+        "$UPLOADER_BASE/part" > "$HTTP_FILE"
+  PIPE_STATUS=$?
+  set -e
+
+  PART_CODE="$(cat "$HTTP_FILE" 2>/dev/null || true)"
+  if [ "$PIPE_STATUS" -ne 0 ] || [ "$PART_CODE" != "200" ]; then
+    echo "Part $PART response (HTTP ${PART_CODE:-network-error}):" >&2
+    cat "$RESPONSE_FILE" >&2 2>/dev/null || true
+    echo >&2
+    fail "Part $PART upload failed."
+  fi
 
   python3 - "$RESPONSE_FILE" "$PART" >> "$TMP_DIR/parts.jsonl" <<'PY'
 import json, sys
@@ -158,12 +222,21 @@ print(json.dumps({"key": key, "uploadId": upload_id, "parts": parts}))
 PY
 
 info "Completing R2 multipart upload..."
-curl -fsS \
+COMPLETE_CODE="$(curl -sS \
+  -o "$TMP_DIR/complete-response.json" \
+  -w '%{http_code}' \
   -X POST \
   -H "Authorization: Bearer $TOKEN" \
   -H 'Content-Type: application/json' \
   --data-binary "@$TMP_DIR/complete.json" \
-  "$UPLOADER_BASE/complete" > "$TMP_DIR/complete-response.json"
+  "$UPLOADER_BASE/complete" || true)"
+
+if [ "$COMPLETE_CODE" != "200" ]; then
+  echo "Uploader /complete response (HTTP $COMPLETE_CODE):" >&2
+  cat "$TMP_DIR/complete-response.json" >&2 2>/dev/null || true
+  echo >&2
+  fail "Multipart completion failed."
+fi
 
 python3 - "$TMP_DIR/complete-response.json" <<'PY'
 import json, sys
