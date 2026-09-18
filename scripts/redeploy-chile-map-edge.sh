@@ -9,7 +9,7 @@ PRODUCTION_CONFIG="$ROOT/infra/cloudflare/wrangler.map-production.jsonc"
 VERIFY_SCRIPT="$ROOT/infra/cloudflare/scripts/verify-map-range.mjs"
 PRODUCTION_BASE="${PALTA_MAP_PRODUCTION_BASE:-https://palta-map-edge.kimeuisin.workers.dev}"
 VERSION="${PALTA_MAP_VERSION:-2026.09.17.1}"
-STYLE_VERSION="${PALTA_MAP_STYLE_VERSION:-palta-v1.3}"
+STYLE_VERSION="${PALTA_MAP_STYLE_VERSION:-palta-v1.4}"
 OBJECT_KEY="${PALTA_MAP_OBJECT_KEY:-palta/cl/maps/basemap/versions/${VERSION}/basemap.pmtiles}"
 BUCKET="${PALTA_MAP_BUCKET:-palta-data}"
 FONT_OBJECT_KEY="palta/cl/maps/fonts/noto-sans/1edf95b/NotoSans.ttf"
@@ -88,6 +88,6 @@ done
 [ "$READY" -eq 1 ] || fail "Production map edge did not become ready with $STYLE_VERSION."
 
 info "Running live manifest/style/font/PMTiles verification..."
-node "$VERIFY_SCRIPT" "$PRODUCTION_BASE"
+PALTA_EXPECTED_MAP_STYLE_VERSION="$STYLE_VERSION" node "$VERIFY_SCRIPT" "$PRODUCTION_BASE"
 
 info "SUCCESS: Palta Chile Map Edge verified using existing palta-data PMTiles."
