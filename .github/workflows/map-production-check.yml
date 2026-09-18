@@ -6,6 +6,7 @@ on:
       - 'infra/cloudflare/**'
       - 'src/local/businessSnapshot.ts'
       - 'scripts/deploy-chile-map-production.sh'
+      - 'scripts/deploy-local-business-production.sh'
       - 'scripts/redeploy-chile-map-edge.sh'
       - 'scripts/run-ios-production-map-safe.sh'
       - 'scripts/inspect-local-place-data.mjs'
@@ -23,6 +24,7 @@ on:
       - 'infra/cloudflare/**'
       - 'src/local/businessSnapshot.ts'
       - 'scripts/deploy-chile-map-production.sh'
+      - 'scripts/deploy-local-business-production.sh'
       - 'scripts/redeploy-chile-map-edge.sh'
       - 'scripts/run-ios-production-map-safe.sh'
       - 'scripts/inspect-local-place-data.mjs'
@@ -44,6 +46,7 @@ jobs:
       - name: Script syntax
         run: |
           bash -n scripts/deploy-chile-map-production.sh
+          bash -n scripts/deploy-local-business-production.sh
           bash -n scripts/redeploy-chile-map-edge.sh
           bash -n scripts/run-ios-production-map-safe.sh
           bash -n scripts/inspect-local-place-summary.sh
