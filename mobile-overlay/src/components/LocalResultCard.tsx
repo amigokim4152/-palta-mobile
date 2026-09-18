@@ -56,6 +56,9 @@ export function LocalResultCard({
     .filter((value): value is string => Boolean(value));
   const labels = serviceLabels.filter(Boolean).slice(0, 2);
   const isOpenNow = status === 'Abierto ahora';
+  // Verification already appears as a compact trust cue in meta. Keep the
+  // single highlight slot for a real current reason such as a benefit or update.
+  const usefulHighlight = highlight === 'Negocio verificado' ? undefined : highlight;
 
   return (
     <Pressable
@@ -190,7 +193,7 @@ export function LocalResultCard({
             </Text>
           ) : null}
 
-          {highlight ? (
+          {usefulHighlight ? (
             <View
               style={{
                 alignSelf: 'flex-start',
@@ -210,7 +213,7 @@ export function LocalResultCard({
                   fontWeight: '700',
                 }}
               >
-                {highlight}
+                {usefulHighlight}
               </Text>
             </View>
           ) : null}
