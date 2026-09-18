@@ -3,6 +3,7 @@ set -euo pipefail
 
 TARGET_BRANCH="${PALTA_SIMULATOR_BRANCH:-integration/simulator-runtime-fix-v1}"
 MOCK_PORT="${PALTA_MOCK_PORT:-8787}"
+BACKUP_DIR=""
 
 fail() {
   echo "FAIL: $1" >&2
@@ -35,32 +36,67 @@ git fetch origin "$TARGET_BRANCH:refs/remotes/origin/$TARGET_BRANCH" >/dev/null
 REF="origin/$TARGET_BRANCH"
 git rev-parse --verify "$REF" >/dev/null 2>&1 || fail "Cannot resolve $REF after fetch."
 
-SOURCE_PATH="mobile-overlay/src/hooks/useAsyncResource.ts"
-DEST_PATH="$APP_DIR/src/hooks/useAsyncResource.ts"
+ensure_backup_dir() {
+  if [ -z "$BACKUP_DIR" ]; then
+    BACKUP_DIR="/tmp/palta-simulator-backup-$(date +%Y%m%d-%H%M%S)"
+    mkdir -p "$BACKUP_DIR"
+  fi
+}
+
+restore_ref_file() {
+  SOURCE_PATH="$1"
+  DEST_PATH="$2"
+  LABEL="$3"
+
+  git cat-file -e "$REF:$SOURCE_PATH" 2>/dev/null || fail "Recovery source missing: $SOURCE_PATH"
+  TMP_SOURCE="$(mktemp /tmp/palta-restore.XXXXXX)"
+  git show "$REF:$SOURCE_PATH" > "$TMP_SOURCE"
+  mkdir -p "$(dirname "$DEST_PATH")"
+
+  if [ -f "$DEST_PATH" ] && ! cmp -s "$TMP_SOURCE" "$DEST_PATH"; then
+    ensure_backup_dir
+    SAFE_NAME="$(printf '%s' "$SOURCE_PATH" | tr '/' '_')"
+    cp "$DEST_PATH" "$BACKUP_DIR/$SAFE_NAME"
+    info "Backed up previous $LABEL to $BACKUP_DIR/$SAFE_NAME"
+  fi
+
+  if [ ! -f "$DEST_PATH" ] || ! cmp -s "$TMP_SOURCE" "$DEST_PATH"; then
+    cp "$TMP_SOURCE" "$DEST_PATH"
+    info "Restored verified $LABEL."
+  else
+    info "$LABEL is already on the verified version."
+  fi
+  rm -f "$TMP_SOURCE"
+}
+
+restore_ref_file \
+  "mobile-overlay/src/hooks/useAsyncResource.ts" \
+  "$APP_DIR/src/hooks/useAsyncResource.ts" \
+  "async-resource loop fix"
+
+restore_ref_file \
+  "mobile-overlay/src/components/map/NeighborhoodMap.tsx" \
+  "$APP_DIR/src/components/map/NeighborhoodMap.tsx" \
+  "last working MapLibre component"
+
+restore_ref_file \
+  "mobile-overlay/src/features/neighborhood/NeighborhoodScreen.tsx" \
+  "$APP_DIR/src/features/neighborhood/NeighborhoodScreen.tsx" \
+  "last working Barrio screen"
+
+EXPERIMENTAL_STYLE="$APP_DIR/src/components/map/paltaDevelopmentMapStyle.ts"
+if [ -f "$EXPERIMENTAL_STYLE" ]; then
+  ensure_backup_dir
+  cp "$EXPERIMENTAL_STYLE" "$BACKUP_DIR/paltaDevelopmentMapStyle.ts"
+  rm -f "$EXPERIMENTAL_STYLE"
+  info "Removed failed experimental PMTiles style from local app."
+fi
+
 SMOKE_PATH="dev/mock-api/smoke.mjs"
-git cat-file -e "$REF:$SOURCE_PATH" 2>/dev/null || fail "Recovery source missing: $SOURCE_PATH"
 git cat-file -e "$REF:$SMOKE_PATH" 2>/dev/null || fail "Recovery smoke test missing: $SMOKE_PATH"
-
-mkdir -p "$(dirname "$DEST_PATH")"
-TMP_SOURCE="$(mktemp /tmp/palta-useAsyncResource.XXXXXX)"
 TMP_SMOKE="$(mktemp /tmp/palta-smoke.XXXXXX.mjs)"
-trap 'rm -f "$TMP_SOURCE" "$TMP_SMOKE"' EXIT
-git show "$REF:$SOURCE_PATH" > "$TMP_SOURCE"
+trap 'rm -f "$TMP_SMOKE"' EXIT
 git show "$REF:$SMOKE_PATH" > "$TMP_SMOKE"
-
-if [ -f "$DEST_PATH" ] && ! cmp -s "$TMP_SOURCE" "$DEST_PATH"; then
-  BACKUP_DIR="/tmp/palta-simulator-backup-$(date +%Y%m%d-%H%M%S)"
-  mkdir -p "$BACKUP_DIR"
-  cp "$DEST_PATH" "$BACKUP_DIR/useAsyncResource.ts"
-  info "Backed up previous hook to $BACKUP_DIR/useAsyncResource.ts"
-fi
-
-if [ ! -f "$DEST_PATH" ] || ! cmp -s "$TMP_SOURCE" "$DEST_PATH"; then
-  cp "$TMP_SOURCE" "$DEST_PATH"
-  info "Applied verified async-resource loop fix to local Expo app."
-else
-  info "Async-resource fix is already present."
-fi
 
 export EXPO_PUBLIC_PALTA_API_BASE_URL="http://127.0.0.1:${MOCK_PORT}"
 export EXPO_PUBLIC_ENV="development"
@@ -117,6 +153,6 @@ if [ ! -d node_modules ]; then
   npm install
 fi
 
-info "Building, installing, and launching Palta on iOS Simulator..."
+info "Building, installing, and launching the last verified Palta Simulator state..."
 info "Target UDID: $UDID"
 npx expo run:ios --device "$UDID"
