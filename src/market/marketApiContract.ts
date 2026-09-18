@@ -11,6 +11,7 @@ import type {
   MarketReviewTag,
   MarketTransactionRecord,
   MarketTransactionReview,
+  PaltaUserId,
 } from './marketPersistenceContract.js';
 
 export type MarketApiErrorCode =
@@ -37,6 +38,23 @@ export type MarketApiError = {
 export type MarketCursorPage<T> = {
   items: T[];
   nextCursor?: string;
+};
+
+/**
+ * Participant-safe private projection for authenticated transaction history.
+ * The API resolves this from canonical Palta Profile/Trust data. It must never
+ * expose provider auth ids, phone/email or another user's exact location.
+ */
+export type MarketTransactionCounterpartySummary = {
+  userId: PaltaUserId;
+  displayName: string;
+  neighborhoodVerified: boolean;
+  completedTrades: number;
+};
+
+export type MarketTransactionView = MarketTransactionRecord & {
+  /** The other participant relative to the authenticated viewer. */
+  counterparty: MarketTransactionCounterpartySummary;
 };
 
 export type DiscoverMarketListingsQuery = {
@@ -130,7 +148,7 @@ export interface MarketReadPort {
   listMyTransactions(input?: {
     cursor?: string;
     limit?: number;
-  }): Promise<MarketCursorPage<MarketTransactionRecord>>;
+  }): Promise<MarketCursorPage<MarketTransactionView>>;
 }
 
 export interface MarketMutationPort {
