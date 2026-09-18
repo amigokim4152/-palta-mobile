@@ -102,7 +102,10 @@
         "src/market/marketCatalog.ts",
         "src/market/marketVerticalPolicy.ts",
         "src/market/marketLifecycle.ts",
-        "src/market/marketMessageIntent.ts"
+        "src/market/marketMessageIntent.ts",
+        "src/market/marketPersistenceContract.ts",
+        "src/market/marketApiContract.ts",
+        "src/market/marketAccessPolicy.ts"
       ]
     },
     {
