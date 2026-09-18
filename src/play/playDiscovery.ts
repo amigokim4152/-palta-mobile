@@ -47,6 +47,11 @@ export type PlayBusinessProjectionRef = Readonly<{
 
 export type PlayDiscoveryItem = {
   id: string;
+  /**
+   * Stable cross-source identity when an upstream adapter can provide it.
+   * When absent, Play canonicalization derives a conservative fingerprint.
+   */
+  canonicalKey?: string;
   sourceKind: PlaySourceKind;
   /** What the user can do, independent of the upstream provider/category vocabulary. */
   contentKind: PlayContentKind;
@@ -67,10 +72,14 @@ export type PlayDiscoveryItem = {
   distanceLabel?: string;
   experienceTags?: readonly string[];
   primaryAction?: PlayDiscoveryAction;
+  /** Alternate non-commercial actions discovered from duplicate source records. */
+  alternateActions?: readonly PlayDiscoveryAction[];
   placeId?: string;
   businessId?: string;
   businessProjection?: PlayBusinessProjectionRef;
   source: PlayDiscoverySource;
+  /** Additional corroborating sources after cross-source deduplication. */
+  alternateSources?: readonly PlayDiscoverySource[];
 };
 
 export type PlayDiscoveryContext = {
@@ -102,6 +111,7 @@ function isHttpUrl(value: string): boolean {
 export function validatePlayDiscoveryItem(item: PlayDiscoveryItem): readonly string[] {
   const issues: string[] = [];
   if (!item.id.trim()) issues.push('play_item_id_required');
+  if (item.canonicalKey !== undefined && !item.canonicalKey.trim()) issues.push('canonical_key_invalid');
   if (!item.contentKind?.trim()) issues.push('content_kind_required');
   if (!item.title.trim()) issues.push('title_required');
   if (!item.comuna.trim()) issues.push('comuna_required');
@@ -112,6 +122,9 @@ export function validatePlayDiscoveryItem(item: PlayDiscoveryItem): readonly str
   }
   if (item.primaryAction && !isHttpUrl(item.primaryAction.url)) {
     issues.push('primary_action_url_invalid');
+  }
+  for (const action of item.alternateActions ?? []) {
+    if (!isHttpUrl(action.url)) issues.push('alternate_action_url_invalid');
   }
   if (item.sourceKind === 'business' && !canonicalBusinessId(item)?.trim()) {
     issues.push('canonical_business_id_required');
