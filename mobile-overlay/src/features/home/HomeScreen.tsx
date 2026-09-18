@@ -70,6 +70,8 @@ export function HomeScreen() {
   const todayItems = selection.items.filter(
     (item) => item.kind === 'useful_today' || item.kind === 'content',
   );
+  const hasDemoData =
+    data?.source_state?.some((item) => item.data_mode === 'demo') ?? false;
 
   const openCare = useCallback((careTrackId?: string) => {
     if (!careTrackId) return;
@@ -113,6 +115,32 @@ export function HomeScreen() {
               {data.locality_label ?? 'Tu zona'}
             </Text>
           </View>
+
+          {hasDemoData ? (
+            <View
+              accessibilityRole="text"
+              style={{
+                marginTop: -18,
+                alignSelf: 'flex-start',
+                borderRadius: paltaTheme.radius.pill,
+                backgroundColor: paltaTheme.color.surfaceMuted,
+                paddingHorizontal: 10,
+                paddingVertical: 6,
+              }}
+            >
+              <Text
+                allowFontScaling
+                style={{
+                  fontSize: 12,
+                  lineHeight: 16,
+                  fontWeight: '700',
+                  color: paltaTheme.color.textMuted,
+                }}
+              >
+                Vista de desarrollo · datos de ejemplo
+              </Text>
+            </View>
+          ) : null}
 
           {data.glance && data.glance.length > 0 ? (
             <GlanceCluster
