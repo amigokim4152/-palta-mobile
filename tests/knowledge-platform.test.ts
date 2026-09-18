@@ -10,6 +10,7 @@ import { canonicalKnowledgeChangedEvent } from '../src/knowledge/events.js';
 import { knowledgeToHomeCandidate } from '../src/knowledge/homeProjection.js';
 import { validateCanonicalPublicBoundary } from '../src/knowledge/publicPrivateBoundary.js';
 import { revisionConflict } from '../src/knowledge/revision.js';
+import { routeKnowledgeContent } from '../src/knowledge/scopeBoundary.js';
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
@@ -62,6 +63,13 @@ assert(learningNeedsPrivateStorage({
   state: 'learning',
   updatedAt: '2026-09-18T07:50:00Z',
 }), 'Learner progress must always use private storage.');
+
+assert(routeKnowledgeContent('durable_knowledge').storageLane === 'canonical_git', 'Durable knowledge must use canonical Git storage.');
+assert(routeKnowledgeContent('public_benefit').storageLane === 'public_data_event_core', 'Municipal/public benefits must stay outside canonical knowledge.');
+assert(routeKnowledgeContent('public_event').storageLane === 'public_data_event_core', 'Cultural schedules must stay in Public Data/Event Core.');
+assert(routeKnowledgeContent('dynamic_observation').storageLane === 'dynamic_read_model', 'Current prices/availability observations must remain dynamic.');
+assert(routeKnowledgeContent('news').storageLane === 'news_system', 'News must remain a separate Palta system.');
+assert(routeKnowledgeContent('private_context').storageLane === 'private_store', 'Private context must remain isolated from public canonical knowledge.');
 
 const profile: KnowledgeDomainProfile = {
   domain: 'music',
