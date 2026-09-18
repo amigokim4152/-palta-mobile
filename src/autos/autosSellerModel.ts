@@ -88,6 +88,8 @@ export type VehicleBusinessOfferStatus =
   | 'expired'
   | 'withdrawn';
 
+export type VehicleBusinessOfferKind = 'preliminary' | 'firm';
+
 export type VehicleBusinessOffer = {
   id: string;
   acquisitionRequestId: string;
@@ -97,7 +99,45 @@ export type VehicleBusinessOffer = {
   submittedAt: string;
   expiresAt?: string;
   note?: string;
+  kind?: VehicleBusinessOfferKind;
+  inspectionRequired?: boolean;
 };
+
+export type VehicleOfferAdjustmentReason =
+  | 'undisclosed_damage'
+  | 'mechanical_difference'
+  | 'mileage_difference'
+  | 'document_difference'
+  | 'other_verified_difference';
+
+export type VehicleOfferAdjustment = {
+  id: string;
+  offerId: string;
+  previousAmountClp: number;
+  revisedAmountClp: number;
+  reason: VehicleOfferAdjustmentReason;
+  explanation: string;
+  evidenceRefs: readonly string[];
+  createdAt: string;
+};
+
+export function validateVehicleOfferAdjustment(
+  adjustment: VehicleOfferAdjustment,
+): { valid: boolean; reason?: string } {
+  if (adjustment.previousAmountClp <= 0 || adjustment.revisedAmountClp <= 0) {
+    return { valid: false, reason: 'Offer amounts must be positive.' };
+  }
+  if (adjustment.revisedAmountClp >= adjustment.previousAmountClp) {
+    return { valid: false, reason: 'This adjustment contract is only for downward revisions.' };
+  }
+  if (!adjustment.explanation.trim()) {
+    return { valid: false, reason: 'A downward revision requires an explanation.' };
+  }
+  if (adjustment.evidenceRefs.length === 0) {
+    return { valid: false, reason: 'A downward revision requires inspection evidence.' };
+  }
+  return { valid: true };
+}
 
 export function validateVehicleListingPublisherRelationship(
   relationship: VehicleListingPublisherRelationship,
