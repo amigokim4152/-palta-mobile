@@ -6,11 +6,14 @@ import {
   type VehicleSaleMilestone,
 } from '../../../../src/autos/autosSaleCare';
 import { buildVehicleSalePreparation } from '../../../../src/autos/autosSalePreparation';
+import type { VehicleOfferAdjustmentReason } from '../../../../src/autos/autosSellerModel';
 import { paltaTheme } from '../../theme/paltaTheme';
 import { findDemoAcquisitionRequest } from './autosAcquisitionDemoState';
 import {
+  acceptDemoVehicleFinalPrice,
   advanceDemoVehicleSaleCare,
   ensureDemoVehicleSaleCare,
+  requestDemoVehiclePriceReview,
   useAutosSaleCareDemoState,
 } from './autosSaleCareDemoState';
 
@@ -21,11 +24,18 @@ function clp(value: number) {
 const nextActionLabel: Partial<Record<VehicleSaleMilestone, string>> = {
   offer_selected: 'Coordinar inspección',
   inspection_scheduled: 'Confirmar inspección realizada',
-  inspection_completed: 'Revisar precio final',
   final_price_confirmed: 'Confirmar pago',
   payment_confirmed: 'Iniciar transferencia',
   transfer_started: 'Confirmar transferencia inscrita',
   transfer_registered: 'Confirmar entrega del vehículo',
+};
+
+const adjustmentReasonLabel: Record<VehicleOfferAdjustmentReason, string> = {
+  undisclosed_damage: 'Daño no visible en la información inicial',
+  mechanical_difference: 'Diferencia mecánica comprobada',
+  mileage_difference: 'Diferencia de kilometraje',
+  document_difference: 'Diferencia documental',
+  other_verified_difference: 'Otra diferencia verificada',
 };
 
 export function AutosSaleCareScreen() {
@@ -62,6 +72,10 @@ export function AutosSaleCareScreen() {
   const latest = care.records[care.records.length - 1];
   const done = latest?.milestone === 'vehicle_handed_over';
   const actionLabel = latest ? nextActionLabel[latest.milestone] : undefined;
+  const priceReview = care.priceReview;
+  const priceDifferenceClp = priceReview
+    ? priceReview.originalOfferClp - priceReview.proposedFinalPriceClp
+    : 0;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: paltaTheme.color.canvas }}>
@@ -91,6 +105,76 @@ export function AutosSaleCareScreen() {
             La automotora elegida todavía no necesita ver tu teléfono ni tu ubicación exacta. Puedes coordinar dentro de Palta. Si una visita requiere compartir un dato privado, Palta te lo mostrará y pedirá confirmación justo antes de enviarlo.
           </Text>
         </View>
+
+        {latest?.milestone === 'inspection_completed' && priceReview ? (
+          <View style={{ padding: paltaTheme.spacing.md, gap: paltaTheme.spacing.sm, borderRadius: paltaTheme.radius.surface, borderWidth: 1, borderColor: paltaTheme.color.divider, backgroundColor: paltaTheme.color.surface }}>
+            <View style={{ gap: 3 }}>
+              <Text style={{ fontSize: 12, fontWeight: '900', color: paltaTheme.color.textMuted }}>Después de la inspección</Text>
+              <Text style={{ fontSize: 19, fontWeight: '900', color: paltaTheme.color.textPrimary }}>Revisa cualquier ajuste antes de aceptar</Text>
+              <Text style={{ fontSize: 12, lineHeight: 18, color: paltaTheme.color.textSecondary }}>
+                Una automotora no puede bajar la oferta sin indicar qué cambió, cuánto afecta y qué evidencia respalda el ajuste.
+              </Text>
+            </View>
+
+            <View style={{ paddingVertical: paltaTheme.spacing.sm, gap: 5 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: paltaTheme.spacing.sm }}>
+                <Text style={{ fontSize: 13, color: paltaTheme.color.textSecondary }}>Oferta elegida</Text>
+                <Text style={{ fontSize: 14, fontWeight: '800', color: paltaTheme.color.textPrimary }}>{clp(priceReview.originalOfferClp)}</Text>
+              </View>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: paltaTheme.spacing.sm }}>
+                <Text style={{ fontSize: 13, color: paltaTheme.color.textSecondary }}>Ajustes comprobados</Text>
+                <Text style={{ fontSize: 14, fontWeight: '800', color: paltaTheme.color.danger }}>− {clp(priceDifferenceClp)}</Text>
+              </View>
+              <View style={{ height: 1, backgroundColor: paltaTheme.color.divider }} />
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: paltaTheme.spacing.sm }}>
+                <Text style={{ fontSize: 14, fontWeight: '900', color: paltaTheme.color.textPrimary }}>Precio final propuesto</Text>
+                <Text style={{ fontSize: 18, fontWeight: '900', color: paltaTheme.color.textPrimary }}>{clp(priceReview.proposedFinalPriceClp)}</Text>
+              </View>
+            </View>
+
+            {priceReview.adjustments.map((adjustment) => (
+              <View key={adjustment.id} style={{ padding: paltaTheme.spacing.sm, gap: 5, borderRadius: paltaTheme.radius.control, backgroundColor: paltaTheme.color.surfaceMuted }}>
+                <Text style={{ fontSize: 13, fontWeight: '900', color: paltaTheme.color.textPrimary }}>{adjustmentReasonLabel[adjustment.reason]}</Text>
+                <Text style={{ fontSize: 12, lineHeight: 18, color: paltaTheme.color.textSecondary }}>{adjustment.explanation}</Text>
+                <Text style={{ fontSize: 12, fontWeight: '800', color: paltaTheme.color.textSecondary }}>
+                  Impacto: − {clp(adjustment.previousAmountClp - adjustment.revisedAmountClp)} · Evidencia adjunta: {adjustment.evidenceRefs.length}
+                </Text>
+              </View>
+            ))}
+
+            {priceReview.status === 'review_requested' ? (
+              <View style={{ padding: paltaTheme.spacing.sm, gap: 4, borderRadius: paltaTheme.radius.control, backgroundColor: paltaTheme.color.brandSoft }}>
+                <Text style={{ fontSize: 13, fontWeight: '900', color: paltaTheme.color.brandPrimary }}>Revisión solicitada</Text>
+                <Text style={{ fontSize: 12, lineHeight: 18, color: paltaTheme.color.textSecondary }}>
+                  El precio todavía no está aceptado. Palta mantiene la venta en espera hasta que la automotora responda o tú decidas continuar.
+                </Text>
+              </View>
+            ) : (
+              <View style={{ gap: paltaTheme.spacing.xs }}>
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => acceptDemoVehicleFinalPrice(requestId)}
+                  style={({ pressed }) => ({
+                    minHeight: 50,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderRadius: paltaTheme.radius.control,
+                    backgroundColor: pressed ? paltaTheme.color.brandMid : paltaTheme.color.brandPrimary,
+                  })}
+                >
+                  <Text style={{ fontSize: 14, fontWeight: '900', color: paltaTheme.color.surface }}>Aceptar precio final</Text>
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => requestDemoVehiclePriceReview(requestId)}
+                  style={{ minHeight: 46, alignItems: 'center', justifyContent: 'center' }}
+                >
+                  <Text style={{ fontSize: 13, fontWeight: '900', color: paltaTheme.color.brandPrimary }}>Solicitar revisión del ajuste</Text>
+                </Pressable>
+              </View>
+            )}
+          </View>
+        ) : null}
 
         <View style={{ padding: paltaTheme.spacing.md, gap: 7, borderRadius: paltaTheme.radius.surface, borderWidth: 1, borderColor: paltaTheme.color.divider, backgroundColor: paltaTheme.color.surface }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: paltaTheme.spacing.sm }}>
