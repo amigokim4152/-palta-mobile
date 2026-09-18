@@ -2,8 +2,7 @@ import type {
   MarketCategoryKey,
   MarketTradeMode,
 } from '../../../../src/market/marketCatalog';
-
-export type MarketListingStatus = 'active' | 'reserved';
+import type { MarketListingStatus } from '../../../../src/market/marketLifecycle';
 
 export type MarketPreviewListing = {
   id: string;
