@@ -1,0 +1,182 @@
+{
+  "registryVersion": 1,
+  "repository": "amigokim4152/palta-mobile",
+  "checkedAt": "2026-09-18",
+  "baseFoundationSha": "ca196e888f28099c9ea71029aaf7fe6978e65a4d",
+  "branches": [
+    {
+      "branch": "integration/auth-profile-core-v1",
+      "sha": "09b740817e7eb0429076b02ba54dff6f81d5f6e4",
+      "primaryLane": "private_store",
+      "domains": ["identity", "profile"],
+      "expectedDataOwnership": ["auth identity", "profile state", "consent/profile boundaries"],
+      "verificationStatus": "needs_verification"
+    },
+    {
+      "branch": "integration/commercial-core-v1",
+      "sha": "e50c50abdfc413a673090282341c024440ead7b6",
+      "primaryLane": "product_core",
+      "domains": ["commerce", "pos", "payment", "fiscal", "printing"],
+      "expectedDataOwnership": ["orders", "payments", "receipts/invoices", "POS transaction state"],
+      "verificationStatus": "corroborated"
+    },
+    {
+      "branch": "integration/community-runtime-v1",
+      "sha": "b6e23e56951ea8615885ee6b90e71b621692cb5e",
+      "primaryLane": "product_core",
+      "domains": ["community"],
+      "expectedDataOwnership": ["posts", "groups", "membership", "community interaction state"],
+      "verificationStatus": "needs_verification"
+    },
+    {
+      "branch": "integration/data-platform-v1",
+      "sha": "23b38231783d660472c95861ff650fb34d459efe",
+      "primaryLane": "registry_control",
+      "domains": ["all"],
+      "expectedDataOwnership": ["cross-domain asset registry", "data classification contracts", "data ownership map"],
+      "verificationStatus": "verified"
+    },
+    {
+      "branch": "integration/design-system-v1",
+      "sha": "74a73a381a4289eefb4725b26052714dfb8bb320",
+      "primaryLane": "asset_pipeline",
+      "domains": ["design-system"],
+      "expectedDataOwnership": ["design tokens", "UI assets", "component visual contracts"],
+      "verificationStatus": "needs_verification"
+    },
+    {
+      "branch": "integration/foundation-authorization-policy-v1",
+      "sha": "ca196e888f28099c9ea71029aaf7fe6978e65a4d",
+      "primaryLane": "foundation",
+      "domains": ["cross-domain"],
+      "expectedDataOwnership": ["shared contracts", "authorization/privacy invariants", "provider-neutral ports"],
+      "verificationStatus": "verified"
+    },
+    {
+      "branch": "integration/home-functional-foundation-v1",
+      "sha": "dbadb63721ddc1836ccb323f8e12cd6c7b62c30c",
+      "primaryLane": "product_projection",
+      "domains": ["home"],
+      "expectedDataOwnership": ["Home projection/composition behavior"],
+      "verificationStatus": "needs_verification"
+    },
+    {
+      "branch": "integration/home-runtime-v1",
+      "sha": "50029cb6267da5ed982e6f0ff2615868613f3cc4",
+      "primaryLane": "product_projection",
+      "domains": ["home"],
+      "expectedDataOwnership": ["runtime Home projection state"],
+      "verificationStatus": "needs_verification"
+    },
+    {
+      "branch": "integration/home-source-runtime-recovery-v1",
+      "sha": "9dc92d944b74aae3455df0ed27593f15533fa257",
+      "primaryLane": "recovery",
+      "domains": ["home"],
+      "expectedDataOwnership": ["Home source/runtime recovery work"],
+      "verificationStatus": "needs_verification"
+    },
+    {
+      "branch": "integration/home-visual-baseline-v1",
+      "sha": "c6d21b807232e91b9469ffadcc5870cf27f4e77b",
+      "primaryLane": "asset_pipeline",
+      "domains": ["home", "design-system"],
+      "expectedDataOwnership": ["Home visual baseline/reference"],
+      "verificationStatus": "needs_verification"
+    },
+    {
+      "branch": "integration/journey-client-v1",
+      "sha": "bb8445e902fb0b69bea7d9195f16c6c59c94f56f",
+      "primaryLane": "product_projection",
+      "domains": ["mobility", "journey"],
+      "expectedDataOwnership": ["journey client contracts/projections"],
+      "verificationStatus": "needs_verification"
+    },
+    {
+      "branch": "integration/knowledge-platform-v1",
+      "sha": "cca1c904ec6b2957d33b8f295a42f7d913014e24",
+      "primaryLane": "knowledge_ops",
+      "domains": ["knowledge", "education", "health", "pets", "food", "music", "art", "finance", "culture"],
+      "expectedDataOwnership": ["canonical Knowledge contracts", "Bodega registry", "Learning Layer contracts"],
+      "verificationStatus": "verified"
+    },
+    {
+      "branch": "integration/local-business-foundation-v1",
+      "sha": "79b784b69de28a1651afca11351a4c768968af8b",
+      "primaryLane": "canonical_domain",
+      "domains": ["local-business"],
+      "expectedDataOwnership": ["Local Business foundational canonical contracts"],
+      "verificationStatus": "needs_verification"
+    },
+    {
+      "branch": "integration/local-business-v1",
+      "sha": "0d9e5f9f79ddcbdbd7d33ac78eacb9fc21668470",
+      "primaryLane": "product_core",
+      "domains": ["local-business"],
+      "expectedDataOwnership": ["business product state", "owner-managed business capabilities"],
+      "verificationStatus": "needs_verification"
+    },
+    {
+      "branch": "integration/local-runtime-recovery-v1",
+      "sha": "3c24972d1a8fc664049d1e6c702bba04699051a5",
+      "primaryLane": "recovery",
+      "domains": ["local"],
+      "expectedDataOwnership": ["local runtime recovery work"],
+      "verificationStatus": "needs_verification"
+    },
+    {
+      "branch": "integration/map-production-cl-v1",
+      "sha": "9757259fd48d79c3eb4411df5bd196c145c95cea",
+      "primaryLane": "data_factory",
+      "domains": ["map", "geo"],
+      "expectedDataOwnership": ["Chile map production references", "PMTiles delivery integration"],
+      "verificationStatus": "needs_verification"
+    },
+    {
+      "branch": "integration/map-runtime-v1",
+      "sha": "af25246dce61a634270b90d9c4d4ea7b2113b399",
+      "primaryLane": "product_projection",
+      "domains": ["map"],
+      "expectedDataOwnership": ["Map runtime/rendering state"],
+      "verificationStatus": "needs_verification"
+    },
+    {
+      "branch": "integration/message-core-v1",
+      "sha": "8ff34340b4105738f67cab8b0df1a75f1a5d4961",
+      "primaryLane": "product_core",
+      "domains": ["message"],
+      "expectedDataOwnership": ["message/conversation state and delivery contracts"],
+      "verificationStatus": "corroborated"
+    },
+    {
+      "branch": "integration/news-web-v1",
+      "sha": "663bff1179b0b63743cb95b0c5c6f63e63f58e74",
+      "primaryLane": "news_editorial",
+      "domains": ["news"],
+      "expectedDataOwnership": ["news public web projection", "news presentation/runtime"],
+      "verificationStatus": "needs_verification"
+    },
+    {
+      "branch": "integration/platform-runtime-foundation-v1",
+      "sha": "4bbc9a6b69512f213a1e653fc65c6c9fd708bdac",
+      "primaryLane": "runtime_foundation",
+      "domains": ["cross-domain runtime"],
+      "expectedDataOwnership": ["runtime adapters/infrastructure contracts"],
+      "verificationStatus": "needs_verification"
+    },
+    {
+      "branch": "integration/repository-normalization-v1",
+      "sha": "0af7057ea4be69122024b91962aaeb676cba3000",
+      "primaryLane": "repository_governance",
+      "domains": ["repository"],
+      "expectedDataOwnership": ["repository structure/normalization decisions"],
+      "verificationStatus": "needs_verification"
+    }
+  ],
+  "rules": [
+    "Branch presence does not make a branch the final Source of Truth; merge/adoption must be explicit.",
+    "Branches marked needs_verification were mapped from branch identity and must be inspected before ownership is finalized.",
+    "Product branches may consume canonical IDs but must not silently fork canonical datasets.",
+    "Recovery branches are not canonical data owners by default."
+  ]
+}
