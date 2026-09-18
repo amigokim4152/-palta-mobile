@@ -109,6 +109,9 @@ function paymentRow(intent: PaymentIntent = baseIntent): Row {
     authorization_code: intent.authorizationCode ?? null,
     card_brand: intent.cardBrand ?? null,
     card_last4: intent.cardLast4 ?? null,
+    card_funding_type: intent.cardFundingType ?? null,
+    installment_count: intent.installmentCount ?? null,
+    installment_amount_minor: intent.installmentAmount?.amountMinor ?? null,
     fee_minor: intent.fee?.amountMinor ?? null,
     settlement_status: intent.settlementStatus,
     settlement_reference: intent.settlementReference ?? null,
@@ -194,6 +197,9 @@ const paidIntent: PaymentIntent = {
     '2026-09-17T14:40:01.000Z',
   ),
   processedAmount: { currency: 'CLP', amountMinor: 30000 },
+  cardFundingType: 'credit',
+  installmentCount: 3,
+  installmentAmount: { currency: 'CLP', amountMinor: 10000 },
 };
 const paidEvent: PaymentEvent = {
   id: '88888888-8888-4888-8888-888888888888',
@@ -227,9 +233,12 @@ assert(
     updated.intent.revision === 1 &&
     updated.intent.processedAmount?.amountMinor === 30000 &&
     updated.intent.amount.amountMinor === 45000 &&
+    updated.intent.cardFundingType === 'credit' &&
+    updated.intent.installmentCount === 3 &&
+    updated.intent.installmentAmount?.amountMinor === 10000 &&
     updated.intent.providerConnectionId === providerConnectionId &&
     updated.eventInserted,
-  'Provider-confirmed processed amount must survive the atomic DB round-trip without rewriting the requested amount.',
+  'Provider-confirmed processed amount/card funding/installment evidence must survive the atomic DB round-trip without rewriting the requested amount.',
 );
 
 const pendingIntent = {
@@ -304,6 +313,28 @@ try {
 assert(
   concurrencyBlocked,
   'Stale webhook/polling revision must fail compare-and-swap instead of overwriting a newer payment state.',
+);
+
+const invalidInstallmentDb = new FakeSqlDatabase(() => {
+  throw new Error('Invalid installment evidence must fail before database access.');
+});
+let invalidInstallmentBlocked = false;
+try {
+  await new PostgresPaymentRepository(invalidInstallmentDb).commitIntentAndEvent({
+    intent: {
+      ...baseIntent,
+      installmentAmount: { currency: 'CLP', amountMinor: 15000 },
+    },
+    expectedRevision: null,
+    event: createdEvent,
+  });
+} catch (error) {
+  invalidInstallmentBlocked =
+    error instanceof Error && error.message.includes('installmentAmount requires installmentCount');
+}
+assert(
+  invalidInstallmentBlocked && invalidInstallmentDb.transactionCount === 0,
+  'Installment amount without installment count must be rejected before opening a DB transaction.',
 );
 
 console.log('PASS: atomic Postgres payment repository contract tests');
