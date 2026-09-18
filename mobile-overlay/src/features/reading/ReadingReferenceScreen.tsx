@@ -19,14 +19,7 @@ export function ReadingReferenceScreen() {
       title={focusMode ? '읽기' : 'Palta'}
       subtitle={focusMode ? undefined : 'Reading Surface reference'}
     >
-      <View
-        style={{
-          gap: 22,
-          maxWidth: 680,
-          width: '100%',
-          alignSelf: 'center',
-        }}
-      >
+      <View style={{ gap: 22, maxWidth: 680, width: '100%', alignSelf: 'center' }}>
         <ReadingToolbar
           listening={listening}
           onToggleListen={() => setListening((value) => !value)}
@@ -37,14 +30,7 @@ export function ReadingReferenceScreen() {
         />
 
         <View style={{ gap: 8 }}>
-          <Text
-            allowFontScaling
-            style={{
-              fontSize: bodySize * 0.78,
-              lineHeight: bodySize * 1.08,
-              color: paltaTheme.color.textSecondary,
-            }}
-          >
+          <Text allowFontScaling style={{ fontSize: bodySize * 0.78, lineHeight: bodySize * 1.08, color: paltaTheme.color.textSecondary }}>
             생활 · 오늘
           </Text>
           <Text
@@ -69,22 +55,10 @@ export function ReadingReferenceScreen() {
               backgroundColor: paltaTheme.color.brandSoft,
             }}
           >
-            <Text
-              allowFontScaling
-              style={{
-                fontWeight: '750',
-                color: paltaTheme.color.brandPrimary,
-              }}
-            >
+            <Text allowFontScaling style={{ fontWeight: '700', color: paltaTheme.color.brandPrimary }}>
               읽어주기 준비 상태
             </Text>
-            <Text
-              allowFontScaling
-              style={{
-                marginTop: 4,
-                color: paltaTheme.color.textSecondary,
-              }}
-            >
+            <Text allowFontScaling style={{ marginTop: 4, color: paltaTheme.color.textSecondary }}>
               실제 TTS adapter는 컴퓨터/기기에서 연결 후 검증합니다.
             </Text>
           </View>
@@ -109,19 +83,8 @@ export function ReadingReferenceScreen() {
         ))}
 
         {!focusMode ? (
-          <View
-            style={{
-              paddingTop: 18,
-              borderTopWidth: 1,
-              borderColor: paltaTheme.color.divider,
-            }}
-          >
-            <Text
-              allowFontScaling
-              style={{
-                color: paltaTheme.color.textSecondary,
-              }}
-            >
+          <View style={{ paddingTop: 18, borderTopWidth: 1, borderColor: paltaTheme.color.divider }}>
+            <Text allowFontScaling style={{ color: paltaTheme.color.textSecondary }}>
               출처와 관련 콘텐츠는 본문 뒤에서 조용하게 제공됩니다.
             </Text>
           </View>
