@@ -1,5 +1,7 @@
-import { SafeAreaView, ScrollView, Text, View } from 'react-native';
+import { router } from 'expo-router';
+import { Pressable, SafeAreaView, ScrollView, Text, View } from 'react-native';
 import { paltaTheme } from '../../theme/paltaTheme';
+import { useAutosDemoState } from './autosDemoState';
 
 function StatusRow({ label, value, note }: { label: string; value: string; note: string }) {
   return (
@@ -14,12 +16,14 @@ function StatusRow({ label, value, note }: { label: string; value: string; note:
 }
 
 export function MyVehiclesScreen() {
+  const demoState = useAutosDemoState();
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: paltaTheme.color.canvas }}>
       <ScrollView contentContainerStyle={{ padding: paltaTheme.spacing.md, paddingBottom: 48, gap: paltaTheme.spacing.lg }}>
         <View>
           <Text style={{ fontSize: 27, fontWeight: '900', color: paltaTheme.color.textPrimary }}>Mis autos</Text>
-          <Text style={{ marginTop: 3, fontSize: 13, color: paltaTheme.color.textMuted }}>Tu vehículo y sus próximos cuidados</Text>
+          <Text style={{ marginTop: 3, fontSize: 13, color: paltaTheme.color.textMuted }}>Tus vehículos, publicaciones y próximos cuidados</Text>
         </View>
 
         <View style={{ padding: paltaTheme.spacing.md, borderRadius: paltaTheme.radius.surface, backgroundColor: paltaTheme.color.surface, borderWidth: 1, borderColor: paltaTheme.color.divider, gap: paltaTheme.spacing.xs }}>
@@ -29,6 +33,37 @@ export function MyVehiclesScreen() {
             <Text style={{ fontSize: 11, fontWeight: '800', color: paltaTheme.color.brandPrimary }}>Vehículo principal</Text>
           </View>
         </View>
+
+        {demoState.publishedListings.length ? (
+          <View style={{ gap: paltaTheme.spacing.sm }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Text style={{ fontSize: 18, fontWeight: '900', color: paltaTheme.color.textPrimary }}>Publicaciones activas</Text>
+              <Text style={{ fontSize: 12, color: paltaTheme.color.textMuted }}>{demoState.publishedListings.length}</Text>
+            </View>
+            {demoState.publishedListings.map((item) => (
+              <Pressable
+                key={item.listing.id}
+                accessibilityRole="button"
+                onPress={() => router.push(`/autos/listing/${encodeURIComponent(item.listing.id)}`)}
+                style={({ pressed }) => ({
+                  padding: paltaTheme.spacing.md,
+                  borderRadius: paltaTheme.radius.surface,
+                  borderWidth: 1,
+                  borderColor: paltaTheme.color.divider,
+                  backgroundColor: pressed ? paltaTheme.color.surfaceMuted : paltaTheme.color.surface,
+                })}
+              >
+                <Text style={{ fontSize: 16, fontWeight: '900', color: paltaTheme.color.textPrimary }}>{item.listing.title}</Text>
+                <Text style={{ marginTop: 4, fontSize: 12, color: paltaTheme.color.textMuted }}>
+                  {item.listing.comuna} · ${new Intl.NumberFormat('es-CL').format(item.listing.priceClp)}
+                </Text>
+                <Text style={{ marginTop: 7, fontSize: 12, fontWeight: '800', color: paltaTheme.color.brandPrimary }}>
+                  Ver publicación ›
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        ) : null}
 
         <View style={{ borderRadius: paltaTheme.radius.surface, paddingHorizontal: paltaTheme.spacing.md, backgroundColor: paltaTheme.color.surface, borderWidth: 1, borderColor: paltaTheme.color.divider }}>
           <StatusRow label="SOAP" value="Vigente" note="Próxima renovación: marzo 2027" />
@@ -44,7 +79,7 @@ export function MyVehiclesScreen() {
           </Text>
         </View>
 
-        <Text style={{ fontSize: 11, color: paltaTheme.color.textMuted }}>Fechas y estados de esta pantalla son datos de demostración.</Text>
+        <Text style={{ fontSize: 11, color: paltaTheme.color.textMuted }}>Fechas y estados de cuidado son datos de demostración.</Text>
       </ScrollView>
     </SafeAreaView>
   );
