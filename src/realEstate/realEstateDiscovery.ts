@@ -2,7 +2,7 @@ import type {
   ListingPublisherType,
   PropertyTransactionType,
   PropertyType,
-} from './realEstateContracts';
+} from './realEstateContracts.js';
 
 export type RealEstateDiscoveryView = 'list' | 'map';
 
