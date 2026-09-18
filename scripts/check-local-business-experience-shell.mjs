@@ -57,6 +57,12 @@ assert(
   'Open-now and verified filters must live in shared discovery state rather than screen-local state.',
 );
 assert(
+  discovery.includes("useState<'list' | 'map'>('list')") &&
+  discovery.includes('<ViewModeSwitch value={viewMode}') &&
+  discovery.includes("viewMode === 'list'"),
+  'Negocios must open list-first and keep map as a peer view of the same discovery session.',
+);
+assert(
   discovery.includes('initialCenter={neighborhood.camera?.center ?? neighborhood.effectiveLocation}') &&
   discovery.includes('initialZoom={neighborhood.camera?.zoom ?? 14}'),
   'Map must restore the persisted discovery camera when returning from detail/Care.',
@@ -85,7 +91,7 @@ assert(
 );
 assert(
   discovery.includes('BusinessDiscoveryShell') && discovery.includes('SearchBar'),
-  'Negocios must use the polished map-led discovery shell instead of the generic developer ScreenFrame.',
+  'Negocios must use the polished discovery shell instead of the generic developer ScreenFrame.',
 );
 assert(
   discovery.includes('CATEGORY_SERVICE_LABELS') &&
@@ -154,4 +160,4 @@ assert(
   'Polished Business profile must keep visual identity and primary actions above long-form sections.',
 );
 
-console.log('PASS: Local Business connected polished discovery experience shell');
+console.log('PASS: Local Business connected list-first/map-connected experience shell');
