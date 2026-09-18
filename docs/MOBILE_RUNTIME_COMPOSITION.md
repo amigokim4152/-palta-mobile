@@ -16,7 +16,7 @@ This contract must be recoverable without prior chat context.
 
 Repository-wide entry points are:
 
-- `AGENTS.md` on `main`
+- `README.md` and `AGENTS.md` on `main`
 - `AGENTS.md` on `integration/runtime-composition-v1`
 - GitHub Issue #9: `[Source of Truth] Mobile runtime composition for parallel feature work`
 - this document
@@ -36,8 +36,10 @@ A new chat/agent working on any Palta mobile branch should inspect the repositor
 6. `apps/mobile/src` is generated runtime output. Do not hand-edit it.
 7. `mobile-overlay/src` on a feature branch remains that feature's versioned UI source. The composed simulator may overlay approved source paths into generated `apps/mobile/src`.
 8. Any source branch advance for a `reviewed_snapshot` must be reported as `REVIEW REQUIRED`; it must not silently replace the reviewed composition.
-9. CI must typecheck and bundle the actual composed `apps/mobile/src`, not only a source branch's `mobile-overlay`.
-10. A new mobile workstream must leave a discoverable handoff to this contract instead of relying on conversational memory.
+9. Shared/Core branches are watched separately. Their `observed_source_sha` is only a drift baseline, **not** a claim that the Core is already integrated.
+10. When a watched Shared Core advances, report `CORE REVIEW REQUIRED`; never auto-copy a Shared Core wholesale into the runtime.
+11. CI must typecheck and bundle the actual composed `apps/mobile/src`, not only a source branch's `mobile-overlay`.
+12. A new mobile workstream must leave a discoverable handoff to this contract instead of relying on conversational memory.
 
 ## Current surface registry
 
@@ -49,7 +51,17 @@ Current surfaces:
 - Negocios → `integration/local-business-v1` (`live_overlay`)
 - Community → `integration/community-runtime-v1` (`reviewed_snapshot`)
 
-Shared/Core branches being integrated separately include Auth/Profile, Messaging, Commerce, Localization and Map Runtime. These are not UI overlays and must be reconciled at their contracts/adapters instead of copied wholesale.
+## Current Shared Core watches
+
+The composition watcher also tracks these branches without auto-overlaying them:
+
+- Auth/Profile → `integration/auth-profile-core-v1`
+- Messaging → `integration/message-core-v1`
+- Commerce/POS → `integration/commercial-core-v1`
+- Localization → `integration/localization-core-v1`
+- Map Runtime → `integration/map-runtime-v1`
+
+These are contract/adapter integrations, not screen-copy integrations. A branch advance is surfaced for review so parallel work cannot silently become invisible to the whole-app runtime.
 
 ## Simulator workflow
 
@@ -64,12 +76,14 @@ On `integration/runtime-composition-v1`, this command:
 1. validates the composition manifest,
 2. materializes reviewed composition sources,
 3. fetches and overlays live feature surfaces,
-4. starts the runtime watcher,
-5. starts/reuses the branch-compatible local mock API,
-6. builds/launches the native iOS app with MapLibre,
-7. leaves generated source ready for Expo Fast Refresh.
+4. batch-refreshes watched surface/Core refs,
+5. reports reviewed-surface or Shared-Core drift,
+6. starts the runtime watcher,
+7. starts/reuses the branch-compatible local mock API,
+8. builds/launches the native iOS app with MapLibre,
+9. leaves generated source ready for Expo Fast Refresh.
 
-The watcher polls feature sources and the composition branch. It uses safe fast-forward only and does not overwrite tracked local edits.
+The watcher uses safe fast-forward only and does not overwrite tracked local edits.
 
 ## Adding another visible feature
 
@@ -83,5 +97,14 @@ Before adding a new surface:
 6. Add runtime assertions for the visible feature.
 7. Require composed runtime typecheck + iOS bundle CI to pass.
 8. Update the repository-wide handoff pointers when the composition contract materially changes.
+
+## Adding another Shared Core
+
+1. Add a structured entry to `core_integrations` in the manifest.
+2. Record its current HEAD as `observed_source_sha`; this is a monitoring baseline only.
+3. Keep the Core out of `live_overlay` paths.
+4. Reconcile its public contracts/adapters into the composition branch deliberately.
+5. Update the observed SHA/status only after reviewing the source advance.
+6. Keep `CORE REVIEW REQUIRED` visible until the new Core state has been accounted for.
 
 This keeps parallel development visible without letting one feature branch regress or overwrite another feature's latest reviewed runtime.
