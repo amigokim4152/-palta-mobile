@@ -21,10 +21,12 @@ case "$EMAIL" in
     ;;
 esac
 
+export PALTA_RUNTIME_MODE="gate01_auth"
 export EXPO_PUBLIC_ENV="development"
 export EXPO_PUBLIC_GOLDEN_USER_EMAIL="$EMAIL"
 
-echo "[Golden User 001] Development-only email Magic Link test enabled."
+echo "[Golden User 001] Gate 01 Auth-isolated runtime enabled."
+echo "[Golden User 001] Real palta-dev email Magic Link flow will be used."
 echo "[Golden User 001] No password or admin/service-role credential is used by the mobile runtime."
 
 exec bash "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/run-ios-mobile.sh"
