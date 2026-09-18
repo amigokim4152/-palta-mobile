@@ -14,6 +14,8 @@ export type MobileRuntime =
       status: 'ready';
       client: MobilePaltaClient;
       environment: string;
+      apiBaseUrl: string;
+      publicApiKey?: string;
       mapStyleUrl?: string;
     }
   | { status: 'config_error'; message: string };
@@ -51,6 +53,8 @@ export function createMobileRuntime(auth?: AuthPort): MobileRuntime {
       status: 'ready',
       client,
       environment: env.environment,
+      apiBaseUrl: env.apiBaseUrl,
+      ...(publicApiKey ? { publicApiKey } : {}),
       ...(env.mapStyleUrl ? { mapStyleUrl: env.mapStyleUrl } : {}),
     };
   } catch (error) {
