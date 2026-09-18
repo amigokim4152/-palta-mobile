@@ -106,6 +106,10 @@ export function validateHomeFunctionalItem(item: HomeFunctionalItem): string[] {
     errors.push('upcoming items require scheduledAt');
   }
 
+  if (item.kind === 'action' && !item.action) {
+    errors.push('action items require an executable action target');
+  }
+
   if (item.action) {
     if (!isNonEmpty(item.action.label)) errors.push('action.label is required');
     if (!isNonEmpty(item.action.target)) errors.push('action.target is required');
