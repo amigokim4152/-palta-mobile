@@ -8,7 +8,11 @@ on:
       - 'mobile-overlay/**'
       - 'apps/mobile/**'
       - 'src/**'
+      - 'manifest/mobile-runtime-composition.json'
+      - 'package.json'
       - 'scripts/sync-mobile-runtime.mjs'
+      - 'scripts/compose-mobile-runtime.mjs'
+      - 'scripts/watch-runtime-composition.sh'
       - 'scripts/run-ios-mobile.sh'
       - 'scripts/watch-local-business-simulator.sh'
       - '.github/workflows/mobile-runtime-check.yml'
@@ -17,7 +21,11 @@ on:
       - 'mobile-overlay/**'
       - 'apps/mobile/**'
       - 'src/**'
+      - 'manifest/mobile-runtime-composition.json'
+      - 'package.json'
       - 'scripts/sync-mobile-runtime.mjs'
+      - 'scripts/compose-mobile-runtime.mjs'
+      - 'scripts/watch-runtime-composition.sh'
       - 'scripts/run-ios-mobile.sh'
       - 'scripts/watch-local-business-simulator.sh'
       - '.github/workflows/mobile-runtime-check.yml'
@@ -31,6 +39,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -48,22 +58,26 @@ jobs:
       - name: Validate Expo config
         run: npm run config
 
-      - name: Bundle iOS JavaScript
+      - name: Bundle composition source iOS JavaScript
         run: npm run bundle:ios
 
-      - name: Materialize actual simulator runtime shell
+      - name: Validate runtime composition contract
         working-directory: .
-        run: node scripts/sync-mobile-runtime.mjs
+        run: node scripts/check-mobile-runtime-composition.mjs
+
+      - name: Materialize actual composed simulator runtime shell
+        working-directory: .
+        run: node scripts/compose-mobile-runtime.mjs
 
       - name: Install simulator runtime dependencies
         working-directory: apps/mobile
         run: npm install --no-audit --no-fund
 
-      - name: Typecheck materialized simulator runtime
+      - name: Typecheck composed simulator runtime
         working-directory: apps/mobile
         run: npx tsc --noEmit
 
-      - name: Bundle materialized iOS simulator runtime
+      - name: Bundle composed iOS simulator runtime
         working-directory: apps/mobile
         env:
           EXPO_PUBLIC_PALTA_API_BASE_URL: http://127.0.0.1:8787
