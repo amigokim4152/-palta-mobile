@@ -54,6 +54,19 @@ if (app.includes('editorial-inbox') || app.includes('editorial-reviewed') || app
   fail('app.js must not reference raw/editorial News storage');
 }
 
+const preview = read('scripts/preview-news-web.mjs');
+if (!preview.includes("const host = '127.0.0.1';")) {
+  fail('News local preview must bind to 127.0.0.1 only');
+}
+if (preview.includes("const host = '0.0.0.0';") || preview.includes("listen(port, '0.0.0.0'")) {
+  fail('News local preview must never expose itself on all interfaces by default');
+}
+
+const robots = read('news-web/robots.txt');
+if (!/^User-agent:\s*\*$/m.test(robots) || !/^Disallow:\s*\/$/m.test(robots)) {
+  fail('Pre-launch News Web robots.txt must remain fail-closed with Disallow: /');
+}
+
 const home = JSON.parse(read('news-web/mock/home.json'));
 const story = JSON.parse(read('news-web/mock/story.json'));
 const local = JSON.parse(read('news-web/mock/comuna-vitacura.json'));
@@ -81,4 +94,4 @@ for (const [index, contribution] of voices.contributions.entries()) {
   }
 }
 
-if (!process.exitCode) console.log('PASS: News Web runtime/fixture deployment-safety checks');
+if (!process.exitCode) console.log('PASS: News Web runtime/fixture/pre-launch safety checks');
