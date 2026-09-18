@@ -2,6 +2,7 @@ import {
   CHILE_VEHICLE_TRANSACTION_RULES_2026,
   estimateChileVehicleTransaction,
 } from '../src/autos/chileVehicleTransaction.js';
+import { validateVehicleOfferAdjustment } from '../src/autos/autosSellerModel.js';
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
@@ -32,4 +33,28 @@ assert(siiFloor.transferTaxClp === 180_000, 'Tax should use the higher legal bas
 assert(siiFloor.sellerEstimatedNetClp === 9_771_150, 'Seller-paid scenario should deduct the full transfer estimate.');
 assert(CHILE_VEHICLE_TRANSACTION_RULES_2026.sources.length >= 2, 'Versioned rules must retain official-source provenance.');
 
-console.log('PASS: Autos Chile transaction estimate rules');
+const evidencedAdjustment = validateVehicleOfferAdjustment({
+  id: 'adjustment-1',
+  offerId: 'offer-1',
+  previousAmountClp: 11_450_000,
+  revisedAmountClp: 11_250_000,
+  reason: 'undisclosed_damage',
+  explanation: 'Daño de parachoques no visible en las fotos iniciales.',
+  evidenceRefs: ['inspection-photo-1'],
+  createdAt: '2026-09-18T12:00:00.000Z',
+});
+assert(evidencedAdjustment.valid, 'Documented downward adjustment should be valid.');
+
+const unsupportedAdjustment = validateVehicleOfferAdjustment({
+  id: 'adjustment-2',
+  offerId: 'offer-1',
+  previousAmountClp: 11_450_000,
+  revisedAmountClp: 10_900_000,
+  reason: 'other_verified_difference',
+  explanation: 'Ajuste en terreno.',
+  evidenceRefs: [],
+  createdAt: '2026-09-18T12:05:00.000Z',
+});
+assert(!unsupportedAdjustment.valid, 'Downward adjustment without evidence must be rejected.');
+
+console.log('PASS: Autos Chile transaction and dealer adjustment rules');
