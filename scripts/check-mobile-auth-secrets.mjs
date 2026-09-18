@@ -10,6 +10,14 @@ const forbidden = [
   { label: 'Supabase service-role environment variable', pattern: /SUPABASE_SERVICE_ROLE(?:_KEY)?/i },
   { label: 'Supabase JWT secret', pattern: /SUPABASE_JWT_SECRET/i },
   { label: 'service_role credential reference', pattern: /service[_-]?role\s*(?:key|secret|token)/i },
+  {
+    label: 'hardcoded Supabase project URL in mobile source',
+    pattern: /https:\/\/[a-z0-9-]+\.supabase\.co/i,
+  },
+  {
+    label: 'hardcoded Supabase publishable key value in mobile source',
+    pattern: /sb_publishable_[A-Za-z0-9._-]{10,}/i,
+  },
 ];
 
 const violations = [];
@@ -36,9 +44,9 @@ function scan(path) {
 for (const root of roots) scan(join(process.cwd(), root));
 
 if (violations.length > 0) {
-  console.error('FAIL: privileged Supabase credential material/reference found in mobile surface');
+  console.error('FAIL: privileged or environment-bound Supabase credential material found in mobile surface');
   for (const violation of violations) console.error(`- ${violation}`);
   process.exit(1);
 }
 
-console.log('PASS: mobile Auth surface contains no service-role/secret-key credential patterns');
+console.log('PASS: mobile Auth surface contains no privileged credentials or hardcoded Supabase environment binding');
