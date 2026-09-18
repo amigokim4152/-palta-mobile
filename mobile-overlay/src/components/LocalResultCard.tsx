@@ -54,10 +54,12 @@ export function LocalResultCard({
   const secondaryMeta = rawSecondaryMeta
     .map(consumerMetaLabel)
     .filter((value): value is string => Boolean(value));
+  const verified = secondaryMeta.includes('Verificado');
+  const descriptiveMeta = secondaryMeta.filter((value) => value !== 'Verificado');
   const labels = serviceLabels.filter(Boolean).slice(0, 2);
   const isOpenNow = status === 'Abierto ahora';
-  // Verification already appears as a compact trust cue in meta. Keep the
-  // single highlight slot for a real current reason such as a benefit or update.
+  // Verification has its own compact trust cue. Keep the single highlight slot
+  // for a real current reason such as a benefit or fresh update.
   const usefulHighlight = highlight === 'Negocio verificado' ? undefined : highlight;
 
   return (
@@ -153,20 +155,52 @@ export function LocalResultCard({
             ) : null}
           </View>
 
-          {status ? (
-            <Text
-              numberOfLines={1}
+          {(status || verified) ? (
+            <View
               style={{
                 marginTop: paltaTheme.spacing.xxs,
-                color: isOpenNow
-                  ? paltaTheme.color.brandPrimary
-                  : paltaTheme.color.textSecondary,
-                fontWeight: isOpenNow ? '800' : '600',
-                fontSize: 13,
+                flexDirection: 'row',
+                flexWrap: 'wrap',
+                alignItems: 'center',
+                gap: 6,
               }}
             >
-              {status}
-            </Text>
+              {status ? (
+                <Text
+                  numberOfLines={1}
+                  style={{
+                    color: isOpenNow
+                      ? paltaTheme.color.brandPrimary
+                      : paltaTheme.color.textSecondary,
+                    fontWeight: isOpenNow ? '800' : '600',
+                    fontSize: 13,
+                  }}
+                >
+                  {status}
+                </Text>
+              ) : null}
+              {verified ? (
+                <View
+                  style={{
+                    paddingHorizontal: 7,
+                    paddingVertical: 3,
+                    borderRadius: paltaTheme.radius.pill,
+                    backgroundColor: paltaTheme.color.brandSoft,
+                  }}
+                >
+                  <Text
+                    numberOfLines={1}
+                    style={{
+                      color: paltaTheme.color.brandPrimary,
+                      fontSize: 11,
+                      fontWeight: '800',
+                    }}
+                  >
+                    ✓ Verificado
+                  </Text>
+                </View>
+              ) : null}
+            </View>
           ) : null}
 
           {labels.length ? (
@@ -180,7 +214,7 @@ export function LocalResultCard({
             >
               {labels.join(' · ')}
             </Text>
-          ) : secondaryMeta.length ? (
+          ) : descriptiveMeta.length ? (
             <Text
               numberOfLines={1}
               style={{
@@ -189,7 +223,7 @@ export function LocalResultCard({
                 fontSize: 13,
               }}
             >
-              {secondaryMeta.join(' · ')}
+              {descriptiveMeta.join(' · ')}
             </Text>
           ) : null}
 
