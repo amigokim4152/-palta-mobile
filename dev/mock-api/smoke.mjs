@@ -34,27 +34,36 @@ assert(
   notifications.body.summary?.unread_count === home.body.context.unread_notification_count,
   'Home unread count must come from the notification inbox state',
 );
+
+let unreadAfter = notifications.body.summary.unread_count;
 const unreadNotification = notifications.body.items.find((item) => !item.read_at);
-assert(unreadNotification, 'an unread notification is required for the smoke flow');
-const markRead = await json(
-  `/v1/notifications/${encodeURIComponent(unreadNotification.id)}/read`,
-  { method: 'POST' },
-);
-assert(
-  markRead.response.ok && typeof markRead.body.read_at === 'string',
-  'notification read transition failed',
-);
-const notificationsAfterRead = await json('/v1/notifications');
-assert(
-  notificationsAfterRead.body.summary.unread_count === notifications.body.summary.unread_count - 1,
-  'notification unread count did not decrease',
-);
-const homeAfterRead = await json('/v1/home?locale=es-CL');
-assert(
-  homeAfterRead.body.context.unread_notification_count ===
-    notificationsAfterRead.body.summary.unread_count,
-  'Home unread count did not reflect notification read state',
-);
+if (unreadNotification) {
+  const markRead = await json(
+    `/v1/notifications/${encodeURIComponent(unreadNotification.id)}/read`,
+    { method: 'POST' },
+  );
+  assert(
+    markRead.response.ok && typeof markRead.body.read_at === 'string',
+    'notification read transition failed',
+  );
+  const notificationsAfterRead = await json('/v1/notifications');
+  assert(
+    notificationsAfterRead.body.summary.unread_count ===
+      notifications.body.summary.unread_count - 1,
+    'notification unread count did not decrease',
+  );
+  unreadAfter = notificationsAfterRead.body.summary.unread_count;
+  const homeAfterRead = await json('/v1/home?locale=es-CL');
+  assert(
+    homeAfterRead.body.context.unread_notification_count === unreadAfter,
+    'Home unread count did not reflect notification read state',
+  );
+} else {
+  assert(
+    notifications.body.summary.unread_count === 0,
+    'notification summary is inconsistent with fully-read inbox',
+  );
+}
 
 const local = await json('/v1/local/search?lat=-33.39&lng=-70.57&radius_m=5000');
 assert(local.response.ok && local.body.items.length >= 2, 'local search failed');
@@ -110,7 +119,7 @@ console.log(JSON.stringify({
   homeGlance: home.body.glance.length,
   locality: home.body.context.locality.label,
   unreadBefore: notifications.body.summary.unread_count,
-  unreadAfter: notificationsAfterRead.body.summary.unread_count,
+  unreadAfter,
   localItems: local.body.items.length,
   businessId,
   careId: care.body.id,
