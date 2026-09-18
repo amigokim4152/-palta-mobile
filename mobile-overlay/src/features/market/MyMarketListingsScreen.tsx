@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Image,
   Pressable,
@@ -10,21 +10,16 @@ import {
   View,
 } from 'react-native';
 import {
-  canReviewMarketTransaction,
   canTransitionMarketListing,
   marketListingStatusMeta,
   type MarketListingStatus,
 } from '../../../../src/market/marketLifecycle';
+import type {
+  MarketListingRecord,
+  MarketTransactionRecord,
+} from '../../../../src/market/marketPersistenceContract';
 import { paltaTheme } from '../../theme/paltaTheme';
-import { marketPreviewListings } from './marketPreviewData';
-
-const ownedPreviewIds = [
-  'preview-bike-01',
-  'preview-chair-02',
-  'preview-camera-03',
-] as const;
-
-type OwnedStatusMap = Record<string, MarketListingStatus>;
+import { getMarketRuntime } from './marketRuntime';
 
 function actionLabel(status: MarketListingStatus) {
   if (status === 'active') return 'Marcar reservado';
@@ -33,26 +28,54 @@ function actionLabel(status: MarketListingStatus) {
 }
 
 export function MyMarketListingsScreen() {
-  const initial = useMemo<OwnedStatusMap>(() => {
-    const map: OwnedStatusMap = {};
-    for (const id of ownedPreviewIds) {
-      const listing = marketPreviewListings.find((item) => item.id === id);
-      if (listing) map[id] = listing.status;
+  const runtime = useMemo(() => getMarketRuntime(), []);
+  const [listings, setListings] = useState<MarketListingRecord[]>([]);
+  const [transactions, setTransactions] = useState<MarketTransactionRecord[]>([]);
+  const [loading, setLoading] = useState(Boolean(runtime.read));
+  const [error, setError] = useState<string | undefined>(
+    runtime.read ? undefined : runtime.unavailableReason,
+  );
+  const [mutatingId, setMutatingId] = useState<string | undefined>();
+
+  async function load() {
+    if (!runtime.read) return;
+    setLoading(true);
+    setError(undefined);
+    try {
+      const [listingPage, transactionPage] = await Promise.all([
+        runtime.read.listMyListings({ limit: 50 }),
+        runtime.read.listMyTransactions({ limit: 50 }),
+      ]);
+      setListings(listingPage.items);
+      setTransactions(transactionPage.items);
+    } catch {
+      setError('No pudimos cargar tus publicaciones.');
+    } finally {
+      setLoading(false);
     }
-    return map;
-  }, []);
-  const [statuses, setStatuses] = useState<OwnedStatusMap>(initial);
+  }
 
-  const listings = ownedPreviewIds
-    .map((id) => marketPreviewListings.find((item) => item.id === id))
-    .filter((item): item is NonNullable<typeof item> => Boolean(item));
+  useEffect(() => {
+    void load();
+  }, [runtime]);
 
-  function transition(id: string, next: MarketListingStatus) {
-    setStatuses((current) => {
-      const from = current[id];
-      if (!from || !canTransitionMarketListing(from, next)) return current;
-      return { ...current, [id]: next };
-    });
+  async function transition(listing: MarketListingRecord, next: MarketListingStatus) {
+    if (!runtime.mutation || !canTransitionMarketListing(listing.status, next)) return;
+    setMutatingId(listing.id);
+    try {
+      const updated = await runtime.mutation.transitionListing({
+        listingId: listing.id,
+        expectedVersion: listing.version,
+        toStatus: next,
+      });
+      setListings((current) =>
+        current.map((item) => (item.id === updated.id ? updated : item)),
+      );
+    } catch {
+      setError('No pudimos cambiar el estado de esta publicación.');
+    } finally {
+      setMutatingId(undefined);
+    }
   }
 
   return (
@@ -68,52 +91,85 @@ export function MyMarketListingsScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        {__DEV__ ? (
+        {runtime.mode === 'development_preview' ? (
           <View style={styles.previewNotice}>
             <Text style={styles.previewNoticeTitle}>Vista previa de desarrollo</Text>
             <Text style={styles.previewNoticeBody}>
-              Los cambios de estado son locales. En producción se guardarán en Mercado Core.
+              Los cambios se guardan sólo en la sesión de desarrollo.
+            </Text>
+          </View>
+        ) : null}
+
+        {error ? (
+          <View style={styles.stateCard}>
+            <Text style={styles.stateTitle}>Mercado no está disponible</Text>
+            <Text style={styles.stateBody}>{error}</Text>
+          </View>
+        ) : null}
+
+        {!error && loading ? (
+          <View style={styles.stateCard}>
+            <Text style={styles.stateTitle}>Cargando tus publicaciones…</Text>
+          </View>
+        ) : null}
+
+        {!error && !loading && listings.length === 0 ? (
+          <View style={styles.stateCard}>
+            <Text style={styles.stateTitle}>Todavía no tienes publicaciones</Text>
+            <Text style={styles.stateBody}>
+              Publica un artículo y podrás administrar aquí su disponibilidad.
             </Text>
           </View>
         ) : null}
 
         {listings.map((listing) => {
-          const status = statuses[listing.id] ?? listing.status;
-          const secondaryAction = actionLabel(status);
+          const firstMedia = listing.media[0];
+          const imageUrl = firstMedia
+            ? runtime.resolveMediaAssetUrl(firstMedia.mediaAssetId)
+            : undefined;
+          const secondaryAction = actionLabel(listing.status);
           const secondaryTarget: MarketListingStatus | undefined =
-            status === 'active'
+            listing.status === 'active'
               ? 'reserved'
-              : status === 'reserved'
+              : listing.status === 'reserved'
                 ? 'active'
                 : undefined;
-          const canMarkSold = canTransitionMarketListing(status, 'sold');
+          const canMarkSold = canTransitionMarketListing(listing.status, 'sold');
+          const completedTransaction = transactions.find(
+            (transaction) =>
+              transaction.listingId === listing.id &&
+              transaction.status === 'completed',
+          );
+          const busy = mutatingId === listing.id;
 
           return (
             <View key={listing.id} style={styles.card}>
-              <Pressable
-                onPress={() => router.push(`/market/listing/${listing.id}`)}
-                style={styles.summaryRow}
-              >
-                <Image source={{ uri: listing.imageUrl }} style={styles.image} />
+              <View style={styles.summaryRow}>
+                {imageUrl ? (
+                  <Image source={{ uri: imageUrl }} style={styles.image} />
+                ) : (
+                  <View style={[styles.image, styles.imagePlaceholder]}>
+                    <Text style={styles.imagePlaceholderText}>Sin foto</Text>
+                  </View>
+                )}
                 <View style={styles.summaryBody}>
                   <Text numberOfLines={2} style={styles.title}>
                     {listing.title}
                   </Text>
                   <View style={styles.statusPill}>
                     <Text style={styles.statusText}>
-                      {marketListingStatusMeta[status].label}
+                      {marketListingStatusMeta[listing.status].label}
                     </Text>
                   </View>
-                  <Text style={styles.metrics}>
-                    ♡ {listing.favorites} · Chats {listing.chats}
-                  </Text>
+                  <Text style={styles.locationText}>{listing.location.comunaName}</Text>
                 </View>
-              </Pressable>
+              </View>
 
               <View style={styles.actions}>
                 {secondaryAction && secondaryTarget ? (
                   <Pressable
-                    onPress={() => transition(listing.id, secondaryTarget)}
+                    disabled={busy}
+                    onPress={() => transition(listing, secondaryTarget)}
                     style={styles.secondaryButton}
                   >
                     <Text style={styles.secondaryButtonText}>{secondaryAction}</Text>
@@ -122,16 +178,19 @@ export function MyMarketListingsScreen() {
 
                 {canMarkSold ? (
                   <Pressable
-                    onPress={() => transition(listing.id, 'sold')}
+                    disabled={busy}
+                    onPress={() => transition(listing, 'sold')}
                     style={styles.primaryButton}
                   >
                     <Text style={styles.primaryButtonText}>Marcar vendido</Text>
                   </Pressable>
                 ) : null}
 
-                {canReviewMarketTransaction(status) ? (
+                {completedTransaction ? (
                   <Pressable
-                    onPress={() => router.push(`/market/review/${listing.id}`)}
+                    onPress={() =>
+                      router.push(`/market/review/${completedTransaction.id}`)
+                    }
                     style={styles.primaryButton}
                   >
                     <Text style={styles.primaryButtonText}>Dejar reseña</Text>
@@ -192,6 +251,27 @@ const styles = StyleSheet.create({
     fontSize: 11,
     lineHeight: 16,
   },
+  stateCard: {
+    borderRadius: paltaTheme.radius.surface,
+    borderWidth: 1,
+    borderColor: paltaTheme.color.border,
+    backgroundColor: paltaTheme.color.surface,
+    padding: 24,
+    alignItems: 'center',
+  },
+  stateTitle: {
+    color: paltaTheme.color.textPrimary,
+    fontSize: 16,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  stateBody: {
+    marginTop: 6,
+    color: paltaTheme.color.textSecondary,
+    fontSize: 12,
+    lineHeight: 18,
+    textAlign: 'center',
+  },
   card: {
     borderRadius: paltaTheme.radius.surface,
     borderWidth: 1,
@@ -205,6 +285,12 @@ const styles = StyleSheet.create({
     height: 88,
     borderRadius: 12,
     backgroundColor: paltaTheme.color.surfaceMuted,
+  },
+  imagePlaceholder: { alignItems: 'center', justifyContent: 'center' },
+  imagePlaceholderText: {
+    color: paltaTheme.color.textMuted,
+    fontSize: 11,
+    fontWeight: '600',
   },
   summaryBody: { flex: 1, minHeight: 88 },
   title: {
@@ -226,7 +312,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '800',
   },
-  metrics: {
+  locationText: {
     marginTop: 'auto',
     color: paltaTheme.color.textMuted,
     fontSize: 11,
