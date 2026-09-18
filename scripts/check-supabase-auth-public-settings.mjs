@@ -62,12 +62,12 @@ if (!requestedProvider) {
   process.exit(0);
 }
 
-if (!['apple', 'google'].includes(requestedProvider)) {
+if (!['apple', 'google', 'email'].includes(requestedProvider)) {
   fail(`unsupported provider readiness check: ${requestedProvider}`);
 }
 
 if (external[requestedProvider] !== true) {
-  fail(`required Supabase Auth provider is not enabled: ${requestedProvider}`);
+  fail(`Supabase Auth provider is not enabled: ${requestedProvider}`);
 }
 
 console.log(`PASS: Supabase Auth provider enabled: ${requestedProvider}`);
