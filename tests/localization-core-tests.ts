@@ -6,6 +6,7 @@ import {
   createLanguageContext,
   resolveInitialLocale,
   resolveLocalizedContent,
+  resolvePreferredLocale,
   resolveUiText,
   t,
   tryNormalizeLocale,
@@ -22,6 +23,10 @@ assert(tryNormalizeLocale('zh-CN') === 'zh-Hans', 'Simplified Chinese device loc
 assert(tryNormalizeLocale('pt-BR') === null, 'Unsupported locale must not silently map to another non-Spanish locale.');
 assert(resolveInitialLocale(['pt-BR']) === 'es-CL', 'Unsupported device locale must fall back to Spanish.');
 assert(resolveInitialLocale(['pt-BR', 'ko-KR']) === 'ko', 'First supported device locale should be selected.');
+assert(resolvePreferredLocale({ accountLocale: 'ko', deviceLocales: ['es-CL'] }) === 'ko', 'Saved account language must win over the device language.');
+assert(resolvePreferredLocale({ deviceLocales: ['zh-CN'] }) === 'zh-Hans', 'Device language should seed preference when the account has no saved choice.');
+assert(resolvePreferredLocale({ accountLocale: 'pt-BR', deviceLocales: ['en-US'] }) === 'en', 'Unsupported saved values may fall through to a supported device language.');
+assert(resolvePreferredLocale({ accountLocale: 'pt-BR', deviceLocales: ['pt-BR'] }) === 'es-CL', 'Unsupported account and device values must fall back to Chilean Spanish.');
 
 assert(t('nav.home', 'ko') === '홈', 'Korean UI copy should be used when available.');
 assert(t('nav.home', 'en') === 'Home', 'English UI copy should be used when available.');
