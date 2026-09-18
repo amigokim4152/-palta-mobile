@@ -24,3 +24,7 @@ jobs:
         run: node dist/tests/supabase-local-business-discovery-adapter-tests.js
       - name: Supabase Business onboarding persistence adapter
         run: node dist/tests/supabase-business-onboarding-adapter-tests.js
+      - name: Supabase Chile administrative area adapter
+        run: node dist/tests/supabase-chile-administrative-area-adapter-tests.js
+      - name: Country Layer business registration handoff
+        run: node dist/tests/country-layer-business-registration-tests.js
