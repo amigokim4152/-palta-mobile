@@ -108,10 +108,10 @@ export function MyPropertiesScreen() {
 
                 <View style={{ flexDirection: 'row', gap: paltaTheme.spacing.xs }}>
                   <PaltaButton
-                    label="Duplicar / editar después"
+                    label="Continuar / editar"
                     variant="secondary"
-                    disabled
                     style={{ flex: 1 }}
+                    onPress={() => router.push(`/propiedades/create?draftId=${encodeURIComponent(draft.id)}`)}
                   />
                   <PaltaButton
                     label="Eliminar"
