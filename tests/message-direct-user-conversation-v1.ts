@@ -21,6 +21,12 @@ function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
 }
 
+function assertNumber(actual: number, expected: number, message: string): void {
+  if (actual !== expected) {
+    throw new Error(`${message} Expected ${expected}, received ${actual}.`);
+  }
+}
+
 async function expectCode(
   code: ConversationDirectoryError['code'],
   run: () => Promise<unknown>,
@@ -116,7 +122,7 @@ const reversed = await service.openUserDirectConversation({
 });
 assert(!reversed.created, 'Reversing initiator/counterpart must reuse the same direct relationship.');
 assert(reversed.conversation.conversationId === opened.conversation.conversationId, 'Direct relationship identity must be actor-order independent.');
-assert(directory.conversations.size === 1, 'Same two users must have one durable direct conversation.');
+assertNumber(directory.conversations.size, 1, 'Same two users must have one durable direct conversation.');
 
 const other = await service.openUserDirectConversation({
   principalUserId: 'user-1',
@@ -133,7 +139,7 @@ await expectCode('INVALID_CONVERSATION_REQUEST', () =>
     createdAt: '2026-09-18T13:04:00.000Z',
   }),
 );
-assert(directory.conversations.size === 2, 'Self-conversation rejection must not create persistence state.');
+assertNumber(directory.conversations.size, 2, 'Self-conversation rejection must not create persistence state.');
 
 await expectCode('DIRECT_USER_MESSAGING_UNAVAILABLE', () =>
   service.openUserDirectConversation({
@@ -142,7 +148,7 @@ await expectCode('DIRECT_USER_MESSAGING_UNAVAILABLE', () =>
     createdAt: '2026-09-18T13:05:00.000Z',
   }),
 );
-assert(directory.conversations.size === 2, 'Eligibility rejection must fail before creating a conversation.');
+assertNumber(directory.conversations.size, 2, 'Eligibility rejection must fail before creating a conversation.');
 
 const unconfiguredService = new ConversationDirectoryService(
   new FakeConversationDirectory(),
