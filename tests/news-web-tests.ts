@@ -8,7 +8,10 @@ import {
   toNewsHomeViewModel,
   toNewsVoicesViewModel,
 } from '../src/news/newsWebModel.js';
-import { publicNewsPath } from '../src/news/publicNewsClient.js';
+import {
+  publicNewsObjectKey,
+  publicNewsPath,
+} from '../src/news/publicNewsRoutes.js';
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
@@ -81,6 +84,9 @@ assert(voicesView.showcase.length === 1, 'Student art must route to Community Sh
 assert(publicNewsPath({ kind: 'home' }) === '/v1/cl/news/home', 'Home must use the public News namespace.');
 assert(publicNewsPath({ kind: 'comuna', slug: 'vitacura' }) === '/v1/cl/news/comunas/vitacura', 'Comuna routing must be deterministic.');
 assert(publicNewsPath({ kind: 'story', slug: 'una-noticia-local' }) === '/v1/cl/news/stories/una-noticia-local', 'Story routing must be deterministic.');
+assert(publicNewsObjectKey('/v1/cl/news/home') === 'public-news/v1/cl/news/home.json', 'Home API path and R2 object key must stay aligned.');
+assert(publicNewsObjectKey('/v1/cl/news/stories/una-noticia-local') === 'public-news/v1/cl/news/stories/una-noticia-local.json', 'Story API path and R2 object key must stay aligned.');
+assert(publicNewsObjectKey('/v1/cl/news/../editorial-inbox') === null, 'Internal or malformed paths must never map to a public object.');
 let invalidRouteBlocked = false;
 try {
   publicNewsPath({ kind: 'story', slug: '../editorial-inbox' });
