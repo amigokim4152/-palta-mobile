@@ -20,7 +20,6 @@ export function CareTimeline({
     <View accessibilityRole="list" style={{ gap: 10 }}>
       {steps.map((step) => (
         <View
-          accessibilityRole="listitem"
           key={step.state}
           style={{
             flexDirection: 'row',

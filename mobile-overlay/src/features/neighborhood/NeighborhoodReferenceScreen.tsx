@@ -77,11 +77,11 @@ export function NeighborhoodReferenceScreen() {
             }}
           />
 
-          {[
+          {([
             { left: '22%', top: '30%' },
             { left: '61%', top: '39%' },
             { left: '45%', top: '66%' },
-          ].map((position, index) => (
+          ] as const).map((position, index) => (
             <View
               key={String(index)}
               style={{

@@ -72,7 +72,7 @@ export function ReadingReferenceScreen() {
             <Text
               allowFontScaling
               style={{
-                fontWeight: '750',
+                fontWeight: '700',
                 color: paltaTheme.color.brandPrimary,
               }}
             >
