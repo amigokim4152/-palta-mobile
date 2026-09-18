@@ -20,6 +20,7 @@ import {
 import {
   BusinessServicesApiClient,
 } from './businessServicesApiClient.js';
+import { MessagingApiClient } from './messagingApiClient.js';
 import {
   PaltaApiClient,
   type FetchLike,
@@ -33,6 +34,7 @@ export type PaltaApiClientWithDomains = PaltaApiClient & {
   quotes: BusinessQuotesApiClient;
   services: BusinessServicesApiClient;
   location: BusinessLocationApiClient;
+  messaging: MessagingApiClient;
 };
 
 export function createPaltaApiClient(input: {
@@ -86,6 +88,12 @@ export function createPaltaApiClient(input: {
   });
 
   client.location = new BusinessLocationApiClient({
+    baseUrl: input.baseUrl,
+    fetch: input.fetch,
+    ...(getAccessToken ? { getAccessToken } : {}),
+  });
+
+  client.messaging = new MessagingApiClient({
     baseUrl: input.baseUrl,
     fetch: input.fetch,
     ...(getAccessToken ? { getAccessToken } : {}),
