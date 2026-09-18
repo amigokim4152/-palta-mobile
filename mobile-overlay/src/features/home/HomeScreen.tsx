@@ -46,12 +46,12 @@ function ContextBar() {
     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingBottom: paltaTheme.spacing.lg }}>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Cambiar zona"
-        onPress={() => router.push('/context')}
+        accessibilityLabel="Ver contexto de Santiago"
+        onPress={() => router.push('/context/santiago')}
         style={{ minHeight: paltaTheme.touch.minimum, justifyContent: 'center' }}
       >
         <Text style={{ color: paltaTheme.color.textMuted, fontSize: 12, fontWeight: '700' }}>TU ZONA</Text>
-        <Text style={{ marginTop: 2, color: paltaTheme.color.textPrimary, fontSize: 16, fontWeight: '700' }}>Santiago · cambiar</Text>
+        <Text style={{ marginTop: 2, color: paltaTheme.color.textPrimary, fontSize: 16, fontWeight: '700' }}>Santiago</Text>
       </Pressable>
       <Pressable
         accessibilityRole="button"
