@@ -1,5 +1,5 @@
-import type { CommunityIdentityResolver } from './communityHttp';
-import type { AuthenticatedPaltaIdentity } from './communityBoundary';
+import type { CommunityIdentityResolver } from './communityHttp.js';
+import type { AuthenticatedPaltaIdentity } from './communityBoundary.js';
 import { authBrokerUserId } from '../../src/auth/accountModel.js';
 import type { PaltaUserId } from '../../src/auth/accountModel.js';
 import {
