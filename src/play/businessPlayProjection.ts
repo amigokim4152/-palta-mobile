@@ -6,6 +6,8 @@ export type ResolvedBusinessPlayExposure = Readonly<{
   comuna: string;
   venue?: string;
   imageUrl?: string;
+  /** Resolved by shared location/map infrastructure; Play does not calculate it. */
+  distanceM?: number;
   distanceLabel?: string;
   priceLabel?: string;
   audienceLabel?: string;
@@ -18,11 +20,6 @@ export type ResolvedBusinessPlayExposure = Readonly<{
   sourceAuthority?: string;
 }>;
 
-/**
- * Consumes a Business-Core-approved exposure. Play does not classify ownership,
- * duplicate the business, or invent an offering. It renders the canonical id and
- * resolved Play tags supplied at the Business/Core boundary.
- */
 export function projectBusinessExposureToPlay(
   exposure: ResolvedBusinessPlayExposure,
 ): PlayDiscoveryItem {
@@ -39,6 +36,7 @@ export function projectBusinessExposureToPlay(
     ...(exposure.venue ? { venue: exposure.venue } : {}),
     scheduleLabel: exposure.scheduleLabel ?? 'Consulta disponibilidad',
     ...(exposure.imageUrl ? { imageUrl: exposure.imageUrl } : {}),
+    ...(exposure.distanceM !== undefined ? { distanceM: exposure.distanceM } : {}),
     ...(exposure.distanceLabel ? { distanceLabel: exposure.distanceLabel } : {}),
     ...(exposure.priceLabel ? { priceLabel: exposure.priceLabel } : {}),
     ...(exposure.audienceLabel ? { audienceLabel: exposure.audienceLabel } : {}),
