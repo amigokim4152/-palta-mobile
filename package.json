@@ -6,7 +6,7 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "build": "tsc",
-    "test": "npm run build && node dist/tests/run-tests.js && node dist/tests/auth-profile-core-tests.js && node dist/tests/auth-profile-persistence-tests.js && node dist/tests/community-experience-tests.js && node dist/tests/community-membership-lifecycle-tests.js && node dist/tests/school-structured-content-tests.js && node dist/tests/community-home-projection-tests.js && node dist/tests/community-outbox-delivery-tests.js && node dist/tests/community-outbox-processor-tests.js",
+    "test": "npm run build && node dist/tests/run-tests.js && node dist/tests/auth-profile-core-tests.js && node dist/tests/auth-profile-persistence-tests.js && node dist/tests/community-experience-tests.js && node dist/tests/community-membership-lifecycle-tests.js && node dist/tests/school-structured-content-tests.js && node dist/tests/community-home-projection-tests.js && node dist/tests/community-outbox-delivery-tests.js && node dist/tests/community-outbox-processor-tests.js && node dist/tests/community-http-golden-flow-tests.js",
     "mock:api": "node dev/mock-api/server.mjs",
     "mock:smoke": "node dev/mock-api/smoke.mjs",
     "check:independence": "node scripts/check-core-independence.mjs",
