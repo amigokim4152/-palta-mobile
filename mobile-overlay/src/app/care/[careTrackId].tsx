@@ -43,7 +43,7 @@ export default function CareTrackScreen() {
   if (state.status === 'error' && !state.data) {
     return (
       <ScreenFrame title={careT('care.title', locale)}>
-        <ErrorState message={state.message} onRetry={() => void refresh()} />
+        <ErrorState onRetry={() => void refresh()} />
       </ScreenFrame>
     );
   }
@@ -104,7 +104,7 @@ export default function CareTrackScreen() {
         />
 
         {state.status === 'error' ? (
-          <ErrorState message={state.message} onRetry={() => void refresh()} />
+          <ErrorState onRetry={() => void refresh()} />
         ) : null}
       </View>
     </ScreenFrame>
