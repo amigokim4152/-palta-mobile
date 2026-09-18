@@ -1,11 +1,12 @@
 -- PALTA COMMUNITY ACCESS BOUNDARY PREFLIGHT
--- STATUS: DRAFT / NOT APPLIED
+-- STATUS: READY FOR palta-dev
 -- Primary v1 target: Supabase Postgres.
 -- Reads and mutations are mediated by the Palta API. No direct mobile writes.
 
 alter table public.community_space enable row level security;
 alter table public.community_membership enable row level security;
 alter table public.community_post enable row level security;
+alter table public.community_school_item enable row level security;
 alter table public.community_comment enable row level security;
 alter table public.community_reaction enable row level security;
 alter table public.community_mutation_receipt enable row level security;
@@ -15,6 +16,7 @@ alter table public.community_outbox enable row level security;
 revoke all on table public.community_space from anon, authenticated;
 revoke all on table public.community_membership from anon, authenticated;
 revoke all on table public.community_post from anon, authenticated;
+revoke all on table public.community_school_item from anon, authenticated;
 revoke all on table public.community_comment from anon, authenticated;
 revoke all on table public.community_reaction from anon, authenticated;
 revoke all on table public.community_mutation_receipt from anon, authenticated;
@@ -23,6 +25,7 @@ revoke all on table public.community_outbox from anon, authenticated;
 grant select, insert, update, delete on table public.community_space to service_role;
 grant select, insert, update, delete on table public.community_membership to service_role;
 grant select, insert, update, delete on table public.community_post to service_role;
+grant select, insert, update, delete on table public.community_school_item to service_role;
 grant select, insert, update, delete on table public.community_comment to service_role;
 grant select, insert, update, delete on table public.community_reaction to service_role;
 grant select, insert, update, delete on table public.community_mutation_receipt to service_role;
@@ -37,6 +40,8 @@ grant select, insert, update, delete on table public.community_outbox to service
 -- the Community Core. If a future read-only Data API surface is introduced, it must
 -- receive a separate reviewed migration and may not weaken this server-only baseline.
 
+comment on table public.community_school_item is
+  'Structured school flow items; child notices remain recipient-scoped and server mediated.';
 comment on table public.community_mutation_receipt is
   'Idempotency receipts for authenticated Palta API mutations; never client writable.';
 comment on table public.community_outbox is
