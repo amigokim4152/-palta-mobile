@@ -15,10 +15,10 @@ export function LoadingState({ label }: { label?: string }) {
 }
 
 export function ErrorState({
-  message,
+  safeMessage,
   onRetry,
 }: {
-  message: string;
+  safeMessage?: string;
   onRetry?: () => void;
 }) {
   const { locale } = useLocalization();
@@ -28,7 +28,9 @@ export function ErrorState({
       <Text style={{ fontWeight: '700' }}>
         {surfaceT('async.errorTitle', locale)}
       </Text>
-      <Text style={{ opacity: 0.65 }}>{message}</Text>
+      <Text style={{ opacity: 0.65 }}>
+        {safeMessage ?? surfaceT('async.errorBody', locale)}
+      </Text>
       {onRetry ? (
         <Pressable onPress={onRetry} style={{ paddingVertical: 8 }}>
           <Text style={{ fontWeight: '700' }}>
