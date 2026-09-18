@@ -7,37 +7,23 @@
       "identity_status": "verified",
       "address": "Llano Subercaseaux 3153",
       "comuna": "San Miguel",
-      "public_contact": {
-        "phone": "+56225558963",
-        "whatsapp": "+56968045136",
-        "website": "https://delbeto.com/restaurant-el-llano/"
-      },
-      "evidence": [
-        {"kind": "official_website", "url": "https://delbeto.com/restaurant-el-llano/", "observed_at": "2026-09-18"}
-      ]
+      "public_contact": {"phone": "+56225558963", "whatsapp": "+56968045136", "website": "https://delbeto.com/restaurant-el-llano/"},
+      "evidence": [{"kind": "official_website", "url": "https://delbeto.com/restaurant-el-llano/", "observed_at": "2026-09-18"}]
     },
     {
       "outlet_key": "cl-rm-san-miguel-green-lab-dresden-4238",
       "identity_status": "verified",
       "address": "Dresden 4238",
       "comuna": "San Miguel",
-      "public_contact": {
-        "phone": "+56949214378",
-        "website": "https://www.greenlabchile.cl/locales/"
-      },
-      "evidence": [
-        {"kind": "official_website", "url": "https://www.greenlabchile.cl/locales/", "observed_at": "2026-09-18"}
-      ]
+      "public_contact": {"phone": "+56949214378", "website": "https://www.greenlabchile.cl/locales/"},
+      "evidence": [{"kind": "official_website", "url": "https://www.greenlabchile.cl/locales/", "observed_at": "2026-09-18"}]
     },
     {
       "outlet_key": "cl-rm-huechuraba-street-wrap-pedro-fontova-6651",
       "identity_status": "verified",
       "address": "Avenida Pedro Fontova 6651, Local 24",
       "comuna": "Huechuraba",
-      "public_contact": {
-        "phone": "+56949144525",
-        "website": "https://www.streetwrap.cl/nuestras-tiendas"
-      },
+      "public_contact": {"phone": "+56949144525", "website": "https://www.streetwrap.cl/nuestras-tiendas"},
       "evidence": [
         {"kind": "official_website", "url": "https://www.streetwrap.cl/nuestras-tiendas", "observed_at": "2026-09-18"},
         {"kind": "rappi", "url": "https://www.rappi.cl/restaurantes/900097488-street-wrap", "observed_at": "2026-09-18"}
@@ -48,9 +34,7 @@
       "identity_status": "verified",
       "address": "Av. Pedro Fontova 7280, Local 104",
       "comuna": "Huechuraba",
-      "public_contact": {
-        "website": "https://boglbogl.cl/"
-      },
+      "public_contact": {"website": "https://boglbogl.cl/"},
       "evidence": [
         {"kind": "official_website", "url": "https://boglbogl.cl/", "observed_at": "2026-09-18"},
         {"kind": "official_website", "url": "https://boglbogl.cl/pages/quienes-somos", "observed_at": "2026-09-18"}
@@ -61,103 +45,96 @@
       "identity_status": "verified",
       "address": "Av. Holanda 160",
       "comuna": "Providencia",
-      "public_contact": {
-        "phone": "+56232301278",
-        "website": "https://rishtedar.cl/locales/providencia"
-      },
-      "evidence": [
-        {"kind": "official_website", "url": "https://rishtedar.cl/locales/providencia", "observed_at": "2026-09-18"}
-      ]
+      "public_contact": {"phone": "+56232301278", "website": "https://rishtedar.cl/locales/providencia"},
+      "evidence": [{"kind": "official_website", "url": "https://rishtedar.cl/locales/providencia", "observed_at": "2026-09-18"}]
     },
     {
       "outlet_key": "cl-rm-vitacura-rishtedar-vitacura-5461",
       "identity_status": "verified",
       "address": "Av. Vitacura 5461",
       "comuna": "Vitacura",
-      "public_contact": {
-        "phone": "+56232040981",
-        "website": "https://rishtedar.cl/locales"
-      },
-      "evidence": [
-        {"kind": "official_website", "url": "https://rishtedar.cl/locales", "observed_at": "2026-09-18"}
-      ]
+      "public_contact": {"phone": "+56232040981", "website": "https://rishtedar.cl/locales"},
+      "evidence": [{"kind": "official_website", "url": "https://rishtedar.cl/locales", "observed_at": "2026-09-18"}]
     },
     {
       "outlet_key": "cl-rm-la-reina-rishtedar-principe-de-gales-6500",
       "identity_status": "verified",
       "address": "Av. Príncipe de Gales 6500",
       "comuna": "La Reina",
-      "public_contact": {
-        "phone": "+56232359977",
-        "website": "https://rishtedar.cl/locales"
-      },
-      "evidence": [
-        {"kind": "official_website", "url": "https://rishtedar.cl/locales", "observed_at": "2026-09-18"}
-      ]
+      "public_contact": {"phone": "+56232359977", "website": "https://rishtedar.cl/locales"},
+      "evidence": [{"kind": "official_website", "url": "https://rishtedar.cl/locales", "observed_at": "2026-09-18"}]
     },
     {
       "outlet_key": "cl-rm-lo-barnechea-rishtedar-el-rodeo-12850",
       "identity_status": "verified",
       "address": "El Rodeo 12850, Local 74 y 75",
       "comuna": "Lo Barnechea",
-      "public_contact": {
-        "phone": "+56233454142",
-        "website": "https://rishtedar.cl/locales"
-      },
-      "evidence": [
-        {"kind": "official_website", "url": "https://rishtedar.cl/locales", "observed_at": "2026-09-18"}
-      ]
+      "public_contact": {"phone": "+56233454142", "website": "https://rishtedar.cl/locales"},
+      "evidence": [{"kind": "official_website", "url": "https://rishtedar.cl/locales", "observed_at": "2026-09-18"}]
     },
     {
       "outlet_key": "cl-rm-puente-alto-meraki-sushi-los-toros-1399",
       "identity_status": "verified",
       "address": "Los Toros 1399",
       "comuna": "Puente Alto",
-      "public_contact": {
-        "phone": "+56982269273",
-        "website": "https://www.merakisushi.cl/locales/"
-      },
-      "evidence": [
-        {"kind": "official_website", "url": "https://www.merakisushi.cl/locales/", "observed_at": "2026-09-18"}
-      ]
+      "public_contact": {"phone": "+56982269273", "website": "https://www.merakisushi.cl/locales/"},
+      "evidence": [{"kind": "official_website", "url": "https://www.merakisushi.cl/locales/", "observed_at": "2026-09-18"}]
     },
     {
       "outlet_key": "cl-rm-providencia-meraki-sushi-los-leones-1973",
       "identity_status": "verified",
       "address": "Avenida Los Leones 1973",
       "comuna": "Providencia",
-      "public_contact": {
-        "phone": "+56933665931",
-        "website": "https://www.merakisushi.cl/locales/"
-      },
-      "evidence": [
-        {"kind": "official_website", "url": "https://www.merakisushi.cl/locales/", "observed_at": "2026-09-18"}
-      ]
+      "public_contact": {"phone": "+56933665931", "website": "https://www.merakisushi.cl/locales/"},
+      "evidence": [{"kind": "official_website", "url": "https://www.merakisushi.cl/locales/", "observed_at": "2026-09-18"}]
     },
     {
       "outlet_key": "cl-rm-la-florida-meraki-sushi-la-florida-9490",
       "identity_status": "verified",
       "address": "Avenida La Florida 9490",
       "comuna": "La Florida",
-      "public_contact": {
-        "phone": "+56977665266",
-        "website": "https://www.merakisushi.cl/locales/"
-      },
-      "evidence": [
-        {"kind": "official_website", "url": "https://www.merakisushi.cl/locales/", "observed_at": "2026-09-18"}
-      ]
+      "public_contact": {"phone": "+56977665266", "website": "https://www.merakisushi.cl/locales/"},
+      "evidence": [{"kind": "official_website", "url": "https://www.merakisushi.cl/locales/", "observed_at": "2026-09-18"}]
     },
     {
       "outlet_key": "cl-rm-penalolen-meraki-sushi-las-perdices-2990",
       "identity_status": "verified",
       "address": "Avenida Las Perdices 2990",
       "comuna": "Peñalolén",
-      "public_contact": {
-        "phone": "+56935764006",
-        "website": "https://www.merakisushi.cl/locales/"
-      },
+      "public_contact": {"phone": "+56935764006", "website": "https://www.merakisushi.cl/locales/"},
+      "evidence": [{"kind": "official_website", "url": "https://www.merakisushi.cl/locales/", "observed_at": "2026-09-18"}]
+    },
+    {
+      "outlet_key": "cl-rm-recoleta-pasteleria-la-colonia-mexico-692",
+      "identity_status": "verified",
+      "address": "Av. México 692",
+      "comuna": "Recoleta",
+      "public_contact": {"phone": "+56957242413", "whatsapp": "+56957242413", "website": "https://pastelerialacolonia.cl/store/local-recoleta/"},
       "evidence": [
-        {"kind": "official_website", "url": "https://www.merakisushi.cl/locales/", "observed_at": "2026-09-18"}
+        {"kind": "official_website", "url": "https://pastelerialacolonia.cl/store/local-recoleta/", "observed_at": "2026-09-18"},
+        {"kind": "official_website", "url": "https://pastelerialacolonia.cl/cafeterias/", "observed_at": "2026-09-18"}
+      ]
+    },
+    {
+      "outlet_key": "cl-rm-recoleta-panaderia-fufu-antonia-lopez-de-bello-150",
+      "identity_status": "corroborated",
+      "address": "Antonia López de Bello 150",
+      "comuna": "Recoleta",
+      "public_contact": {"phone": "+56227778140", "website": "https://www.panaderiafufu.cl/"},
+      "evidence": [
+        {"kind": "waze", "url": "https://www.waze.com/live-map/directions/cl/region-metropolitana/recoleta/panaderia-fufu-bakery?to=place.ChIJH9sAOpfFYpYRBMe4LjQgOXk", "observed_at": "2026-09-18"},
+        {"kind": "other_public_source", "url": "https://cl.todosnegocios.com/panader%C3%ADa-fufu-9-8744-6298", "observed_at": "2026-09-18"}
+      ]
+    },
+    {
+      "outlet_key": "cl-rm-recoleta-pasteleria-geno-santos-dumont-642",
+      "identity_status": "corroborated",
+      "address": "Santos Dumont 642",
+      "comuna": "Recoleta",
+      "public_contact": {"phone": "+56227356976", "website": "https://orion-genopasteleria-stio.cluster2.hgsitebuilder.com/home"},
+      "evidence": [
+        {"kind": "waze", "url": "https://www.waze.com/es/live-map/directions/pasteleria-geno-santos-dumont-recoleta?to=place.w.189662650.1896298818.17360507", "observed_at": "2026-09-18"},
+        {"kind": "other_public_source", "url": "https://orion-genopasteleria-stio.cluster2.hgsitebuilder.com/home", "observed_at": "2026-09-18"}
       ]
     }
   ]
