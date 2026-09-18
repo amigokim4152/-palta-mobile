@@ -3,10 +3,7 @@ import { router } from 'expo-router';
 import { Text, View } from 'react-native';
 import { useAdaptiveExperience } from '../../accessibility/useAdaptiveExperience';
 import { ActionSurface } from '../../components/home/ActionSurface';
-import {
-  GlanceCluster,
-  type GlanceItem,
-} from '../../components/home/GlanceCluster';
+import { GlanceCluster } from '../../components/home/GlanceCluster';
 import { SummaryListRow } from '../../components/home/SummaryListRow';
 import {
   EmptyState,
@@ -17,23 +14,8 @@ import { ScreenFrame } from '../../components/ScreenFrame';
 import { useAsyncResource } from '../../hooks/useAsyncResource';
 import { mobileRuntime } from '../../services/paltaClient';
 import { paltaTheme } from '../../theme/paltaTheme';
+import type { HomeRuntimeResponse } from '../../../../src/home/homeRuntimeContract';
 import { selectHomeDisplayItems } from '../../../../src/home/selectHomeDisplayItems';
-
-type RuntimeHomeData = {
-  items: Array<{
-    id: string;
-    kind: 'action' | 'status' | 'alert' | 'useful_today' | 'content';
-    title: string;
-    body?: string;
-    source_domain: string;
-    delivery: 'home' | 'home_notify' | 'urgent';
-    care_track_id?: string;
-    related_entity_id?: string;
-  }>;
-  generated_at?: string;
-  locality_label?: string;
-  glance?: GlanceItem[];
-};
 
 function greetingForNow(now = new Date()): string {
   const hour = now.getHours();
@@ -72,7 +54,7 @@ export function HomeScreen() {
     isEmpty: (data) => data.items.length === 0,
   });
 
-  const data = state.data as RuntimeHomeData | undefined;
+  const data = state.data as HomeRuntimeResponse | undefined;
   const selection = useMemo(
     () => selectHomeDisplayItems(data?.items ?? []),
     [data?.items],
@@ -147,7 +129,7 @@ export function HomeScreen() {
                 eyebrow={primary.kind === 'alert' ? 'IMPORTANTE' : undefined}
                 title={primary.title}
                 body={primary.body}
-                actionLabel={primary.care_track_id ? 'Ver seguimiento' : 'Ver detalle'}
+                actionLabel={primary.care_track_id ? 'Ver seguimiento' : undefined}
                 onPress={
                   primary.care_track_id
                     ? () => openCare(primary.care_track_id)
