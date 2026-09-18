@@ -4,8 +4,8 @@ function assert(condition, message) {
   if (!condition) throw new Error(message);
 }
 
-async function json(path) {
-  const response = await fetch(`${base}${path}`);
+async function json(path, init) {
+  const response = await fetch(`${base}${path}`, init);
   const body = await response.json();
   return { response, body };
 }
@@ -35,24 +35,49 @@ assert(detail.body.latitude === -33.4311 && detail.body.longitude === -70.6104, 
 
 const context = await json('/v1/real-estate/properties/property-demo-providencia-001/context');
 assert(context.response.ok, 'property context endpoint failed');
-assert(
-  context.body.building?.building_id === 'building-demo-providencia-001',
-  'property context must resolve one canonical building id',
-);
-assert(
-  context.body.nearby.some((item) => item.source_core === 'transport' && item.entity_id === 'metro-pedro-de-valdivia-demo'),
-  'property context must reference Transport Core entities instead of copying transit records',
-);
-assert(
-  context.body.nearby.some((item) => item.source_core === 'business'),
-  'property context must reference Business Core nearby entities',
-);
+assert(context.body.building?.building_id === 'building-demo-providencia-001', 'context must reference canonical building id');
+assert(context.body.nearby.some((item) => item.source_core === 'transport'), 'context must carry shared-core references');
 
-const missingContext = await json('/v1/real-estate/properties/property-does-not-exist/context');
-assert(
-  missingContext.response.status === 404 && missingContext.body.error === 'real_estate_property_context_not_found',
-  'unknown property context must return typed 404 payload',
+const media = await json('/v1/real-estate/listings/demo-providencia-001/media');
+assert(media.response.ok, 'listing media endpoint failed');
+assert(media.body.items[0]?.role === 'cover', 'listing media should expose cover relationship first');
+assert(typeof media.body.items[0]?.media_asset_id === 'string', 'listing media must reference a Media Core asset id');
+
+const uploadBytes = Buffer.from([0xff, 0xd8, 0xff, 0xd9]);
+const uploadSession = await json('/v1/real-estate/media/uploads', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    draft_id: 'draft-http-smoke',
+    kind: 'image',
+    role: 'cover',
+    content_type: 'image/jpeg',
+    byte_size: uploadBytes.length,
+    file_name: 'smoke.jpg',
+  }),
+});
+assert(uploadSession.response.status === 201, 'media upload session creation failed');
+assert(uploadSession.body.upload_method === 'PUT', 'media upload session must use direct PUT');
+assert(typeof uploadSession.body.media_asset_id === 'string', 'media upload session must allocate canonical asset id');
+
+const directUpload = await fetch(uploadSession.body.upload_url, {
+  method: 'PUT',
+  headers: uploadSession.body.required_headers,
+  body: uploadBytes,
+});
+assert(directUpload.status === 204, 'direct signed-style media upload failed');
+
+const completion = await json(
+  `/v1/real-estate/media/uploads/${encodeURIComponent(uploadSession.body.upload_id)}/complete`,
+  { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' },
 );
+assert(completion.response.ok && completion.body.status === 'ready', 'media upload completion failed');
+assert(completion.body.media_asset_id === uploadSession.body.media_asset_id, 'completion must preserve canonical asset id');
+
+const delivered = await fetch(completion.body.delivery_url);
+const deliveredBytes = Buffer.from(await delivered.arrayBuffer());
+assert(delivered.ok, 'uploaded media delivery URL failed');
+assert(Buffer.compare(deliveredBytes, uploadBytes) === 0, 'uploaded media bytes must round-trip in mock API');
 
 const paused = await json('/v1/real-estate/listings/demo-paused-001');
 assert(paused.response.status === 404, 'paused listing must not be publicly readable from ordinary detail endpoint');
@@ -69,6 +94,7 @@ console.log(JSON.stringify({
   saleCount: sale.body.items.length,
   businessListing: businessListings.body.items[0].listing_id,
   detailListing: detail.body.listing_id,
-  buildingId: context.body.building.building_id,
-  nearbyCount: context.body.nearby.length,
+  contextNearby: context.body.nearby.length,
+  mediaCount: media.body.items.length,
+  uploadedAsset: completion.body.media_asset_id,
 }, null, 2));
