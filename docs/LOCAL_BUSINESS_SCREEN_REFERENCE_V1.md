@@ -2,7 +2,7 @@
 
 Status: IMPLEMENTATION REFERENCE
 
-Palta learns interaction mechanics from Karrot/당근 but does not copy its visual design. The benchmark is whether a person can understand a nearby business and act faster, with less uncertainty.
+Palta learns interaction mechanics from Karrot/당근 but does not copy its visual design. The benchmark is whether a person can understand a nearby business and act faster, with less uncertainty, and whether a small merchant can understand what matters today without learning a complex SaaS dashboard.
 
 ## Product rule
 
@@ -63,6 +63,28 @@ Recommended information order:
 
 A profile is living local content, not a static directory record.
 
+## Screen C — Mi negocio / Business Partner Home
+
+The owner home is not a module launcher and not an upsell wall. It should answer:
+1. How is my business operating today?
+2. Is there anything that actually needs my attention?
+3. Is there a real customer relationship item I should respond to?
+4. What free/basic information should I keep correct?
+5. Only if repeated work exists: is there automation that could save time?
+
+Recommended information order:
+1. Compact verification context; do not waste the first card on account status alone.
+2. `Hoy`: current operating truth and today's hours.
+3. Actual attention items: corrections, stale critical facts, pending commitments or other action-required guidance.
+4. Real relationship signals that exist in Palta, such as verified-use reviews requiring a response.
+5. Useful free suggestions before any commercial suggestion.
+6. Free canonical profile management: profile/contact, services, hours, location/service area, public links, posts and basic coupon where eligible.
+7. Paid/automation suggestion only when `may_be_paid` guidance is backed by an observed repeated burden or useful workflow.
+
+Do not invent analytics to make the screen look populated. No fake visitors, searches, leads, revenue, response counts or conversion metrics. If Palta does not have a trustworthy measurement yet, leave it out.
+
+When nothing needs attention, the correct screen can say `Todo tranquilo por ahora` and remain quiet.
+
 ## Where Palta must exceed the benchmark
 
 - Operational truth is first-class: seasonal closure, today-only closure, stale/unknown hours and next-open projection.
@@ -71,6 +93,7 @@ A profile is living local content, not a static directory record.
 - Quote, reservation, order and inquiry transition into shared Care/Messaging state instead of becoming dead-end contact buttons.
 - After an action starts, ongoing state can surface through Care/Home rather than forcing the person to rediscover the business.
 - Free external links remain useful; paid integration is for automation, not basic visibility.
+- Owner guidance is partner-oriented: observation → why it matters → one practical action. Free/manual solution comes before paid automation.
 
 ## Interaction continuity
 
