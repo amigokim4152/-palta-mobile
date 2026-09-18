@@ -30,6 +30,7 @@ export type HomeApiSubject = {
  */
 export type HomeApiItem = {
   id: string;
+  capability_key?: string;
   kind: 'action' | 'status' | 'alert' | 'useful_today' | 'content';
   title: string;
   body?: string;
@@ -56,6 +57,7 @@ export type HomeApiItem = {
 
 export type HomeApiGlanceItem = {
   id: string;
+  capability_key?: string;
   label: string;
   value: string;
   detail?: string;
@@ -85,6 +87,10 @@ export type HomeApiResponse = {
   /** Allows clients/QA to distinguish the function-first extension. */
   contract_version?: 'functional-home-v1';
   generated_at?: string;
+  /** Development-only complete scenario marker. Production payloads omit it. */
+  demo_mode?: boolean;
+  demo_label?: string;
+  demo_capability_keys?: string[];
   /** Legacy convenience field retained during migration. */
   locality_label?: string;
   context?: HomeApiContext;
