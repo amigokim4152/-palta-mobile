@@ -59,27 +59,49 @@ The secret key and password are never printed.
 
 Do not replace this with direct SQL insertion into `auth.users`.
 
+## One-step local setup
+
+`scripts/setup-golden-user-local.sh` reduces the remaining trusted action to a single local command.
+
+The helper:
+
+1. prompts once for the project's `sb_secret_...` key with terminal echo disabled
+2. generates a random synthetic password locally and never prints it
+3. runs the Auth Admin provisioning command
+4. writes only the synthetic development credentials to `apps/mobile/.env.local`
+5. relies on the existing `.gitignore` rule for `.env*.local`
+6. removes the admin key from the shell process before launching the app
+7. launches the iOS development runtime unless `--no-launch` is supplied
+
+Run from the repository root after checking out the focused branch:
+
+```bash
+bash scripts/setup-golden-user-local.sh
+```
+
+The only manual security input is the Supabase secret key. It remains local to that shell invocation and is not committed to GitHub or placed in the Expo public environment.
+
 ## Local development configuration
 
 The committed `.env.example` keeps synthetic Auth disabled and contains no synthetic password.
 
-A local ignored env may set:
+The one-step helper creates the ignored `apps/mobile/.env.local` with:
 
 ```text
 EXPO_PUBLIC_ENABLE_GOLDEN_USER_AUTH=true
-EXPO_PUBLIC_GOLDEN_USER_EMAIL=<same synthetic email provisioned on server>
-EXPO_PUBLIC_GOLDEN_USER_PASSWORD=<synthetic development password>
+EXPO_PUBLIC_GOLDEN_USER_EMAIL=<fixed synthetic email>
+EXPO_PUBLIC_GOLDEN_USER_PASSWORD=<locally generated synthetic password>
 ```
 
 These values are for development builds only. The synthetic password is treated as a test credential, never a production credential.
 
 ## Verified evidence — 2026-09-18
 
-Current focused-branch HEAD verified at this checkpoint:
+Focused implementation HEAD used for the completed code/runtime checks before the one-step helper was added:
 
 `862eb72edd214feac33b122df71acad1b9c2b22f`
 
-Successful GitHub Actions on that exact HEAD:
+Successful GitHub Actions on that exact implementation HEAD:
 
 - Palta Core Check run `35338388785` — `success`
 - Palta Core CI run `35338388843` — `success`
@@ -87,19 +109,19 @@ Successful GitHub Actions on that exact HEAD:
 
 The focused branch is used because parallel work sessions were writing contradictory Auth changes to the controller branch. Do not force-update either branch over newer work. Reconcile only after Gate 01A evidence is complete.
 
-Latest direct `palta-dev` database check at this checkpoint:
+Latest direct `palta-dev` database check before local provisioning:
 
 - `auth.users = 0`
 - `auth.identities = 0`
 - `public.palta_account = 0`
 
-Therefore no login-capable Golden User has yet been provisioned.
+Therefore no login-capable Golden User had yet been provisioned at that checkpoint.
 
 ## Current external boundary
 
 The connected Supabase management surface used in this session exposes SQL/project/runtime operations but does not expose Auth Admin user creation or a retrievable secret key. That boundary is intentional and must not be bypassed by inserting directly into Supabase Auth tables or by exposing an admin key to mobile.
 
-The remaining trusted action is therefore to execute the already-versioned `golden:provision` command from a trusted development/server shell that has the project's Supabase secret key. After that one action, the mobile Golden User flow can be exercised without Apple/Google provider interaction.
+The one-step local helper is the safe bridge across that boundary.
 
 ## Gate 01A Definition of Done
 
@@ -121,6 +143,6 @@ Current status by item:
 - #1–#3: `NOT VERIFIED` — trusted Auth Admin provisioning has not executed
 - #4–#8: `NOT VERIFIED` — requires provisioned synthetic account and actual mobile interaction
 - #9: `VERIFIED` on the existing real `palta-dev` negative owner-RLS test
-- #10: `VERIFIED` on focused HEAD `862eb72...`
+- #10: `VERIFIED` for the synthetic Auth runtime implementation; latest helper-only commits still receive normal CI
 
 Until #1–#8 are evidenced, Gate 01A remains `RUNTIME_CONNECTED`, not `E2E_VERIFIED`.
