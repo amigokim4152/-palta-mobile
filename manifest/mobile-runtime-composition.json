@@ -2,6 +2,9 @@
   "version": 1,
   "composition_branch": "integration/runtime-composition-v1",
   "generated_runtime_root": "apps/mobile/src",
+  "branch_metadata_paths": [
+    "AGENTS.md"
+  ],
   "shared_paths": [
     "mobile-overlay/src/app/_layout.tsx",
     "mobile-overlay/src/app/(tabs)/_layout.tsx",
@@ -18,7 +21,7 @@
       "id": "home",
       "source_branch": "integration/home-functional-foundation-v1",
       "integration_mode": "reviewed_snapshot",
-      "integrated_source_sha": "9edb070af8fc9d3366656b231efcfda45c36edd9",
+      "integrated_source_sha": "e2e3f1749f4fb073d760f1f9b91cefc62ab0b84e",
       "owned_paths": [
         "mobile-overlay/src/features/home/HomeScreen.tsx",
         "mobile-overlay/src/components/home/ActionSurface.tsx",
@@ -31,6 +34,7 @@
       "id": "negocios",
       "source_branch": "integration/local-business-v1",
       "integration_mode": "live_overlay",
+      "ownership_baseline_sha": "1c2b3f00368f2084cb2b90812bd3771bbd3299b0",
       "owned_paths": [
         "mobile-overlay/src/features/business",
         "mobile-overlay/src/components/business",
@@ -59,31 +63,31 @@
       "id": "auth_profile",
       "source_branch": "integration/auth-profile-core-v1",
       "status": "pending_contract_integration",
-      "observed_source_sha": "09b740817e7eb0429076b02ba54dff6f81d5f6e4"
+      "observed_source_sha": "275e8b201d29d9565083bb2b02cd38aaf5b38e65"
     },
     {
       "id": "messaging",
       "source_branch": "integration/message-core-v1",
       "status": "pending_contract_integration",
-      "observed_source_sha": "8ff34340b4105738f67cab8b0df1a75f1a5d4961"
+      "observed_source_sha": "152de04b8ad045caad8196a6057ba8ce37ef13ec"
     },
     {
       "id": "commerce",
       "source_branch": "integration/commercial-core-v1",
       "status": "pending_contract_integration",
-      "observed_source_sha": "e50c50abdfc413a673090282341c024440ead7b6"
+      "observed_source_sha": "872f35894053a27e7cb3988f7081f06fafa90a30"
     },
     {
       "id": "localization",
       "source_branch": "integration/localization-core-v1",
       "status": "pending_contract_integration",
-      "observed_source_sha": "b0c5ebcc2a9c238088bed40c7503adec125c4ee6"
+      "observed_source_sha": "e1ad6826c650d9b6c1e84879103b6330347df9b9"
     },
     {
       "id": "map_runtime",
       "source_branch": "integration/map-runtime-v1",
       "status": "pending_contract_integration",
-      "observed_source_sha": "af25246dce61a634270b90d9c4d4ea7b2113b399"
+      "observed_source_sha": "b3488a4673246d831091c66cb86147c5fc348254"
     }
   ],
   "planned_core_integrations": [
