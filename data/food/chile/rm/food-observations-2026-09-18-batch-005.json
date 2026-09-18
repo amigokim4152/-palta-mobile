@@ -43,7 +43,7 @@
         "comuna": "Vitacura",
         "region": "Región Metropolitana",
         "postal_code": "7630000",
-        "identity_status": "platform_only"
+        "identity_status": "corroborated"
       },
       "listing": {
         "platform": "uber_eats",
@@ -67,7 +67,8 @@
         ]
       },
       "evidence": [
-        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/carnitas-vitacura/BLIfJcAaVwWCar2jbFIKWA", "observed_at": "2026-09-18"}
+        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/carnitas-vitacura/BLIfJcAaVwWCar2jbFIKWA", "observed_at": "2026-09-18"},
+        {"kind": "rappi", "url": "https://www.rappi.cl/restaurantes/900082058-carnitas", "observed_at": "2026-09-18"}
       ]
     },
     {
@@ -146,11 +147,15 @@
         "outlet_key": "cl-rm-providencia-rishtedar-holanda-160",
         "brand_name": "Rishtedar",
         "outlet_name": "Providencia",
-        "address": "Holanda 160",
+        "address": "Av. Holanda 160",
         "comuna": "Providencia",
         "region": "Región Metropolitana",
         "postal_code": "7500000",
-        "identity_status": "platform_only"
+        "public_contact": {
+          "phone": "+56232301278",
+          "website": "https://rishtedar.cl/locales/providencia"
+        },
+        "identity_status": "verified"
       },
       "listing": {
         "platform": "uber_eats",
@@ -172,7 +177,8 @@
         ]
       },
       "evidence": [
-        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/rishtedar-providencia/8x-vQtpCVdmxCpXNTJch2A", "observed_at": "2026-09-18"}
+        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/rishtedar-providencia/8x-vQtpCVdmxCpXNTJch2A", "observed_at": "2026-09-18"},
+        {"kind": "official_website", "url": "https://rishtedar.cl/locales/providencia", "observed_at": "2026-09-18"}
       ]
     },
     {
