@@ -49,6 +49,17 @@ CREATE TABLE IF NOT EXISTS real_estate_listing_draft (
 );
 CREATE INDEX IF NOT EXISTS real_estate_listing_draft_updated_at_idx
   ON real_estate_listing_draft(updated_at DESC);
+
+CREATE TABLE IF NOT EXISTS real_estate_inquiry_draft (
+  id TEXT PRIMARY KEY NOT NULL,
+  listing_id TEXT NOT NULL,
+  status TEXT NOT NULL,
+  payload_json TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS real_estate_inquiry_draft_listing_idx
+  ON real_estate_inquiry_draft(listing_id, updated_at DESC);
 `;
 
 export async function initializePaltaSQLite(
