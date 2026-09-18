@@ -6,7 +6,9 @@ import { demoRealEstateMedia } from './real-estate-media-fixtures.mjs';
 
 const uploadSessions = new Map();
 const uploadedAssets = new Map();
+const publicationSubmissions = new Map();
 let uploadSequence = 0;
+let submissionSequence = 0;
 
 function normalize(value) {
   return String(value ?? '')
@@ -127,6 +129,45 @@ function createUploadSession(body, url) {
   };
 }
 
+function validatePublicationBody(body) {
+  if (!body || typeof body !== 'object') return 'invalid_payload';
+  if (typeof body.draft_id !== 'string' || !body.draft_id.trim()) return 'draft_id_required';
+  if (!['sale', 'rent', 'temporary_rent'].includes(body.transaction_type)) return 'invalid_transaction_type';
+  if (!['apartment', 'house', 'room', 'office', 'commercial', 'land', 'parcel', 'warehouse'].includes(body.property_type)) return 'invalid_property_type';
+  if (!['owner_direct', 'broker', 'real_estate_business'].includes(body.publisher_type)) return 'invalid_publisher_type';
+  if (typeof body.comuna !== 'string' || !body.comuna.trim()) return 'comuna_required';
+  if (typeof body.sector_or_address !== 'string' || !body.sector_or_address.trim()) return 'sector_or_address_required';
+  if (!Number.isFinite(body.price_clp) && !Number.isFinite(body.price_uf)) return 'price_required';
+  if (!Array.isArray(body.media) || !body.media.some((item) => item?.kind === 'image' && typeof item?.media_asset_id === 'string')) {
+    return 'real_media_required';
+  }
+  if (body.publisher_type !== 'owner_direct' && (typeof body.publisher_business_id !== 'string' || !body.publisher_business_id.trim())) {
+    return 'verified_business_required';
+  }
+  for (const item of body.media) {
+    if (!item || typeof item.media_asset_id !== 'string' || !uploadedAssets.has(item.media_asset_id)) {
+      return 'media_asset_not_ready';
+    }
+  }
+  return null;
+}
+
+function createOrReusePublication(body) {
+  const existing = publicationSubmissions.get(body.draft_id);
+  if (existing) return existing;
+  submissionSequence += 1;
+  const submission = {
+    submission_id: `re-submission-${submissionSequence}`,
+    draft_id: body.draft_id,
+    status: 'pending_review',
+    message: body.publisher_type === 'owner_direct'
+      ? 'Publicación recibida. La identidad del propietario y los datos serán verificados antes de activarla.'
+      : 'Publicación recibida desde el Business Profile vinculado.',
+  };
+  publicationSubmissions.set(body.draft_id, submission);
+  return submission;
+}
+
 export function searchRealEstateListings(url) {
   return demoRealEstateListings
     .filter((item) => matchesListing(item, url))
@@ -198,6 +239,22 @@ export async function handleRealEstateRequest({ req, res, url, json }) {
       delivery_url: absolutePublicUrl(url, `/v1/real-estate/media/assets/${encodeURIComponent(session.mediaAssetId)}`),
     });
     return true;
+  }
+
+  if (req.method === 'POST' && url.pathname === '/v1/real-estate/publications') {
+    try {
+      const body = await readJson(req);
+      const validationError = validatePublicationBody(body);
+      if (validationError) {
+        json(res, 400, { error: validationError });
+        return true;
+      }
+      json(res, publicationSubmissions.has(body.draft_id) ? 200 : 202, createOrReusePublication(body));
+      return true;
+    } catch {
+      json(res, 400, { error: 'invalid_json' });
+      return true;
+    }
   }
 
   const assetMatch = url.pathname.match(/^\/v1\/real-estate\/media\/assets\/([^/]+)$/);
