@@ -4,6 +4,8 @@ Runtime authority: `docs/PALTA_PLATFORM_RUNTIME_FOUNDATION_V1.md`.
 
 Primary v1 development provider remains **Supabase managed PostgreSQL**. Neon remains a portability/fallback option; do not operate both as parallel canonical databases for v1.
 
+Canonical repository: `amigokim4152/palta-mobile`.
+
 ## Current status — 2026-09-18
 
 - Supabase DEV project: **PROVISIONED / ACTIVE_HEALTHY**;
@@ -12,15 +14,34 @@ Primary v1 development provider remains **Supabase managed PostgreSQL**. Neon re
 - region: `sa-east-1` (São Paulo);
 - plan/cost at creation: Free / project creation cost reported as 0 monthly;
 - migrations `0001` through `0023`: **APPLIED to DEV** through the Supabase migration API;
+- `0022a_ci_auth_users_stub.sql`: **RECORDED/APPLIED to DEV as a no-op** because real Supabase already provides `auth.users`; it exists only to let plain PostgreSQL CI verify later Auth foreign keys;
 - `0020_payment_card_evidence.sql` is integrated on this foundation branch as well as the commercial source branch;
 - `0023_identity_business_grants.sql` adds minimal `palta_account` linkage and canonical `business_operational_grant` records matching the owner/manager/cashier/accountant/viewer capability model in source;
 - payment card evidence columns verified in DEV: `card_funding_type`, `installment_count`, `installment_amount_minor`, plus `processed_amount_minor`, `provider_connection_id`, and `order_id`;
 - direct `anon` / `authenticated` SELECT privilege on `payment_intent` and `payment_credential_envelope`: **false**;
 - failed role-switch smoke test left **0 synthetic fixture rows**;
-- full business-role RLS isolation smoke: **NOT VERIFIED YET** because the Supabase administrative SQL connection is not a member of `palta_commerce_api` and cannot `SET ROLE` to it;
+- full business-role RLS isolation smoke against the actual runtime principal: **NOT VERIFIED YET** because the Supabase administrative SQL connection is not a member of `palta_commerce_api` and cannot `SET ROLE` to it;
 - production database: **NOT PROVISIONED**.
 
 `NOT VERIFIED` must never be reported as PASS.
+
+## CI checkpoint
+
+Foundation commit `b86995f657030b45519315346c5f6361001ccdbf`:
+
+- Palta Core Check: **PASS**;
+- Palta Core CI: **PASS**;
+- `verify` job (`npm ci` + `npm run verify`): **PASS**;
+- PostgreSQL preflight: **PASS**;
+- full migration-order application in plain PostgreSQL/PostGIS CI: **PASS**;
+- commerce/payment RLS invariants: **PASS**;
+- split-payment state: **PASS**;
+- provider-confirmed processed amount: **PASS**;
+- fiscal execution/provider invariants: **PASS**;
+- customer delivery/share-link/CRM invariants: **PASS**;
+- printer routing + PrintJob/idempotency invariants: **PASS**.
+
+These CI passes do not replace the still-required runtime-principal isolation smoke against the managed Supabase DEV project.
 
 ## Advisor status
 
