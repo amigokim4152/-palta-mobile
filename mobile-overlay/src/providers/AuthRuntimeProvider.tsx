@@ -17,7 +17,7 @@ import type {
   InteractiveAuthPort,
 } from '../../../src/ports/authPort';
 import { AuthPortError } from '../../../src/ports/authPort';
-import { createSupabaseAuthPort } from '../adapters/createSupabaseAuthPort.native';
+import { createSupabaseAuthPort } from '../adapters/createSupabaseAuthPort';
 
 type RuntimeState =
   | { status: 'loading' }
