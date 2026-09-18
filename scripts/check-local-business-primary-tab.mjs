@@ -49,16 +49,23 @@ assert(
   'Legacy neighborhood route may remain addressable, but Barrio must not occupy a primary bottom-tab slot.',
 );
 
-for (const [label, source] of [
-  ['primary tab', route],
-  ['legacy route', legacyRoute],
-]) {
-  assert(
-    source.includes('BusinessDiscoveryExperience') &&
-      source.includes('export default BusinessDiscoveryExperience'),
-    `${label} must reuse the canonical BusinessDiscoveryExperience instead of creating a parallel Local Business UI.`,
-  );
-}
+assert(
+  route.includes('BusinessDiscoveryExperience') &&
+    route.includes('<BusinessDiscoveryExperience />') &&
+    !route.includes('<NeighborhoodMap') &&
+    !route.includes('<MapResultSheet'),
+  'Primary Negocios tab must compose the canonical BusinessDiscoveryExperience rather than duplicate its map/discovery UI.',
+);
+assert(
+  route.includes("router.push('/local-businesses/food')") &&
+    route.includes('Comida'),
+  'Specialized food intent may sit above Negocios, but it must enter through its dedicated route without replacing the canonical business surface.',
+);
+assert(
+  legacyRoute.includes('BusinessDiscoveryExperience') &&
+    legacyRoute.includes('export default BusinessDiscoveryExperience'),
+  'Legacy Local Business route must reuse the canonical BusinessDiscoveryExperience instead of creating parallel UI.',
+);
 
 assert(
   discovery.includes('Explorar Santiago') &&
@@ -87,4 +94,4 @@ assert(
   'Legacy Local Business route must resolve to the primary Negocios tab.',
 );
 
-console.log('PASS: Local Business primary map-first tab source check');
+console.log('PASS: Local Business primary map-first tab source check with specialized food entry');
