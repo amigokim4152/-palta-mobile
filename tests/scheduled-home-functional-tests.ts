@@ -39,6 +39,11 @@ const events: ScheduledFunctionalEvent[] = [
     attentionLeadMinutes: 120,
     personalized: true,
     subject: { kind: 'vehicle', id: 'vehicle-1' },
+    action: {
+      label: 'Ver preparación',
+      kind: 'internal',
+      target: '/context/vehicle-1',
+    },
   },
 ];
 
@@ -55,12 +60,34 @@ const projected = scheduledEventsToFunctionalHome(
 assert(projected.length === 2, 'Only confirmed valid schedules should be projected.');
 const vehicle = projected.find((item) => item.id.endsWith('vehicle-soon'));
 const medical = projected.find((item) => item.id.endsWith('medical-1'));
-assert(vehicle?.surface === 'now', 'Imminent schedule requiring action must promote to AHORA.');
+assert(vehicle?.surface === 'now', 'Imminent schedule with a real action must promote to AHORA.');
 assert(vehicle?.kind === 'action', 'Imminent required preparation must be actionable.');
+assert(vehicle?.action?.target === '/context/vehicle-1', 'Promoted action must retain a real executable target.');
 assert(vehicle?.scheduledAt === '2026-09-18T13:00:00.000Z', 'Promoted AHORA item must retain schedule context.');
 assert(medical?.surface === 'upcoming', 'Confirmed future schedule should remain PRÓXIMO.');
 assert(medical?.kind === 'status', 'Future schedule without immediate action should be status.');
 assert(projected.every((item) => validateHomeFunctionalItem(item).length === 0), 'Projected schedules must satisfy Home functional contract.');
+
+const missingActionTarget = scheduledEventsToFunctionalHome(
+  {
+    sourceDomain: 'school',
+    dataMode: 'scheduled',
+    observedAt: now.toISOString(),
+    events: [
+      {
+        id: 'soon-no-target',
+        title: 'Preparación pendiente',
+        scheduledAt: '2026-09-18T13:00:00.000Z',
+        confirmed: true,
+        actionRequired: true,
+        attentionLeadMinutes: 120,
+      },
+    ],
+  },
+  now,
+);
+assert(missingActionTarget[0]?.surface === 'upcoming', 'Schedule without an executable target must not become an AHORA action card.');
+assert(missingActionTarget[0]?.kind === 'status', 'Schedule without a target remains a status, not a fake action.');
 
 const invalidAndFar = scheduledEventsToFunctionalHome(
   {
