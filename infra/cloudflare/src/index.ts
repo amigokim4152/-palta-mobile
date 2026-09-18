@@ -39,6 +39,13 @@ function corsHeaders(): Headers {
   });
 }
 
+function jsonHeaders(cacheControl = 'public, max-age=300, s-maxage=3600'): Headers {
+  const headers = corsHeaders();
+  headers.set('Content-Type', 'application/json; charset=utf-8');
+  headers.set('Cache-Control', cacheControl);
+  return headers;
+}
+
 function applyObjectHeaders(
   object: R2ObjectLike,
   headers: Headers,
@@ -46,7 +53,6 @@ function applyObjectHeaders(
   object.writeHttpMetadata(headers);
   headers.set('ETag', object.httpEtag);
   headers.set('Accept-Ranges', 'bytes');
-  // Conservative while the object key is still stable rather than content-hashed.
   headers.set('Cache-Control', 'public, max-age=300, s-maxage=3600');
 }
 
@@ -68,6 +74,128 @@ function contentRange(
     value: `bytes ${range.offset}-${range.offset + length - 1}/${total}`,
     length,
   };
+}
+
+function buildSantiagoStyle(origin: string) {
+  const pmtilesUrl = `pmtiles://${origin}/maps/santiago.pmtiles`;
+
+  return {
+    version: 8,
+    name: 'Somos Palta · Santiago',
+    sources: {
+      santiago: {
+        type: 'vector',
+        url: pmtilesUrl,
+        attribution: '© OpenStreetMap contributors',
+      },
+    },
+    layers: [
+      {
+        id: 'background',
+        type: 'background',
+        paint: { 'background-color': '#F6F4EF' },
+      },
+      {
+        id: 'earth',
+        type: 'fill',
+        source: 'santiago',
+        'source-layer': 'earth',
+        paint: { 'fill-color': '#F6F4EF' },
+      },
+      {
+        id: 'landcover',
+        type: 'fill',
+        source: 'santiago',
+        'source-layer': 'landcover',
+        paint: {
+          'fill-color': '#E6EEDF',
+          'fill-opacity': 0.72,
+        },
+      },
+      {
+        id: 'landuse',
+        type: 'fill',
+        source: 'santiago',
+        'source-layer': 'landuse',
+        paint: {
+          'fill-color': '#ECE9E0',
+          'fill-opacity': 0.58,
+        },
+      },
+      {
+        id: 'water',
+        type: 'fill',
+        source: 'santiago',
+        'source-layer': 'water',
+        paint: { 'fill-color': '#BCDCE8' },
+      },
+      {
+        id: 'boundaries',
+        type: 'line',
+        source: 'santiago',
+        'source-layer': 'boundaries',
+        paint: {
+          'line-color': '#C6C1B6',
+          'line-width': 0.9,
+          'line-opacity': 0.8,
+        },
+      },
+      {
+        id: 'roads',
+        type: 'line',
+        source: 'santiago',
+        'source-layer': 'roads',
+        paint: {
+          'line-color': '#C8C3B8',
+          'line-width': [
+            'interpolate',
+            ['linear'],
+            ['zoom'],
+            8,
+            0.6,
+            12,
+            1.1,
+            14,
+            2.2,
+            17,
+            5,
+          ],
+        },
+      },
+      {
+        id: 'buildings',
+        type: 'fill',
+        source: 'santiago',
+        'source-layer': 'buildings',
+        minzoom: 13,
+        paint: {
+          'fill-color': '#D7D1C6',
+          'fill-outline-color': '#C5BFB4',
+        },
+      },
+    ],
+  };
+}
+
+async function serveStyle(request: Request): Promise<Response> {
+  if (request.method !== 'GET' && request.method !== 'HEAD') {
+    return new Response('Method Not Allowed', {
+      status: 405,
+      headers: {
+        Allow: 'GET, HEAD, OPTIONS',
+      },
+    });
+  }
+
+  const url = new URL(request.url);
+  const body = JSON.stringify(buildSantiagoStyle(url.origin));
+  const headers = jsonHeaders();
+  headers.set('Content-Length', String(new TextEncoder().encode(body).length));
+
+  return new Response(request.method === 'HEAD' ? null : body, {
+    status: 200,
+    headers,
+  });
 }
 
 async function serveMapObject(
@@ -132,12 +260,20 @@ export default {
     }
 
     if (url.pathname === '/health') {
-      return Response.json({
-        ok: true,
-        service: 'palta-edge-preflight',
-        mapObjectKey:
-          env.MAP_OBJECT_KEY ?? 'maps/santiago/santiago.pmtiles',
-      });
+      return Response.json(
+        {
+          ok: true,
+          service: 'palta-edge-preflight',
+          mapObjectKey:
+            env.MAP_OBJECT_KEY ?? 'maps/santiago/santiago.pmtiles',
+          mapStylePath: '/maps/style.json',
+        },
+        { headers: jsonHeaders('no-store') },
+      );
+    }
+
+    if (url.pathname === '/maps/style.json') {
+      return serveStyle(request);
     }
 
     if (url.pathname === '/maps/santiago.pmtiles') {
