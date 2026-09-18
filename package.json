@@ -15,6 +15,7 @@
     "mock:review-write-smoke": "node dev/mock-api/review-write-smoke.mjs",
     "mock:quote-smoke": "node dev/mock-api/quote-smoke.mjs",
     "mock:location-smoke": "node dev/mock-api/location-smoke.mjs",
+    "mock:discovery-preview-smoke": "node dev/mock-api/discovery-preview-smoke.mjs",
     "mock:operating-readtime-unit": "node dev/mock-api/operating-readtime-unit.mjs",
     "check:mobile-hours-source": "node scripts/check-local-business-mobile-hours.mjs",
     "check:local-business-primary-tab": "node scripts/check-local-business-primary-tab.mjs",
