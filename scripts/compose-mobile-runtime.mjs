@@ -1,5 +1,4 @@
 import { execFileSync } from 'node:child_process';
-import fs from 'node:fs';
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -44,11 +43,20 @@ function remoteRef(branch) {
   return `${remoteName}/${branch}`;
 }
 
+function fetchSourceBranch(branch) {
+  const destination = `refs/remotes/${remoteName}/${branch}`;
+  try {
+    git(['fetch', '--quiet', remoteName, `${branch}:${destination}`]);
+  } catch {
+    fail(`Could not fetch live runtime source ${remoteName}/${branch}.`);
+  }
+}
+
 function ensureRef(ref) {
   try {
     git(['rev-parse', '--verify', `${ref}^{commit}`]);
   } catch {
-    fail(`Missing fetched runtime source ref ${ref}. Run the runtime watcher or git fetch first.`);
+    fail(`Missing fetched runtime source ref ${ref}.`);
   }
 }
 
@@ -73,7 +81,6 @@ function normalizeModuleSpecifier(value) {
 
 function rewriteSpecifier(specifier, sourceFile, destinationFile) {
   if (!specifier.startsWith('.')) return specifier;
-
   const resolvedFromOverlay = path.resolve(path.dirname(sourceFile), specifier);
   const relativeToCore = path.relative(repositoryCoreRoot, resolvedFromOverlay);
   if (relativeToCore.startsWith('..') || path.isAbsolute(relativeToCore)) return specifier;
@@ -155,6 +162,8 @@ async function main() {
   for (const surface of manifest.surfaces ?? []) {
     if (surface.integration_mode !== 'live_overlay') continue;
     if (typeof surface.source_branch !== 'string') fail(`Surface ${surface.id} is missing source_branch.`);
+
+    fetchSourceBranch(surface.source_branch);
     const ref = remoteRef(surface.source_branch);
     ensureRef(ref);
 
