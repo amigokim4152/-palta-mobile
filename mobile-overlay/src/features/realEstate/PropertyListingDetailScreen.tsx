@@ -69,14 +69,15 @@ export function PropertyListingDetailScreen() {
     );
   }
 
-  const { listing, property } = item;
+  const currentItem = item;
+  const { listing, property } = currentItem;
   const isSaved = savedListings.isSaved(listing.id);
 
   async function shareListing() {
     await Share.share({
       message: [
         'Propiedad en Somos Palta',
-        `${item.sector} · ${item.comuna}`,
+        `${currentItem.sector} · ${currentItem.comuna}`,
         formatListingPrice(listing),
         formatPropertyFacts(property),
       ].filter(Boolean).join('\n'),
@@ -106,10 +107,10 @@ export function PropertyListingDetailScreen() {
         <View style={{ padding: paltaTheme.spacing.md, gap: paltaTheme.spacing.lg }}>
           <View style={{ gap: 5 }}>
             <Text style={{ fontSize: 13, fontWeight: '800', color: paltaTheme.color.brandPrimary }}>
-              {REAL_ESTATE_TRANSACTION_LABELS[listing.transactionType]} · {REAL_ESTATE_PUBLISHER_LABELS[item.publisherType]}
+              {REAL_ESTATE_TRANSACTION_LABELS[listing.transactionType]} · {REAL_ESTATE_PUBLISHER_LABELS[currentItem.publisherType]}
             </Text>
             <Text style={{ fontSize: 28, fontWeight: '900', color: paltaTheme.color.textPrimary }}>{formatListingPrice(listing)}</Text>
-            <Text style={{ fontSize: 17, fontWeight: '800', color: paltaTheme.color.textPrimary }}>{item.sector} · {item.comuna}</Text>
+            <Text style={{ fontSize: 17, fontWeight: '800', color: paltaTheme.color.textPrimary }}>{currentItem.sector} · {currentItem.comuna}</Text>
             <Text style={{ fontSize: 15, color: paltaTheme.color.textSecondary }}>{formatPropertyFacts(property)}</Text>
             {listing.commonExpensesClp !== undefined ? (
               <Text style={{ fontSize: 13, color: paltaTheme.color.textMuted }}>
@@ -143,7 +144,7 @@ export function PropertyListingDetailScreen() {
               <View style={{ flex: 1 }}>
                 <SaveRealEstateSearchButton
                   query={{
-                    text: item.comuna,
+                    text: currentItem.comuna,
                     transactionType: listing.transactionType,
                     propertyType: property.type,
                   }}
@@ -168,7 +169,7 @@ export function PropertyListingDetailScreen() {
 
           <Surface>
             <Text style={{ fontSize: 17, fontWeight: '900', color: paltaTheme.color.textPrimary }}>Ubicación y entorno</Text>
-            <Text style={{ color: paltaTheme.color.textSecondary }}>{property.address.displayAddress ?? `${item.comuna}, Chile`}</Text>
+            <Text style={{ color: paltaTheme.color.textSecondary }}>{property.address.displayAddress ?? `${currentItem.comuna}, Chile`}</Text>
             {detail?.nearby?.map((nearby) => (
               <View key={nearby.label} style={{ flexDirection: 'row', justifyContent: 'space-between', gap: paltaTheme.spacing.md }}>
                 <Text style={{ fontSize: 13, fontWeight: '800', color: paltaTheme.color.textPrimary }}>{nearby.label}</Text>
@@ -193,9 +194,9 @@ export function PropertyListingDetailScreen() {
 
           <Surface>
             <Text style={{ fontSize: 17, fontWeight: '900', color: paltaTheme.color.textPrimary }}>Publicado por</Text>
-            <Text style={{ fontWeight: '800', color: paltaTheme.color.textPrimary }}>{item.publisherLabel}</Text>
+            <Text style={{ fontWeight: '800', color: paltaTheme.color.textPrimary }}>{currentItem.publisherLabel}</Text>
             <Text style={{ fontSize: 13, color: paltaTheme.color.textMuted }}>
-              {item.publisherType === 'owner_direct'
+              {currentItem.publisherType === 'owner_direct'
                 ? 'Contacto directo del propietario. La identidad y verificación se conectarán al account/trust core.'
                 : 'El perfil profesional reutiliza identidad, verificación, reseñas y contacto de Negocios.'}
             </Text>
