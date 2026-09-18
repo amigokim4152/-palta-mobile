@@ -1,0 +1,33 @@
+{
+  "dataset": "palta_food_menu_corroborations_rm",
+  "observed_at": "2026-09-18",
+  "policy": {
+    "factual_fields_only": true,
+    "collect_images": false,
+    "collect_reviews": false,
+    "collect_ratings": false,
+    "collect_long_descriptions": false
+  },
+  "records": [
+    {
+      "brand_name": "CeleSushi Delivery",
+      "menu_scope": "official_brand_catalog_requires_outlet_binding_and_merchant_authorization",
+      "source": {
+        "kind": "official_website",
+        "url": "https://www.celesushi.cl/",
+        "observed_at": "2026-09-18"
+      },
+      "items": [
+        {"name": "Katzu", "price_clp": 5600},
+        {"name": "Ebi", "price_clp": 5300},
+        {"name": "Ángel", "price_clp": 5800},
+        {"name": "Avocado", "price_clp": 5300},
+        {"name": "Tuna", "price_clp": 5600},
+        {"name": "Tempura", "price_clp": 5600},
+        {"name": "Shitake", "price_clp": 4800},
+        {"name": "Tako", "price_clp": 5800},
+        {"name": "Palmito", "price_clp": 4800}
+      ]
+    }
+  ]
+}
