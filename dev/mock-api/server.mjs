@@ -65,27 +65,60 @@ const server = http.createServer(async (req, res) => {
     const url = new URL(req.url, `http://${req.headers.host ?? `${host}:${port}`}`);
 
     if (req.method === 'GET' && url.pathname === '/health') {
-      return json(res, 200, { ok: true, service: 'palta-mock-api', version: '0.1.0' });
+      return json(res, 200, { ok: true, service: 'palta-mock-api', version: '0.2.0' });
     }
 
     if (req.method === 'GET' && url.pathname === '/v1/home') {
       return json(res, 200, {
         generated_at: new Date().toISOString(),
+        locality_label: 'Vitacura',
+        glance: [
+          {
+            id: 'weather',
+            label: 'HOY',
+            value: '23°',
+            detail: '17° / 25°',
+          },
+          {
+            id: 'bus-405',
+            label: 'BUS 405',
+            value: '6 min',
+            detail: 'Los Leones',
+          },
+          {
+            id: 'metro-l1',
+            label: 'METRO L1',
+            value: 'Normal',
+          },
+          {
+            id: 'air',
+            label: 'AIRE',
+            value: 'Bueno',
+          },
+        ],
         items: [
           {
             id: 'home-care-demo-1',
             kind: 'status',
             title: 'Esperando respuesta del taller',
-            body: 'Tu solicitud sigue en curso.',
+            body: 'Tu solicitud sigue en curso. Palta la mantendrá visible hasta que cambie.',
             source_domain: 'local_business',
             delivery: 'home',
             care_track_id: 'care-demo-1',
           },
           {
-            id: 'home-content-demo-1',
+            id: 'home-benefit-demo-1',
+            kind: 'useful_today',
+            title: 'Beneficio municipal cerca de ti',
+            body: 'Cuando conectemos la fuente municipal, aquí aparecerán solo los beneficios relevantes para tu comuna y perfil.',
+            source_domain: 'public-life',
+            delivery: 'home',
+          },
+          {
+            id: 'home-news-demo-1',
             kind: 'content',
-            title: 'Información útil para hoy',
-            body: 'Este contenido aparece porque Home está poco cargado.',
+            title: 'Resumen local de hoy',
+            body: 'Las noticias locales ocuparán este espacio solo cuando Home esté poco cargado y sean útiles para tu zona.',
             source_domain: 'news',
             delivery: 'home',
           },
