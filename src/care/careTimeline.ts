@@ -1,3 +1,5 @@
+import type { PaltaLocale } from '../localization/locales.js';
+
 export type CareState =
   | 'discover'
   | 'prepare'
@@ -43,32 +45,52 @@ export function buildCareTimeline(
   }));
 }
 
+const labels: Record<PaltaLocale, Record<CareState, string>> = {
+  'es-CL': {
+    discover: 'Encontrar',
+    prepare: 'Preparar',
+    act: 'Hacer',
+    wait: 'Esperando',
+    result: 'Resultado',
+    follow_up: 'Seguimiento',
+    outcome: 'Cerrado',
+    cancelled: 'Cancelado',
+  },
+  ko: {
+    discover: '찾기',
+    prepare: '준비',
+    act: '실행',
+    wait: '기다리는 중',
+    result: '결과',
+    follow_up: '후속조치',
+    outcome: '완료',
+    cancelled: '취소',
+  },
+  en: {
+    discover: 'Find',
+    prepare: 'Prepare',
+    act: 'Act',
+    wait: 'Waiting',
+    result: 'Result',
+    follow_up: 'Follow-up',
+    outcome: 'Closed',
+    cancelled: 'Cancelled',
+  },
+  'zh-Hans': {
+    discover: '查找',
+    prepare: '准备',
+    act: '执行',
+    wait: '等待中',
+    result: '结果',
+    follow_up: '后续处理',
+    outcome: '已完成',
+    cancelled: '已取消',
+  },
+};
+
 export function careStateLabel(
   state: CareState,
-  locale: 'es-CL' | 'ko-KR' = 'es-CL',
+  locale: PaltaLocale = 'es-CL',
 ): string {
-  const labels = {
-    'es-CL': {
-      discover: 'Encontrar',
-      prepare: 'Preparar',
-      act: 'Hacer',
-      wait: 'Esperando',
-      result: 'Resultado',
-      follow_up: 'Seguimiento',
-      outcome: 'Cerrado',
-      cancelled: 'Cancelado',
-    },
-    'ko-KR': {
-      discover: '찾기',
-      prepare: '준비',
-      act: '실행',
-      wait: '기다리는 중',
-      result: '결과',
-      follow_up: '후속조치',
-      outcome: '완료',
-      cancelled: '취소',
-    },
-  } as const;
-
   return labels[locale][state];
 }
