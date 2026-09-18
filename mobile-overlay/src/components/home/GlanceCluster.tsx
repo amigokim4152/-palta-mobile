@@ -101,7 +101,7 @@ export function GlanceCluster({
         );
       })}
 
-      {hiddenCount > 0 ? (
+      {hiddenCount > 0 && onMore ? (
         <Pressable
           accessibilityRole="button"
           onPress={onMore}
@@ -119,7 +119,7 @@ export function GlanceCluster({
               fontWeight: '700',
             }}
           >
-            생활정보 {hiddenCount}개 더
+            Ver {hiddenCount} más
           </Text>
         </Pressable>
       ) : null}
