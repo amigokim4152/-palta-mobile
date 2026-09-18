@@ -11,6 +11,7 @@ const sheetPath = path.join(root, 'mobile-overlay/src/components/neighborhood/Ma
 const resultCardPath = path.join(root, 'mobile-overlay/src/components/LocalResultCard.tsx');
 const detailPath = path.join(root, 'mobile-overlay/src/features/business/BusinessProfileExperience.tsx');
 const providerPath = path.join(root, 'mobile-overlay/src/app/_layout.tsx');
+const previewPath = path.join(root, 'src/business/localBusinessDiscoveryPreview.ts');
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
@@ -46,6 +47,7 @@ const sheet = readTsx(sheetPath);
 const resultCard = readTsx(resultCardPath);
 const detail = readTsx(detailPath);
 const provider = readTsx(providerPath);
+const preview = readTsx(previewPath);
 
 assert(
   provider.includes('<NeighborhoodStateProvider>') && provider.includes('<Stack'),
@@ -95,11 +97,21 @@ assert(
   'Negocios must keep usable search controls layered over the map without restoring the old inset discovery frame.',
 );
 assert(
-  discovery.includes('CATEGORY_SERVICE_LABELS') &&
-  discovery.includes("'Negocio verificado'") &&
-  discovery.includes('selectedBusiness.category_key') &&
-  discovery.includes('item.category_key'),
-  'Live discovery cards must remain informative even before richer search-card projection fields arrive from the API.',
+  discovery.includes('preview: readLocalBusinessDiscoveryPreview(item)') &&
+  discovery.includes('localBusinessConsumerCategoryLabel(item.category_key)') &&
+  discovery.includes('imageUrl={item.preview.photoUrl}') &&
+  discovery.includes('highlight={item.preview.highlight?.label}') &&
+  !discovery.includes('function discoveryVisual') &&
+  !discovery.includes('CATEGORY_SERVICE_LABELS') &&
+  !discovery.includes("'Negocio verificado'"),
+  'Discovery cards must consume the bounded Core preview and explicit consumer category copy instead of parsing raw API fields in the screen.',
+);
+assert(
+  preview.includes('readLocalBusinessDiscoveryPreview') &&
+  preview.includes("kind: 'coupon' | 'post' | 'unknown'") &&
+  preview.includes('CONSUMER_CATEGORY_LABELS') &&
+  preview.includes('return CONSUMER_CATEGORY_LABELS[categoryKey]'),
+  'Core preview boundary must normalize legacy wire data without exposing unmapped taxonomy keys.',
 );
 
 assert(
@@ -169,4 +181,4 @@ assert(
   'Polished Business profile must keep visual identity and primary actions above long-form sections.',
 );
 
-console.log('PASS: Local Business edge-to-edge map-first experience shell');
+console.log('PASS: Local Business edge-to-edge map-first experience shell with canonical preview boundary');
