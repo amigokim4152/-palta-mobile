@@ -234,7 +234,19 @@ async function getAssetSize(url, label) {
   // Some edge responses omit Content-Length on HEAD. Fall back to a normal
   // GET so verification also works for assets that do not implement Range.
   const response = await fetch(url);
-  assert(response.status === 200, `${label} GET expected 200, got ${response.status}`);
+  assert(
+    response.status === 200 || response.status === 206,
+    `${label} GET expected 200/206, got ${response.status}`,
+  );
+  const contentRange = response.headers.get('content-range') ?? '';
+  const rangeMatch = contentRange.match(/\\/(\\d+)$/);
+  if (rangeMatch) {
+    return { size: Number(rangeMatch[1]), headers: response.headers };
+  }
+  const contentLength = Number(response.headers.get('content-length'));
+  if (Number.isFinite(contentLength) && contentLength > 0) {
+    return { size: contentLength, headers: response.headers };
+  }
   const body = await response.arrayBuffer();
   return { size: body.byteLength, headers: response.headers };
 }
