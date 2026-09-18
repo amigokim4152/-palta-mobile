@@ -1,5 +1,5 @@
-import { useCallback } from 'react';
-import { router } from 'expo-router';
+import { useCallback, useEffect } from 'react';
+import { router, useNavigation } from 'expo-router';
 import { Linking, Pressable, Text, View } from 'react-native';
 import type {
   HomeApiGlanceItem,
@@ -128,6 +128,7 @@ function ContextAction({
 
 export function HomeScreen() {
   const adaptive = useAdaptiveExperience();
+  const navigation = useNavigation();
 
   const loadHome = useCallback(async () => {
     if (mobileRuntime.status !== 'ready') {
@@ -137,6 +138,13 @@ export function HomeScreen() {
   }, []);
 
   const { state, refresh } = useAsyncResource(loadHome);
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      void refresh();
+    });
+    return unsubscribe;
+  }, [navigation, refresh]);
 
   if (state.status === 'loading' && !state.data) {
     return (
