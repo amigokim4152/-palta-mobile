@@ -147,6 +147,9 @@ export async function getVitacuraBenefitsSource({ now = new Date() } = {}) {
         source_domain: 'public-life',
         delivery: 'home',
         related_entity_id: BENEFITS_URL,
+        action_label: 'Ver beneficios',
+        action_target: BENEFITS_URL,
+        action_kind: 'external',
       },
     };
     benefitsCache = { expiresAt: now.getTime() + CACHE_MS, value };
@@ -193,6 +196,9 @@ export async function getVitacuraNewsSource({ now = new Date(), maxItems = 3 } =
           kind: 'content',
           delivery: 'home',
           related_entity_id: link.url,
+          action_label: 'Leer fuente',
+          action_target: link.url,
+          action_kind: 'external',
         });
         if (records.length >= maxItems) break;
       } catch {
