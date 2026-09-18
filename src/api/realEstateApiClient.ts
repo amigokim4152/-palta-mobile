@@ -43,6 +43,16 @@ export type RealEstateApiClientOptions = {
   getAccessToken?: () => Promise<string | null>;
 };
 
+export class RealEstateApiError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+  ) {
+    super(message);
+    this.name = 'RealEstateApiError';
+  }
+}
+
 function joinUrl(baseUrl: string, path: string): string {
   return `${baseUrl.replace(/\/$/, '')}${path.startsWith('/') ? path : `/${path}`}`;
 }
@@ -128,7 +138,10 @@ export class RealEstateApiClient {
     if (token) headers.Authorization = `Bearer ${token}`;
     const response = await this.fetchImpl(joinUrl(this.baseUrl, path), { headers });
     if (!response.ok) {
-      throw new Error(`Palta real-estate API request failed: ${response.status}`);
+      throw new RealEstateApiError(
+        `Palta real-estate API request failed: ${response.status}`,
+        response.status,
+      );
     }
     return response.json();
   }
