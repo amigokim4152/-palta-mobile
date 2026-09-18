@@ -1,6 +1,6 @@
 {
   "name": "palta-map-edge",
-  "main": "src/index-v13.ts",
+  "main": "src/index-v14.ts",
   "compatibility_date": "2026-09-18",
   "workers_dev": true,
   "vars": {
