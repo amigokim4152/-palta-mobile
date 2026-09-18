@@ -24,6 +24,7 @@ import { mobileRuntime } from '../../services/paltaClient';
 import { paltaTheme } from '../../theme/paltaTheme';
 import { PropertyListingCard } from './PropertyListingCard';
 import { PROPERTY_DEMO_LISTINGS } from './propertyDemoData';
+import { RealEstateHomeSections } from './RealEstateHomeSections';
 
 const SANTIAGO_CENTER = { latitude: -33.4489, longitude: -70.6693 } as const;
 const PROPERTY_TYPE_ORDER: readonly PropertyType[] = [
@@ -92,7 +93,7 @@ function SearchBar({ value, onChangeText }: { value: string; onChangeText: (valu
       <TextInput
         value={value}
         onChangeText={onChangeText}
-        placeholder="Comuna, barrio o dirección"
+        placeholder="Comuna, barrio, edificio o dirección"
         placeholderTextColor={paltaTheme.color.textMuted}
         style={{ flex: 1, minHeight: 46, fontSize: 15, color: paltaTheme.color.textPrimary }}
       />
@@ -132,6 +133,10 @@ function DiscoveryControls({
         ))}
         <FilterChip label="Dueño directo" selected={ownerDirectOnly} onPress={() => setOwnerDirectOnly(!ownerDirectOnly)} />
         <FilterChip label="Precio" />
+        <FilterChip label="Superficie" />
+        <FilterChip label="Dormitorios" />
+        <FilterChip label="Baños" />
+        <FilterChip label="Estacionamiento" />
         <FilterChip label="Más filtros" />
       </ScrollView>
 
@@ -190,7 +195,7 @@ export function PropiedadesScreen({ initialView = 'list' }: { initialView?: Real
         return [
           {
             id: item.listing.id,
-            entityType: 'place',
+            entityType: 'property_listing',
             coordinate: point,
             title: item.sector,
             categoryKey: item.property.type,
@@ -277,7 +282,7 @@ export function PropiedadesScreen({ initialView = 'list' }: { initialView?: Real
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: paltaTheme.color.canvas }}>
-      <ScrollView contentContainerStyle={{ padding: paltaTheme.spacing.md, paddingBottom: 40, gap: paltaTheme.spacing.md }}>
+      <ScrollView contentContainerStyle={{ padding: paltaTheme.spacing.md, paddingBottom: 40, gap: paltaTheme.spacing.xl }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: paltaTheme.spacing.sm }}>
           <View style={{ flex: 1 }}>
             <Text style={{ fontSize: 28, fontWeight: '900', color: paltaTheme.color.textPrimary }}>Propiedades</Text>
@@ -290,38 +295,42 @@ export function PropiedadesScreen({ initialView = 'list' }: { initialView?: Real
 
         {controls}
 
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Text style={{ fontSize: 16, fontWeight: '800', color: paltaTheme.color.textPrimary }}>
-            {query ? 'Resultados' : 'Cerca de Santiago'}
-          </Text>
-          <Text style={{ fontSize: 12, color: paltaTheme.color.textMuted }}>
-            {listings.length} {listings.length === 1 ? 'propiedad' : 'propiedades'}
-          </Text>
+        {!params.businessId && !query ? <RealEstateHomeSections /> : null}
+
+        <View style={{ gap: paltaTheme.spacing.sm }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Text style={{ fontSize: 18, fontWeight: '900', color: paltaTheme.color.textPrimary }}>
+              {query ? 'Resultados' : params.businessId ? 'Propiedades publicadas' : 'Propiedades para ti'}
+            </Text>
+            <Text style={{ fontSize: 12, color: paltaTheme.color.textMuted }}>
+              {listings.length} {listings.length === 1 ? 'propiedad' : 'propiedades'}
+            </Text>
+          </View>
+
+          {listings.length ? (
+            <View style={{ gap: paltaTheme.spacing.sm }}>
+              {listings.map((item) => (
+                <PropertyListingCard key={item.listing.id} item={item} onPress={() => openListing(item.listing.id)} />
+              ))}
+            </View>
+          ) : (
+            <View
+              style={{
+                padding: paltaTheme.spacing.xl,
+                borderRadius: paltaTheme.radius.surface,
+                backgroundColor: paltaTheme.color.surface,
+                borderWidth: 1,
+                borderColor: paltaTheme.color.divider,
+              }}
+            >
+              <Text style={{ fontSize: 17, fontWeight: '800', color: paltaTheme.color.textPrimary }}>No encontramos propiedades con estos filtros</Text>
+              <Text style={{ marginTop: 6, color: paltaTheme.color.textSecondary }}>Prueba otra zona, tipo de propiedad o forma de publicación.</Text>
+            </View>
+          )}
         </View>
 
-        {listings.length ? (
-          <View style={{ gap: paltaTheme.spacing.sm }}>
-            {listings.map((item) => (
-              <PropertyListingCard key={item.listing.id} item={item} onPress={() => openListing(item.listing.id)} />
-            ))}
-          </View>
-        ) : (
-          <View
-            style={{
-              padding: paltaTheme.spacing.xl,
-              borderRadius: paltaTheme.radius.surface,
-              backgroundColor: paltaTheme.color.surface,
-              borderWidth: 1,
-              borderColor: paltaTheme.color.divider,
-            }}
-          >
-            <Text style={{ fontSize: 17, fontWeight: '800', color: paltaTheme.color.textPrimary }}>No encontramos propiedades con estos filtros</Text>
-            <Text style={{ marginTop: 6, color: paltaTheme.color.textSecondary }}>Prueba otra zona, tipo de propiedad o forma de publicación.</Text>
-          </View>
-        )}
-
         <Text style={{ fontSize: 11, lineHeight: 16, color: paltaTheme.color.textMuted }}>
-          Vista en desarrollo: el inventario mostrado aquí es de prueba y será reemplazado por datos reales verificados.
+          Vista en desarrollo: los bloques marcados como demo serán reemplazados por fuentes reales verificadas sin cambiar la navegación del producto.
         </Text>
       </ScrollView>
     </SafeAreaView>
