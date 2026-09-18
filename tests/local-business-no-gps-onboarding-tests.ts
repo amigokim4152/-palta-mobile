@@ -4,6 +4,7 @@ import {
   describeBusinessServices,
   evaluateOnboardingReadiness,
   setBusinessPresence,
+  setBusinessPublicContact,
   startNewBusiness,
 } from '../src/business/businessOnboarding.js';
 
@@ -16,6 +17,7 @@ function preparedDraft(id: string) {
   draft = startNewBusiness(draft, { businessName: 'Servicio ejemplo' });
   draft = describeBusinessServices(draft, 'Gasfitería y reparaciones a domicilio');
   draft = confirmBusinessServices(draft, ['home.plumbing.general']);
+  draft = setBusinessPublicContact(draft, { whatsapp: '+56911111111' });
   return draft;
 }
 
@@ -25,7 +27,7 @@ const customerSite = setBusinessPresence(preparedDraft('no-gps-customer-site'), 
 });
 assert(
   evaluateOnboardingReadiness(customerSite).readyForVerification,
-  'Customer-site business should be able to register without GPS or a precise anchor.',
+  'Customer-site business should be able to register without GPS or a precise anchor when it has a usable contact channel.',
 );
 assert(!customerSite.anchorLocation, 'Customer-site registration should not invent a precise location.');
 
@@ -34,7 +36,7 @@ const online = setBusinessPresence(preparedDraft('no-gps-online'), {
 });
 assert(
   evaluateOnboardingReadiness(online).readyForVerification,
-  'Online business should be able to register without GPS, service area or storefront point.',
+  'Online business should be able to register without GPS, service area or storefront point when it has a usable contact channel.',
 );
 assert(!online.anchorLocation, 'Online registration should not invent a precise location.');
 
@@ -63,6 +65,25 @@ assert(
   manualStorefront.anchorLocation?.lat === -33.421 &&
     manualStorefront.anchorLocation?.lng === -70.61,
   'Manual storefront should preserve the owner-selected point rather than a device GPS value.',
+);
+
+let missingContactBlocked = false;
+try {
+  let withoutContact = createBusinessOnboardingDraft('no-contact');
+  withoutContact = startNewBusiness(withoutContact, { businessName: 'Servicio sin contacto' });
+  withoutContact = describeBusinessServices(withoutContact, 'Servicio móvil');
+  withoutContact = confirmBusinessServices(withoutContact, ['home.plumbing.general']);
+  withoutContact = setBusinessPresence(withoutContact, {
+    presenceModes: ['customer_site'],
+    serviceAreaIds: ['vitacura'],
+  });
+  missingContactBlocked = !evaluateOnboardingReadiness(withoutContact).readyForVerification;
+} catch {
+  missingContactBlocked = true;
+}
+assert(
+  missingContactBlocked,
+  'No-GPS registration must not weaken the requirement for a usable phone or WhatsApp contact.',
 );
 
 console.log('PASS: Local Business no-GPS onboarding rules');
