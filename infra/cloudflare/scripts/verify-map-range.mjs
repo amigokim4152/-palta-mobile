@@ -239,9 +239,10 @@ async function getAssetSize(url, label) {
     `${label} GET expected 200/206, got ${response.status}`,
   );
   const contentRange = response.headers.get('content-range') ?? '';
-  const rangeMatch = contentRange.match(/\\/(\\d+)$/);
-  if (rangeMatch) {
-    return { size: Number(rangeMatch[1]), headers: response.headers };
+  const rangeSizeText = contentRange.split('/').pop() ?? '';
+  const rangeSize = Number(rangeSizeText);
+  if (Number.isFinite(rangeSize) && rangeSize > 0) {
+    return { size: rangeSize, headers: response.headers };
   }
   const contentLength = Number(response.headers.get('content-length'));
   if (Number.isFinite(contentLength) && contentLength > 0) {
