@@ -5,7 +5,8 @@ import ts from 'typescript';
 const root = process.cwd();
 const tabLayoutPath = path.join(root, 'mobile-overlay/src/app/(tabs)/_layout.tsx');
 const tabRoutePath = path.join(root, 'mobile-overlay/src/app/(tabs)/businesses.tsx');
-const discoveryPath = path.join(root, 'mobile-overlay/src/features/business/LocalBusinessDiscoveryScreen.tsx');
+const legacyRoutePath = path.join(root, 'mobile-overlay/src/app/local-businesses/index.tsx');
+const discoveryPath = path.join(root, 'mobile-overlay/src/features/business/BusinessDiscoveryExperience.tsx');
 const manifestPath = path.join(root, 'manifest/app-route-manifest.json');
 
 function assert(condition, message) {
@@ -36,6 +37,7 @@ function parseTsx(file) {
 
 const layout = parseTsx(tabLayoutPath);
 const route = parseTsx(tabRoutePath);
+const legacyRoute = parseTsx(legacyRoutePath);
 const discovery = parseTsx(discoveryPath);
 
 const homeIndex = layout.indexOf('name="home"');
@@ -47,21 +49,32 @@ const afterBusiness = layout.slice(businessIndex + 'name="businesses"'.length);
 const nextTabMatch = afterBusiness.match(/name="([^"]+)"/);
 assert(nextTabMatch?.[1] === 'neighborhood', 'Negocios must remain directly beside Inicio, before Barrio.');
 
-assert(
-  route.includes("LocalBusinessDiscoveryScreen") &&
-  route.includes('export default LocalBusinessDiscoveryScreen'),
-  'Primary Negocios tab must reuse the canonical LocalBusinessDiscoveryScreen instead of creating a parallel implementation.',
-);
+for (const [label, source] of [
+  ['primary tab', route],
+  ['legacy route', legacyRoute],
+]) {
+  assert(
+    source.includes('BusinessDiscoveryExperience') &&
+      source.includes('export default BusinessDiscoveryExperience'),
+    `${label} must reuse the canonical BusinessDiscoveryExperience instead of creating a parallel Local Business UI.`,
+  );
+}
 
 assert(
   discovery.includes('Explorar Santiago') &&
-  discovery.includes('Buscar cerca de mí'),
+    discovery.includes('Buscar cerca de mí'),
   'Local Business must support both device location and non-GPS exploration.',
 );
 assert(
   discovery.includes("router.push('/local-businesses/following')") &&
-  discovery.includes("router.push('/business/register')"),
+    discovery.includes("router.push('/business/register')"),
   'Primary Local Business surface must expose relationship and owner entry points.',
+);
+assert(
+  discovery.includes('NeighborhoodMap') &&
+    discovery.includes('MapResultSheet') &&
+    discovery.includes('Buscar en esta zona'),
+  'Canonical Negocios experience must preserve the shared map/list/search interaction shell.',
 );
 
 const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
