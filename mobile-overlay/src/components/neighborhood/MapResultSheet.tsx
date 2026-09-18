@@ -4,7 +4,6 @@ import {
   PanResponder,
   Pressable,
   ScrollView,
-  Text,
   View,
   useWindowDimensions,
 } from 'react-native';
@@ -103,6 +102,10 @@ export function MapResultSheet({
     [animatedHeight, heights, onSnapChange, snap],
   );
 
+  const toggleSnap = () => {
+    onSnapChange(snap === 'full' ? nextSheetSnap(snap, 'down') : nextSheetSnap(snap, 'up'));
+  };
+
   return (
     <Animated.View
       accessibilityLabel="Resultados del mapa"
@@ -117,31 +120,22 @@ export function MapResultSheet({
         backgroundColor: paltaTheme.color.surface,
       }}
     >
-      <View
+      <Pressable
         {...panResponder.panHandlers}
-        accessibilityLabel="Arrastra para mostrar más resultados o más mapa"
+        accessibilityRole="button"
+        accessibilityLabel={
+          snap === 'full'
+            ? 'Mostrar más mapa'
+            : 'Mostrar más resultados'
+        }
+        onPress={toggleSnap}
+        hitSlop={8}
         style={{
-          minHeight: paltaTheme.touch.minimum,
+          minHeight: 36,
           alignItems: 'center',
-          flexDirection: 'row',
           justifyContent: 'center',
-          gap: paltaTheme.spacing.sm,
         }}
       >
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Mostrar más resultados"
-          disabled={snap === 'full'}
-          onPress={() => onSnapChange(nextSheetSnap(snap, 'up'))}
-          style={{
-            minWidth: paltaTheme.touch.minimum,
-            minHeight: paltaTheme.touch.minimum,
-            justifyContent: 'center',
-            opacity: snap === 'full' ? 0.3 : 1,
-          }}
-        >
-          <Text style={{ textAlign: 'center', color: paltaTheme.color.textSecondary }}>↑</Text>
-        </Pressable>
         <View
           accessibilityElementsHidden
           style={{
@@ -151,21 +145,7 @@ export function MapResultSheet({
             backgroundColor: paltaTheme.color.border,
           }}
         />
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Mostrar más mapa"
-          disabled={snap === 'peek'}
-          onPress={() => onSnapChange(nextSheetSnap(snap, 'down'))}
-          style={{
-            minWidth: paltaTheme.touch.minimum,
-            minHeight: paltaTheme.touch.minimum,
-            justifyContent: 'center',
-            opacity: snap === 'peek' ? 0.3 : 1,
-          }}
-        >
-          <Text style={{ textAlign: 'center', color: paltaTheme.color.textSecondary }}>↓</Text>
-        </Pressable>
-      </View>
+      </Pressable>
 
       <ScrollView
         style={{ flex: 1 }}
