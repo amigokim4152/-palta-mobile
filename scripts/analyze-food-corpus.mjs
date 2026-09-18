@@ -11,7 +11,7 @@ function loadPayloads(targetPath) {
   }
 
   return fs.readdirSync(targetPath)
-    .filter((name) => name.endsWith('.json'))
+    .filter((name) => name.startsWith('food-observations-') && name.endsWith('.json'))
     .sort((a, b) => a.localeCompare(b, 'es'))
     .map((name) => {
       const file = path.join(targetPath, name);
@@ -82,6 +82,7 @@ for (const record of records) {
       outletKey: outlet.outlet_key,
       brandName: outlet.brand_name,
       listingId: listing.listing_id,
+      identityStatus: outlet.identity_status,
     });
     addressListings.set(normalizedAddress, current);
   }
