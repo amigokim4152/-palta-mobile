@@ -17,6 +17,7 @@ export {
   ES_CL_UI,
   resolveUiText,
   t,
+  type UiInterpolation,
   type UiKey,
   type UiTranslationResult,
 } from './uiCatalog.js';
