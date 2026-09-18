@@ -8,20 +8,32 @@ import { MutationSyncBootstrap } from '../providers/MutationSyncBootstrap';
 import { PaltaSQLiteProvider } from '../providers/PaltaSQLiteProvider';
 import { NeighborhoodStateProvider } from '../state/NeighborhoodStateProvider';
 
+function RuntimeShell() {
+  return (
+    <PaltaSQLiteProvider>
+      <MutationSyncBootstrap />
+      <MarketRuntimeBootstrap />
+      <PreviewBuildWatcher />
+      <NeighborhoodStateProvider>
+        <Stack screenOptions={{ headerShown: false }} />
+      </NeighborhoodStateProvider>
+    </PaltaSQLiteProvider>
+  );
+}
+
 export default function RootLayout() {
+  const preview = process.env.EXPO_PUBLIC_PALTA_PREVIEW === '1';
+
   return (
     <AuthRuntimeProvider>
       <LocalizationProvider>
-        <AuthGate>
-          <PaltaSQLiteProvider>
-            <MutationSyncBootstrap />
-            <MarketRuntimeBootstrap />
-            <PreviewBuildWatcher />
-            <NeighborhoodStateProvider>
-              <Stack screenOptions={{ headerShown: false }} />
-            </NeighborhoodStateProvider>
-          </PaltaSQLiteProvider>
-        </AuthGate>
+        {preview ? (
+          <RuntimeShell />
+        ) : (
+          <AuthGate>
+            <RuntimeShell />
+          </AuthGate>
+        )}
       </LocalizationProvider>
     </AuthRuntimeProvider>
   );
