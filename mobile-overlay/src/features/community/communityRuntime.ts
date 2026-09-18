@@ -32,21 +32,29 @@ export interface CommunityRuntime {
 const previewData: CommunityTabData = {
   communities: [
     { id: 'school-1', name: 'Southern Cross School', kind: 'school', meta: 'Familias · 4º básico', unreadCount: 3, actionRequiredCount: 1 },
-    { id: 'church-1', name: 'Comunidad de la iglesia', kind: 'church', meta: 'Jóvenes y familias', unreadCount: 1, actionRequiredCount: 0 },
     { id: 'neighborhood-1', name: 'Lo Curro', kind: 'neighborhood', meta: 'Vecindario', unreadCount: 2, actionRequiredCount: 0 },
+    { id: 'church-1', name: 'Comunidad de la iglesia', kind: 'church', meta: 'Jóvenes y familias', unreadCount: 1, actionRequiredCount: 0 },
+    { id: 'apartment-1', name: 'Comunidad del edificio', kind: 'apartment', meta: 'Residentes y administración', unreadCount: 0, actionRequiredCount: 1 },
   ],
-  discover: [{ id: 'discover-1', name: 'Actividades cerca de ti', kind: 'activity', meta: 'Vitacura y alrededores', unreadCount: 0, actionRequiredCount: 0 }],
+  discover: [
+    { id: 'activity-1', name: 'Actividades cerca de ti', kind: 'activity', meta: 'Panoramas y actividades locales', unreadCount: 0, actionRequiredCount: 0 },
+    { id: 'interest-1', name: 'Lectura en español', kind: 'interest', meta: 'Grupo abierto · Santiago', unreadCount: 0, actionRequiredCount: 0 },
+  ],
   feed: [
     { id: 'post-1', communityId: 'school-1', communityName: 'Southern Cross School', kind: 'school', author: 'Familias 4º básico', timeLabel: 'Hace 18 min', body: '¿Alguien sabe si mañana deben llevar el cuaderno de ciencias? Podemos dejar la confirmación aquí para que no se pierda entre mensajes.', announcement: false, commentCount: 6, reactionCount: 4 },
     { id: 'post-2', communityId: 'neighborhood-1', communityName: 'Lo Curro', kind: 'neighborhood', author: 'Vecinos del sector', timeLabel: 'Hace 1 h', body: 'Aviso: hay trabajos en la calle esta tarde. Si cambia el acceso, actualizamos este mismo hilo.', announcement: true, commentCount: 3, reactionCount: 8 },
     { id: 'post-3', communityId: 'church-1', communityName: 'Comunidad de la iglesia', kind: 'church', author: 'Grupo de jóvenes', timeLabel: 'Ayer', body: 'Después de la reunión tendremos un momento para compartir. Quien necesite coordinar transporte puede responder aquí.', announcement: false, commentCount: 5, reactionCount: 7 },
+    { id: 'post-4', communityId: 'apartment-1', communityName: 'Comunidad del edificio', kind: 'apartment', author: 'Administración', timeLabel: 'Ayer', body: 'El mantenimiento del portón se realizará mañana por la mañana. Dejaremos aquí cualquier cambio de horario.', announcement: true, commentCount: 2, reactionCount: 3 },
   ],
 };
+
 const previewComments: Record<string, CommunityComment[]> = {
   'post-1': [{ id: 'comment-1', author: 'Carolina', body: 'Sí, ciencias y estuche. Lo confirmaron esta tarde.', timeLabel: 'Hace 12 min' }, { id: 'comment-2', author: 'Felipe', body: 'Gracias. Dejo esto aquí para que quede fácil de encontrar.', timeLabel: 'Hace 8 min' }],
   'post-2': [{ id: 'comment-3', author: 'María', body: 'El acceso norte sigue abierto por ahora.', timeLabel: 'Hace 40 min' }],
   'post-3': [{ id: 'comment-4', author: 'Daniel', body: 'Puedo llevar a dos personas.', timeLabel: 'Ayer' }],
+  'post-4': [{ id: 'comment-5', author: 'Administración', body: 'Confirmaremos el término de los trabajos en este hilo.', timeLabel: 'Ayer' }],
 };
+
 const membershipOverrides = new Map<string, CommunityMembershipState>();
 const reactionOverrides = new Map<string, number>();
 function cardFor(spaceId: string) { return [...previewData.communities, ...previewData.discover].find((item) => item.id === spaceId); }
