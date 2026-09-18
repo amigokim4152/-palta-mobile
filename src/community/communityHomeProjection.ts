@@ -91,7 +91,9 @@ export function projectCommunitySchoolItemToHomeCandidate(
     subjectRef: input.spaceId,
     sourceRef: input.item.postId,
     occurredAt: input.occurredAt,
-    ...(input.item.dueAt ? { validUntil: input.item.dueAt } : {}),
+    // Informational schedule content can expire at its due time. Action items remain
+    // visible after the due time until acknowledgement/completion closes them.
+    ...(kind === 'info' && input.item.dueAt ? { validUntil: input.item.dueAt } : {}),
     urgency,
     importance: importance(input.item.stage),
     relevance: input.item.recipientUserId ? 1 : 0.9,
