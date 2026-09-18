@@ -1,16 +1,37 @@
-import type { PropsWithChildren } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { useEffect, useMemo, useRef, type PropsWithChildren } from 'react';
+import {
+  Animated,
+  PanResponder,
+  Pressable,
+  ScrollView,
+  Text,
+  View,
+  useWindowDimensions,
+} from 'react-native';
 import {
   nextSheetSnap,
   type ResultSheetSnap,
 } from '../../../../../src/neighborhood/resultSheetPolicy';
 import { paltaTheme } from '../../theme/paltaTheme';
 
-const heightBySnap: Record<ResultSheetSnap, number> = {
-  peek: 170,
-  half: 340,
-  full: 620,
-};
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function nearestSnap(
+  height: number,
+  heights: Record<ResultSheetSnap, number>,
+): ResultSheetSnap {
+  const snaps: ResultSheetSnap[] = ['peek', 'half', 'full'];
+  return snaps.reduce(
+    (best, candidate) =>
+      Math.abs(heights[candidate] - height) <
+      Math.abs(heights[best] - height)
+        ? candidate
+        : best,
+    'peek',
+  );
+}
 
 export function MapResultSheet({
   snap,
@@ -20,63 +41,141 @@ export function MapResultSheet({
   snap: ResultSheetSnap;
   onSnapChange: (next: ResultSheetSnap) => void;
 }>) {
+  const { height: windowHeight } = useWindowDimensions();
+  const heights = useMemo<Record<ResultSheetSnap, number>>(
+    () => ({
+      peek: clamp(windowHeight * 0.2, 150, 190),
+      half: clamp(windowHeight * 0.34, 240, 330),
+      full: clamp(windowHeight * 0.48, 330, 520),
+    }),
+    [windowHeight],
+  );
+  const animatedHeight = useRef(new Animated.Value(heights[snap])).current;
+  const gestureStartHeight = useRef(heights[snap]);
+  const latestDragHeight = useRef(heights[snap]);
+
+  useEffect(() => {
+    Animated.timing(animatedHeight, {
+      toValue: heights[snap],
+      duration: 180,
+      useNativeDriver: false,
+    }).start();
+    latestDragHeight.current = heights[snap];
+  }, [animatedHeight, heights, snap]);
+
+  const panResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => false,
+        onMoveShouldSetPanResponder: (_, gestureState) =>
+          Math.abs(gestureState.dy) > 6 &&
+          Math.abs(gestureState.dy) > Math.abs(gestureState.dx),
+        onPanResponderGrant: () => {
+          animatedHeight.stopAnimation();
+          gestureStartHeight.current = heights[snap];
+          latestDragHeight.current = heights[snap];
+        },
+        onPanResponderMove: (_, gestureState) => {
+          const next = clamp(
+            gestureStartHeight.current - gestureState.dy,
+            heights.peek,
+            heights.full,
+          );
+          latestDragHeight.current = next;
+          animatedHeight.setValue(next);
+        },
+        onPanResponderRelease: (_, gestureState) => {
+          if (gestureState.vy < -0.35) {
+            onSnapChange(nextSheetSnap(snap, 'up'));
+            return;
+          }
+          if (gestureState.vy > 0.35) {
+            onSnapChange(nextSheetSnap(snap, 'down'));
+            return;
+          }
+          onSnapChange(nearestSnap(latestDragHeight.current, heights));
+        },
+        onPanResponderTerminate: () => {
+          Animated.timing(animatedHeight, {
+            toValue: heights[snap],
+            duration: 160,
+            useNativeDriver: false,
+          }).start();
+        },
+      }),
+    [animatedHeight, heights, onSnapChange, snap],
+  );
+
   const expanding = snap !== 'full';
-  const direction = expanding ? 'up' : 'down';
+  const actionDirection = expanding ? 'up' : 'down';
   const actionLabel = expanding ? 'Más resultados' : 'Más mapa';
 
   return (
-    <View
+    <Animated.View
       accessibilityLabel="Resultados del mapa"
       style={{
-        minHeight: heightBySnap[snap],
-        maxHeight: heightBySnap[snap],
+        height: animatedHeight,
         borderTopWidth: 1,
-        borderTopColor: paltaTheme.color.divider,
+        borderColor: paltaTheme.color.border,
         borderTopLeftRadius: paltaTheme.radius.sheet,
         borderTopRightRadius: paltaTheme.radius.sheet,
-        paddingHorizontal: paltaTheme.spacing.md,
-        paddingBottom: paltaTheme.spacing.sm,
+        paddingHorizontal: paltaTheme.spacing.sm,
+        paddingTop: paltaTheme.spacing.xxs,
         backgroundColor: paltaTheme.color.surface,
       }}
     >
       <View
+        {...panResponder.panHandlers}
+        accessibilityLabel="Arrastra para mostrar más resultados o más mapa"
         style={{
+          minHeight: paltaTheme.touch.minimum,
           alignItems: 'center',
-          paddingTop: 8,
-          paddingBottom: 6,
+          justifyContent: 'center',
+          gap: 6,
         }}
       >
         <View
+          accessibilityElementsHidden
           style={{
-            width: 38,
-            height: 4,
-            borderRadius: 999,
+            width: 44,
+            height: 5,
+            borderRadius: paltaTheme.radius.pill,
             backgroundColor: paltaTheme.color.border,
           }}
         />
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={actionLabel}
-          onPress={() => onSnapChange(nextSheetSnap(snap, direction))}
+          onPress={() => onSnapChange(nextSheetSnap(snap, actionDirection))}
           style={{
-            minHeight: 40,
+            minHeight: 30,
             justifyContent: 'center',
             paddingHorizontal: 14,
+            borderRadius: paltaTheme.radius.pill,
+            backgroundColor: paltaTheme.color.surfaceMuted,
           }}
         >
           <Text
             style={{
-              color: paltaTheme.color.textSecondary,
-              fontSize: 13,
-              fontWeight: '600',
               textAlign: 'center',
+              color: paltaTheme.color.textSecondary,
+              fontSize: 12,
+              fontWeight: '600',
             }}
           >
             {actionLabel}
           </Text>
         </Pressable>
       </View>
-      <View style={{ flex: 1 }}>{children}</View>
-    </View>
+
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingBottom: paltaTheme.spacing.lg }}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        {children}
+      </ScrollView>
+    </Animated.View>
   );
 }
