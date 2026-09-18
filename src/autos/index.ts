@@ -1,1 +1,2 @@
-export * from './autosEntry';
+export * from './autosContracts.js';
+export * from './autosEntry.js';
