@@ -92,14 +92,14 @@ export function toNewsLocalViewModel(payload: PublicNewsLocalPage): NewsLocalVie
 
 export function toNewsStoryViewModel(story: PublicNewsStory): NewsStoryViewModel {
   assertPublicNewsProjectionSafe(story);
-  return {
+  const base: NewsStoryViewModel = {
     story,
     hasMap: story.mapContext?.status === 'verified',
     hasWhyItMatters: Boolean(story.whyItMatters?.trim()),
     hasKnownUnknown: Boolean(story.knownUnknown?.known.length || story.knownUnknown?.unknown.length),
-    sourceLink: story.source.url,
     isExternalSummary: story.contentClass === 'external_summary',
   };
+  return story.source.url ? { ...base, sourceLink: story.source.url } : base;
 }
 
 export function toNewsVoicesViewModel(payload: PublicNewsVoicesPage): NewsVoicesViewModel {
