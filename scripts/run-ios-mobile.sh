@@ -7,6 +7,8 @@ ROOT="$(git -C "$SCRIPT_DIR/.." rev-parse --show-toplevel)"
 APP_DIR="$ROOT/apps/mobile"
 RUNTIME_WATCH_PID=""
 DEFAULT_MAP_STYLE_URL="${PALTA_MAP_STYLE_URL:-https://palta-edge-preflight.kimeuisin.workers.dev/maps/style.json}"
+DEFAULT_SUPABASE_URL="https://rqbpbauhkdgsrkbwmkmg.supabase.co"
+DEFAULT_SUPABASE_PUBLISHABLE_KEY="sb_publishable_QEHIwvil9m4lyE6kJ1ba6w_CjA9_XXh"
 COMPOSITION_BRANCH="integration/runtime-composition-v1"
 COMPOSITION_MANIFEST="$ROOT/manifest/mobile-runtime-composition.json"
 
@@ -39,6 +41,18 @@ load_persisted_map_style() {
         ;;
     esac
   done < "$env_file"
+}
+
+validate_public_auth_config() {
+  case "$EXPO_PUBLIC_SUPABASE_URL" in
+    https://*.supabase.co) ;;
+    *) fail "EXPO_PUBLIC_SUPABASE_URL must be an https://<project>.supabase.co URL." ;;
+  esac
+
+  case "$EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY" in
+    sb_publishable_*) ;;
+    *) fail "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY must be a publishable key." ;;
+  esac
 }
 
 mock_listener_pids() {
@@ -87,7 +101,7 @@ verify_mock_api() {
 start_runtime_watcher() {
   local current_branch="$1"
   if [ "$current_branch" = "$COMPOSITION_BRANCH" ] && [ -f "$COMPOSITION_MANIFEST" ]; then
-    info "Starting composed runtime watcher (Home + Negocios + Community)..."
+    info "Starting composed runtime watcher (Home + Negocios + Community + Auth)..."
     bash "$ROOT/scripts/watch-runtime-composition.sh" >/tmp/palta-runtime-composition.log 2>&1 &
   else
     info "Starting live mobile-overlay sync for Expo Fast Refresh..."
@@ -138,8 +152,13 @@ start_runtime_watcher "$CURRENT_BRANCH"
 
 export EXPO_PUBLIC_PALTA_API_BASE_URL="http://127.0.0.1:${MOCK_PORT}"
 export EXPO_PUBLIC_ENV="development"
+export EXPO_PUBLIC_SUPABASE_URL="${EXPO_PUBLIC_SUPABASE_URL:-$DEFAULT_SUPABASE_URL}"
+export EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY="${EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY:-$DEFAULT_SUPABASE_PUBLISHABLE_KEY}"
 export PALTA_MOCK_BASE_URL="http://127.0.0.1:${MOCK_PORT}"
 export EXPO_NO_TELEMETRY=1
+
+validate_public_auth_config
+info "Supabase Auth: $EXPO_PUBLIC_SUPABASE_URL (publishable key only)"
 
 load_persisted_map_style
 if [ -z "${EXPO_PUBLIC_MAP_STYLE_URL:-}" ]; then
