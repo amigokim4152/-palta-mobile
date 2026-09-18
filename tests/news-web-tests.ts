@@ -8,6 +8,7 @@ import {
   toNewsHomeViewModel,
   toNewsVoicesViewModel,
 } from '../src/news/newsWebModel.js';
+import { publicNewsPath } from '../src/news/publicNewsClient.js';
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
@@ -39,11 +40,7 @@ const safeHome: PublicNewsHome = {
       brief('mid', 'essential', '2026-09-18T07:00:00-03:00'),
       brief('overflow', 'essential', '2026-09-18T05:00:00-03:00'),
     ],
-    nearby: [],
-    chile: [],
-    local: [],
-    deep_dive: [],
-    voices: [],
+    nearby: [], chile: [], local: [], deep_dive: [], voices: [],
   },
 };
 assertPublicNewsProjectionSafe(safeHome);
@@ -55,34 +52,21 @@ assert(homeView.essential[0]?.storyId === 'new', 'News Home must order sections 
 assert(homeView.isEmpty === false, 'A Home with one populated section is not empty.');
 
 const voice: PublicNewsVoiceContribution = {
-  storyId: 'voice-1',
-  slug: 'voz-local-ejemplo',
-  section: 'voices',
-  title: 'Una voz local',
-  summary: 'Una experiencia claramente etiquetada.',
-  contentClass: 'local_voice',
+  storyId: 'voice-1', slug: 'voz-local-ejemplo', section: 'voices', title: 'Una voz local',
+  summary: 'Una experiencia claramente etiquetada.', contentClass: 'local_voice',
   publishedAt: '2026-09-18T07:00:00-03:00',
   geography: { countryCode: 'CL', precision: 'comuna', comunaName: 'Vitacura' },
   topic: 'voces_locales',
-  source: {
-    label: 'Colaborador',
-    attribution: 'Perspectiva del autor.',
-    sourceType: 'contributor',
-  },
-  actions: [],
-  voiceType: 'essay',
-  contributorLabel: 'Autor de ejemplo',
+  source: { label: 'Colaborador', attribution: 'Perspectiva del autor.', sourceType: 'contributor' },
+  actions: [], voiceType: 'essay', contributorLabel: 'Autor de ejemplo',
   perspectiveDisclosure: 'No es un hecho noticioso verificado ni la posición de Palta.',
   mediaRights: 'none_required',
 };
 assertPublicNewsProjectionSafe(voice);
 
 const voicesPayload: PublicNewsVoicesPage = {
-  schemaVersion: 1,
-  locale: 'es-CL',
-  generatedAt: '2026-09-18T07:00:00-03:00',
-  publicationGate: 'closed',
-  disclosure: 'Las voces son perspectivas de sus autores.',
+  schemaVersion: 1, locale: 'es-CL', generatedAt: '2026-09-18T07:00:00-03:00',
+  publicationGate: 'closed', disclosure: 'Las voces son perspectivas de sus autores.',
   contributions: [
     voice,
     { ...voice, storyId: 'voice-2', slug: 'entrevista-local', voiceType: 'interview', publishedAt: '2026-09-18T08:00:00-03:00' },
@@ -94,13 +78,20 @@ assert(voicesView.essays.length === 1, 'Essays must remain a separate Local Voic
 assert(voicesView.interviews.length === 1, 'Interviews must remain a separate Local Voices group.');
 assert(voicesView.showcase.length === 1, 'Student art must route to Community Showcase, not factual News.');
 
+assert(publicNewsPath({ kind: 'home' }) === '/v1/cl/news/home', 'Home must use the public News namespace.');
+assert(publicNewsPath({ kind: 'comuna', slug: 'vitacura' }) === '/v1/cl/news/comunas/vitacura', 'Comuna routing must be deterministic.');
+assert(publicNewsPath({ kind: 'story', slug: 'una-noticia-local' }) === '/v1/cl/news/stories/una-noticia-local', 'Story routing must be deterministic.');
+let invalidRouteBlocked = false;
+try {
+  publicNewsPath({ kind: 'story', slug: '../editorial-inbox' });
+} catch {
+  invalidRouteBlocked = true;
+}
+assert(invalidRouteBlocked, 'News Web must reject paths that could escape the public API namespace.');
+
 let blocked = false;
 try {
-  assertPublicNewsProjectionSafe({
-    storyId: 'unsafe-1',
-    title: 'Unsafe projection',
-    risk_flags: ['internal-only'],
-  });
+  assertPublicNewsProjectionSafe({ storyId: 'unsafe-1', title: 'Unsafe projection', risk_flags: ['internal-only'] });
 } catch (error) {
   blocked = error instanceof Error && error.message.includes('risk_flags');
 }
@@ -108,15 +99,10 @@ assert(blocked, 'Public News projection must reject internal risk flags.');
 
 blocked = false;
 try {
-  assertPublicNewsProjectionSafe({
-    story: {
-      title: 'Nested unsafe projection',
-      editorial_state: 'verification_required',
-    },
-  });
+  assertPublicNewsProjectionSafe({ story: { title: 'Nested unsafe projection', editorial_state: 'verification_required' } });
 } catch (error) {
   blocked = error instanceof Error && error.message.includes('editorial_state');
 }
 assert(blocked, 'Public News projection must reject nested editorial workflow state.');
 
-console.log('PASS: Palta News Web public projection + view model tests');
+console.log('PASS: Palta News Web public projection + view model + public API route tests');
