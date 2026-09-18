@@ -1,4 +1,8 @@
 import type { HomeApiResponse } from './homeApiContract.js';
+import type {
+  NotificationApiItem,
+  NotificationApiResponse,
+} from './notificationApiContract.js';
 
 export type {
   HomeApiContext,
@@ -10,6 +14,11 @@ export type {
   HomeApiSubject,
   HomeApiSurface,
 } from './homeApiContract.js';
+export type {
+  NotificationApiItem,
+  NotificationApiResponse,
+  NotificationApiSummary,
+} from './notificationApiContract.js';
 
 export type FetchLike = (
   input: string,
@@ -161,6 +170,36 @@ export class PaltaApiClient {
       throw new Error('GET /v1/home returned unsupported contract_version');
     }
     return payload as HomeApiResponse;
+  }
+
+  async getNotifications(): Promise<NotificationApiResponse> {
+    const payload = expectObject(
+      await this.request('/v1/notifications'),
+      'GET /v1/notifications',
+    );
+    if (!Array.isArray(payload.items)) {
+      throw new Error('GET /v1/notifications payload missing items[]');
+    }
+    expectObject(payload.summary, 'GET /v1/notifications summary');
+    return payload as NotificationApiResponse;
+  }
+
+  async markNotificationRead(notificationId: string): Promise<NotificationApiItem> {
+    const payload = expectObject(
+      await this.request(
+        `/v1/notifications/${encodeURIComponent(notificationId)}/read`,
+        { method: 'POST' },
+      ),
+      'POST /v1/notifications/{id}/read',
+    );
+    if (
+      typeof payload.id !== 'string' ||
+      typeof payload.title !== 'string' ||
+      typeof payload.read_at !== 'string'
+    ) {
+      throw new Error('POST /v1/notifications/{id}/read returned invalid item');
+    }
+    return payload as NotificationApiItem;
   }
 
   async searchLocal(input: {
