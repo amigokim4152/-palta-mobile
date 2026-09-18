@@ -6,9 +6,9 @@ ROOT="$(git rev-parse --show-toplevel 2>/dev/null || true)"
 
 REPORT="${PALTA_LOCAL_INSPECT_REPORT:-/tmp/palta-local-place-inventory.json}"
 
-node "$ROOT/scripts/inspect-local-place-data.mjs" "$@" > "$REPORT"
-
-node - "$REPORT" <<'NODE'
+if node "$ROOT/scripts/inspect-local-place-data.mjs" "$@" > "$REPORT"; then
+  echo "=== LOCAL PALTA DATA ==="
+  node - "$REPORT" <<'NODE'
 import fs from 'node:fs';
 const path = process.argv[2];
 const report = JSON.parse(fs.readFileSync(path, 'utf8'));
@@ -34,5 +34,11 @@ console.log(JSON.stringify({
   likely_local_place_sources: likely,
 }, null, 2));
 NODE
+  echo "[Palta Local Data] Full read-only inventory saved to $REPORT" >&2
+else
+  echo "[Palta Local Data] No readable local data root was found; continuing with legacy endpoint probe." >&2
+fi
 
-echo "[Palta Local Data] Full read-only inventory saved to $REPORT" >&2
+echo
+echo "=== LEGACY LOCAL-PLACES ENDPOINT ==="
+node "$ROOT/scripts/probe-legacy-local-places.mjs"
