@@ -34,10 +34,26 @@ if [ ! -d "$APP_DIR/node_modules" ]; then
   npm ci --prefix "$APP_DIR"
 fi
 
-export EXPO_PUBLIC_PALTA_API_BASE_URL="http://127.0.0.1:${MOCK_PORT}"
-export EXPO_PUBLIC_ENV="development"
+# Local Golden User runtime defaults. Both values are public client configuration
+# and can be overridden by the caller for another Supabase environment.
+export EXPO_PUBLIC_SUPABASE_URL="${EXPO_PUBLIC_SUPABASE_URL:-https://rqbpbauhkdgsrkbwmkmg.supabase.co}"
+export EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY="${EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY:-sb_publishable_QEHIwvil9m4lyE6kJ1ba6w_CjA9_XXh}"
+export EXPO_PUBLIC_PALTA_API_BASE_URL="${EXPO_PUBLIC_PALTA_API_BASE_URL:-http://127.0.0.1:${MOCK_PORT}}"
+export EXPO_PUBLIC_ENV="${EXPO_PUBLIC_ENV:-development}"
 export PALTA_MOCK_BASE_URL="http://127.0.0.1:${MOCK_PORT}"
 export EXPO_NO_TELEMETRY=1
+
+case "$EXPO_PUBLIC_ENV" in
+  development|preview|production) ;;
+  *) fail "EXPO_PUBLIC_ENV must be development, preview, or production." ;;
+esac
+
+if [[ ! "$EXPO_PUBLIC_SUPABASE_URL" =~ ^https://[a-zA-Z0-9-]+\.supabase\.co$ ]]; then
+  fail "EXPO_PUBLIC_SUPABASE_URL must be an https://<project>.supabase.co URL."
+fi
+if [[ "$EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY" != sb_publishable_* ]]; then
+  fail "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY must be a Supabase publishable key."
+fi
 
 if lsof -nP -iTCP:"$MOCK_PORT" -sTCP:LISTEN -t >/dev/null 2>&1; then
   info "Reusing listener on mock API port $MOCK_PORT."
