@@ -10,7 +10,11 @@ Before adding or changing a user-visible Palta feature, read the relevant reposi
 
 For every user-visible surface, localized API field, search flow, notification, message, public-data surface, business surface, Community, Market, Care, Health, Transport, or future module, `docs/LOCALIZATION_RUNTIME_V1.md` is mandatory.
 
+For every collector, import, research workflow, Local Business ingestion path, public-data source, market/catalog ingestion path, or country-layer source, `docs/DATA_SOURCE_GOVERNANCE_V1.md` is mandatory.
+
 Feature branches must not create their own locale provider, language persistence, translated canonical enum, per-language duplicate domain objects, or screen-local machine-translation path. Language changes presentation; it must not silently change Chile region, currency, timezone, eligibility, policy jurisdiction, or canonical entity identity.
+
+Data ingestion branches must not treat discovery as publication authority. A third-party platform can produce a verification candidate without being an approved canonical ingestion source. Factual fields must pass provenance/rights verification before canonical publication. Third-party photos, reviews, platform prose, copyrighted layouts/assets, and unclear personal contact data must not be copied into the public canonical dataset without an explicit permitted basis.
 
 ## First executable product loop
 
