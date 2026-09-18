@@ -5,6 +5,8 @@ import {
   type LocalSearchItem,
   type NotificationApiItem,
   type NotificationApiResponse,
+  type ProfileApiResponse,
+  type UpdateProfileApiInput,
 } from '../../../src/api/paltaApiClient';
 import { parseRuntimeEnv } from '../../../src/config/runtimeEnv';
 import { createPaltaApiClient } from '../../../src/api/paltaApiFactory';
@@ -14,6 +16,8 @@ export type MobilePaltaClient = {
   getHome(): Promise<HomeApiResponse>;
   getNotifications(): Promise<NotificationApiResponse>;
   markNotificationRead(id: string): Promise<NotificationApiItem>;
+  getProfile(): Promise<ProfileApiResponse>;
+  updateProfile(input: UpdateProfileApiInput): Promise<ProfileApiResponse>;
   searchLocal(input: {
     latitude: number;
     longitude: number;
