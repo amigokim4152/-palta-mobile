@@ -105,6 +105,12 @@ export function NeighborhoodScreen() {
           },
           title: item.name,
           ...(item.category_key ? { categoryKey: item.category_key } : {}),
+          ...(item.verification_status
+            ? { verificationStatus: item.verification_status }
+            : {}),
+          ...(item.operational_state
+            ? { operationalState: item.operational_state }
+            : {}),
           selected: item.entity_id === neighborhood.selectedEntityId,
         })),
     [visibleResults, neighborhood.selectedEntityId],
