@@ -25,6 +25,10 @@ import { BusinessActionBar } from '../../components/business/BusinessActionBar';
 import { useAsyncResource } from '../../hooks/useAsyncResource';
 import { mobileRuntime } from '../../services/paltaClient';
 import { useNeighborhoodState } from '../../state/NeighborhoodStateProvider';
+import {
+  localBusinessDiscoveryCacheKey,
+  readLocalBusinessDiscoveryCache,
+} from './localBusinessDiscoveryCache';
 import { paltaTheme } from '../../theme/paltaTheme';
 
 function buildWhatsappUrl(business: BusinessApiDetail): string | undefined {
@@ -48,6 +52,12 @@ function buildPhoneUrl(business: BusinessApiDetail): string | undefined {
   if (!raw) return undefined;
   const dialable = raw.replace(/[^+\d]/g, '');
   return dialable ? `tel:${dialable}` : undefined;
+}
+
+function formatDistance(distanceM?: number): string | undefined {
+  if (distanceM === undefined) return undefined;
+  if (distanceM < 1000) return `${Math.round(distanceM)} m`;
+  return `${(distanceM / 1000).toFixed(1).replace('.', ',')} km`;
 }
 
 function SurfaceCard({ children }: { children: ReactNode }) {
@@ -149,9 +159,11 @@ function ExternalChannels({
 
 function ProfileHero({
   business,
+  discoveryContext,
   onBack,
 }: {
   business: BusinessApiDetail;
+  discoveryContext?: string;
   onBack: () => void;
 }) {
   const { width } = useWindowDimensions();
@@ -159,6 +171,8 @@ function ProfileHero({
   const photos = (business.photo_urls ?? []).filter(Boolean).slice(0, 6);
   const serviceLine = business.service_labels?.slice(0, 2).join(' · ');
   const areaLine = business.service_area_labels?.slice(0, 2).join(' · ');
+  const locationLine = discoveryContext ?? areaLine;
+  const openNow = business.operational_state === 'open_now';
 
   return (
     <View>
@@ -282,7 +296,7 @@ function ProfileHero({
               }}
             >
               <Text style={{ fontSize: 12, fontWeight: '800', color: paltaTheme.color.brandPrimary }}>
-                Verificado
+                ✓ Verificado
               </Text>
             </View>
           ) : null}
@@ -296,13 +310,19 @@ function ProfileHero({
 
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
           {business.opening_status ? (
-            <Text style={{ fontSize: 14, fontWeight: '800', color: paltaTheme.color.brandPrimary }}>
+            <Text
+              style={{
+                fontSize: 14,
+                fontWeight: '800',
+                color: openNow ? paltaTheme.color.brandPrimary : paltaTheme.color.textSecondary,
+              }}
+            >
               {business.opening_status}
             </Text>
           ) : null}
-          {areaLine ? (
+          {locationLine ? (
             <Text style={{ fontSize: 13, color: paltaTheme.color.textMuted }}>
-              · {areaLine}
+              · {locationLine}
             </Text>
           ) : null}
         </View>
@@ -313,7 +333,7 @@ function ProfileHero({
 
 export function BusinessProfileExperience() {
   const { businessId } = useLocalSearchParams<{ businessId: string }>();
-  const { dispatch } = useNeighborhoodState();
+  const { state: neighborhood, dispatch } = useNeighborhoodState();
   const [submitting, setSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState<string | null>(null);
 
@@ -432,6 +452,30 @@ export function BusinessProfileExperience() {
   const reviews = state.data?.reviews;
   const reviewEligibility = state.data?.reviewEligibility;
 
+  const discoveryContext = useMemo(() => {
+    if (!businessId) return undefined;
+    const point = neighborhood.searchOrigin ?? neighborhood.effectiveLocation;
+    if (!point) return undefined;
+    const cacheKey = localBusinessDiscoveryCacheKey({
+      latitude: point.latitude,
+      longitude: point.longitude,
+      ...(neighborhood.query ? { query: neighborhood.query } : {}),
+    });
+    const item = readLocalBusinessDiscoveryCache(cacheKey)?.find(
+      (candidate) => candidate.entity_id === businessId,
+    );
+    if (!item) return undefined;
+    if (!item.location) return 'Zona de atención';
+    return formatDistance(item.distance_m);
+  }, [
+    businessId,
+    neighborhood.searchOrigin?.latitude,
+    neighborhood.searchOrigin?.longitude,
+    neighborhood.effectiveLocation?.latitude,
+    neighborhood.effectiveLocation?.longitude,
+    neighborhood.query,
+  ]);
+
   const publicCapabilities = useMemo(
     () =>
       business
@@ -477,7 +521,11 @@ export function BusinessProfileExperience() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: paltaTheme.color.canvas }}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
-        <ProfileHero business={business} onBack={returnToDiscovery} />
+        <ProfileHero
+          business={business}
+          discoveryContext={discoveryContext}
+          onBack={returnToDiscovery}
+        />
 
         <View style={{ paddingHorizontal: paltaTheme.spacing.md, gap: paltaTheme.spacing.md }}>
           <SurfaceCard>
@@ -522,6 +570,34 @@ export function BusinessProfileExperience() {
             </SurfaceCard>
           ) : null}
 
+          {(business.hours_summary || business.service_area_labels?.length) ? (
+            <SurfaceCard>
+              <View style={{ gap: paltaTheme.spacing.md }}>
+                <SectionTitle title="Horario y atención" />
+                {business.hours_summary ? (
+                  <View>
+                    <Text style={{ fontSize: 12, fontWeight: '800', color: paltaTheme.color.textMuted }}>
+                      HORARIO
+                    </Text>
+                    <Text style={{ marginTop: 4, lineHeight: 20, color: paltaTheme.color.textPrimary }}>
+                      {business.hours_summary}
+                    </Text>
+                  </View>
+                ) : null}
+                {business.service_area_labels?.length ? (
+                  <View>
+                    <Text style={{ fontSize: 12, fontWeight: '800', color: paltaTheme.color.textMuted }}>
+                      ZONA DE ATENCIÓN
+                    </Text>
+                    <Text style={{ marginTop: 4, lineHeight: 20, color: paltaTheme.color.textPrimary }}>
+                      {business.service_area_labels.join(' · ')}
+                    </Text>
+                  </View>
+                ) : null}
+              </View>
+            </SurfaceCard>
+          ) : null}
+
           {coupons.length ? (
             <View
               style={{
@@ -550,6 +626,34 @@ export function BusinessProfileExperience() {
                 </View>
               ))}
             </View>
+          ) : null}
+
+          {business.posts?.length ? (
+            <SurfaceCard>
+              <View style={{ gap: paltaTheme.spacing.sm }}>
+                <SectionTitle title="Novedades" subtitle="Lo último publicado por este negocio." />
+                {business.posts.slice(0, 3).map((post, index) => (
+                  <View
+                    key={post.id}
+                    style={{
+                      paddingTop: index === 0 ? 0 : paltaTheme.spacing.sm,
+                      borderTopWidth: index === 0 ? 0 : 1,
+                      borderTopColor: paltaTheme.color.divider,
+                      gap: 4,
+                    }}
+                  >
+                    <Text style={{ fontWeight: '800', color: paltaTheme.color.textPrimary }}>
+                      {post.title}
+                    </Text>
+                    {post.body ? (
+                      <Text style={{ lineHeight: 20, color: paltaTheme.color.textSecondary }}>
+                        {post.body}
+                      </Text>
+                    ) : null}
+                  </View>
+                ))}
+              </View>
+            </SurfaceCard>
           ) : null}
 
           {reviews ? (
@@ -630,62 +734,6 @@ export function BusinessProfileExperience() {
                       Escribir opinión verificada
                     </Text>
                   </Pressable>
-                ) : null}
-              </View>
-            </SurfaceCard>
-          ) : null}
-
-          {business.posts?.length ? (
-            <SurfaceCard>
-              <View style={{ gap: paltaTheme.spacing.sm }}>
-                <SectionTitle title="Novedades" subtitle="Lo último publicado por este negocio." />
-                {business.posts.slice(0, 3).map((post, index) => (
-                  <View
-                    key={post.id}
-                    style={{
-                      paddingTop: index === 0 ? 0 : paltaTheme.spacing.sm,
-                      borderTopWidth: index === 0 ? 0 : 1,
-                      borderTopColor: paltaTheme.color.divider,
-                      gap: 4,
-                    }}
-                  >
-                    <Text style={{ fontWeight: '800', color: paltaTheme.color.textPrimary }}>
-                      {post.title}
-                    </Text>
-                    {post.body ? (
-                      <Text style={{ lineHeight: 20, color: paltaTheme.color.textSecondary }}>
-                        {post.body}
-                      </Text>
-                    ) : null}
-                  </View>
-                ))}
-              </View>
-            </SurfaceCard>
-          ) : null}
-
-          {(business.hours_summary || business.service_area_labels?.length) ? (
-            <SurfaceCard>
-              <View style={{ gap: paltaTheme.spacing.md }}>
-                <SectionTitle title="Información útil" />
-                {business.hours_summary ? (
-                  <View>
-                    <Text style={{ fontSize: 12, fontWeight: '800', color: paltaTheme.color.textMuted }}>
-                      HORARIO
-                    </Text>
-                    <Text style={{ marginTop: 4, lineHeight: 20, color: paltaTheme.color.textPrimary }}>
-                      {business.hours_summary}
-                    </Text>
-                  </View>
-                ) : null}
-                {business.service_area_labels?.length ? (
-                  <View>
-                    <Text style={{ fontSize: 12, fontWeight: '800', color: paltaTheme.color.textMuted }}>
-                      ZONA DE ATENCIÓN
-                    </Text>
-                    <Text style={{ marginTop: 4, lineHeight: 20, color: paltaTheme.color.textPrimary }}>
-                      {business.service_area_labels.join(' · ')}
-                    </Text>
-                  </View>
                 ) : null}
               </View>
             </SurfaceCard>
