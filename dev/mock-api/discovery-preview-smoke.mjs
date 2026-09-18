@@ -18,11 +18,11 @@ async function search(query) {
 const taller = await search('taller');
 assert(taller.items.length === 1, 'taller search should return one result');
 assert(
-  JSON.stringify(taller.items[0].service_labels) === JSON.stringify(['Mantención', 'Frenos']),
+  JSON.stringify(taller.items[0].service_labels) === JSON.stringify(['Mecánica general', 'Frenos y diagnóstico']),
   'discovery search must project at most the first two useful service labels',
 );
 assert(
-  taller.items[0].highlight === 'Agenda disponible esta semana',
+  taller.items[0].highlight === 'Diagnóstico con cupos esta semana',
   'recent useful post should fill the highlight when there is no active coupon',
 );
 
@@ -33,7 +33,7 @@ assert(
   'pharmacy discovery result should project useful service labels',
 );
 assert(
-  farmacia.items[0].highlight === '10% en cuidado personal',
+  farmacia.items[0].highlight === '15% en dermocosmética seleccionada',
   'active coupon must win the single discovery highlight slot',
 );
 assert(
