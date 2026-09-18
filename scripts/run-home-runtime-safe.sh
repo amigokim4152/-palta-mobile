@@ -85,9 +85,39 @@ sync_ref_file \
   "Palta semantic theme"
 
 sync_ref_file \
+  "src/api/paltaApiClient.ts" \
+  "$ROOT/src/api/paltaApiClient.ts" \
+  "Home API response contract"
+
+sync_ref_file \
   "src/home/homeRuntimeContract.ts" \
   "$ROOT/src/home/homeRuntimeContract.ts" \
   "Home runtime contract"
+
+sync_ref_file \
+  "src/home/homeSourceContract.ts" \
+  "$ROOT/src/home/homeSourceContract.ts" \
+  "Home source adapter contract"
+
+sync_ref_file \
+  "src/home/mergeHomeSources.ts" \
+  "$ROOT/src/home/mergeHomeSources.ts" \
+  "Home source merger"
+
+sync_ref_file \
+  "src/home/adapters/weatherHomeAdapter.ts" \
+  "$ROOT/src/home/adapters/weatherHomeAdapter.ts" \
+  "Weather Home adapter"
+
+sync_ref_file \
+  "src/home/adapters/mobilityHomeAdapter.ts" \
+  "$ROOT/src/home/adapters/mobilityHomeAdapter.ts" \
+  "Mobility Home adapter"
+
+sync_ref_file \
+  "src/home/adapters/publicLifeNewsHomeAdapters.ts" \
+  "$ROOT/src/home/adapters/publicLifeNewsHomeAdapters.ts" \
+  "Public-life and news Home adapters"
 
 sync_ref_file \
   "dev/mock-api/server.mjs" \
