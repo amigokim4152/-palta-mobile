@@ -1,12 +1,15 @@
 # Golden User 001 — Runtime Verification Runbook
 
 Status: ACTIVE
-Branch: `integration/golden-user-001-v1`
+Golden User branch: `integration/golden-user-001-v1`
+Whole-app runtime branch: `integration/runtime-composition-v1`
 Base: `integration/repository-normalization-v1`
 
 ## Purpose
 
 This is the executable completion path for Somos Palta. A feature is complete only when Golden User 001 can use it in the mobile runtime and the required canonical persistence, permissions, and re-entry checks have been proven.
+
+Feature/Core branches remain Sources of Truth for their own contracts. Actual whole-app simulator verification is executed from `integration/runtime-composition-v1`; do not judge the complete app by checking out a single feature branch.
 
 ## Completion states
 
@@ -59,22 +62,25 @@ Gate 01 is `RUNTIME_CONNECTED`. The runtime and server foundation are connected,
 
 Verified implementation/data facts:
 
-1. mobile UI Source of Truth remains `mobile-overlay/src`; `apps/mobile/src` is generated
-2. Auth UI is capability-aware and only shows methods enabled by live Supabase settings
-3. `palta-dev` public Auth settings are reachable; email is enabled while Apple and Google are currently disabled
-4. Supabase provider code remains behind the existing Auth adapter/provider boundary
-5. raw provider identity, `AuthBrokerUserId`, and canonical `PaltaUserId` remain separate concepts
-6. session persistence uses Expo SecureStore; OAuth/email callback processing uses PKCE
-7. duplicate PKCE callback exchange is guarded
-8. Auth/account-resolution failures are shown as errors rather than disguised as signed-out state
-9. `palta-dev` has server-owned canonical `palta_account` bootstrap from `auth.users`
-10. client INSERT on `palta_account` remains denied
-11. a real `palta-dev` two-user transaction/RLS test proved user A cannot read user B account
-12. mobile config is fail-closed and accepts only a Supabase publishable key
-13. mobile runtime contains no service-role/admin key, public password, or Golden User password shortcut
-14. CI rejects `EXPO_PUBLIC_*` password/secret/token material and password-based Golden User bypasses
-15. development builds show `Palta ID` and `Auth ID` after sign-in so the same identity can be compared across restart and re-login
-16. `scheme=palta` and app identifiers remain `cl.somospalta.app`
+1. `integration/auth-profile-core-v1` is the Auth/Profile Core Source of Truth; normalized canonical account resolution is reconciled there
+2. whole-app Auth execution is integrated into `integration/runtime-composition-v1`; `apps/mobile/src` remains generated output
+3. Auth UI is capability-aware and only shows methods enabled by live Supabase settings
+4. `palta-dev` public Auth settings are reachable; email is enabled while Apple and Google are currently disabled
+5. Supabase provider code remains behind the existing Auth adapter/provider boundary
+6. raw provider identity, `AuthBrokerUserId`, and canonical `PaltaUserId` remain separate concepts
+7. session persistence uses Expo SecureStore; OAuth/email callback processing uses PKCE
+8. duplicate PKCE callback exchange is guarded
+9. Auth/account-resolution failures are shown as errors rather than disguised as signed-out state
+10. `palta-dev` has server-owned canonical `palta_account` bootstrap from `auth.users`
+11. client INSERT on `palta_account` remains denied
+12. a real `palta-dev` two-user transaction/RLS test proved user A cannot read user B account
+13. mobile config is fail-closed and accepts only a Supabase publishable key
+14. mobile runtime contains no service-role/admin key, public password, or Golden User password shortcut
+15. CI rejects `EXPO_PUBLIC_*` password/secret/token material and password-based Golden User bypasses
+16. development builds show `Palta ID` and `Auth ID` after sign-in so the same identity can be compared across restart and re-login
+17. `scheme=palta` and app identifiers remain `cl.somospalta.app`
+18. composed runtime verification at commit `561e89527dcab0761cc0e39584560232ea429fb2` passed source typecheck, source iOS bundle, composition materialization, post-composition credential scan, generated runtime typecheck, and composed iOS bundle
+19. Auth/Profile integration is recorded in the composition manifest at source SHA `a030511374d7a7a4b1383d5627f7d9ba4e6780aa`
 
 ### Optional server fixture utility
 
@@ -86,10 +92,13 @@ See `docs/GOLDEN_USER_001_GATE_01_SYNTHETIC_AUTH.md` for the server-fixture boun
 
 ## Gate 01 executable sequence
 
-On the development Mac:
+On the development Mac, use the whole-app composition branch:
 
 ```bash
-./scripts/run-ios-mobile.sh
+git fetch origin
+git switch integration/runtime-composition-v1
+git pull --ff-only
+npm run dev:ios
 ```
 
 Then execute in order:
