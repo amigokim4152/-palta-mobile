@@ -92,6 +92,17 @@ export function NeighborhoodScreen() {
     [state.data, neighborhood.activeFilters],
   );
 
+  const displayResults = useMemo(() => {
+    const selectedId = neighborhood.selectedEntityId;
+    if (!selectedId) return visibleResults;
+    const selected = visibleResults.find((item) => item.entity_id === selectedId);
+    if (!selected) return visibleResults;
+    return [
+      selected,
+      ...visibleResults.filter((item) => item.entity_id !== selectedId),
+    ];
+  }, [visibleResults, neighborhood.selectedEntityId]);
+
   const mapFeatures = useMemo<MapFeature[]>(
     () =>
       visibleResults
@@ -329,7 +340,7 @@ export function NeighborhoodScreen() {
           />
         ) : null}
 
-        {visibleResults.map((item) => (
+        {displayResults.map((item) => (
           <LocalResultCard
             key={item.entity_id}
             name={item.name}
