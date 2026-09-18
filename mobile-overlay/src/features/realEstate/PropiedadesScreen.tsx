@@ -18,14 +18,20 @@ import {
   REAL_ESTATE_TRANSACTION_LABELS,
   type RealEstateDiscoveryView,
 } from '../../../../src/realEstate/realEstateDiscovery';
+import {
+  filterRealEstateListings,
+  type RealEstateListingQuery,
+} from '../../../../src/realEstate/realEstateRepository';
 import { FilterChip } from '../../components/common/FilterChip';
 import { NeighborhoodMap } from '../../components/map/NeighborhoodMap';
 import { mobileRuntime } from '../../services/paltaClient';
 import { paltaTheme } from '../../theme/paltaTheme';
 import { PropertyListingCard } from './PropertyListingCard';
 import { PROPERTY_DEMO_LISTINGS } from './propertyDemoData';
-import { RealEstateHomeSections } from './RealEstateHomeSections';
 import { RealEstateAccountActions } from './RealEstateAccountActions';
+import { RealEstateHomeSections } from './RealEstateHomeSections';
+import { SaveRealEstateSearchButton } from './SaveRealEstateSearchButton';
+import { useSavedRealEstateListings } from './useSavedRealEstateListings';
 
 const SANTIAGO_CENTER = { latitude: -33.4489, longitude: -70.6693 } as const;
 const PROPERTY_TYPE_ORDER: readonly PropertyType[] = [
@@ -38,6 +44,37 @@ const PROPERTY_TYPE_ORDER: readonly PropertyType[] = [
   'parcel',
   'warehouse',
 ];
+
+const AREA_PRESETS = [undefined, 50, 80, 120] as const;
+const BEDROOM_PRESETS = [undefined, 1, 2, 3] as const;
+const BATHROOM_PRESETS = [undefined, 1, 2, 3] as const;
+const PARKING_PRESETS = [undefined, 1, 2] as const;
+
+const PRICE_PRESETS = {
+  rent: [
+    { label: 'Precio' },
+    { label: '≤ $800 mil', maxPriceClp: 800000 },
+    { label: '≤ $1,2 M', maxPriceClp: 1200000 },
+    { label: '≤ $1,8 M', maxPriceClp: 1800000 },
+  ],
+  sale: [
+    { label: 'Precio' },
+    { label: '≤ UF 6.000', maxPriceUf: 6000 },
+    { label: '≤ UF 9.000', maxPriceUf: 9000 },
+    { label: '≤ UF 15.000', maxPriceUf: 15000 },
+  ],
+  temporary_rent: [
+    { label: 'Precio' },
+    { label: '≤ $450 mil', maxPriceClp: 450000 },
+    { label: '≤ $750 mil', maxPriceClp: 750000 },
+    { label: '≤ $1,2 M', maxPriceClp: 1200000 },
+  ],
+} as const;
+
+function nextPreset<T>(values: readonly T[], current: T): T {
+  const index = values.findIndex((value) => value === current);
+  return values[(index + 1) % values.length] ?? values[0]!;
+}
 
 function ViewToggle({ value, onChange }: { value: RealEstateDiscoveryView; onChange: (value: RealEstateDiscoveryView) => void }) {
   return (
@@ -104,19 +141,42 @@ function SearchBar({ value, onChangeText }: { value: string; onChangeText: (valu
 
 function DiscoveryControls({
   transactionType,
-  setTransactionType,
+  onTransactionTypeChange,
   propertyType,
   setPropertyType,
   ownerDirectOnly,
   setOwnerDirectOnly,
+  pricePresetIndex,
+  setPricePresetIndex,
+  minArea,
+  setMinArea,
+  minBedrooms,
+  setMinBedrooms,
+  minBathrooms,
+  setMinBathrooms,
+  minParking,
+  setMinParking,
 }: {
   transactionType: PropertyTransactionType;
-  setTransactionType: (value: PropertyTransactionType) => void;
+  onTransactionTypeChange: (value: PropertyTransactionType) => void;
   propertyType?: PropertyType;
   setPropertyType: (value: PropertyType | undefined) => void;
   ownerDirectOnly: boolean;
   setOwnerDirectOnly: (value: boolean) => void;
+  pricePresetIndex: number;
+  setPricePresetIndex: (value: number) => void;
+  minArea: number | undefined;
+  setMinArea: (value: number | undefined) => void;
+  minBedrooms: number | undefined;
+  setMinBedrooms: (value: number | undefined) => void;
+  minBathrooms: number | undefined;
+  setMinBathrooms: (value: number | undefined) => void;
+  minParking: number | undefined;
+  setMinParking: (value: number | undefined) => void;
 }) {
+  const pricePresets = PRICE_PRESETS[transactionType];
+  const pricePreset = pricePresets[pricePresetIndex] ?? pricePresets[0];
+
   return (
     <View style={{ gap: paltaTheme.spacing.xs }}>
       <ScrollView
@@ -129,16 +189,35 @@ function DiscoveryControls({
             key={transaction}
             label={REAL_ESTATE_TRANSACTION_LABELS[transaction]}
             selected={transactionType === transaction}
-            onPress={() => setTransactionType(transaction)}
+            onPress={() => onTransactionTypeChange(transaction)}
           />
         ))}
         <FilterChip label="Dueño directo" selected={ownerDirectOnly} onPress={() => setOwnerDirectOnly(!ownerDirectOnly)} />
-        <FilterChip label="Precio" />
-        <FilterChip label="Superficie" />
-        <FilterChip label="Dormitorios" />
-        <FilterChip label="Baños" />
-        <FilterChip label="Estacionamiento" />
-        <FilterChip label="Más filtros" />
+        <FilterChip
+          label={pricePreset.label}
+          selected={pricePresetIndex > 0}
+          onPress={() => setPricePresetIndex((pricePresetIndex + 1) % pricePresets.length)}
+        />
+        <FilterChip
+          label={minArea ? `${minArea}+ m²` : 'Superficie'}
+          selected={minArea !== undefined}
+          onPress={() => setMinArea(nextPreset(AREA_PRESETS, minArea))}
+        />
+        <FilterChip
+          label={minBedrooms ? `${minBedrooms}+ dorm.` : 'Dormitorios'}
+          selected={minBedrooms !== undefined}
+          onPress={() => setMinBedrooms(nextPreset(BEDROOM_PRESETS, minBedrooms))}
+        />
+        <FilterChip
+          label={minBathrooms ? `${minBathrooms}+ baños` : 'Baños'}
+          selected={minBathrooms !== undefined}
+          onPress={() => setMinBathrooms(nextPreset(BATHROOM_PRESETS, minBathrooms))}
+        />
+        <FilterChip
+          label={minParking ? `${minParking}+ estac.` : 'Estacionamiento'}
+          selected={minParking !== undefined}
+          onPress={() => setMinParking(nextPreset(PARKING_PRESETS, minParking))}
+        />
       </ScrollView>
 
       <ScrollView
@@ -167,26 +246,35 @@ export function PropiedadesScreen({ initialView = 'list' }: { initialView?: Real
   const [transactionType, setTransactionType] = useState<PropertyTransactionType>('rent');
   const [propertyType, setPropertyType] = useState<PropertyType | undefined>();
   const [ownerDirectOnly, setOwnerDirectOnly] = useState(false);
+  const [pricePresetIndex, setPricePresetIndex] = useState(0);
+  const [minArea, setMinArea] = useState<number | undefined>();
+  const [minBedrooms, setMinBedrooms] = useState<number | undefined>();
+  const [minBathrooms, setMinBathrooms] = useState<number | undefined>();
+  const [minParking, setMinParking] = useState<number | undefined>();
   const [selectedListingId, setSelectedListingId] = useState<string | null>(null);
+  const { isSaved, toggleSaved } = useSavedRealEstateListings();
 
-  const listings = useMemo(() => {
-    const normalizedQuery = query.trim().toLocaleLowerCase('es-CL');
-    return PROPERTY_DEMO_LISTINGS.filter((item) => {
-      if (item.listing.transactionType !== transactionType) return false;
-      if (propertyType && item.property.type !== propertyType) return false;
-      if (ownerDirectOnly && item.publisherType !== 'owner_direct') return false;
-      if (params.businessId && item.listing.publisherBusinessId !== params.businessId) return false;
-      if (
-        normalizedQuery &&
-        !`${item.comuna} ${item.sector} ${item.property.address.displayAddress ?? ''}`
-          .toLocaleLowerCase('es-CL')
-          .includes(normalizedQuery)
-      ) {
-        return false;
-      }
-      return true;
-    });
-  }, [ownerDirectOnly, params.businessId, propertyType, query, transactionType]);
+  const repositoryQuery = useMemo<RealEstateListingQuery>(() => {
+    const pricePreset = PRICE_PRESETS[transactionType][pricePresetIndex] ?? PRICE_PRESETS[transactionType][0];
+    return {
+      text: query,
+      businessId: params.businessId,
+      transactionType,
+      propertyType,
+      publisherType: ownerDirectOnly ? 'owner_direct' : undefined,
+      ...('maxPriceClp' in pricePreset && pricePreset.maxPriceClp !== undefined ? { maxPriceClp: pricePreset.maxPriceClp } : {}),
+      ...('maxPriceUf' in pricePreset && pricePreset.maxPriceUf !== undefined ? { maxPriceUf: pricePreset.maxPriceUf } : {}),
+      minUsableAreaM2: minArea,
+      minBedrooms,
+      minBathrooms,
+      minParkingSpaces: minParking,
+    };
+  }, [minArea, minBathrooms, minBedrooms, minParking, ownerDirectOnly, params.businessId, pricePresetIndex, propertyType, query, transactionType]);
+
+  const listings = useMemo(
+    () => filterRealEstateListings(PROPERTY_DEMO_LISTINGS, repositoryQuery),
+    [repositoryQuery],
+  );
 
   const mapFeatures = useMemo<MapFeature[]>(
     () =>
@@ -213,16 +301,32 @@ export function PropiedadesScreen({ initialView = 'list' }: { initialView?: Real
     router.push(`/propiedades/listing/${encodeURIComponent(listingId)}`);
   }
 
+  function changeTransactionType(value: PropertyTransactionType) {
+    setTransactionType(value);
+    setPricePresetIndex(0);
+    setSelectedListingId(null);
+  }
+
   const controls = (
     <View style={{ gap: paltaTheme.spacing.sm }}>
       <SearchBar value={query} onChangeText={setQuery} />
       <DiscoveryControls
         transactionType={transactionType}
-        setTransactionType={setTransactionType}
+        onTransactionTypeChange={changeTransactionType}
         propertyType={propertyType}
         setPropertyType={setPropertyType}
         ownerDirectOnly={ownerDirectOnly}
         setOwnerDirectOnly={setOwnerDirectOnly}
+        pricePresetIndex={pricePresetIndex}
+        setPricePresetIndex={setPricePresetIndex}
+        minArea={minArea}
+        setMinArea={setMinArea}
+        minBedrooms={minBedrooms}
+        setMinBedrooms={setMinBedrooms}
+        minBathrooms={minBathrooms}
+        setMinBathrooms={setMinBathrooms}
+        minParking={minParking}
+        setMinParking={setMinParking}
       />
     </View>
   );
@@ -270,6 +374,8 @@ export function PropiedadesScreen({ initialView = 'list' }: { initialView?: Real
                     item={item}
                     compact
                     selected={item.listing.id === selectedListing?.listing.id}
+                    saved={isSaved(item.listing.id)}
+                    onToggleSaved={() => void toggleSaved(item.listing.id)}
                     onPress={() => openListing(item.listing.id)}
                   />
                 </View>
@@ -298,6 +404,12 @@ export function PropiedadesScreen({ initialView = 'list' }: { initialView?: Real
 
         {controls}
 
+        {!params.businessId ? (
+          <View style={{ alignItems: 'flex-start' }}>
+            <SaveRealEstateSearchButton query={repositoryQuery} />
+          </View>
+        ) : null}
+
         {!params.businessId && !query ? <RealEstateHomeSections /> : null}
 
         <View style={{ gap: paltaTheme.spacing.sm }}>
@@ -313,7 +425,13 @@ export function PropiedadesScreen({ initialView = 'list' }: { initialView?: Real
           {listings.length ? (
             <View style={{ gap: paltaTheme.spacing.sm }}>
               {listings.map((item) => (
-                <PropertyListingCard key={item.listing.id} item={item} onPress={() => openListing(item.listing.id)} />
+                <PropertyListingCard
+                  key={item.listing.id}
+                  item={item}
+                  saved={isSaved(item.listing.id)}
+                  onToggleSaved={() => void toggleSaved(item.listing.id)}
+                  onPress={() => openListing(item.listing.id)}
+                />
               ))}
             </View>
           ) : (
@@ -327,7 +445,7 @@ export function PropiedadesScreen({ initialView = 'list' }: { initialView?: Real
               }}
             >
               <Text style={{ fontSize: 17, fontWeight: '800', color: paltaTheme.color.textPrimary }}>No encontramos propiedades con estos filtros</Text>
-              <Text style={{ marginTop: 6, color: paltaTheme.color.textSecondary }}>Prueba otra zona, tipo de propiedad o forma de publicación.</Text>
+              <Text style={{ marginTop: 6, color: paltaTheme.color.textSecondary }}>Prueba otra zona, tipo de propiedad o rango de precio.</Text>
             </View>
           )}
         </View>
