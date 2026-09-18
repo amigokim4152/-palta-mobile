@@ -10,6 +10,7 @@ const detailPath = path.join(root, 'mobile-overlay/src/features/business/Busines
 const ownerHomePath = path.join(root, 'mobile-overlay/src/app/business/manage/[businessId].tsx');
 const liveReferencePath = path.join(root, 'mobile-overlay/src/features/business/BusinessReferenceScreen.tsx');
 const sampleRoutePath = path.join(root, 'mobile-overlay/src/app/dev/local-business-samples.tsx');
+const previewPath = path.join(root, 'src/business/localBusinessDiscoveryPreview.ts');
 const referencePath = path.join(root, 'docs/LOCAL_BUSINESS_SCREEN_REFERENCE_V1.md');
 const handoffPath = path.join(root, 'docs/LOCAL_BUSINESS_DESIGN_SYSTEM_HANDOFF.md');
 
@@ -46,6 +47,7 @@ const detail = readTsx(detailPath);
 const ownerHome = readTsx(ownerHomePath);
 const liveReference = readTsx(liveReferencePath);
 const sampleRoute = readTsx(sampleRoutePath);
+const preview = readTsx(previewPath);
 
 assert(fs.existsSync(referencePath), 'Local Business screen reference must exist.');
 assert(fs.existsSync(handoffPath), 'Local Business design-system handoff must exist.');
@@ -70,7 +72,7 @@ assert(
   card.includes('consumerMetaLabel') &&
   card.includes("value.includes('_')") &&
   card.includes('categoryLabels'),
-  'Consumer rows must translate known categories and suppress internal taxonomy keys.',
+  'Consumer rows must retain a defensive last-line guard against raw taxonomy keys.',
 );
 assert(
   card.includes('✓ Verificado') && card.includes("value !== 'Verificado'"),
@@ -86,13 +88,20 @@ assert(
   'Canonical Negocios must remain a polished full-map experience with an edge-to-edge result sheet.',
 );
 assert(
-  discovery.includes('imageUrl={selectedVisual.imageUrl}') &&
-  discovery.includes('serviceLabels={selectedVisual.serviceLabels}') &&
-  discovery.includes('highlight={selectedVisual.highlight}') &&
-  discovery.includes('imageUrl={visual.imageUrl}') &&
-  discovery.includes('serviceLabels={visual.serviceLabels}') &&
-  discovery.includes('highlight={visual.highlight}'),
-  'Discovery must project real-photo/service/highlight slots into production result rows.',
+  discovery.includes('preview: readLocalBusinessDiscoveryPreview(item)') &&
+  discovery.includes('localBusinessConsumerCategoryLabel(item.category_key)') &&
+  discovery.includes('imageUrl={item.preview.photoUrl}') &&
+  discovery.includes('serviceLabels={serviceLabels}') &&
+  discovery.includes('highlight={item.preview.highlight?.label}') &&
+  !discovery.includes('function discoveryVisual'),
+  'Discovery must feed production result rows from the bounded canonical preview rather than parse transport fields in the screen.',
+);
+assert(
+  preview.includes('readLocalBusinessDiscoveryPreview') &&
+  preview.includes("kind: 'coupon' | 'post' | 'unknown'") &&
+  preview.includes('safePublicPhoto') &&
+  preview.includes('MAX_SERVICE_LABELS = 2'),
+  'Canonical preview must keep media safe, services bounded and highlight provenance explicit when known.',
 );
 
 const heroIndex = detail.indexOf('<ProfileHero');
@@ -166,4 +175,4 @@ assert(
   'The dev sample route must reuse the canonical BusinessReferenceScreen rather than duplicate sample UI.',
 );
 
-console.log('PASS: Local Business full-map screen reference');
+console.log('PASS: Local Business full-map screen reference with canonical discovery preview');
