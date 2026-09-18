@@ -90,6 +90,10 @@
         "mobile-overlay/src/app/(tabs)/market.tsx",
         "mobile-overlay/src/app/market",
         "src/market"
+      ],
+      "reviewed_contract_paths": [
+        "src/market/marketCatalog.ts",
+        "src/market/marketVerticalPolicy.ts"
       ]
     }
   ],
