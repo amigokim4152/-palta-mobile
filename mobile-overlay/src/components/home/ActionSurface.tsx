@@ -11,7 +11,7 @@ export function ActionSurface({
   eyebrow?: string;
   title: string;
   body?: string;
-  actionLabel: string;
+  actionLabel?: string;
   onPress?: () => void;
 }) {
   return (
@@ -64,27 +64,29 @@ export function ActionSurface({
         </Text>
       ) : null}
 
-      <Pressable
-        accessibilityRole="button"
-        onPress={onPress}
-        style={{
-          minHeight: paltaTheme.touch.minimum,
-          alignSelf: 'flex-start',
-          justifyContent: 'center',
-          marginTop: 10,
-        }}
-      >
-        <Text
-          allowFontScaling
+      {actionLabel && onPress ? (
+        <Pressable
+          accessibilityRole="button"
+          onPress={onPress}
           style={{
-            color: paltaTheme.color.brandPrimary,
-            fontWeight: '800',
-            fontSize: 16,
+            minHeight: paltaTheme.touch.minimum,
+            alignSelf: 'flex-start',
+            justifyContent: 'center',
+            marginTop: 10,
           }}
         >
-          {actionLabel}
-        </Text>
-      </Pressable>
+          <Text
+            allowFontScaling
+            style={{
+              color: paltaTheme.color.brandPrimary,
+              fontWeight: '800',
+              fontSize: 16,
+            }}
+          >
+            {actionLabel}
+          </Text>
+        </Pressable>
+      ) : null}
     </View>
   );
 }
