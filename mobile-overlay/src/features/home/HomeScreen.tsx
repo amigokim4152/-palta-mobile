@@ -21,9 +21,9 @@ function SectionLabel({ children }: { children: string }) {
     <Text
       allowFontScaling
       style={{
-        marginBottom: 4,
-        fontSize: 12,
-        letterSpacing: 0.7,
+        marginBottom: 5,
+        fontSize: 11,
+        letterSpacing: 0.75,
         fontWeight: '800',
         color: paltaTheme.color.textMuted,
       }}
@@ -44,14 +44,14 @@ export function HomeScreen() {
   const adaptive = useAdaptiveExperience();
 
   return (
-    <ScreenFrame title="Palta" subtitle="Tu vida, más cerca">
-      <View style={{ gap: 28 }}>
+    <ScreenFrame title="Palta">
+      <View style={{ gap: 20 }}>
         <View>
           <Text
             allowFontScaling
             style={{
-              fontSize: 28,
-              lineHeight: 35,
+              fontSize: 25,
+              lineHeight: 31,
               fontWeight: '700',
               color: paltaTheme.color.textPrimary,
             }}
@@ -61,7 +61,9 @@ export function HomeScreen() {
           <Text
             allowFontScaling
             style={{
-              marginTop: 3,
+              marginTop: 2,
+              fontSize: 14,
+              lineHeight: 19,
               color: paltaTheme.color.textSecondary,
             }}
           >
@@ -72,19 +74,19 @@ export function HomeScreen() {
         <View
           accessibilityRole="text"
           style={{
-            marginTop: -18,
+            marginTop: -10,
             alignSelf: 'flex-start',
             borderRadius: paltaTheme.radius.pill,
             backgroundColor: paltaTheme.color.surfaceMuted,
-            paddingHorizontal: 10,
-            paddingVertical: 6,
+            paddingHorizontal: 8,
+            paddingVertical: 4,
           }}
         >
           <Text
             allowFontScaling
             style={{
-              fontSize: 12,
-              lineHeight: 16,
+              fontSize: 11,
+              lineHeight: 15,
               fontWeight: '700',
               color: paltaTheme.color.textMuted,
             }}
@@ -113,7 +115,7 @@ export function HomeScreen() {
           <SummaryListRow
             title="Solicitud al taller"
             meta="En espera"
-            detail="La solicitud sigue abierta mientras esperas una respuesta definitiva."
+            detail="Esperando una respuesta definitiva."
             stackMeta={!adaptive.layout.allowHorizontalMetadataCompression}
           />
         </View>
@@ -141,7 +143,7 @@ export function HomeScreen() {
             detail={
               adaptive.textScaleClass === 'accessibility'
                 ? undefined
-                : 'Ejemplo de cómo aparecerá un beneficio oficial cuando corresponda a tu situación.'
+                : 'Sólo aparecerá cuando corresponda a tu situación.'
             }
             stackMeta={!adaptive.layout.allowHorizontalMetadataCompression}
           />
@@ -151,7 +153,7 @@ export function HomeScreen() {
             detail={
               adaptive.textScaleClass === 'accessibility'
                 ? undefined
-                : 'La noticia completa se mostrará sólo cuando sea reciente y realmente útil para tu zona.'
+                : 'Noticias recientes y realmente útiles para tu zona.'
             }
             stackMeta={!adaptive.layout.allowHorizontalMetadataCompression}
           />
