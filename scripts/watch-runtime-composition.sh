@@ -22,7 +22,12 @@ fail() {
 cd "$ROOT"
 
 CURRENT_BRANCH="$(git branch --show-current)"
-[ "$CURRENT_BRANCH" = "$TARGET_BRANCH" ] || fail "Run this on $TARGET_BRANCH (current: ${CURRENT_BRANCH:-detached})."
+PREVIEW_BRANCH="integration/runtime-preview-v1"
+
+if [ "$CURRENT_BRANCH" != "$TARGET_BRANCH" ] && [ "$CURRENT_BRANCH" != "$PREVIEW_BRANCH" ]; then
+  fail "Run this on $TARGET_BRANCH or $PREVIEW_BRANCH (current: ${CURRENT_BRANCH:-detached})."
+fi
+
 command -v node >/dev/null 2>&1 || fail "node is required"
 command -v git >/dev/null 2>&1 || fail "git is required"
 [ -f "$MANIFEST" ] || fail "Missing runtime composition manifest."
@@ -34,6 +39,10 @@ fetch_branch() {
 }
 
 safe_fast_forward_composition() {
+  if [ "$CURRENT_BRANCH" = "$PREVIEW_BRANCH" ]; then
+    return 0
+  fi
+
   fetch_branch "$TARGET_BRANCH" || return 1
   local local_sha remote_ref remote_sha
   local_sha="$(git rev-parse HEAD)"

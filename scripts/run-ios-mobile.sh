@@ -7,7 +7,7 @@ ROOT="$(git -C "$SCRIPT_DIR/.." rev-parse --show-toplevel)"
 APP_DIR="$ROOT/apps/mobile"
 RUNTIME_WATCH_PID=""
 RUNTIME_MODE="${PALTA_RUNTIME_MODE:-full}"
-DEFAULT_MAP_STYLE_URL="${PALTA_MAP_STYLE_URL:-https://palta-edge-preflight.kimeuisin.workers.dev/maps/style.json}"
+DEFAULT_MAP_STYLE_URL="${PALTA_MAP_STYLE_URL:-https://palta-map-edge.kimeuisin.workers.dev/maps/cl/style.json}"
 DEFAULT_SUPABASE_URL="https://rqbpbauhkdgsrkbwmkmg.supabase.co"
 DEFAULT_SUPABASE_PUBLISHABLE_KEY="sb_publishable_QEHIwvil9m4lyE6kJ1ba6w_CjA9_XXh"
 COMPOSITION_BRANCH="integration/runtime-composition-v1"
@@ -104,8 +104,8 @@ start_runtime_watcher() {
   if [ "$RUNTIME_MODE" = "gate01_auth" ]; then
     info "Starting Gate 01 Auth-isolated mobile-overlay sync..."
     node "$ROOT/scripts/sync-mobile-runtime.mjs" --watch >/tmp/palta-mobile-runtime-sync.log 2>&1 &
-  elif [ "$current_branch" = "$COMPOSITION_BRANCH" ] && [ -f "$COMPOSITION_MANIFEST" ]; then
-    info "Starting composed runtime watcher (Home + Negocios + Community + Auth)..."
+  elif { [ "$current_branch" = "$COMPOSITION_BRANCH" ] || [ "$current_branch" = "integration/runtime-preview-v1" ]; } && [ -f "$COMPOSITION_MANIFEST" ]; then
+    info "Starting composed runtime watcher (Home + Negocios + Community + Mercado + Panoramas)..."
     bash "$ROOT/scripts/watch-runtime-composition.sh" >/tmp/palta-runtime-composition.log 2>&1 &
   else
     info "Starting live mobile-overlay sync for Expo Fast Refresh..."
@@ -142,7 +142,7 @@ if [ "$RUNTIME_MODE" = "gate01_auth" ]; then
   info "Gate 01 Auth-isolated runtime: materializing versioned mobile-overlay only."
   info "Unrelated live feature overlays are intentionally excluded from this Auth/session test."
   node scripts/sync-mobile-runtime.mjs
-elif [ "$CURRENT_BRANCH" = "$COMPOSITION_BRANCH" ] && [ -f "$COMPOSITION_MANIFEST" ]; then
+elif { [ "$CURRENT_BRANCH" = "$COMPOSITION_BRANCH" ] || [ "$CURRENT_BRANCH" = "integration/runtime-preview-v1" ]; } && [ -f "$COMPOSITION_MANIFEST" ]; then
   info "Validating composed mobile runtime..."
   node scripts/check-mobile-runtime-composition.mjs
   info "Composing reviewed surfaces with live feature overlays..."
