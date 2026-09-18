@@ -69,7 +69,8 @@ export type UpdateMarketListingCommand = {
     description?: string;
     category?: Exclude<MarketCategoryKey, 'all'>;
     tradeMode?: MarketTradeMode;
-    priceClp?: number;
+    /** null explicitly clears a previous sale price. */
+    priceClp?: number | null;
     location?: MarketLocationSummary;
     mediaAssetIds?: string[];
   };
