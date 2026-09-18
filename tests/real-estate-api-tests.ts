@@ -63,7 +63,9 @@ const search = await client.searchListings({
   propertyType: 'apartment',
   publisherType: 'owner_direct',
   maxPriceClp: 800000,
+  minUsableAreaM2: 60,
   minBedrooms: 2,
+  minParkingSpaces: 1,
 });
 assert(search.items[0]?.listing_id === 'listing-1', 'Real-estate API search must validate and return listing DTOs.');
 const searchUrl = requests[0]?.url ?? '';
@@ -71,9 +73,11 @@ assert(searchUrl.includes('/v1/real-estate/listings?'), 'Real-estate search must
 assert(searchUrl.includes('q=Providencia'), 'Search text must serialize to q.');
 assert(searchUrl.includes('transaction=rent'), 'Transaction type must serialize.');
 assert(searchUrl.includes('propertyType=apartment'), 'Property type must serialize.');
-assert(searchUrl.includes('publisherType=owner_direct'), 'Publisher type must serialize.');
+assert(searchUrl.includes('publisher=owner_direct'), 'Publisher type must serialize to the canonical publisher key.');
 assert(searchUrl.includes('maxPriceClp=800000'), 'CLP price filters must serialize.');
+assert(searchUrl.includes('minArea=60'), 'Usable-area filters must serialize to the canonical area key.');
 assert(searchUrl.includes('minBedrooms=2'), 'Bedroom filters must serialize.');
+assert(searchUrl.includes('minParking=1'), 'Parking filters must serialize to the canonical parking key.');
 assert(
   requests[0]?.headers?.Authorization === 'Bearer token-real-estate',
   'Real-estate API requests must carry the current Palta access token.',
