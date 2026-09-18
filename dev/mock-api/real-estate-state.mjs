@@ -2,6 +2,7 @@ import {
   demoRealEstateContexts,
   demoRealEstateListings,
 } from './real-estate-demo-fixtures.mjs';
+import { demoRealEstateMedia } from './real-estate-media-fixtures.mjs';
 
 function normalize(value) {
   return String(value ?? '')
@@ -82,6 +83,19 @@ export async function handleRealEstateRequest({ req, res, url, json }) {
       return true;
     }
     json(res, 200, context);
+    return true;
+  }
+
+  const mediaMatch = url.pathname.match(/^\/v1\/real-estate\/listings\/([^/]+)\/media$/);
+  if (mediaMatch) {
+    const listingId = decodeURIComponent(mediaMatch[1]);
+    const listing = demoRealEstateListings.find((candidate) => candidate.listing_id === listingId);
+    const media = demoRealEstateMedia.find((candidate) => candidate.listing_id === listingId);
+    if (!listing || listing.status !== 'active' || !media) {
+      json(res, 404, { error: 'real_estate_listing_media_not_found' });
+      return true;
+    }
+    json(res, 200, media);
     return true;
   }
 
