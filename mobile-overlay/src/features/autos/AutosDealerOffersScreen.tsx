@@ -63,7 +63,7 @@ export function AutosDealerOffersScreen() {
             {new Intl.NumberFormat('es-CL').format(view.mileageKm)} km · {view.request.comuna}
           </Text>
           <Text style={{ marginTop: 4, fontSize: 12, lineHeight: 18, color: paltaTheme.color.textSecondary }}>
-            Tu teléfono y ubicación exacta siguen privados. Se comparten sólo cuando eliges con quién coordinar.
+            Tu teléfono y ubicación exacta siguen privados. Elegir una oferta no comparte esos datos automáticamente.
           </Text>
         </View>
 
@@ -73,7 +73,7 @@ export function AutosDealerOffersScreen() {
             <Text style={{ fontSize: 24, fontWeight: '900', color: paltaTheme.color.textPrimary }}>{clp(selectedOffer.offer.amountClp)}</Text>
             <Text style={{ fontSize: 14, fontWeight: '800', color: paltaTheme.color.textPrimary }}>{selectedOffer.businessName}</Text>
             <Text style={{ fontSize: 12, lineHeight: 18, color: paltaTheme.color.textSecondary }}>
-              El siguiente paso es coordinar inspección y lugar. La oferta sólo puede ajustarse por diferencias reales con la información declarada, dejando motivo y evidencia.
+              Tu teléfono y ubicación exacta todavía no se compartieron. Puedes coordinar la inspección dentro de Palta; si más adelante hace falta compartir un dato privado, te lo pediremos justo en ese paso.
             </Text>
             <Pressable
               accessibilityRole="button"
@@ -87,7 +87,7 @@ export function AutosDealerOffersScreen() {
                 backgroundColor: pressed ? paltaTheme.color.brandMid : paltaTheme.color.brandPrimary,
               })}
             >
-              <Text style={{ fontSize: 14, fontWeight: '900', color: paltaTheme.color.surface }}>Coordinar y seguir la venta</Text>
+              <Text style={{ fontSize: 14, fontWeight: '900', color: paltaTheme.color.surface }}>Coordinar inspección</Text>
             </Pressable>
             <Pressable
               onPress={() => router.push(`/autos/dealer/${encodeURIComponent(selectedOffer.offer.businessId)}`)}
@@ -152,7 +152,7 @@ export function AutosDealerOffersScreen() {
                     backgroundColor: pressed ? paltaTheme.color.brandMid : paltaTheme.color.brandPrimary,
                   })}
                 >
-                  <Text style={{ fontSize: 14, fontWeight: '900', color: paltaTheme.color.surface }}>Elegir y coordinar</Text>
+                  <Text style={{ fontSize: 14, fontWeight: '900', color: paltaTheme.color.surface }}>Elegir esta oferta</Text>
                 </Pressable>
               </View>
             ))}
