@@ -3,6 +3,7 @@ import { Text, View } from 'react-native';
 import { ScreenFrame } from '../../components/ScreenFrame';
 import { LocalResultCard } from '../../components/LocalResultCard';
 import { BusinessActionBar } from '../../components/business/BusinessActionBar';
+import { OwnerPartnerCard } from '../../components/business/OwnerPartnerCard';
 import { SectionHeading } from '../../components/common/SectionHeading';
 import {
   ReferenceModeSwitcher,
@@ -51,7 +52,7 @@ export function BusinessReferenceScreen() {
   return (
     <ScreenFrame
       title="Negocios · referencia"
-      subtitle="Dos muestras para mantener la pantalla tan clara como la lógica"
+      subtitle="Tres muestras para mantener la pantalla tan clara como la lógica"
     >
       <View style={{ gap: paltaTheme.spacing.xl }}>
         <ReferenceModeSwitcher mode={mode} onChange={setMode} />
@@ -137,10 +138,7 @@ export function BusinessReferenceScreen() {
               >
                 Taller López
               </Text>
-              <Text
-                allowFontScaling
-                style={{ color: paltaTheme.color.textSecondary }}
-              >
+              <Text allowFontScaling style={{ color: paltaTheme.color.textSecondary }}>
                 Taller mecánico · Verificado
               </Text>
             </View>
@@ -190,14 +188,62 @@ export function BusinessReferenceScreen() {
               <Text allowFontScaling style={{ fontWeight: '800' }}>
                 Después de esta primera vista
               </Text>
-              <Text
-                allowFontScaling
-                style={{
-                  lineHeight: 20,
-                  color: paltaTheme.color.textSecondary,
-                }}
-              >
+              <Text allowFontScaling style={{ lineHeight: 20, color: paltaTheme.color.textSecondary }}>
                 Servicios · beneficio · opiniones verificadas · novedades · horario · zona · enlaces externos · correcciones.
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        <View style={{ gap: paltaTheme.spacing.sm }}>
+          <SampleLabel
+            title="Muestra C · Mi negocio"
+            body="El dueño no entra a ver un catálogo de módulos. Primero ve cómo está el negocio hoy, qué debe resolver y sólo después las herramientas de gestión."
+          />
+          <View
+            style={{
+              gap: paltaTheme.spacing.sm,
+              borderWidth: 1,
+              borderColor: paltaTheme.color.border,
+              borderRadius: paltaTheme.radius.sheet,
+              padding: paltaTheme.spacing.sm,
+              backgroundColor: paltaTheme.color.canvas,
+            }}
+          >
+            <SectionHeading
+              eyebrow="HOY"
+              title="Tu negocio ahora"
+              subtitle="Estado real y asuntos que conviene resolver primero."
+            />
+            <OwnerPartnerCard
+              eyebrow="Estado operativo"
+              title="Abierto ahora"
+              body="Horario de hoy confirmado · hasta las 18:00"
+              badge="SIN COSTO"
+              tone="success"
+            />
+            <OwnerPartnerCard
+              eyebrow="Requiere revisión"
+              title="Confirma un aviso sobre tu horario"
+              body="Un vecino informó que el sábado estaba cerrado. El aviso no cambia tu ficha hasta que tú lo revises."
+              badge="REVISAR"
+              tone="attention"
+            />
+            <OwnerPartnerCard
+              eyebrow="Mejora gratuita"
+              title="Completa tus servicios principales"
+              body="Agregar los nombres que tus clientes usan puede ayudarte a aparecer en búsquedas relevantes."
+              badge="SIN COSTO"
+            />
+            <View
+              style={{
+                borderTopWidth: 1,
+                borderTopColor: paltaTheme.color.divider,
+                paddingTop: paltaTheme.spacing.sm,
+              }}
+            >
+              <Text allowFontScaling style={{ lineHeight: 20, color: paltaTheme.color.textSecondary }}>
+                Perfil · servicios · horario · ubicación · enlaces · novedades · cupón quedan debajo. Automatización sólo aparece si resuelve una carga real.
               </Text>
             </View>
           </View>
@@ -214,11 +260,8 @@ export function BusinessReferenceScreen() {
           <Text allowFontScaling style={{ fontWeight: '800' }}>
             Regla de referencia
           </Text>
-          <Text
-            allowFontScaling
-            style={{ lineHeight: 20, color: paltaTheme.color.textSecondary }}
-          >
-            Aprendemos de la rapidez de lectura de Karrot, pero Palta debe explicar mejor qué se puede usar ahora y mantener el contexto hasta Care. No copiamos su identidad visual.
+          <Text allowFontScaling style={{ lineHeight: 20, color: paltaTheme.color.textSecondary }}>
+            Aprendemos de la rapidez de lectura de Karrot, pero Palta debe explicar mejor qué se puede usar ahora, mantener el contexto hasta Care y ayudar al dueño sin convertir el panel en una pared de upsells. No copiamos su identidad visual.
           </Text>
         </View>
       </View>
