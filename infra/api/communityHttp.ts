@@ -1,4 +1,4 @@
-import { CommunityApiService, CommunityRequestContext } from './communityBoundary';
+import { CommunityApiService, CommunityRequestContext } from './communityBoundary.js';
 import type {
   CommunityMemberRole,
   CommunityMembershipDecision,
