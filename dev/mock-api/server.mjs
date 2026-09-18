@@ -25,6 +25,141 @@ const businesses = [
   },
 ];
 
+const categoryLabels = {
+  auto_repair: {
+    'es-CL': 'Taller mecánico',
+    ko: '자동차 정비',
+    en: 'Auto repair',
+    'zh-Hans': '汽车维修',
+  },
+  pharmacy: {
+    'es-CL': 'Farmacia',
+    ko: '약국',
+    en: 'Pharmacy',
+    'zh-Hans': '药房',
+  },
+};
+
+const openingStatusLabels = {
+  open: {
+    'es-CL': 'Abierto',
+    ko: '영업 중',
+    en: 'Open',
+    'zh-Hans': '营业中',
+  },
+};
+
+const homeCopy = {
+  'es-CL': [
+    {
+      id: 'home-care-demo-1',
+      kind: 'status',
+      title: 'Esperando respuesta del taller',
+      body: 'Tu solicitud sigue en curso.',
+      source_domain: 'local_business',
+      delivery: 'home',
+      care_track_id: 'care-demo-1',
+    },
+    {
+      id: 'home-content-demo-1',
+      kind: 'content',
+      title: 'Información útil para hoy',
+      body: 'Este contenido aparece porque Home está poco cargado.',
+      source_domain: 'news',
+      delivery: 'home',
+    },
+  ],
+  ko: [
+    {
+      id: 'home-care-demo-1',
+      kind: 'status',
+      title: '정비소 답변을 기다리고 있습니다',
+      body: '요청이 아직 진행 중입니다.',
+      source_domain: 'local_business',
+      delivery: 'home',
+      care_track_id: 'care-demo-1',
+    },
+    {
+      id: 'home-content-demo-1',
+      kind: 'content',
+      title: '오늘 알아두면 좋은 정보',
+      body: '홈에 중요한 항목이 많지 않을 때 도움이 되는 내용을 보여줍니다.',
+      source_domain: 'news',
+      delivery: 'home',
+    },
+  ],
+  en: [
+    {
+      id: 'home-care-demo-1',
+      kind: 'status',
+      title: 'Waiting for the repair shop',
+      body: 'Your request is still in progress.',
+      source_domain: 'local_business',
+      delivery: 'home',
+      care_track_id: 'care-demo-1',
+    },
+    {
+      id: 'home-content-demo-1',
+      kind: 'content',
+      title: 'Useful information for today',
+      body: 'This appears when Home has only a few higher-priority items.',
+      source_domain: 'news',
+      delivery: 'home',
+    },
+  ],
+  'zh-Hans': [
+    {
+      id: 'home-care-demo-1',
+      kind: 'status',
+      title: '正在等待维修店回复',
+      body: '你的请求仍在处理中。',
+      source_domain: 'local_business',
+      delivery: 'home',
+      care_track_id: 'care-demo-1',
+    },
+    {
+      id: 'home-content-demo-1',
+      kind: 'content',
+      title: '今天值得了解的信息',
+      body: '当首页没有很多高优先级事项时，会显示有帮助的内容。',
+      source_domain: 'news',
+      delivery: 'home',
+    },
+  ],
+};
+
+function normalizeLocale(value) {
+  if (!value) return 'es-CL';
+  const normalized = String(value).trim().toLowerCase();
+  if (normalized === 'ko' || normalized.startsWith('ko-')) return 'ko';
+  if (normalized === 'en' || normalized.startsWith('en-')) return 'en';
+  if (
+    normalized === 'zh-hans' ||
+    normalized === 'zh-cn' ||
+    normalized === 'zh-sg'
+  ) {
+    return 'zh-Hans';
+  }
+  if (normalized === 'es-cl' || normalized === 'es') return 'es-CL';
+  return 'es-CL';
+}
+
+function localizedLabel(catalog, key, locale) {
+  return catalog[key]?.[locale] ?? catalog[key]?.['es-CL'] ?? key;
+}
+
+function localizedBusiness(business, locale) {
+  return {
+    ...business,
+    category_label: localizedLabel(categoryLabels, business.category_key, locale),
+    opening_status_label: localizedLabel(
+      openingStatusLabels,
+      business.opening_status,
+      locale,
+    ),
+  };
+}
+
 const idempotencyCareIds = new Map();
 
 const careTracks = new Map([
@@ -63,33 +198,17 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'OPTIONS') return json(res, 204, {});
 
     const url = new URL(req.url, `http://${req.headers.host ?? `${host}:${port}`}`);
+    const locale = normalizeLocale(url.searchParams.get('locale'));
 
     if (req.method === 'GET' && url.pathname === '/health') {
-      return json(res, 200, { ok: true, service: 'palta-mock-api', version: '0.1.0' });
+      return json(res, 200, { ok: true, service: 'palta-mock-api', version: '0.2.0' });
     }
 
     if (req.method === 'GET' && url.pathname === '/v1/home') {
       return json(res, 200, {
         generated_at: new Date().toISOString(),
-        items: [
-          {
-            id: 'home-care-demo-1',
-            kind: 'status',
-            title: 'Esperando respuesta del taller',
-            body: 'Tu solicitud sigue en curso.',
-            source_domain: 'local_business',
-            delivery: 'home',
-            care_track_id: 'care-demo-1',
-          },
-          {
-            id: 'home-content-demo-1',
-            kind: 'content',
-            title: 'Información útil para hoy',
-            body: 'Este contenido aparece porque Home está poco cargado.',
-            source_domain: 'news',
-            delivery: 'home',
-          },
-        ],
+        locale,
+        items: homeCopy[locale] ?? homeCopy['es-CL'],
       });
     }
 
@@ -100,11 +219,17 @@ const server = http.createServer(async (req, res) => {
         return json(res, 400, { error: 'lat_lng_required' });
       }
       return json(res, 200, {
+        locale,
         items: businesses.map((business, index) => ({
           entity_id: business.id,
           entity_type: 'business',
           name: business.name,
           category_key: business.category_key,
+          category_label: localizedLabel(
+            categoryLabels,
+            business.category_key,
+            locale,
+          ),
           verification_status: business.verification_status,
           distance_m: index === 0 ? 1200 : 850,
           location: business.location,
@@ -116,7 +241,7 @@ const server = http.createServer(async (req, res) => {
       const id = decodeURIComponent(url.pathname.slice('/v1/business/'.length));
       const business = businesses.find((item) => item.id === id);
       return business
-        ? json(res, 200, business)
+        ? json(res, 200, localizedBusiness(business, locale))
         : json(res, 404, { error: 'business_not_found' });
     }
 
