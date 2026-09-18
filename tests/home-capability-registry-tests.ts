@@ -83,6 +83,7 @@ for (const key of [
   'today.tide',
   'today.daily_brief',
   'today.chile_annual_rhythm',
+  'today.interest_personalization',
   'today.seasonal_fruit',
   'today.seasonal_vegetable',
   'today.seasonal_seafood',
@@ -119,6 +120,10 @@ for (const key of legacyCapabilityKeys) {
     `Complete demo must preserve legacy life-card capability: ${key}`,
   );
 }
+assert(
+  demoKeys.includes('today.interest_personalization'),
+  'Complete demo must preserve explicit interest-driven personalization.',
+);
 
 for (const definition of HOME_LIFE_CARD_PARITY) {
   assert(
@@ -128,10 +133,11 @@ for (const definition of HOME_LIFE_CARD_PARITY) {
 }
 
 const entryKeys = requiredHomeEntryCapabilityKeys();
-assert(HOME_ENTRY_CAPABILITIES.length >= 14, 'Legacy Home entry capability inventory is unexpectedly incomplete');
+assert(HOME_ENTRY_CAPABILITIES.length >= 18, 'Legacy Home entry capability inventory is unexpectedly incomplete');
 assert(new Set(entryKeys).size === entryKeys.length, 'Home entry capability keys must be unique');
 for (const key of [
   'entry.search',
+  'entry.nearby',
   'entry.local_business',
   'entry.real_estate',
   'entry.community',
@@ -144,6 +150,9 @@ for (const key of [
   'entry.food',
   'entry.events',
   'entry.exchange',
+  'entry.interests',
+  'entry.kids',
+  'entry.services',
   'entry.more',
 ]) {
   assert(entryKeys.includes(key), `Legacy Base44 Home entry capability missing: ${key}`);
