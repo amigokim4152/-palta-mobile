@@ -1,6 +1,6 @@
 # Home Runtime Integration v1
 
-Status: ACTIVE — RUNTIME SHELL DONE / DATA SOURCES INTEGRATING
+Status: ACTIVE — VISIBLE RUNTIME INTEGRATION
 Branch: `integration/home-runtime-v1`
 Base lineage: simulator recovery + Palta design system contracts
 
@@ -10,7 +10,7 @@ Make Palta Home the visible composition surface for already-built and future dom
 A domain must not render its own permanent widget directly into Home. It contributes either:
 
 1. compact ambient context to `glance`, or
-2. a ranked Home candidate to the existing Home composition pipeline.
+2. a ranked Home item through an adapter.
 
 Home remains a life inbox, not a portal or module dashboard.
 
@@ -20,7 +20,7 @@ Use the existing Palta UI system:
 
 - `GlanceCluster` for compact ambient context
 - `ActionSurface` for the single highest-value current action/status
-- `SummaryListRow` for ongoing and useful-today items
+- `SummaryListRow` for ongoing, upcoming and useful-today items
 - semantic tokens from `paltaTheme`
 - scalable text and adaptive layouts
 - no target card count
@@ -31,7 +31,7 @@ The official Brand Master remains canonical for brand assets. Runtime code must 
 
 ## Source-state rule
 
-Every Home source now declares one of:
+Every Home source declares one of:
 
 - `live`
 - `cached`
@@ -48,7 +48,7 @@ A missing realtime source must not silently fall back to a fabricated realtime v
 Small, ambient, immediately useful context. Typical sources:
 
 - weather
-- nearby/relevant bus ETA
+- nearby/relevant bus stop ETA
 - Metro operational state
 - air quality when relevant
 
@@ -60,11 +60,19 @@ Only the highest-value action or alert requiring attention now.
 
 ### EN CURSO
 
-Waiting states, requests, reservations, quotes, payments, deliveries and Care/Event lifecycle states.
+Waiting states, requests, quotes, payments, deliveries and active Care/Event lifecycle states.
+
+`Care.expected_at` remains process context here. It does not become an appointment automatically.
+
+### PRÓXIMO
+
+Confirmed future appointments, deadlines and scheduled events. These use `scheduled_at` and never guessed relationships.
+
+A required action may promote from PRÓXIMO to AHORA when it enters its configured attention window.
 
 ### PARA HOY
 
-Useful local information for the current day: municipal benefits, operational changes, school/community items and contextual content.
+Useful local information for the current day: municipal services/benefits, operational changes and relevant contextual content.
 
 ### Discovery/news
 
@@ -75,24 +83,36 @@ News and discovery content are admitted only when Home is sparse. The existing d
 Each domain owns its source adapter and emits a Home-compatible contract. It does not own Home layout.
 
 ```text
-Weather Core -------\
-Mobility Core -------\
-Care/Event Core ------> source adapters -> freshness/admission -> Home composition -> /v1/home -> Home UI
-Municipal Core ------/
-News Core -----------/
-Community Core ------/
-Commerce Core -------/
+Weather Core ---------\
+Stop Realtime ---------\
+Journey Core -----------\
+Care/Event Core ---------> source adapters -> freshness/admission -> Home composition -> /v1/home -> Home UI
+Schedules --------------/
+Municipal Core ---------/
+News Core --------------/
+Community Core ---------/
+Commerce Core ----------/
 ```
+
+## Transport separation
+
+The existing Journey contract is reused unchanged for route planning. It already represents transit legs (`bus`, `metro`, `rail`), route names, providers and whether an option used realtime data.
+
+Journey duration and stop-arrival ETA are different products:
+
+- Journey can say a relevant trip takes approximately N minutes.
+- Only a stop realtime source can say a bus arrives in N minutes.
+
+The Home bridge explicitly keeps these separate. DTPM stop ETA remains pending external realtime access.
 
 ## Current implementation status
 
 ### Phase 1 — Runtime shell — DONE
 
-- reference Home visual grammar is bound to the real `GET /v1/home` runtime path
+- reference Home visual grammar bound to real `GET /v1/home`
 - adaptive/accessibility behavior preserved
 - locality and glance contract added
-- current Care status can render as the primary visible surface
-- development data is explicitly marked as sample data
+- external/internal action targets supported
 - safe bounded simulator sync path exists
 
 ### Phase 2 — Source contracts — DONE
@@ -100,8 +120,8 @@ Commerce Core -------/
 - source-state metadata added
 - domain source adapter contract added
 - source merger rejects expired/unavailable contributions
-- weather, mobility, municipal and news adapters added
-- automated tests cover no-fake-ETA, stale weather exclusion, municipal verification and news freshness/locality
+- weather, mobility, Journey, Care, scheduled-event, municipal and news adapters/bridges added
+- automated tests cover no-fake-ETA, stale exclusion, municipal validity, source actions and schedule/Care separation
 
 ### Phase 3 — Weather — DEVELOPMENT LIVE
 
@@ -111,33 +131,55 @@ Commerce Core -------/
 - failure becomes `weather: unavailable`
 - production location-context binding remains pending
 
-### Phase 4 — Mobility — ADAPTER READY / REALTIME PENDING
+### Phase 4 — Mobility — CONTRACTS READY / STOP REALTIME PENDING
 
 - relevant bus ETA and Metro status contract exists
 - imminent relevant departure can promote to AHORA
 - disruption can promote to alert
-- simulator mobility values remain explicitly `demo`
-- real DTPM binding waits for external realtime access
+- existing Journey contract is reused without redefining its types
+- Journey route duration is never used as stop ETA
+- simulator bus/Metro values remain explicitly `demo`
+- real DTPM stop binding waits for external realtime access
 
-### Phase 5 — Municipal benefits — FILTER READY / DATA PIPELINE PENDING
+### Phase 5 — Care + PRÓXIMO — PRIMITIVES DONE
 
-- verified/corroborated records only
-- locality + eligibility + validity required
-- stale/conflict/needs-verification/rejected records excluded
-- deadline can promote to action
+- Care wait/result/follow-up states map to Home
+- closed/cancelled Care leaves active Home
+- `expected_at` stays EN CURSO context
+- confirmed scheduled events use `scheduled_at` and render under PRÓXIMO
+- unconfirmed schedule relationships are excluded
+- one explicit PRÓXIMO demo item exists only for visual simulator QA
 
-### Phase 6 — News/local information — FILTER READY / INGESTION PENDING
+### Phase 6 — Municipal benefits — OFFICIAL VITACURA DEVELOPMENT SOURCE CONNECTED
 
-- locality relevance required
-- freshness window enforced
-- discovery remains subordinate to personal/action cards
-- canonical source/deep-link ingestion remains pending
+- official Vitacura benefits page is fetched through the development bridge
+- source success is `scheduled`; failure is `unavailable`
+- no municipal demo fallback
+- canonical source action opens the official page
+- personalized program admission still requires normalized date/ongoing/eligibility records
+- broader comuna registry remains pending
 
-## Development mock rule
+### Phase 7 — Local municipal news — OFFICIAL VITACURA DEVELOPMENT SOURCE CONNECTED
+
+- official Vitacura news listing/articles are used in development
+- source success is `scheduled`; failure is `unavailable`
+- recent-window filtering is enforced
+- canonical source actions open the official article
+- no filler fallback
+- production ingestion/cache and multi-comuna source registry remain pending
+
+## Development sample rule
 
 The development API may contain realistic sample content solely to make layout and interaction inspectable in the simulator. Every sample source must declare `data_mode: demo`. A sample value must never be presented as realtime data.
 
-Weather is the first exception: the development Home attempts a live Open-Meteo fetch. If it fails, weather is omitted and reported unavailable rather than replaced with demo weather.
+At the current stage:
+
+- weather: live or unavailable
+- Vitacura municipal benefits: scheduled official source or unavailable
+- Vitacura municipal news: scheduled official source or unavailable
+- bus/Metro: demo until realtime access is connected
+- Care: demo track for interaction QA
+- one scheduled item: demo for PRÓXIMO layout QA
 
 ## Simulator
 
