@@ -79,8 +79,10 @@ Verified implementation/data facts:
 15. CI rejects `EXPO_PUBLIC_*` password/secret/token material and password-based Golden User bypasses
 16. development builds show `Palta ID` and `Auth ID` after sign-in so the same identity can be compared across restart and re-login
 17. `scheme=palta` and app identifiers remain `cl.somospalta.app`
-18. composed runtime verification at commit `561e89527dcab0761cc0e39584560232ea429fb2` passed source typecheck, source iOS bundle, composition materialization, post-composition credential scan, generated runtime typecheck, and composed iOS bundle
-19. Auth/Profile integration is recorded in the composition manifest at source SHA `a030511374d7a7a4b1383d5627f7d9ba4e6780aa`
+18. latest composed runtime verification at commit `5b3c4f9a5c7396413f04090f31950e8252bb8ae0` passed Core Check, full Core CI, source typecheck/config/iOS bundle, composition materialization with current live overlays, template-source rejection, post-composition credential scan, generated runtime typecheck, and composed iOS bundle
+19. successful latest runs: Mobile Runtime Check `35341308081`, Core Check `35341307918`, Palta Core CI `35341307922`
+20. Auth/Profile integration is recorded in the composition manifest at source SHA `a030511374d7a7a4b1383d5627f7d9ba4e6780aa`
+21. live surface dependencies required by the current composed runtime are tracked as reviewed contracts rather than copied ad hoc; generated runtime rejects `*.template.*` sources
 
 ### Optional server fixture utility
 
