@@ -95,6 +95,9 @@ jobs:
             vector_layers: vectorLayers,
           }, null, 2));
           NODE
+      - name: Probe legacy local places shape
+        continue-on-error: true
+        run: node scripts/probe-legacy-local-places.mjs
 
   mobile-map-typecheck:
     name: Mobile map typecheck
