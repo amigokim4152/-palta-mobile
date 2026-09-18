@@ -65,6 +65,9 @@ const branches = new Set();
 for (const surface of manifest.surfaces ?? []) {
   if (typeof surface.source_branch === 'string') branches.add(surface.source_branch);
 }
+for (const core of manifest.core_integrations ?? []) {
+  if (typeof core.source_branch === 'string') branches.add(core.source_branch);
+}
 for (const branch of branches) console.log(branch);
 NODE
 }
@@ -84,13 +87,17 @@ NODE
 
 fetch_sources() {
   local branch
+  local -a refspecs=()
   while IFS= read -r branch; do
     [ -n "$branch" ] || continue
-    if ! fetch_branch "$branch"; then
-      info "Could not fetch $branch; keeping the last composed runtime."
-      return 1
-    fi
+    refspecs+=("$branch:refs/remotes/$REMOTE_NAME/$branch")
   done < <(source_branches)
+
+  [ "${#refspecs[@]}" -gt 0 ] || return 0
+  if ! git fetch --quiet "$REMOTE_NAME" "${refspecs[@]}"; then
+    info "Could not refresh one or more runtime source branches; keeping the last composed runtime."
+    return 1
+  fi
 }
 
 composition_signature() {
