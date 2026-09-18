@@ -7,6 +7,14 @@ const {
   providerIdentityKey,
 } = await import('../src/auth/identityModel.js');
 const {
+  authBrokerUserId,
+  paltaUserIdFromAuthBrokerUserId,
+} = await import('../src/auth/accountModel.js');
+const {
+  AccountResolutionError,
+  resolveCanonicalAccount,
+} = await import('../src/auth/accountResolver.js');
+const {
   initialOnboardingPrompts,
   validateProfilePrompt,
 } = await import('../src/profile/progressiveProfile.js');
@@ -46,6 +54,38 @@ assert(
 assert(
   providerIdentityKey('google', 'subject-123') === 'google:subject-123',
   'Provider identity keys must preserve provider namespace.',
+);
+
+const brokerId = authBrokerUserId(' auth-user-001 ');
+assert(
+  brokerId === 'auth-user-001' && paltaUserIdFromAuthBrokerUserId(brokerId) === 'auth-user-001',
+  'Normalized v1 must explicitly map the broker user id to the canonical Palta account id.',
+);
+
+const canonical = await resolveCanonicalAccount({
+  authBrokerUserId: brokerId,
+  accounts: {
+    accountExists: async (paltaUserId) => paltaUserId === 'auth-user-001',
+  },
+});
+assert(
+  canonical.authBrokerUserId === brokerId && canonical.paltaUserId === 'auth-user-001',
+  'Canonical account resolution must return the verified broker/account mapping.',
+);
+
+let missingCanonicalRejected = false;
+try {
+  await resolveCanonicalAccount({
+    authBrokerUserId: authBrokerUserId('auth-user-missing'),
+    accounts: { accountExists: async () => false },
+  });
+} catch (error) {
+  missingCanonicalRejected =
+    error instanceof AccountResolutionError && error.code === 'account_missing';
+}
+assert(
+  missingCanonicalRejected,
+  'Canonical account resolution must not create a missing Palta account client-side.',
 );
 
 const initialPrompts = initialOnboardingPrompts();
