@@ -38,10 +38,11 @@ function sourceForEntity(
     if (!item || item.status === 'rejected') continue;
     const source = sourceById.get(item.sourceId);
     if (!source) continue;
+    const sourceUrl = item.sourceUrl ?? source.url;
     return {
       authority: source.owner,
-      ...(item.sourceUrl ?? source.url ? { sourceUrl: item.sourceUrl ?? source.url } : {}),
-      ...(item.observedAt ? { verifiedAt: item.observedAt } : {}),
+      ...(sourceUrl ? { sourceUrl } : {}),
+      verifiedAt: item.observedAt,
     };
   }
   return { authority: 'Somos Palta' };
@@ -99,15 +100,16 @@ function scheduleLabel(event: CanonicalEvent, context: CanonicalPlayProjectionCo
   return time ? `${prefix} · ${time}` : prefix;
 }
 
-function distanceFields(venueId: string | undefined, context: CanonicalPlayProjectionContext) {
+function proximityFields(venueId: string | undefined, context: CanonicalPlayProjectionContext) {
   if (!venueId) return {};
   const distanceM = context.distanceByVenueId?.[venueId];
-  const travelTime = context.travelTimeMinutesByVenueId?.[venueId];
-  const distanceLabel = travelTime !== undefined
-    ? `${Math.round(travelTime)} min`
+  const travelTimeMinutes = context.travelTimeMinutesByVenueId?.[venueId];
+  const distanceLabel = travelTimeMinutes !== undefined
+    ? `${Math.round(travelTimeMinutes)} min`
     : context.distanceLabelByVenueId?.[venueId];
   return {
     ...(distanceM !== undefined ? { distanceM } : {}),
+    ...(travelTimeMinutes !== undefined ? { travelTimeMinutes } : {}),
     ...(distanceLabel ? { distanceLabel } : {}),
   };
 }
@@ -129,12 +131,16 @@ export function projectCanonicalEventToPlay(input: {
     venue: venue.name,
     tags: [...event.genres, ...(event.performerNames ?? [])],
   });
+  const eventPriceLabel = priceLabel(event.price);
 
   return {
     id: `event:${event.eventId}`,
-    canonicalKey: event.canonicalKey ?? `event:${event.eventId}`,
+    ...(event.canonicalKey ? { canonicalKey: event.canonicalKey } : {}),
     sourceKind: venue.canonicalBusinessId ? 'business' : 'public_program',
     contentKind,
+    eventId: event.eventId,
+    venueId: venue.venueId,
+    organizerIds: event.organizerIds,
     title: event.title,
     comuna: venue.comuna,
     venue: venue.name,
@@ -142,12 +148,13 @@ export function projectCanonicalEventToPlay(input: {
     startAt: event.startAt,
     ...(event.endAt ? { endAt: event.endAt } : {}),
     isFree: event.price.free,
-    bookingRequired: undefined,
     registrationRequired: Boolean(event.bookingRequired),
-    ...(event.ageMin !== undefined ? { audienceLabel: event.familyFriendly ? `Familiar · ${event.ageMin}+` : `${event.ageMin}+` } : event.familyFriendly ? { audienceLabel: 'Familiar' } : {}),
+    ...(event.ageMin !== undefined
+      ? { audienceLabel: event.familyFriendly ? `Familiar · ${event.ageMin}+` : `${event.ageMin}+` }
+      : event.familyFriendly ? { audienceLabel: 'Familiar' } : {}),
     ...(event.imageUrl ? { imageUrl: event.imageUrl } : {}),
-    ...(priceLabel(event.price) ? { priceLabel: priceLabel(event.price) } : {}),
-    ...distanceFields(event.venueId, context),
+    ...(eventPriceLabel ? { priceLabel: eventPriceLabel } : {}),
+    ...proximityFields(event.venueId, context),
     experienceTags: [...new Set([...event.genres, ...(event.familyFriendly ? ['Familia'] : [])])].slice(0, 3),
     themeTags: eventThemeTags(event, contentKind, context),
     ...(venue.canonicalPlaceId ? { placeId: venue.canonicalPlaceId } : {}),
@@ -159,7 +166,7 @@ export function projectCanonicalEventToPlay(input: {
       },
     } : {}),
     source: sourceForEntity(event.sourceEvidenceIds, input.evidence, input.sources),
-  } as PlayDiscoveryItem;
+  };
 }
 
 export function projectCanonicalOfferingToPlay(input: {
@@ -182,22 +189,27 @@ export function projectCanonicalOfferingToPlay(input: {
   });
   const businessId = offering.canonicalBusinessId ?? venue?.canonicalBusinessId;
   const venueId = offering.venueId ?? venue?.venueId;
+  const offeringPriceLabel = priceLabel(offering.price);
 
   return {
     id: `offering:${offering.offeringId}`,
     canonicalKey: `offering:${offering.offeringId}`,
     sourceKind: businessId ? 'business' : 'place',
     contentKind,
+    offeringId: offering.offeringId,
+    ...(venueId ? { venueId } : {}),
     title: offering.title,
     comuna: venue?.comuna ?? 'Chile',
     ...(venue?.name ? { venue: venue.name } : {}),
     scheduleLabel: offering.availability.mode === 'on_request' ? 'Reserva previa' : 'Consulta disponibilidad',
     isFree: offering.price?.free,
     registrationRequired: Boolean(offering.bookingRequired),
-    ...(offering.ageMin !== undefined ? { audienceLabel: offering.familyFriendly ? `Familiar · ${offering.ageMin}+` : `${offering.ageMin}+` } : offering.familyFriendly ? { audienceLabel: 'Familiar' } : {}),
+    ...(offering.ageMin !== undefined
+      ? { audienceLabel: offering.familyFriendly ? `Familiar · ${offering.ageMin}+` : `${offering.ageMin}+` }
+      : offering.familyFriendly ? { audienceLabel: 'Familiar' } : {}),
     ...(offering.imageUrl ? { imageUrl: offering.imageUrl } : {}),
-    ...(priceLabel(offering.price) ? { priceLabel: priceLabel(offering.price) } : {}),
-    ...distanceFields(venueId, context),
+    ...(offeringPriceLabel ? { priceLabel: offeringPriceLabel } : {}),
+    ...proximityFields(venueId, context),
     experienceTags: offering.categoryIds.slice(0, 3),
     themeTags: offeringThemeTags(offering, contentKind),
     ...(venue?.canonicalPlaceId ? { placeId: venue.canonicalPlaceId } : {}),
@@ -210,7 +222,7 @@ export function projectCanonicalOfferingToPlay(input: {
       },
     } : {}),
     source: sourceForEntity(offering.sourceEvidenceIds, input.evidence, input.sources),
-  } as PlayDiscoveryItem;
+  };
 }
 
 export function projectCanonicalCatalogToPlay(
