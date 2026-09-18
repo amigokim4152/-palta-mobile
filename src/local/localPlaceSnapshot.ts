@@ -1,4 +1,4 @@
-import { distanceMeters } from './businessSnapshot';
+import { distanceMeters } from './businessSnapshot.js';
 
 export type LocalPlaceSnapshotRecord = {
   id: string;
