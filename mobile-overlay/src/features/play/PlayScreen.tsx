@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react';
 import { router } from 'expo-router';
 import { Image, Linking, Modal, Pressable, ScrollView, Text, View } from 'react-native';
-import { panoramaMenuLabel } from '../../../../src/play/panoramaIdentity';
 import { composePlayFeed } from '../../../../src/play/playFeedComposer';
 import {
   selectPlayDiscoveryItems,
@@ -19,7 +18,40 @@ import { SectionHeading } from '../../components/common/SectionHeading';
 import { paltaTheme } from '../../theme/paltaTheme';
 import { playPreviewItems } from './playPreviewData';
 
-const themeOptions: ReadonlyArray<{ key: PlayThemeKey; label: string }> = [
+const PANORAMA_LABEL = 'Panorama';
+
+type PanoramaIntentKey = PlayThemeKey | 'nearby' | 'culture' | 'food';
+type PanoramaContentKey = PlayContentKind | 'library';
+
+/**
+ * runtime-composition-v1 currently owns the baseline Play Core and overlays only
+ * this screen. Keep new intents locally compatible until the Core contract is
+ * promoted into composition; the feature branch Core already contains them.
+ */
+const compositionThemeKeys: readonly PlayThemeKey[] = [
+  'today',
+  'weekend',
+  'family',
+  'couple',
+  'free',
+  'outdoor',
+  'birthday',
+];
+
+const cultureContentKinds = new Set([
+  'movie',
+  'live_performance',
+  'concert',
+  'theater',
+  'comedy',
+  'exhibition',
+  'museum',
+  'library',
+  'festival',
+  'workshop',
+]);
+
+const themeOptions: ReadonlyArray<{ key: PanoramaIntentKey; label: string }> = [
   { key: 'today', label: 'Hoy' },
   { key: 'nearby', label: 'Cerca de mí' },
   { key: 'free', label: 'Gratis' },
@@ -32,7 +64,7 @@ const themeOptions: ReadonlyArray<{ key: PlayThemeKey; label: string }> = [
   { key: 'birthday', label: 'Cumpleaños' },
 ];
 
-const contentOptions: ReadonlyArray<{ key: PlayContentKind; label: string }> = [
+const contentOptions: ReadonlyArray<{ key: PanoramaContentKey; label: string }> = [
   { key: 'movie', label: 'Cine' },
   { key: 'theater', label: 'Teatro' },
   { key: 'concert', label: 'Conciertos' },
@@ -47,7 +79,7 @@ const contentOptions: ReadonlyArray<{ key: PlayContentKind; label: string }> = [
   { key: 'day_trip', label: 'Escapadas' },
 ];
 
-const sectionCopy: Record<PlayThemeKey, { title: string; subtitle: string }> = {
+const sectionCopy: Record<PanoramaIntentKey, { title: string; subtitle: string }> = {
   today: {
     title: 'Hoy cerca de ti',
     subtitle: 'Actividades públicas y municipales que puedes aprovechar hoy.',
@@ -90,7 +122,7 @@ const sectionCopy: Record<PlayThemeKey, { title: string; subtitle: string }> = {
   },
 };
 
-const kindSubtitle: Partial<Record<PlayContentKind, string>> = {
+const kindSubtitle: Partial<Record<PanoramaContentKey, string>> = {
   movie: 'Cartelera, horarios y cines cercanos en un solo lugar.',
   theater: 'Teatro, salas pequeñas y obras cerca de ti.',
   concert: 'Música en vivo y conciertos para hoy o los próximos días.',
@@ -104,6 +136,48 @@ const kindSubtitle: Partial<Record<PlayContentKind, string>> = {
   day_trip: 'Ideas para salir de la rutina sin perder de vista la distancia.',
   food_outing: 'Lugares para comer o tomar algo como parte del panorama.',
 };
+
+function isCompositionTheme(theme: PanoramaIntentKey): theme is PlayThemeKey {
+  return (compositionThemeKeys as readonly string[]).includes(theme);
+}
+
+function isNearby(item: PlayDiscoveryItem, locality?: string): boolean {
+  if (locality && item.comuna === locality) return true;
+  if (item.travelTimeMinutes !== undefined && item.travelTimeMinutes <= 30) return true;
+  if (item.distanceM !== undefined && item.distanceM <= 10_000) return true;
+  return false;
+}
+
+function matchesPanoramaIntent(
+  item: PlayDiscoveryItem,
+  intent: Exclude<PanoramaIntentKey, PlayThemeKey> | 'nearby' | 'culture' | 'food',
+  locality?: string,
+): boolean {
+  if (intent === 'nearby') return isNearby(item, locality);
+  if (intent === 'culture') return cultureContentKinds.has(String(item.contentKind));
+  if (intent === 'food') return String(item.contentKind) === 'food_outing';
+  return false;
+}
+
+function selectPanoramaIntentItems(
+  items: readonly PlayDiscoveryItem[],
+  intent: PanoramaIntentKey,
+  locality?: string,
+): PlayDiscoveryItem[] {
+  if (isCompositionTheme(intent)) {
+    return selectPlayDiscoveryItems(items, {
+      ...(locality ? { locality } : {}),
+      selectedTheme: intent,
+    });
+  }
+  return selectPlayDiscoveryItems(items, locality ? { locality } : {})
+    .filter((item) => matchesPanoramaIntent(item, intent, locality));
+}
+
+function contentKindLabel(kind: PlayDiscoveryItem['contentKind'] | PanoramaContentKey): string {
+  if (String(kind) === 'library') return 'Bibliotecas';
+  return playContentDefinition(kind as PlayContentKind).labelEs;
+}
 
 function sourceLabel(item: PlayDiscoveryItem): string {
   if (item.sourceKind === 'municipal_event') return 'Municipal';
@@ -164,7 +238,7 @@ function HeroDiscoveryCard({ item, onPress }: { item: PlayDiscoveryItem; onPress
       <View style={{ padding: paltaTheme.spacing.md, gap: paltaTheme.spacing.sm }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 8 }}>
           <Text allowFontScaling style={{ fontSize: 12, fontWeight: '800', color: paltaTheme.color.brandPrimary }}>
-            {sourceLabel(item)} · {playContentDefinition(item.contentKind).labelEs}
+            {sourceLabel(item)} · {contentKindLabel(item.contentKind)}
           </Text>
           <Text allowFontScaling style={{ fontSize: 12, fontWeight: '800', color: paltaTheme.color.brandPrimary }}>
             {item.isFree ? 'Gratis' : item.priceLabel ?? item.distanceLabel ?? ''}
@@ -214,7 +288,7 @@ function DiscoveryCard({ item, onPress }: { item: PlayDiscoveryItem; onPress: ()
       <View style={{ padding: paltaTheme.spacing.md, gap: 8, minHeight: 180 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
           <Text allowFontScaling style={{ fontSize: 12, fontWeight: '800', color: paltaTheme.color.brandPrimary }}>
-            {sourceLabel(item)} · {playContentDefinition(item.contentKind).labelEs}
+            {sourceLabel(item)} · {contentKindLabel(item.contentKind)}
           </Text>
           {item.isFree || item.priceLabel ? (
             <Text allowFontScaling style={{ fontSize: 12, fontWeight: '800', color: paltaTheme.color.brandPrimary }}>
@@ -263,7 +337,7 @@ function DiscoveryDetail({ item, onClose }: { item: PlayDiscoveryItem | null; on
               <View style={{ padding: paltaTheme.spacing.lg, gap: 14 }}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
                   <Text allowFontScaling style={{ fontSize: 12, fontWeight: '800', color: paltaTheme.color.brandPrimary }}>
-                    {sourceLabel(item)} · {playContentDefinition(item.contentKind).labelEs}{item.isFree ? ' · Gratis' : ''}
+                    {sourceLabel(item)} · {contentKindLabel(item.contentKind)}{item.isFree ? ' · Gratis' : ''}
                   </Text>
                   <Pressable accessibilityRole="button" onPress={onClose} style={{ minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' }}>
                     <Text allowFontScaling style={{ fontSize: 20 }}>×</Text>
@@ -311,7 +385,7 @@ function CardSection({
   onOpenItem,
   showMapAction = false,
 }: {
-  theme: PlayThemeKey;
+  theme: PanoramaIntentKey;
   items: readonly PlayDiscoveryItem[];
   onOpenItem: (item: PlayDiscoveryItem) => void;
   showMapAction?: boolean;
@@ -340,13 +414,13 @@ function CardSection({
   );
 }
 
-function ContentKindSection({ kind, items, onOpenItem }: { kind: PlayContentKind; items: readonly PlayDiscoveryItem[]; onOpenItem: (item: PlayDiscoveryItem) => void }) {
-  const definition = playContentDefinition(kind);
+function ContentKindSection({ kind, items, onOpenItem }: { kind: PanoramaContentKey; items: readonly PlayDiscoveryItem[]; onOpenItem: (item: PlayDiscoveryItem) => void }) {
+  const label = kind === 'library' ? 'Bibliotecas' : playContentDefinition(kind as PlayContentKind).labelEs;
   const heroItem = items[0];
   const remainingItems = items.slice(1);
   return (
     <View style={{ gap: paltaTheme.spacing.md }}>
-      <SectionHeading title={definition.labelEs} subtitle={kindSubtitle[kind] ?? 'Opciones cercanas ordenadas por zona, distancia y momento.'} />
+      <SectionHeading title={label} subtitle={kindSubtitle[kind] ?? 'Opciones cercanas ordenadas por zona, distancia y momento.'} />
       {heroItem ? <HeroDiscoveryCard item={heroItem} onPress={() => onOpenItem(heroItem)} /> : (
         <View style={{ padding: paltaTheme.spacing.lg, borderRadius: paltaTheme.radius.surface, borderWidth: 1, borderColor: paltaTheme.color.border, gap: 6 }}>
           <Text allowFontScaling style={{ fontWeight: '800' }}>Estamos conectando esta categoría en tu zona.</Text>
@@ -388,31 +462,37 @@ function BirthdaySection({ items, onExplore, onOpenItem }: { items: readonly Pla
 }
 
 export function PlayScreen() {
-  const [selectedTheme, setSelectedTheme] = useState<PlayThemeKey>('today');
-  const [selectedKind, setSelectedKind] = useState<PlayContentKind | null>(null);
+  const [selectedIntent, setSelectedIntent] = useState<PanoramaIntentKey>('today');
+  const [selectedKind, setSelectedKind] = useState<PanoramaContentKey | null>(null);
   const [selectedDiscoveryItem, setSelectedDiscoveryItem] = useState<PlayDiscoveryItem | null>(null);
   const locality = __DEV__ ? 'Vitacura' : undefined;
   const sourceItems = __DEV__ ? playPreviewItems : [];
+  const baseTheme: PlayThemeKey = isCompositionTheme(selectedIntent) ? selectedIntent : 'today';
 
   const feed = useMemo(
-    () => composePlayFeed({ items: sourceItems, ...(locality ? { locality } : {}), selectedTheme }),
-    [locality, selectedTheme, sourceItems],
+    () => composePlayFeed({ items: sourceItems, ...(locality ? { locality } : {}), selectedTheme: baseTheme }),
+    [baseTheme, locality, sourceItems],
+  );
+
+  const selectedIntentItems = useMemo(
+    () => selectPanoramaIntentItems(sourceItems, selectedIntent, locality).slice(0, 12),
+    [locality, selectedIntent, sourceItems],
   );
 
   const selectedKindItems = useMemo(() => {
     if (!selectedKind) return [];
     return selectPlayDiscoveryItems(
-      sourceItems.filter((item) => item.contentKind === selectedKind),
+      sourceItems.filter((item) => String(item.contentKind) === selectedKind),
       locality ? { locality } : {},
     ).slice(0, 12);
   }, [locality, selectedKind, sourceItems]);
 
-  function chooseTheme(theme: PlayThemeKey) {
+  function chooseIntent(intent: PanoramaIntentKey) {
     setSelectedKind(null);
-    setSelectedTheme(theme);
+    setSelectedIntent(intent);
   }
 
-  function chooseKind(kind: PlayContentKind) {
+  function chooseKind(kind: PanoramaContentKey) {
     setSelectedKind((current) => current === kind ? null : kind);
   }
 
@@ -427,7 +507,7 @@ export function PlayScreen() {
 
   return (
     <ScreenFrame
-      title={panoramaMenuLabel('es')}
+      title={PANORAMA_LABEL}
       subtitle="Qué hacer hoy, cerca de ti"
       action={
         <Pressable accessibilityRole="button" onPress={() => router.push('/map')} style={{ minHeight: paltaTheme.touch.minimum, paddingHorizontal: 12, justifyContent: 'center', borderRadius: paltaTheme.radius.control, borderWidth: 1, borderColor: paltaTheme.color.border }}>
@@ -442,7 +522,7 @@ export function PlayScreen() {
         </Pressable>
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingRight: 18 }}>
-          {themeOptions.map((option) => <FilterChip key={option.key} label={option.label} selected={!selectedKind && selectedTheme === option.key} onPress={() => chooseTheme(option.key)} />)}
+          {themeOptions.map((option) => <FilterChip key={option.key} label={option.label} selected={!selectedKind && selectedIntent === option.key} onPress={() => chooseIntent(option.key)} />)}
         </ScrollView>
 
         {__DEV__ ? <Text allowFontScaling style={{ fontSize: 11, color: paltaTheme.color.textMuted }}>Vista previa visual · los datos marcados como ejemplo no se publican en producción.</Text> : null}
@@ -460,19 +540,19 @@ export function PlayScreen() {
 
         {selectedKind ? <ContentKindSection kind={selectedKind} items={selectedKindItems} onOpenItem={openItem} /> : null}
 
-        {!selectedKind && selectedTheme === 'birthday' ? (
-          <BirthdaySection items={feed.birthday.items} onExplore={() => chooseTheme('birthday')} onOpenItem={openItem} />
-        ) : !selectedKind && feed.selectedTheme ? (
+        {!selectedKind && selectedIntent === 'birthday' ? (
+          <BirthdaySection items={feed.birthday.items} onExplore={() => chooseIntent('birthday')} onOpenItem={openItem} />
+        ) : !selectedKind && selectedIntent !== 'today' ? (
           <CardSection
-            theme={feed.selectedTheme.theme}
-            items={feed.selectedTheme.items}
+            theme={selectedIntent}
+            items={selectedIntentItems}
             onOpenItem={openItem}
-            showMapAction={feed.selectedTheme.theme === 'nearby'}
+            showMapAction={selectedIntent === 'nearby'}
           />
         ) : null}
 
-        {selectedTheme !== 'birthday' ? <BirthdaySection items={feed.birthday.items} onExplore={() => chooseTheme('birthday')} onOpenItem={openItem} /> : null}
-        {selectedTheme !== 'weekend' && feed.weekendPublic.items.length > 0 ? <CardSection theme="weekend" items={feed.weekendPublic.items} onOpenItem={openItem} /> : null}
+        {selectedIntent !== 'birthday' ? <BirthdaySection items={feed.birthday.items} onExplore={() => chooseIntent('birthday')} onOpenItem={openItem} /> : null}
+        {selectedIntent !== 'weekend' && feed.weekendPublic.items.length > 0 ? <CardSection theme="weekend" items={feed.weekendPublic.items} onOpenItem={openItem} /> : null}
 
         <View style={{ gap: paltaTheme.spacing.md }}>
           <SectionHeading title="Más panoramas" subtitle="Museos, bibliotecas, ferias, naturaleza, granjas, tours, estadías y más se incorporan con la misma lógica local." />
