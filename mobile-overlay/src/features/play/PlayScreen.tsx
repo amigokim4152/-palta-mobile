@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { router } from 'expo-router';
 import { Image, Linking, Modal, Pressable, ScrollView, Text, View } from 'react-native';
+import { panoramaMenuLabel } from '../../../../src/play/panoramaIdentity';
 import { composePlayFeed } from '../../../../src/play/playFeedComposer';
 import {
   selectPlayDiscoveryItems,
@@ -20,23 +21,30 @@ import { playPreviewItems } from './playPreviewData';
 
 const themeOptions: ReadonlyArray<{ key: PlayThemeKey; label: string }> = [
   { key: 'today', label: 'Hoy' },
-  { key: 'weekend', label: 'Este finde' },
-  { key: 'family', label: 'Con niños' },
-  { key: 'couple', label: 'En pareja' },
+  { key: 'nearby', label: 'Cerca de mí' },
   { key: 'free', label: 'Gratis' },
+  { key: 'family', label: 'Con niños' },
+  { key: 'weekend', label: 'Este finde' },
+  { key: 'culture', label: 'Cultura' },
+  { key: 'food', label: 'Comer' },
   { key: 'outdoor', label: 'Aire libre' },
+  { key: 'couple', label: 'En pareja' },
   { key: 'birthday', label: 'Cumpleaños' },
 ];
 
 const contentOptions: ReadonlyArray<{ key: PlayContentKind; label: string }> = [
   { key: 'movie', label: 'Cine' },
-  { key: 'live_performance', label: 'Espectáculos' },
+  { key: 'theater', label: 'Teatro' },
+  { key: 'concert', label: 'Conciertos' },
   { key: 'exhibition', label: 'Exposiciones' },
+  { key: 'museum', label: 'Museos' },
+  { key: 'library', label: 'Bibliotecas' },
   { key: 'sports_event', label: 'Deportes' },
   { key: 'park', label: 'Parques' },
   { key: 'active_leisure', label: 'Actividades' },
-  { key: 'day_trip', label: 'Escapadas' },
   { key: 'food_outing', label: 'Comer' },
+  { key: 'festival', label: 'Festivales' },
+  { key: 'day_trip', label: 'Escapadas' },
 ];
 
 const sectionCopy: Record<PlayThemeKey, { title: string; subtitle: string }> = {
@@ -44,21 +52,33 @@ const sectionCopy: Record<PlayThemeKey, { title: string; subtitle: string }> = {
     title: 'Hoy cerca de ti',
     subtitle: 'Actividades públicas y municipales que puedes aprovechar hoy.',
   },
-  weekend: {
-    title: 'Este fin de semana',
-    subtitle: 'Planes cercanos ordenados por momento, zona y utilidad.',
-  },
-  family: {
-    title: 'Para hacer en familia',
-    subtitle: 'Actividades y lugares que funcionan bien con niños.',
-  },
-  couple: {
-    title: 'Para salir en pareja',
-    subtitle: 'Cine, cultura, comida y otros panoramas para compartir de a dos.',
+  nearby: {
+    title: 'Cerca de ti',
+    subtitle: 'Opciones de tu comuna o con distancia y tiempo de viaje ya resueltos.',
   },
   free: {
     title: 'Gratis cerca de ti',
     subtitle: 'Panoramas públicos y otras opciones sin costo.',
+  },
+  family: {
+    title: 'Para hacer con niños',
+    subtitle: 'Actividades y lugares pensados para compartir en familia.',
+  },
+  weekend: {
+    title: 'Este fin de semana',
+    subtitle: 'Planes cercanos ordenados por momento, zona y utilidad.',
+  },
+  culture: {
+    title: 'Cultura',
+    subtitle: 'Teatro, música, cine, exposiciones, museos y bibliotecas cerca de ti.',
+  },
+  food: {
+    title: 'Comer también es panorama',
+    subtitle: 'Gastronomía y salidas para comer como parte de tu plan.',
+  },
+  couple: {
+    title: 'Para salir en pareja',
+    subtitle: 'Cine, cultura, comida y otros panoramas para compartir de a dos.',
   },
   outdoor: {
     title: 'Al aire libre',
@@ -72,11 +92,15 @@ const sectionCopy: Record<PlayThemeKey, { title: string; subtitle: string }> = {
 
 const kindSubtitle: Partial<Record<PlayContentKind, string>> = {
   movie: 'Cartelera, horarios y cines cercanos en un solo lugar.',
-  live_performance: 'Teatro, música, comedia y salas pequeñas cerca de ti.',
+  theater: 'Teatro, salas pequeñas y obras cerca de ti.',
+  concert: 'Música en vivo y conciertos para hoy o los próximos días.',
   exhibition: 'Exposiciones, galerías y cultura para visitar hoy o esta semana.',
+  museum: 'Museos y colecciones con información útil para planificar la visita.',
+  library: 'Bibliotecas públicas y actividades culturales de tu zona.',
   sports_event: 'Partidos, campeonatos y actividades deportivas de tu zona.',
   park: 'Parques, plazas y espacios para salir sin complicarte.',
   active_leisure: 'Karting, bowling, trampolines, escalada y otras experiencias.',
+  festival: 'Festivales y celebraciones locales, incluidas las de temporada.',
   day_trip: 'Ideas para salir de la rutina sin perder de vista la distancia.',
   food_outing: 'Lugares para comer o tomar algo como parte del panorama.',
 };
@@ -108,9 +132,7 @@ function ExperienceTags({ item }: { item: PlayDiscoveryItem }) {
             backgroundColor: paltaTheme.color.surfaceMuted,
           }}
         >
-          <Text allowFontScaling style={{ fontSize: 11, fontWeight: '700' }}>
-            {tag}
-          </Text>
+          <Text allowFontScaling style={{ fontSize: 11, fontWeight: '700' }}>{tag}</Text>
         </View>
       ))}
     </View>
@@ -139,7 +161,6 @@ function HeroDiscoveryCard({ item, onPress }: { item: PlayDiscoveryItem; onPress
       ) : (
         <View style={{ height: 150, backgroundColor: paltaTheme.color.avocadoCream }} />
       )}
-
       <View style={{ padding: paltaTheme.spacing.md, gap: paltaTheme.spacing.sm }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 8 }}>
           <Text allowFontScaling style={{ fontSize: 12, fontWeight: '800', color: paltaTheme.color.brandPrimary }}>
@@ -149,7 +170,6 @@ function HeroDiscoveryCard({ item, onPress }: { item: PlayDiscoveryItem; onPress
             {item.isFree ? 'Gratis' : item.priceLabel ?? item.distanceLabel ?? ''}
           </Text>
         </View>
-
         <Text allowFontScaling style={{ fontSize: 22, fontWeight: '800', color: paltaTheme.color.textPrimary }}>
           {item.title}
         </Text>
@@ -239,9 +259,7 @@ function DiscoveryDetail({ item, onClose }: { item: PlayDiscoveryItem | null; on
         >
           {item ? (
             <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
-              {item.imageUrl ? (
-                <Image source={{ uri: item.imageUrl }} resizeMode="cover" style={{ width: '100%', height: 220 }} />
-              ) : null}
+              {item.imageUrl ? <Image source={{ uri: item.imageUrl }} resizeMode="cover" style={{ width: '100%', height: 220 }} /> : null}
               <View style={{ padding: paltaTheme.spacing.lg, gap: 14 }}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
                   <Text allowFontScaling style={{ fontSize: 12, fontWeight: '800', color: paltaTheme.color.brandPrimary }}>
@@ -251,42 +269,23 @@ function DiscoveryDetail({ item, onClose }: { item: PlayDiscoveryItem | null; on
                     <Text allowFontScaling style={{ fontSize: 20 }}>×</Text>
                   </Pressable>
                 </View>
-
-                <Text allowFontScaling style={{ fontSize: 24, fontWeight: '800', color: paltaTheme.color.textPrimary }}>
-                  {item.title}
-                </Text>
-                <Text allowFontScaling style={{ fontSize: 15, fontWeight: '800', color: paltaTheme.color.textPrimary }}>
-                  {item.scheduleLabel}
-                </Text>
+                <Text allowFontScaling style={{ fontSize: 24, fontWeight: '800', color: paltaTheme.color.textPrimary }}>{item.title}</Text>
+                <Text allowFontScaling style={{ fontSize: 15, fontWeight: '800', color: paltaTheme.color.textPrimary }}>{item.scheduleLabel}</Text>
                 <Text allowFontScaling style={{ fontSize: 14, color: paltaTheme.color.textSecondary }}>
                   {item.comuna}{item.venue ? ` · ${item.venue}` : ''}{item.distanceLabel ? ` · ${item.distanceLabel}` : ''}
                 </Text>
-                {item.audienceLabel ? (
-                  <Text allowFontScaling style={{ fontSize: 14, color: paltaTheme.color.textSecondary }}>
-                    {item.audienceLabel}
-                  </Text>
-                ) : null}
+                {item.audienceLabel ? <Text allowFontScaling style={{ fontSize: 14, color: paltaTheme.color.textSecondary }}>{item.audienceLabel}</Text> : null}
                 {item.registrationRequired ? (
                   <View style={{ padding: 12, borderRadius: paltaTheme.radius.surface, backgroundColor: paltaTheme.color.surfaceMuted }}>
-                    <Text allowFontScaling style={{ fontSize: 13, fontWeight: '700' }}>
-                      Requiere inscripción. Revisa la fuente oficial antes de ir.
-                    </Text>
+                    <Text allowFontScaling style={{ fontSize: 13, fontWeight: '700' }}>Requiere inscripción. Revisa la fuente oficial antes de ir.</Text>
                   </View>
                 ) : null}
                 <ExperienceTags item={item} />
-
                 <View style={{ paddingTop: 6, gap: 4 }}>
                   <Text allowFontScaling style={{ fontSize: 12, color: paltaTheme.color.textMuted }}>Fuente</Text>
-                  <Text allowFontScaling style={{ fontSize: 13, fontWeight: '700', color: paltaTheme.color.textPrimary }}>
-                    {item.source.authority}
-                  </Text>
-                  {item.source.verifiedAt ? (
-                    <Text allowFontScaling style={{ fontSize: 11, color: paltaTheme.color.textMuted }}>
-                      Verificado: {item.source.verifiedAt}
-                    </Text>
-                  ) : null}
+                  <Text allowFontScaling style={{ fontSize: 13, fontWeight: '700', color: paltaTheme.color.textPrimary }}>{item.source.authority}</Text>
+                  {item.source.verifiedAt ? <Text allowFontScaling style={{ fontSize: 11, color: paltaTheme.color.textMuted }}>Verificado: {item.source.verifiedAt}</Text> : null}
                 </View>
-
                 {primaryAction ? (
                   <PaltaButton
                     label={primaryAction.label ?? (primaryAction.kind === 'ticket' ? 'Ver entradas' : primaryAction.kind === 'registration' ? 'Inscribirme' : 'Reservar')}
@@ -328,9 +327,7 @@ function CardSection({
       ) : (
         <View style={{ padding: paltaTheme.spacing.lg, borderRadius: paltaTheme.radius.surface, borderWidth: 1, borderColor: paltaTheme.color.border, gap: 6 }}>
           <Text allowFontScaling style={{ fontWeight: '800' }}>Estamos conectando más panoramas de tu zona.</Text>
-          <Text allowFontScaling style={{ color: paltaTheme.color.textSecondary }}>
-            Mostraremos horario, comuna, costo, imagen y fuente cuando estén disponibles.
-          </Text>
+          <Text allowFontScaling style={{ color: paltaTheme.color.textSecondary }}>Mostraremos horario, comuna, costo, imagen y fuente cuando estén disponibles.</Text>
         </View>
       )}
       {remainingItems.length > 0 ? (
@@ -349,16 +346,11 @@ function ContentKindSection({ kind, items, onOpenItem }: { kind: PlayContentKind
   const remainingItems = items.slice(1);
   return (
     <View style={{ gap: paltaTheme.spacing.md }}>
-      <SectionHeading
-        title={definition.labelEs}
-        subtitle={kindSubtitle[kind] ?? 'Opciones cercanas ordenadas por zona, distancia y momento.'}
-      />
+      <SectionHeading title={definition.labelEs} subtitle={kindSubtitle[kind] ?? 'Opciones cercanas ordenadas por zona, distancia y momento.'} />
       {heroItem ? <HeroDiscoveryCard item={heroItem} onPress={() => onOpenItem(heroItem)} /> : (
         <View style={{ padding: paltaTheme.spacing.lg, borderRadius: paltaTheme.radius.surface, borderWidth: 1, borderColor: paltaTheme.color.border, gap: 6 }}>
           <Text allowFontScaling style={{ fontWeight: '800' }}>Estamos conectando esta categoría en tu zona.</Text>
-          <Text allowFontScaling style={{ color: paltaTheme.color.textSecondary }}>
-            Cuando haya datos, verás horarios, distancia, precio y forma de reservar o comprar.
-          </Text>
+          <Text allowFontScaling style={{ color: paltaTheme.color.textSecondary }}>Cuando haya datos, verás horarios, distancia, precio y forma de reservar o comprar.</Text>
         </View>
       )}
       {remainingItems.length > 0 ? (
@@ -376,9 +368,7 @@ function BirthdaySection({ items, onExplore, onOpenItem }: { items: readonly Pla
       <SectionHeading title="Cumpleaños" subtitle="Piscina, indoor, aire libre y experiencias especiales cerca de ti." />
       <View style={{ padding: paltaTheme.spacing.md, borderRadius: paltaTheme.radius.prominent, backgroundColor: paltaTheme.color.avocadoCream, gap: 12 }}>
         <Text allowFontScaling style={{ fontSize: 20, fontWeight: '800', color: paltaTheme.color.textPrimary }}>¿Preparando un cumpleaños?</Text>
-        <Text allowFontScaling style={{ fontSize: 14, color: paltaTheme.color.textSecondary }}>
-          Edad, invitados, distancia, piscina, comida y tipo de experiencia en un solo lugar.
-        </Text>
+        <Text allowFontScaling style={{ fontSize: 14, color: paltaTheme.color.textSecondary }}>Edad, invitados, distancia, piscina, comida y tipo de experiencia en un solo lugar.</Text>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
           {['Piscina', 'Indoor', 'Aire libre', 'Karting', 'Granja'].map((label) => (
             <View key={label} style={{ paddingHorizontal: 10, paddingVertical: 7, borderRadius: paltaTheme.radius.pill, backgroundColor: paltaTheme.color.surface }}>
@@ -437,7 +427,7 @@ export function PlayScreen() {
 
   return (
     <ScreenFrame
-      title="Panoramas"
+      title={panoramaMenuLabel('es')}
       subtitle="Qué hacer hoy, cerca de ti"
       action={
         <Pressable accessibilityRole="button" onPress={() => router.push('/map')} style={{ minHeight: paltaTheme.touch.minimum, paddingHorizontal: 12, justifyContent: 'center', borderRadius: paltaTheme.radius.control, borderWidth: 1, borderColor: paltaTheme.color.border }}>
@@ -460,15 +450,10 @@ export function PlayScreen() {
         <CardSection theme="today" items={feed.todayPublic.items} onOpenItem={openItem} showMapAction />
 
         <View style={{ gap: paltaTheme.spacing.sm }}>
-          <SectionHeading title="¿Qué te gustaría hacer?" subtitle="Elige el tipo de panorama; siempre priorizamos tu zona y utilidad, no la comisión." />
+          <SectionHeading title="¿Qué te gustaría hacer?" subtitle="Elige el tipo de panorama; priorizamos zona, fecha y tus intereses explícitos, nunca la comisión." />
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingRight: 18 }}>
             {contentOptions.map((option) => (
-              <FilterChip
-                key={option.key}
-                label={option.label}
-                selected={selectedKind === option.key}
-                onPress={() => chooseKind(option.key)}
-              />
+              <FilterChip key={option.key} label={option.label} selected={selectedKind === option.key} onPress={() => chooseKind(option.key)} />
             ))}
           </ScrollView>
         </View>
@@ -478,14 +463,19 @@ export function PlayScreen() {
         {!selectedKind && selectedTheme === 'birthday' ? (
           <BirthdaySection items={feed.birthday.items} onExplore={() => chooseTheme('birthday')} onOpenItem={openItem} />
         ) : !selectedKind && feed.selectedTheme ? (
-          <CardSection theme={feed.selectedTheme.theme} items={feed.selectedTheme.items} onOpenItem={openItem} />
+          <CardSection
+            theme={feed.selectedTheme.theme}
+            items={feed.selectedTheme.items}
+            onOpenItem={openItem}
+            showMapAction={feed.selectedTheme.theme === 'nearby'}
+          />
         ) : null}
 
         {selectedTheme !== 'birthday' ? <BirthdaySection items={feed.birthday.items} onExplore={() => chooseTheme('birthday')} onOpenItem={openItem} /> : null}
         {selectedTheme !== 'weekend' && feed.weekendPublic.items.length > 0 ? <CardSection theme="weekend" items={feed.weekendPublic.items} onOpenItem={openItem} /> : null}
 
         <View style={{ gap: paltaTheme.spacing.md }}>
-          <SectionHeading title="Más panoramas" subtitle="Museos, ferias, naturaleza, granjas, tours, estadías y más se incorporan con la misma lógica local." />
+          <SectionHeading title="Más panoramas" subtitle="Museos, bibliotecas, ferias, naturaleza, granjas, tours, estadías y más se incorporan con la misma lógica local." />
           <PaltaButton label="Ver todo" variant="secondary" onPress={() => router.push('/search')} />
         </View>
       </View>

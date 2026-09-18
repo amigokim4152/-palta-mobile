@@ -1,4 +1,5 @@
 import { Tabs } from 'expo-router';
+import { panoramaMenuLabel } from '../../../../src/play/panoramaIdentity';
 
 export default function TabLayout() {
   return (
@@ -9,7 +10,7 @@ export default function TabLayout() {
       <Tabs.Screen name="neighborhood" options={{ href: null }} />
       <Tabs.Screen name="community" options={{ title: 'Comunidad' }} />
       <Tabs.Screen name="market" options={{ title: 'Mercado' }} />
-      <Tabs.Screen name="play" options={{ title: 'Panoramas' }} />
+      <Tabs.Screen name="play" options={{ title: panoramaMenuLabel('es') }} />
     </Tabs>
   );
 }

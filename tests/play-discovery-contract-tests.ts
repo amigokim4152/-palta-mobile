@@ -1,13 +1,23 @@
 import { canonicalEventIsDiscoverable, type CanonicalEvent } from '../src/discovery/canonicalDiscovery.js';
 import { validateDiscoveryDataSource } from '../src/discovery/dataSourceRegistry.js';
 import { validateCommercialDeal, type CommercialDeal } from '../src/partners/commercialDeal.js';
+import { panoramaMenuLabels } from '../src/play/panoramaIdentity.js';
 import { canonicalizePlayDiscoveryItems } from '../src/play/playCanonicalization.js';
+import { inferPlayContentKind } from '../src/play/playContentTaxonomy.js';
 import { selectPlayDiscoveryItems, type PlayDiscoveryItem } from '../src/play/playDiscovery.js';
 import { indexPlayCommercialCapabilities } from '../src/play/playCommercialCapability.js';
+import { buildPanoramaNotificationCandidate } from '../src/play/playEventIntegration.js';
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
 }
+
+assert(panoramaMenuLabels.es === 'Panorama', 'Spanish official menu name must be Panorama');
+assert(panoramaMenuLabels.ko === '즐길거리', 'Korean official menu name must be 즐길거리');
+assert(panoramaMenuLabels.en === 'Things to do', 'English official menu name must be Things to do');
+assert(panoramaMenuLabels.zh === '活动', 'Chinese official menu name must be 活动');
+assert(!Object.values(panoramaMenuLabels).includes('놀자' as never), 'deprecated 놀자 label must not be used');
+assert(inferPlayContentKind({ title: 'Biblioteca Pública de Vitacura' }) === 'library', 'library content must have a first-class taxonomy kind');
 
 const municipalEvent: PlayDiscoveryItem = {
   id: 'municipal:e1',
@@ -50,6 +60,41 @@ assert(canonicalizePlayDiscoveryItems([municipalEvent, laterShow]).length === 2,
 const closeItem: PlayDiscoveryItem = { ...municipalEvent, id: 'near', eventId: 'near', title: 'Cerca', travelTimeMinutes: 8 };
 const farItem: PlayDiscoveryItem = { ...municipalEvent, id: 'far', eventId: 'far', title: 'Lejos', travelTimeMinutes: 35, sourceKind: 'public_program' };
 assert(selectPlayDiscoveryItems([farItem, closeItem])[0]?.id === 'near', 'travel time must outrank public/private provenance in organic discovery');
+const nearbyOnly = selectPlayDiscoveryItems([farItem, closeItem], {
+  selectedTheme: 'nearby',
+  maxNearbyTravelTimeMinutes: 15,
+  maxNearbyDistanceM: 3_000,
+});
+assert(nearbyOnly.length === 1 && nearbyOnly[0]?.id === 'near', 'nearby intent must respect coarse distance/travel thresholds');
+
+const libraryItem: PlayDiscoveryItem = {
+  ...municipalEvent,
+  id: 'library:1',
+  eventId: undefined,
+  contentKind: 'library',
+  title: 'Biblioteca y cuentacuentos',
+  travelTimeMinutes: 12,
+  themeTags: ['family'],
+};
+assert(selectPlayDiscoveryItems([libraryItem], { selectedTheme: 'culture' }).length === 1, 'culture intent must include libraries');
+const foodItem: PlayDiscoveryItem = {
+  ...municipalEvent,
+  id: 'food:1',
+  eventId: undefined,
+  contentKind: 'food_outing',
+  title: 'Ruta gastronómica',
+  themeTags: [],
+};
+assert(selectPlayDiscoveryItems([foodItem], { selectedTheme: 'food' }).length === 1, 'food intent must include food outings');
+
+const candidate = buildPanoramaNotificationCandidate({
+  item: municipalEvent,
+  reason: 'nearby_today',
+  occurredAt: '2026-09-18T15:00:00-03:00',
+});
+assert(candidate.type === 'notification.candidate', 'Panorama must hand notification evaluation to Event Core');
+assert(candidate.payload.surface === 'panorama', 'Panorama notification candidates must identify their source surface');
+assert(!('latitude' in candidate.payload) && !('longitude' in candidate.payload), 'Panorama notification candidates must not carry precise coordinates');
 
 const event: CanonicalEvent = {
   eventId: 'canonical-e1',
@@ -102,4 +147,4 @@ const commercialIndex = indexPlayCommercialCapabilities([
 ], [freeDeal], '2026-09-18T12:00:00-03:00');
 assert(commercialIndex.get('municipal:e1')?.length === 1, 'commercial action may attach after discovery selection even when deal is free');
 
-console.log('PASS: Play canonical discovery contracts');
+console.log('PASS: Panorama canonical discovery contracts');
