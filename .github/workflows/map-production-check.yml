@@ -19,6 +19,7 @@ on:
       - 'apps/mobile/package-lock.json'
       - 'src/adapters/mapCore.ts'
       - 'src/map/mapFeatureCollection.ts'
+      - 'src/map/mapMarkerPolicy.ts'
       - 'mobile-overlay/.env.example'
       - '.github/workflows/map-production-check.yml'
   push:
@@ -41,6 +42,7 @@ on:
       - 'apps/mobile/package-lock.json'
       - 'src/adapters/mapCore.ts'
       - 'src/map/mapFeatureCollection.ts'
+      - 'src/map/mapMarkerPolicy.ts'
       - 'mobile-overlay/.env.example'
       - '.github/workflows/map-production-check.yml'
 
