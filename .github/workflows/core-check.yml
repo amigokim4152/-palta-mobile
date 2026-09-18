@@ -18,6 +18,10 @@ jobs:
         run: npm install --ignore-scripts --no-audit --no-fund
       - name: Simulator launcher syntax
         run: bash -n scripts/run-ios-simulator-safe.sh
+      - name: Map runtime launcher syntax
+        run: bash -n scripts/deploy-map-runtime-safe.sh
+      - name: Map Worker typecheck
+        run: npx tsc --noEmit --target ES2022 --module ESNext --lib ES2022,DOM infra/cloudflare/src/index.ts
       - name: Typecheck
         run: npm run typecheck
       - name: Core tests
