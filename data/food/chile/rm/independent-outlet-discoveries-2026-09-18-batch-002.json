@@ -1,0 +1,52 @@
+{
+  "dataset": "palta_food_independent_outlet_discoveries_rm",
+  "observed_at": "2026-09-18",
+  "policy": {
+    "factual_fields_only": true,
+    "collect_images": false,
+    "merchant_authorization_status": "pending",
+    "live_publish_allowed": false
+  },
+  "records": [
+    {
+      "outlet_key": "cl-rm-santiago-fuente-mardoqueo-libertad-551",
+      "brand_name": "Fuente Mardoqueo",
+      "outlet_name": "Libertad",
+      "address": "Libertad 551",
+      "comuna": "Santiago",
+      "identity_status": "verified",
+      "public_contact": {"phone": "+56264659172", "website": "https://fuentemardoqueo.cl/"},
+      "evidence": [{"kind": "official_website", "url": "https://fuentemardoqueo.cl/", "observed_at": "2026-09-18"}]
+    },
+    {
+      "outlet_key": "cl-rm-providencia-fuente-mardoqueo-bilbao-2639",
+      "brand_name": "Fuente Mardoqueo",
+      "outlet_name": "Bilbao",
+      "address": "Bilbao 2639",
+      "comuna": "Providencia",
+      "identity_status": "verified",
+      "public_contact": {"phone": "+56264657329", "website": "https://fuentemardoqueo.cl/"},
+      "evidence": [{"kind": "official_website", "url": "https://fuentemardoqueo.cl/", "observed_at": "2026-09-18"}]
+    },
+    {
+      "outlet_key": "cl-rm-las-condes-fuente-mardoqueo-roger-de-flor-2894",
+      "brand_name": "Fuente Mardoqueo",
+      "outlet_name": "Las Condes",
+      "address": "Roger de Flor 2894",
+      "comuna": "Las Condes",
+      "identity_status": "verified",
+      "public_contact": {"phone": "+56224355808", "website": "https://fuentemardoqueo.cl/"},
+      "evidence": [{"kind": "official_website", "url": "https://fuentemardoqueo.cl/", "observed_at": "2026-09-18"}]
+    },
+    {
+      "outlet_key": "cl-rm-san-joaquin-fuente-mardoqueo-vicuna-mackenna-3207",
+      "brand_name": "Fuente Mardoqueo",
+      "outlet_name": "Vicuña Mackenna",
+      "address": "Vicuña Mackenna 3207",
+      "comuna": "San Joaquín",
+      "identity_status": "verified",
+      "public_contact": {"phone": "+56229246181", "website": "https://fuentemardoqueo.cl/"},
+      "evidence": [{"kind": "official_website", "url": "https://fuentemardoqueo.cl/", "observed_at": "2026-09-18"}]
+    }
+  ]
+}
