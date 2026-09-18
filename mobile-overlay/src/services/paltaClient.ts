@@ -4,6 +4,7 @@ import {
   type HomeApiResponse,
   type LocalSearchItem,
 } from '../../../src/api/paltaApiClient';
+import type { BookLibraryDiscoveryV1 } from '../../../src/bookLibrary/discoveryContract';
 import { parseRuntimeEnv } from '../../../src/config/runtimeEnv';
 import { createPaltaApiClient } from '../../../src/api/paltaApiFactory';
 import type { AuthPort } from '../../../src/ports/authPort';
@@ -16,6 +17,11 @@ export type MobilePaltaClient = {
     radiusM?: number;
     query?: string;
   }): Promise<LocalSearchItem[]>;
+  getBookLibraryDiscovery(input?: {
+    workId?: string;
+    query?: string;
+    locale?: string;
+  }): Promise<BookLibraryDiscoveryV1>;
   getBusiness(id: string): Promise<BusinessApiDetail>;
   getCare(id: string): Promise<CareApiTrack>;
   createCare(input: {
