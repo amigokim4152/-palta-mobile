@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, type PropsWithChildren } from 'react';
 import {
   Animated,
+  PanResponder,
   Pressable,
   ScrollView,
   Text,
@@ -15,6 +16,18 @@ import { paltaTheme } from '../../theme/paltaTheme';
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
+}
+
+function nearestSnap(
+  height: number,
+  heights: Record<ResultSheetSnap, number>,
+): ResultSheetSnap {
+  const snaps: ResultSheetSnap[] = ['peek', 'half', 'full'];
+  return snaps.reduce((best, candidate) =>
+    Math.abs(heights[candidate] - height) < Math.abs(heights[best] - height)
+      ? candidate
+      : best,
+  'peek');
 }
 
 export function MapResultSheet({
@@ -35,6 +48,8 @@ export function MapResultSheet({
     [windowHeight],
   );
   const animatedHeight = useRef(new Animated.Value(heights[snap])).current;
+  const gestureStartHeight = useRef(heights[snap]);
+  const latestDragHeight = useRef(heights[snap]);
 
   useEffect(() => {
     Animated.timing(animatedHeight, {
@@ -42,7 +57,51 @@ export function MapResultSheet({
       duration: 180,
       useNativeDriver: false,
     }).start();
+    latestDragHeight.current = heights[snap];
   }, [animatedHeight, heights, snap]);
+
+  const panResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => false,
+        onMoveShouldSetPanResponder: (_, gestureState) =>
+          Math.abs(gestureState.dy) > 6 &&
+          Math.abs(gestureState.dy) > Math.abs(gestureState.dx),
+        onPanResponderGrant: () => {
+          animatedHeight.stopAnimation();
+          gestureStartHeight.current = heights[snap];
+          latestDragHeight.current = heights[snap];
+        },
+        onPanResponderMove: (_, gestureState) => {
+          const next = clamp(
+            gestureStartHeight.current - gestureState.dy,
+            heights.peek,
+            heights.full,
+          );
+          latestDragHeight.current = next;
+          animatedHeight.setValue(next);
+        },
+        onPanResponderRelease: (_, gestureState) => {
+          if (gestureState.vy < -0.35) {
+            onSnapChange(nextSheetSnap(snap, 'up'));
+            return;
+          }
+          if (gestureState.vy > 0.35) {
+            onSnapChange(nextSheetSnap(snap, 'down'));
+            return;
+          }
+          onSnapChange(nearestSnap(latestDragHeight.current, heights));
+        },
+        onPanResponderTerminate: () => {
+          Animated.timing(animatedHeight, {
+            toValue: heights[snap],
+            duration: 160,
+            useNativeDriver: false,
+          }).start();
+        },
+      }),
+    [animatedHeight, heights, onSnapChange, snap],
+  );
 
   return (
     <Animated.View
@@ -59,7 +118,10 @@ export function MapResultSheet({
       }}
     >
       <View
+        {...panResponder.panHandlers}
+        accessibilityLabel="Arrastra para mostrar más resultados o más mapa"
         style={{
+          minHeight: paltaTheme.touch.minimum,
           alignItems: 'center',
           flexDirection: 'row',
           justifyContent: 'center',
@@ -83,8 +145,8 @@ export function MapResultSheet({
         <View
           accessibilityElementsHidden
           style={{
-            width: 42,
-            height: 4,
+            width: 44,
+            height: 5,
             borderRadius: paltaTheme.radius.pill,
             backgroundColor: paltaTheme.color.border,
           }}
