@@ -85,7 +85,8 @@ async function request(path: string, env: Record<string, unknown>, init?: Reques
   });
   assert(response.status === 404, 'Missing public object must return 404.');
   const payload = await json(response);
-  assert(payload.reason === 'public_news_not_found', 'Missing object must not be confused with disabled News.');
+  assert(payload.reason === 'public_news_object_not_found', 'Missing object must not be confused with disabled News.');
+  assert(response.headers.get('x-palta-news-reason') === 'public_news_object_not_found', 'Missing object reason header must match the JSON contract.');
 }
 
 {
