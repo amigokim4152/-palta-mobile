@@ -17,7 +17,13 @@ export type MapBounds = {
 
 export type MapFeature = {
   id: string;
-  entityType: 'place' | 'business' | 'public_service' | 'event';
+  entityType:
+    | 'place'
+    | 'business'
+    | 'public_service'
+    | 'event'
+    | 'property_listing'
+    | 'vehicle_listing';
   coordinate: GeoPoint;
   title: string;
   categoryKey?: string;

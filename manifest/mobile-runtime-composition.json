@@ -14,6 +14,8 @@
     "mobile-overlay/src/components/navigation",
     "mobile-overlay/src/theme",
     "mobile-overlay/src/services",
+    "mobile-overlay/package.json",
+    "src/adapters/mapCore.ts",
     "src/api/paltaApiClient.ts",
     "src/api/paltaApiFactory.ts",
     "src/api/messagingApiClient.ts",
@@ -152,11 +154,23 @@
       "integrated_source_sha": "22cfa680e7209141c6b03da96f2bf40922c7f1a3",
       "owned_paths": [
         "src/realEstate",
+        "src/api/realEstateApiClient.ts",
+        "src/api/realEstateMediaUploadApiClient.ts",
+        "src/api/realEstatePublicationApiClient.ts",
+        "mobile-overlay/src/adapters/expoSqliteRealEstateDraftStore.ts",
+        "mobile-overlay/src/adapters/expoSqliteRealEstateInquiryStore.ts",
+        "mobile-overlay/src/adapters/expoSqliteRealEstateUserStateStore.ts",
         "mobile-overlay/src/features/realEstate",
         "mobile-overlay/src/app/propiedades"
       ],
       "branch_owned_paths": [
         "src/realEstate",
+        "src/api/realEstateApiClient.ts",
+        "src/api/realEstateMediaUploadApiClient.ts",
+        "src/api/realEstatePublicationApiClient.ts",
+        "mobile-overlay/src/adapters/expoSqliteRealEstateDraftStore.ts",
+        "mobile-overlay/src/adapters/expoSqliteRealEstateInquiryStore.ts",
+        "mobile-overlay/src/adapters/expoSqliteRealEstateUserStateStore.ts",
         "mobile-overlay/src/features/realEstate",
         "mobile-overlay/src/app/propiedades"
       ]
