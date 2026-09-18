@@ -1,0 +1,255 @@
+{
+  "dataset": "palta_food_observations_rm",
+  "observed_at": "2026-09-18",
+  "currency": "CLP",
+  "scope": "Región Metropolitana de Santiago",
+  "records": [
+    {
+      "outlet": {
+        "outlet_key": "cl-rm-vitacura-rishtedar-vitacura-5461",
+        "brand_name": "Rishtedar",
+        "outlet_name": "Vitacura",
+        "address": "Av. Vitacura 5461",
+        "comuna": "Vitacura",
+        "region": "Región Metropolitana",
+        "postal_code": "7630000",
+        "public_contact": {
+          "phone": "+56232040981",
+          "website": "https://rishtedar.cl/locales"
+        },
+        "identity_status": "verified"
+      },
+      "listing": {
+        "platform": "uber_eats",
+        "listing_id": "bJYZDYvFUS2cYZ2UCT4OUA",
+        "listing_name": "Rishtedar (Vitacura)",
+        "url": "https://www.ubereats.com/cl/store/rishtedar-vitacura/bJYZDYvFUS2cYZ2UCT4OUA",
+        "platform_categories": ["India", "Vegetariana", "Asiática"],
+        "delivery_supported": true,
+        "scheduled_orders_supported": true
+      },
+      "menu_snapshot": {
+        "sections": ["Ahorros exclusivos", "Artículos destacados"],
+        "sample_items": [
+          {"name": "Arroz Basmati", "price_clp": 4900},
+          {"name": "Butter Chicken", "price_clp": 18200},
+          {"name": "Murgh Curry", "price_clp": 14560},
+          {"name": "Dal Tadka", "price_clp": 9360}
+        ]
+      },
+      "evidence": [
+        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/rishtedar-vitacura/bJYZDYvFUS2cYZ2UCT4OUA", "observed_at": "2026-09-18"},
+        {"kind": "official_website", "url": "https://rishtedar.cl/locales", "observed_at": "2026-09-18"}
+      ]
+    },
+    {
+      "outlet": {
+        "outlet_key": "cl-rm-la-reina-rishtedar-principe-de-gales-6500",
+        "brand_name": "Rishtedar",
+        "outlet_name": "La Reina",
+        "address": "Av. Príncipe de Gales 6500",
+        "comuna": "La Reina",
+        "region": "Región Metropolitana",
+        "postal_code": "7850286",
+        "public_contact": {
+          "phone": "+56232359977",
+          "website": "https://rishtedar.cl/locales"
+        },
+        "identity_status": "verified"
+      },
+      "listing": {
+        "platform": "uber_eats",
+        "listing_id": "4G4LFIFpX0qS0J1QEYcsqA",
+        "listing_name": "Rishtedar (La Reina)",
+        "url": "https://www.ubereats.com/cl/store/rishtedar-la-reina/4G4LFIFpX0qS0J1QEYcsqA",
+        "platform_categories": ["India", "Vegetariana", "Asiática"],
+        "delivery_supported": true,
+        "scheduled_orders_supported": true
+      },
+      "menu_snapshot": {
+        "sections": ["Artículos destacados"],
+        "sample_items": [
+          {"name": "Butter Chicken", "price_clp": 18200},
+          {"name": "Murgh Curry", "price_clp": 18200}
+        ]
+      },
+      "evidence": [
+        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/rishtedar-la-reina/4G4LFIFpX0qS0J1QEYcsqA", "observed_at": "2026-09-18"},
+        {"kind": "official_website", "url": "https://rishtedar.cl/locales", "observed_at": "2026-09-18"}
+      ]
+    },
+    {
+      "outlet": {
+        "outlet_key": "cl-rm-lo-barnechea-rishtedar-el-rodeo-12850",
+        "brand_name": "Rishtedar",
+        "outlet_name": "La Dehesa",
+        "address": "El Rodeo 12850, Local 74 y 75",
+        "comuna": "Lo Barnechea",
+        "region": "Región Metropolitana",
+        "postal_code": "7690000",
+        "public_contact": {
+          "phone": "+56233454142",
+          "website": "https://rishtedar.cl/locales"
+        },
+        "identity_status": "verified",
+        "identity_note": "Current Uber listing is active. A separate historical Uber listing for the same branded branch is closed and carried a conflicting source address; retain it only as listing history."
+      },
+      "listing": {
+        "platform": "uber_eats",
+        "listing_id": "q4OI0aOTX_-N2OVyM5HWcQ",
+        "listing_name": "Rishtedar (La Dehesa)",
+        "url": "https://www.ubereats.com/cl/store/rishtedar-la-dehesa/q4OI0aOTX_-N2OVyM5HWcQ",
+        "platform_categories": ["India", "Vegetariana", "Asiática"],
+        "delivery_supported": true,
+        "observed_availability": "available"
+      },
+      "related_platform_listings": [
+        {
+          "platform": "uber_eats",
+          "listing_id": "Mbg-bT3fW9WMn1jvnaXK1g",
+          "listing_name": "Rishtedar (La Dehesa)",
+          "url": "https://www.ubereats.com/cl/store/rishtedar-la-dehesa/Mbg-bT3fW9WMn1jvnaXK1g",
+          "source_address": "Las Condes 12253lc 84 Las Condes, Providencia",
+          "observed_availability": "closed_on_platform",
+          "closed_on_platform_at": "2025-09-24T18:36:10.087Z"
+        }
+      ],
+      "menu_snapshot": {
+        "sections": ["Artículos destacados"],
+        "sample_items": [
+          {"name": "Butter Chicken", "price_clp": 18200},
+          {"name": "Karay Murgh Tikka Masala", "price_clp": 20000},
+          {"name": "Murgh Curry", "price_clp": 18900}
+        ]
+      },
+      "evidence": [
+        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/rishtedar-la-dehesa/q4OI0aOTX_-N2OVyM5HWcQ", "observed_at": "2026-09-18"},
+        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/rishtedar-la-dehesa/Mbg-bT3fW9WMn1jvnaXK1g", "observed_at": "2026-09-18"},
+        {"kind": "official_website", "url": "https://rishtedar.cl/locales", "observed_at": "2026-09-18"}
+      ]
+    },
+    {
+      "outlet": {
+        "outlet_key": "cl-rm-la-florida-meraki-sushi-la-florida-9490",
+        "brand_name": "Meraki Sushi",
+        "outlet_name": "La Florida",
+        "address": "Avenida La Florida 9490",
+        "comuna": "La Florida",
+        "region": "Región Metropolitana",
+        "postal_code": "8240000",
+        "public_contact": {
+          "phone": "+56977665266",
+          "website": "https://www.merakisushi.cl/locales/"
+        },
+        "identity_status": "verified"
+      },
+      "listing": {
+        "platform": "uber_eats",
+        "listing_id": "5HPOwMxTUASQpJirZkkqLA",
+        "listing_name": "Meraki sushi - La Florida",
+        "url": "https://www.ubereats.com/cl/store/meraki-sushi-la-florida/5HPOwMxTUASQpJirZkkqLA",
+        "platform_categories": ["Japonesa", "Asiática", "Sushi"],
+        "delivery_supported": true,
+        "pickup_supported": true,
+        "scheduled_orders_supported": true
+      },
+      "menu_snapshot": {
+        "sections": ["Artículos destacados"],
+        "sample_items": [
+          {"name": "Promo 20", "price_clp": 8495},
+          {"name": "Promo 30", "price_clp": 13990},
+          {"name": "Ding Dong Acevichada", "price_clp": 9990},
+          {"name": "Promo 50", "price_clp": 21990},
+          {"name": "Gohan", "price_clp": 7490},
+          {"name": "Empanadas", "price_clp": 6990}
+        ]
+      },
+      "evidence": [
+        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/meraki-sushi-la-florida/5HPOwMxTUASQpJirZkkqLA", "observed_at": "2026-09-18"},
+        {"kind": "official_website", "url": "https://www.merakisushi.cl/locales/", "observed_at": "2026-09-18"}
+      ]
+    },
+    {
+      "outlet": {
+        "outlet_key": "cl-rm-providencia-meraki-sushi-los-leones-1973",
+        "brand_name": "Meraki Sushi",
+        "outlet_name": "Providencia",
+        "address": "Avenida Los Leones 1973",
+        "comuna": "Providencia",
+        "region": "Región Metropolitana",
+        "postal_code": "7500000",
+        "public_contact": {
+          "phone": "+56933665931",
+          "website": "https://www.merakisushi.cl/locales/"
+        },
+        "identity_status": "verified"
+      },
+      "listing": {
+        "platform": "uber_eats",
+        "listing_id": "FnupNO7NX8-LhOF_8cDNYg",
+        "listing_name": "Meraki Sushi - Providencia",
+        "url": "https://www.ubereats.com/cl/store/meraki-sushi-providencia/FnupNO7NX8-LhOF_8cDNYg",
+        "platform_categories": ["Japonesa", "Sushi"],
+        "delivery_supported": true,
+        "pickup_supported": true,
+        "scheduled_orders_supported": true
+      },
+      "menu_snapshot": {
+        "sections": ["Artículos destacados"],
+        "sample_items": [
+          {"name": "Promo 20", "price_clp": 8495},
+          {"name": "Promo 30", "price_clp": 13990},
+          {"name": "Promo 50", "price_clp": 21990},
+          {"name": "Ding Dong Acevichada", "price_clp": 9990},
+          {"name": "Gohan", "price_clp": 7490},
+          {"name": "Empanadas", "price_clp": 6990}
+        ]
+      },
+      "evidence": [
+        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/meraki-sushi-providencia/FnupNO7NX8-LhOF_8cDNYg", "observed_at": "2026-09-18"},
+        {"kind": "official_website", "url": "https://www.merakisushi.cl/locales/", "observed_at": "2026-09-18"}
+      ]
+    },
+    {
+      "outlet": {
+        "outlet_key": "cl-rm-penalolen-meraki-sushi-las-perdices-2990",
+        "brand_name": "Meraki Sushi",
+        "outlet_name": "Peñalolén",
+        "address": "Avenida Las Perdices 2990",
+        "comuna": "Peñalolén",
+        "region": "Región Metropolitana",
+        "postal_code": "7910000",
+        "public_contact": {
+          "phone": "+56935764006",
+          "website": "https://www.merakisushi.cl/locales/"
+        },
+        "identity_status": "verified"
+      },
+      "listing": {
+        "platform": "uber_eats",
+        "listing_id": "HcnlWCicV5SscvgTIldneA",
+        "listing_name": "Meraki sushi - Peñalolen",
+        "url": "https://www.ubereats.com/cl/store/meraki-sushi-penalolen/HcnlWCicV5SscvgTIldneA",
+        "platform_categories": ["Japonesa", "Asiática", "Sushi"],
+        "delivery_supported": true,
+        "pickup_supported": true,
+        "scheduled_orders_supported": true
+      },
+      "menu_snapshot": {
+        "sections": ["Artículos destacados", "Promociones"],
+        "sample_items": [
+          {"name": "Promo 20", "price_clp": 8495},
+          {"name": "Promo 30", "price_clp": 13990},
+          {"name": "Ding Dong Acevichada", "price_clp": 9990},
+          {"name": "Promo 100", "price_clp": 41990},
+          {"name": "Gohan", "price_clp": 7490},
+          {"name": "Empanadas", "price_clp": 6990}
+        ]
+      },
+      "evidence": [
+        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/meraki-sushi-penalolen/HcnlWCicV5SscvgTIldneA", "observed_at": "2026-09-18"},
+        {"kind": "official_website", "url": "https://www.merakisushi.cl/locales/", "observed_at": "2026-09-18"}
+      ]
+    }
+  ]
+}
