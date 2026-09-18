@@ -43,6 +43,8 @@ export {
   type SurfaceKey,
 } from './surfaceCatalog.js';
 
+export { businessVerificationLabel } from './businessCatalog.js';
+
 export {
   hasTranslation,
   resolveLocalizedContent,
