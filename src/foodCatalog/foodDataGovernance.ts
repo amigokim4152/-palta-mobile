@@ -20,6 +20,12 @@ export type FoodFactKind =
 
 const RESEARCH_ONLY_SOURCES = new Set<FoodSourceKind>(['uber_eats']);
 
+/**
+ * Sources that are sufficiently independent from a delivery marketplace to
+ * support Palta production facts when the specific fact is actually present
+ * in that source. Another delivery marketplace (for example Rappi) is useful
+ * corroboration, but is intentionally not enough by itself for production.
+ */
 const INDEPENDENT_PRODUCTION_SOURCES = new Set<FoodSourceKind>([
   'official_website',
   'official_social',
@@ -65,6 +71,21 @@ export function hasMerchantEvidence(evidence: readonly FoodSourceEvidence[]): bo
 }
 
 /**
+ * Outlet identity may enter the Palta canonical-candidate lane only when both
+ * conditions are true:
+ * 1) identity resolution reached verified/corroborated; and
+ * 2) at least one production-eligible independent source supports the outlet.
+ *
+ * Delivery marketplaces can help discovery/corroboration, but cannot be the
+ * only basis for creating a Palta production business/outlet.
+ */
+export function canPromoteOutletIdentity(outlet: FoodOutletIdentity): boolean {
+  const identityReady =
+    outlet.identityStatus === 'verified' || outlet.identityStatus === 'corroborated';
+  return identityReady && hasIndependentProductionEvidence(outlet.evidence);
+}
+
+/**
  * Uber Eats and similar delivery-platform observations may be retained for
  * market research/taxonomy work, but they must not be the sole evidence used
  * to publish a Palta canonical fact.
@@ -73,7 +94,7 @@ export function decideFoodFactPromotion(
   outlet: FoodOutletIdentity,
   factEvidence: FoodFactEvidenceSet,
 ): FoodCanonicalPromotionDecision {
-  if (outlet.identityStatus !== 'verified' && outlet.identityStatus !== 'corroborated') {
+  if (!canPromoteOutletIdentity(outlet)) {
     return {
       allowed: false,
       layer: 'research_observation',
