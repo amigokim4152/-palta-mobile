@@ -56,7 +56,10 @@ export {
 
 export {
   resolvePreferredLocale,
+  resolveSignedInLocalePreference,
   updateLocalePreference,
   type LocalePreferenceInput,
   type LocalePreferenceRecord,
+  type SignedInLocaleResolution,
+  type SignedInLocaleResolutionInput,
 } from './preference.js';
