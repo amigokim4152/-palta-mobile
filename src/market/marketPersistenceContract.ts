@@ -9,12 +9,15 @@ export type PaltaUserId = string;
 export type IsoDateTime = string;
 
 export type MarketLocationSummary = {
+  /** Chile comuna code when available. */
   comunaCode?: string;
   comunaName: string;
+  /** Optional coarse centroid/meeting-area reference. Never an exact home address. */
   areaRef?: string;
 };
 
 export type MarketMediaRef = {
+  /** Reference into the shared Media Core. Mercado does not own binary storage. */
   mediaAssetId: string;
   sortOrder: number;
   altText?: string;
@@ -34,6 +37,7 @@ export type MarketListingRecord = {
   createdAt: IsoDateTime;
   updatedAt: IsoDateTime;
   publishedAt?: IsoDateTime;
+  /** Incremented on every mutation for optimistic concurrency. */
   version: number;
 };
 
@@ -52,6 +56,7 @@ export type MarketPublicListing = Omit<
   seller: MarketPublicSellerSummary;
   favoriteCount: number;
   chatCount?: number;
+  /** Distance is computed for the viewer; raw user coordinates are never returned. */
   distanceKm?: number;
 };
 
@@ -67,12 +72,29 @@ export type MarketTransactionStatus =
   | 'completed'
   | 'cancelled';
 
+/**
+ * Immutable user-facing listing context copied when a transaction starts.
+ * This keeps transaction/review history understandable after the public listing
+ * is sold, withdrawn or later edited, without exposing private seller fields.
+ */
+export type MarketTransactionListingSnapshot = {
+  listingId: MarketId;
+  title: string;
+  category: Exclude<MarketCategoryKey, 'all'>;
+  tradeMode: MarketTradeMode;
+  priceClp?: number;
+  comunaName: string;
+  mediaAssetId?: string;
+};
+
 export type MarketTransactionRecord = {
   id: MarketId;
   listingId: MarketId;
   sellerUserId: PaltaUserId;
   buyerUserId: PaltaUserId;
   status: MarketTransactionStatus;
+  listingSnapshot: MarketTransactionListingSnapshot;
+  /** Optional reference owned by Message Core, never a copied conversation. */
   conversationId?: string;
   createdAt: IsoDateTime;
   updatedAt: IsoDateTime;
@@ -95,6 +117,11 @@ export type MarketTransactionReview = {
   createdAt: IsoDateTime;
 };
 
+/**
+ * Explicit privacy boundary for persistence/API implementations.
+ * These values must not be persisted in the public listing record or returned
+ * by public Mercado discovery endpoints.
+ */
 export const MARKET_PUBLIC_LISTING_FORBIDDEN_FIELDS = [
   'exactAddress',
   'streetAddress',
