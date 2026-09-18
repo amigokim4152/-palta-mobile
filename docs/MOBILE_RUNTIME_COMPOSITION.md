@@ -50,6 +50,7 @@ Current surfaces:
 - Home → `integration/home-functional-foundation-v1` (`reviewed_snapshot`)
 - Negocios → `integration/local-business-v1` (`live_overlay`)
 - Community → `integration/community-runtime-v1` (`reviewed_snapshot`)
+- Mercado → `integration/market-v1` (`live_overlay`)
 
 ## Current Shared Core watches
 
