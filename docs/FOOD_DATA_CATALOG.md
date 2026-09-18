@@ -75,6 +75,24 @@ When researching a candidate, collect the restaurant context and menu context to
 9. Delivery / pickup / scheduled-order observations.
 10. Observation timestamp and evidence URLs.
 
+### Collect first, contact second
+
+The operational sequence is deliberately:
+
+`collect factual candidate data -> organize/normalize -> find public business contact -> queue merchant outreach -> request authorization -> promote approved facts`
+
+During the initial collection phase:
+
+- **do not collect or copy photos**;
+- do not copy reviews, ratings or long creative descriptions;
+- prioritize factual business/menu fields only;
+- keep public phone/WhatsApp/website when independently available so the merchant can be contacted later;
+- do not send outreach automatically from the food catalog pipeline.
+
+`scripts/build-food-merchant-outreach-queue.mjs` produces the contact queue. Actual WhatsApp sending belongs to the shared Messaging Core.
+
+The default merchant authorization request covers business identity, outlet address, public contact, opening hours, menu item names, menu prices and pickup/delivery facts. Images are intentionally excluded and would require a separate future asset permission flow.
+
 ## Identity model
 
 Do not assume `one delivery-platform listing = one canonical Palta Business`.
