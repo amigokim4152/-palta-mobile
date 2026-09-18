@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import {
+  Alert,
   Image,
   Pressable,
   SafeAreaView,
@@ -9,6 +10,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import type { MarketTransactionView } from '../../../../src/market/marketApiContract';
 import {
   canTransitionMarketListing,
   marketListingStatusMeta,
@@ -16,21 +18,20 @@ import {
 } from '../../../../src/market/marketLifecycle';
 import type {
   MarketListingRecord,
-  MarketTransactionRecord,
 } from '../../../../src/market/marketPersistenceContract';
+import {
+  canUseManualListingDisposition,
+  marketCounterpartyLabel,
+  marketCounterpartyTrustLabel,
+  marketSellerCoordinationForListing,
+} from '../../../../src/market/marketSellerCoordination';
 import { paltaTheme } from '../../theme/paltaTheme';
 import { getMarketRuntime } from './marketRuntime';
-
-function actionLabel(status: MarketListingStatus) {
-  if (status === 'active') return 'Marcar reservado';
-  if (status === 'reserved') return 'Volver a disponible';
-  return undefined;
-}
 
 export function MyMarketListingsScreen() {
   const runtime = useMemo(() => getMarketRuntime(), []);
   const [listings, setListings] = useState<MarketListingRecord[]>([]);
-  const [transactions, setTransactions] = useState<MarketTransactionRecord[]>([]);
+  const [transactions, setTransactions] = useState<MarketTransactionView[]>([]);
   const [loading, setLoading] = useState(Boolean(runtime.read));
   const [error, setError] = useState<string | undefined>(
     runtime.read ? undefined : runtime.unavailableReason,
@@ -59,20 +60,108 @@ export function MyMarketListingsScreen() {
     void load();
   }, [runtime]);
 
-  async function transition(listing: MarketListingRecord, next: MarketListingStatus) {
+  async function transitionListingManually(
+    listing: MarketListingRecord,
+    next: MarketListingStatus,
+  ) {
     if (!runtime.mutation || !canTransitionMarketListing(listing.status, next)) return;
     setMutatingId(listing.id);
+    setError(undefined);
     try {
-      const updated = await runtime.mutation.transitionListing({
+      await runtime.mutation.transitionListing({
         listingId: listing.id,
         expectedVersion: listing.version,
         toStatus: next,
       });
-      setListings((current) =>
-        current.map((item) => (item.id === updated.id ? updated : item)),
-      );
+      await load();
     } catch {
       setError('No pudimos cambiar el estado de esta publicación.');
+    } finally {
+      setMutatingId(undefined);
+    }
+  }
+
+  function confirmManualTransition(
+    listing: MarketListingRecord,
+    next: MarketListingStatus,
+  ) {
+    const sold = next === 'sold';
+    Alert.alert(
+      sold ? 'Venta por otro medio' : 'Reserva por otro medio',
+      sold
+        ? 'Usa esta opción si la venta se coordinó fuera de Palta. No creará una transacción ni una reseña dentro de Palta.'
+        : 'Usa esta opción si reservaste el artículo fuera de Palta. No se vinculará a una conversación de Palta.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: sold ? 'Marcar vendido' : 'Marcar reservado',
+          onPress: () => void transitionListingManually(listing, next),
+        },
+      ],
+    );
+  }
+
+  async function reserveFor(transaction: MarketTransactionView) {
+    if (!runtime.mutation || transaction.status !== 'coordinating') return;
+    setMutatingId(transaction.id);
+    setError(undefined);
+    try {
+      await runtime.mutation.reserveTransaction({ transactionId: transaction.id });
+      await load();
+    } catch {
+      setError('No pudimos reservar el artículo para esta persona.');
+    } finally {
+      setMutatingId(undefined);
+    }
+  }
+
+  async function cancelReservation(transaction: MarketTransactionView) {
+    if (!runtime.mutation || transaction.status !== 'reserved') return;
+    setMutatingId(transaction.id);
+    setError(undefined);
+    try {
+      await runtime.mutation.cancelTransaction({ transactionId: transaction.id });
+      await load();
+    } catch {
+      setError('No pudimos cancelar esta reserva.');
+    } finally {
+      setMutatingId(undefined);
+    }
+  }
+
+  async function completeTransaction(transaction: MarketTransactionView) {
+    if (!runtime.mutation || transaction.status !== 'reserved') return;
+    setMutatingId(transaction.id);
+    setError(undefined);
+    try {
+      await runtime.mutation.completeTransaction({ transactionId: transaction.id });
+      await load();
+    } catch {
+      setError('No pudimos confirmar la entrega.');
+    } finally {
+      setMutatingId(undefined);
+    }
+  }
+
+  async function openConversation(transaction: MarketTransactionView) {
+    if (!runtime.messaging || !transaction.conversationId) {
+      setError('La conversación no está disponible en este momento.');
+      return;
+    }
+    setMutatingId(transaction.id);
+    setError(undefined);
+    try {
+      await runtime.messaging.openConversation({
+        conversationId: transaction.conversationId,
+        focus: {
+          sourceCore: 'market',
+          resourceType: 'market_transaction',
+          resourceId: transaction.id,
+          label: transaction.listingSnapshot.title,
+        },
+      });
+    } catch {
+      setError('No pudimos abrir la conversación.');
     } finally {
       setMutatingId(undefined);
     }
@@ -86,7 +175,9 @@ export function MyMarketListingsScreen() {
         </Pressable>
         <View style={styles.headerTextBlock}>
           <Text style={styles.heading}>Mis publicaciones</Text>
-          <Text style={styles.subheading}>Gestiona el estado sin volver a publicar.</Text>
+          <Text style={styles.subheading}>
+            Reserva y completa cada venta con la persona correcta.
+          </Text>
         </View>
       </View>
 
@@ -101,19 +192,18 @@ export function MyMarketListingsScreen() {
         ) : null}
 
         {error ? (
-          <View style={styles.stateCard}>
-            <Text style={styles.stateTitle}>Mercado no está disponible</Text>
-            <Text style={styles.stateBody}>{error}</Text>
+          <View style={styles.errorCard}>
+            <Text style={styles.errorText}>{error}</Text>
           </View>
         ) : null}
 
-        {!error && loading ? (
+        {loading ? (
           <View style={styles.stateCard}>
             <Text style={styles.stateTitle}>Cargando tus publicaciones…</Text>
           </View>
         ) : null}
 
-        {!error && !loading && listings.length === 0 ? (
+        {!loading && listings.length === 0 ? (
           <View style={styles.stateCard}>
             <Text style={styles.stateTitle}>Todavía no tienes publicaciones</Text>
             <Text style={styles.stateBody}>
@@ -127,20 +217,16 @@ export function MyMarketListingsScreen() {
           const imageUrl = firstMedia
             ? runtime.resolveMediaAssetUrl(firstMedia.mediaAssetId)
             : undefined;
-          const secondaryAction = actionLabel(listing.status);
-          const secondaryTarget: MarketListingStatus | undefined =
-            listing.status === 'active'
-              ? 'reserved'
-              : listing.status === 'reserved'
-                ? 'active'
-                : undefined;
-          const canMarkSold = canTransitionMarketListing(listing.status, 'sold');
-          const completedTransaction = transactions.find(
-            (transaction) =>
-              transaction.listingId === listing.id &&
-              transaction.status === 'completed',
-          );
-          const busy = mutatingId === listing.id;
+          const coordination = marketSellerCoordinationForListing({
+            listing,
+            transactions,
+          });
+          const manualDisposition = canUseManualListingDisposition({
+            listing,
+            coordination,
+          });
+          const completedTransaction = coordination.completed[0];
+          const listingBusy = mutatingId === listing.id;
 
           return (
             <View key={listing.id} style={styles.card}>
@@ -165,28 +251,134 @@ export function MyMarketListingsScreen() {
                 </View>
               </View>
 
-              <View style={styles.actions}>
-                {secondaryAction && secondaryTarget ? (
-                  <Pressable
-                    disabled={busy}
-                    onPress={() => transition(listing, secondaryTarget)}
-                    style={styles.secondaryButton}
-                  >
-                    <Text style={styles.secondaryButtonText}>{secondaryAction}</Text>
-                  </Pressable>
-                ) : null}
+              {coordination.reserved ? (
+                <View style={styles.reservationCard}>
+                  <Text style={styles.transactionEyebrow}>RESERVADO EN PALTA</Text>
+                  <Text style={styles.transactionName}>
+                    {marketCounterpartyLabel(coordination.reserved)}
+                  </Text>
+                  {marketCounterpartyTrustLabel(coordination.reserved) ? (
+                    <Text style={styles.transactionMeta}>
+                      {marketCounterpartyTrustLabel(coordination.reserved)}
+                    </Text>
+                  ) : null}
+                  <View style={styles.transactionActions}>
+                    {coordination.reserved.conversationId ? (
+                      <Pressable
+                        disabled={mutatingId === coordination.reserved.id}
+                        onPress={() => void openConversation(coordination.reserved!)}
+                        style={styles.secondaryButton}
+                      >
+                        <Text style={styles.secondaryButtonText}>Mensaje</Text>
+                      </Pressable>
+                    ) : null}
+                    <Pressable
+                      disabled={mutatingId === coordination.reserved.id}
+                      onPress={() => void cancelReservation(coordination.reserved!)}
+                      style={styles.secondaryButton}
+                    >
+                      <Text style={styles.secondaryButtonText}>Cancelar reserva</Text>
+                    </Pressable>
+                    <Pressable
+                      disabled={mutatingId === coordination.reserved.id}
+                      onPress={() => void completeTransaction(coordination.reserved!)}
+                      style={styles.primaryButton}
+                    >
+                      <Text style={styles.primaryButtonText}>Confirmar entrega</Text>
+                    </Pressable>
+                  </View>
+                </View>
+              ) : null}
 
-                {canMarkSold ? (
-                  <Pressable
-                    disabled={busy}
-                    onPress={() => transition(listing, 'sold')}
-                    style={styles.primaryButton}
-                  >
-                    <Text style={styles.primaryButtonText}>Marcar vendido</Text>
-                  </Pressable>
-                ) : null}
+              {!coordination.reserved && coordination.coordinating.length > 0 ? (
+                <View style={styles.interestSection}>
+                  <Text style={styles.interestHeading}>
+                    {coordination.coordinating.length === 1
+                      ? '1 persona está coordinando'
+                      : `${coordination.coordinating.length} personas están coordinando`}
+                  </Text>
+                  <Text style={styles.interestHint}>
+                    Reserva sólo cuando hayas acordado la entrega con una persona.
+                  </Text>
+                  {coordination.coordinating.map((transaction) => {
+                    const transactionBusy = mutatingId === transaction.id;
+                    const trust = marketCounterpartyTrustLabel(transaction);
+                    return (
+                      <View key={transaction.id} style={styles.interestRow}>
+                        <View style={styles.interestBody}>
+                          <Text style={styles.transactionName}>
+                            {marketCounterpartyLabel(transaction)}
+                          </Text>
+                          {trust ? (
+                            <Text style={styles.transactionMeta}>{trust}</Text>
+                          ) : (
+                            <Text style={styles.transactionMeta}>
+                              Conversación vinculada a esta publicación
+                            </Text>
+                          )}
+                        </View>
+                        <View style={styles.compactActions}>
+                          {transaction.conversationId ? (
+                            <Pressable
+                              disabled={transactionBusy}
+                              onPress={() => void openConversation(transaction)}
+                              style={styles.smallSecondaryButton}
+                            >
+                              <Text style={styles.smallSecondaryText}>Mensaje</Text>
+                            </Pressable>
+                          ) : null}
+                          <Pressable
+                            disabled={transactionBusy}
+                            onPress={() => void reserveFor(transaction)}
+                            style={styles.smallPrimaryButton}
+                          >
+                            <Text style={styles.smallPrimaryText}>Reservar</Text>
+                          </Pressable>
+                        </View>
+                      </View>
+                    );
+                  })}
+                </View>
+              ) : null}
 
-                {completedTransaction ? (
+              {manualDisposition ? (
+                <View style={styles.manualSection}>
+                  <Text style={styles.manualLabel}>¿Lo coordinaste fuera de Palta?</Text>
+                  <View style={styles.transactionActions}>
+                    {listing.status === 'active' ? (
+                      <Pressable
+                        disabled={listingBusy}
+                        onPress={() => confirmManualTransition(listing, 'reserved')}
+                        style={styles.secondaryButton}
+                      >
+                        <Text style={styles.secondaryButtonText}>Reservado por otro medio</Text>
+                      </Pressable>
+                    ) : null}
+                    {listing.status === 'reserved' ? (
+                      <Pressable
+                        disabled={listingBusy}
+                        onPress={() => void transitionListingManually(listing, 'active')}
+                        style={styles.secondaryButton}
+                      >
+                        <Text style={styles.secondaryButtonText}>Volver a disponible</Text>
+                      </Pressable>
+                    ) : null}
+                    {canTransitionMarketListing(listing.status, 'sold') ? (
+                      <Pressable
+                        disabled={listingBusy}
+                        onPress={() => confirmManualTransition(listing, 'sold')}
+                        style={styles.secondaryButton}
+                      >
+                        <Text style={styles.secondaryButtonText}>Vendido por otro medio</Text>
+                      </Pressable>
+                    ) : null}
+                  </View>
+                </View>
+              ) : null}
+
+              {completedTransaction ? (
+                <View style={styles.reviewSection}>
+                  <Text style={styles.reviewText}>Transacción completada en Palta</Text>
                   <Pressable
                     onPress={() =>
                       router.push(`/market/review/${completedTransaction.id}`)
@@ -195,8 +387,8 @@ export function MyMarketListingsScreen() {
                   >
                     <Text style={styles.primaryButtonText}>Dejar reseña</Text>
                   </Pressable>
-                ) : null}
-              </View>
+                </View>
+              ) : null}
             </View>
           );
         })}
@@ -251,6 +443,12 @@ const styles = StyleSheet.create({
     fontSize: 11,
     lineHeight: 16,
   },
+  errorCard: {
+    borderRadius: paltaTheme.radius.control,
+    backgroundColor: paltaTheme.color.surfaceMuted,
+    padding: 12,
+  },
+  errorText: { color: paltaTheme.color.danger, fontSize: 12, lineHeight: 17 },
   stateCard: {
     borderRadius: paltaTheme.radius.surface,
     borderWidth: 1,
@@ -317,13 +515,93 @@ const styles = StyleSheet.create({
     color: paltaTheme.color.textMuted,
     fontSize: 11,
   },
-  actions: {
-    padding: 10,
-    paddingTop: 0,
+  reservationCard: {
+    marginHorizontal: 10,
+    marginBottom: 10,
+    borderRadius: paltaTheme.radius.control,
+    backgroundColor: paltaTheme.color.brandSoft,
+    padding: 12,
+  },
+  transactionEyebrow: {
+    color: paltaTheme.color.brandPrimary,
+    fontSize: 10,
+    fontWeight: '900',
+  },
+  transactionName: {
+    marginTop: 3,
+    color: paltaTheme.color.textPrimary,
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  transactionMeta: {
+    marginTop: 2,
+    color: paltaTheme.color.textSecondary,
+    fontSize: 11,
+    lineHeight: 16,
+  },
+  transactionActions: {
+    marginTop: 10,
     flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: 8,
     flexWrap: 'wrap',
+    gap: 7,
+  },
+  interestSection: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: paltaTheme.color.divider,
+    padding: 12,
+    gap: 8,
+  },
+  interestHeading: {
+    color: paltaTheme.color.textPrimary,
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  interestHint: {
+    color: paltaTheme.color.textSecondary,
+    fontSize: 11,
+    lineHeight: 16,
+  },
+  interestRow: {
+    borderRadius: paltaTheme.radius.control,
+    backgroundColor: paltaTheme.color.surfaceMuted,
+    padding: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  interestBody: { flex: 1 },
+  compactActions: { flexDirection: 'row', gap: 6 },
+  smallSecondaryButton: {
+    minHeight: 34,
+    justifyContent: 'center',
+    borderRadius: paltaTheme.radius.control,
+    borderWidth: 1,
+    borderColor: paltaTheme.color.border,
+    paddingHorizontal: 9,
+    backgroundColor: paltaTheme.color.surface,
+  },
+  smallSecondaryText: {
+    color: paltaTheme.color.textSecondary,
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  smallPrimaryButton: {
+    minHeight: 34,
+    justifyContent: 'center',
+    borderRadius: paltaTheme.radius.control,
+    backgroundColor: paltaTheme.color.brandPrimary,
+    paddingHorizontal: 10,
+  },
+  smallPrimaryText: { color: '#FFFFFF', fontSize: 11, fontWeight: '800' },
+  manualSection: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: paltaTheme.color.divider,
+    padding: 10,
+  },
+  manualLabel: {
+    color: paltaTheme.color.textMuted,
+    fontSize: 11,
+    fontWeight: '700',
   },
   secondaryButton: {
     minHeight: 38,
@@ -332,6 +610,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: paltaTheme.color.border,
     paddingHorizontal: 12,
+    backgroundColor: paltaTheme.color.surface,
   },
   secondaryButtonText: {
     color: paltaTheme.color.textSecondary,
@@ -346,6 +625,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   primaryButtonText: { color: '#FFFFFF', fontSize: 12, fontWeight: '800' },
+  reviewSection: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: paltaTheme.color.divider,
+    padding: 10,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 8,
+  },
+  reviewText: {
+    flex: 1,
+    color: paltaTheme.color.textSecondary,
+    fontSize: 11,
+  },
   newListingButton: {
     minHeight: 52,
     marginTop: 4,
