@@ -237,7 +237,7 @@ async function getAssetSize(url, label) {
   const ranged = await fetch(url, { headers: { Range: 'bytes=0-0' } });
   assert(ranged.status === 206, `${label} range expected 206, got ${ranged.status}`);
   const contentRange = ranged.headers.get('content-range') ?? '';
-  const match = contentRange.match(/^bytes\\s+0-0\\/(\\d+)$/i);
+  const match = contentRange.match(/^bytes\s+0-0\/(\d+)$/i);
   const rangeSize = Number(match?.[1]);
   assert(
     Number.isFinite(rangeSize) && rangeSize > 0,
