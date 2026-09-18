@@ -51,6 +51,9 @@ Current surfaces:
 - Negocios → `integration/local-business-v1` (`live_overlay`)
 - Community → `integration/community-runtime-v1` (`reviewed_snapshot`)
 - Mercado → `integration/market-v1` (`live_overlay`)
+- Play / Panoramas → `integration/play-discovery-v1` (`live_overlay`)
+
+Play owns only its isolated discovery surface and Play-domain contracts. It consumes the shared Map/Search/Location/Care infrastructure rather than creating Play-specific copies of those cores. Its initial discovery projection is public/municipal-event-first, organized by user intent such as today, weekend, family, free, outdoor, and birthday.
 
 ## Current Shared Core integrations
 
