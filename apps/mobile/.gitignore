@@ -37,6 +37,9 @@ yarn-error.*
 
 # local env files
 .env*.local
+# Server-only synthetic fixture credentials. The committed template is
+# .env.golden.example; real values belong only in this ignored local file.
+.env.golden
 
 # typescript
 *.tsbuildinfo
