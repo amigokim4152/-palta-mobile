@@ -130,6 +130,38 @@
       ]
     },
     {
+      "id": "autos",
+      "source_branch": "integration/autos-v1",
+      "integration_mode": "reviewed_snapshot",
+      "integrated_source_sha": "51131eefbcf73f29918db5bf04411ba949722a6d",
+      "owned_paths": [
+        "src/autos",
+        "mobile-overlay/src/features/autos",
+        "mobile-overlay/src/app/autos"
+      ],
+      "branch_owned_paths": [
+        "src/autos",
+        "mobile-overlay/src/features/autos",
+        "mobile-overlay/src/app/autos"
+      ]
+    },
+    {
+      "id": "propiedades",
+      "source_branch": "integration/propiedades-v1",
+      "integration_mode": "reviewed_snapshot",
+      "integrated_source_sha": "22cfa680e7209141c6b03da96f2bf40922c7f1a3",
+      "owned_paths": [
+        "src/realEstate",
+        "mobile-overlay/src/features/realEstate",
+        "mobile-overlay/src/app/propiedades"
+      ],
+      "branch_owned_paths": [
+        "src/realEstate",
+        "mobile-overlay/src/features/realEstate",
+        "mobile-overlay/src/app/propiedades"
+      ]
+    },
+    {
       "id": "play",
       "source_branch": "integration/play-discovery-v1",
       "integration_mode": "live_overlay",
