@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-09-17T23:10:00-03:00",
+  "sourceOfTruthBranch": "integration/platform-runtime-foundation-v1",
+  "publicApi": {
+    "productionOrigin": "https://api.somospalta.cl/v1",
+    "policy": "Clients use Palta API for authenticated business operations; provider APIs remain server-side."
+  },
+  "storagePolicy": {
+    "canonicalTransactionalDatabase": "supabase-postgres",
+    "identityProvider": "supabase-auth",
+    "objectStorage": "cloudflare-r2",
+    "asyncTransport": "cloudflare-queues",
+    "deviceLocalStore": "sqlite",
+    "platformSecretBoundary": "external-secret-store-or-kms",
+    "merchantCredentialPersistence": "postgres-encrypted-envelope",
+    "databaseFallback": "neon-postgres"
+  },
+  "environments": {
+    "local": {
+      "status": "planned",
+      "apiBaseUrl": "http://localhost:8787",
+      "databaseProjectId": null,
+      "r2ObjectResource": null,
+      "paymentQueue": null,
+      "fiscalQueue": null,
+      "notificationQueue": null,
+      "providerMode": "mock-or-sandbox",
+      "productionSecretsAllowed": false
+    },
+    "development": {
+      "status": "not_provisioned",
+      "supabase": {
+        "projectId": null,
+        "region": "sa-east-1"
+      },
+      "cloudflare": {
+        "apiWorker": null,
+        "hyperdriveId": null,
+        "r2Objects": null,
+        "r2FiscalArchive": null,
+        "paymentQueue": null,
+        "fiscalQueue": null,
+        "notificationQueue": null
+      },
+      "providerMode": "sandbox",
+      "productionSecretsAllowed": false
+    },
+    "staging": {
+      "status": "not_provisioned",
+      "supabase": {
+        "projectId": null,
+        "region": "sa-east-1"
+      },
+      "cloudflare": {
+        "apiWorker": null,
+        "hyperdriveId": null,
+        "r2Objects": null,
+        "r2FiscalArchive": null,
+        "paymentQueue": null,
+        "fiscalQueue": null,
+        "notificationQueue": null
+      },
+      "providerMode": "sandbox-or-provider-certification",
+      "productionSecretsAllowed": false
+    },
+    "production": {
+      "status": "blocked_until_release_gates",
+      "supabase": {
+        "projectId": null,
+        "region": null
+      },
+      "cloudflare": {
+        "apiWorker": null,
+        "hyperdriveId": null,
+        "r2Objects": null,
+        "r2FiscalArchive": null,
+        "paymentQueue": null,
+        "fiscalQueue": null,
+        "notificationQueue": null
+      },
+      "providerMode": "production",
+      "productionSecretsAllowed": true,
+      "releaseGates": [
+        "backup_restore_verified",
+        "rls_and_worker_role_verified",
+        "secret_rotation_verified",
+        "queue_duplicate_loss_retry_verified",
+        "observability_alerting_verified",
+        "provider_certification_verified",
+        "rollback_runbook_verified"
+      ]
+    }
+  },
+  "mobile": {
+    "runtime": "expo-router-native",
+    "stagingSource": "mobile-overlay",
+    "mapRuntime": "maplibre-react-native",
+    "expoGoAccepted": false,
+    "clientAllowedSecrets": [
+      "EXPO_PUBLIC_PALTA_API_BASE_URL",
+      "EXPO_PUBLIC_APP_ENV",
+      "EXPO_PUBLIC_SUPABASE_URL",
+      "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
+      "EXPO_PUBLIC_MAP_STYLE_URL"
+    ]
+  },
+  "rules": [
+    "main remains untouched until integration verification",
+    "no provider secret or database owner credential in mobile or GitHub",
+    "Postgres is canonical truth for money/fiscal/business state",
+    "queues carry canonical IDs rather than sensitive payloads",
+    "R2 is not transactional truth",
+    "unknown provider capability is not treated as supported",
+    "environment selection is determined by trusted runtime binding, not client input"
+  ]
+}
