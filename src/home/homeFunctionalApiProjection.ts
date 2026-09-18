@@ -16,6 +16,7 @@ function apiKind(item: HomeFunctionalItem): HomeApiItem['kind'] {
 function projectItem(item: HomeFunctionalItem): HomeApiItem {
   const projected: HomeApiItem = {
     id: item.id,
+    ...(item.capabilityKey ? { capability_key: item.capabilityKey } : {}),
     kind: apiKind(item),
     title: item.title,
     source_domain: item.source.domain,
