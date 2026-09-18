@@ -80,7 +80,14 @@ if ! node "$ROOT/dev/mock-api/smoke.mjs"; then
 fi
 info "Mock API smoke test passed."
 
-open -a Simulator
+DEVELOPER_DIR="$(xcode-select -p 2>/dev/null || true)"
+SIMULATOR_APP="${DEVELOPER_DIR}/Applications/Simulator.app"
+if [ -d "$SIMULATOR_APP" ]; then
+  info "Opening Simulator from Xcode developer directory..."
+  open "$SIMULATOR_APP" >/dev/null 2>&1 || true
+else
+  info "Simulator.app not found by path; continuing with simctl boot."
+fi
 
 BOOTED_UDID="$(xcrun simctl list devices booted | awk -F '[()]' '/iPhone/ && /Booted/ {print $2; exit}')"
 if [ -n "$BOOTED_UDID" ]; then
