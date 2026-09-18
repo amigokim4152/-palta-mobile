@@ -73,17 +73,19 @@ export function NeighborhoodScreen() {
 
   const mapFeatures = useMemo<MapFeature[]>(
     () =>
-      visibleResults.map((item) => ({
-        id: item.entity_id,
-        entityType: item.entity_type,
-        coordinate: {
-          latitude: item.location.lat,
-          longitude: item.location.lng,
-        },
-        title: item.name,
-        ...(item.category_key ? { categoryKey: item.category_key } : {}),
-        selected: item.entity_id === neighborhood.selectedEntityId,
-      })),
+      visibleResults
+        .filter((item) => item.location !== undefined)
+        .map((item) => ({
+          id: item.entity_id,
+          entityType: item.entity_type,
+          coordinate: {
+            latitude: item.location!.lat,
+            longitude: item.location!.lng,
+          },
+          title: item.name,
+          ...(item.category_key ? { categoryKey: item.category_key } : {}),
+          selected: item.entity_id === neighborhood.selectedEntityId,
+        })),
     [visibleResults, neighborhood.selectedEntityId],
   );
 
@@ -308,7 +310,12 @@ export function NeighborhoodScreen() {
               ]
                 .filter(Boolean)
                 .join(' · ')}
-              distance={formatDistance(item.distance_m)}
+              distance={
+                item.location
+                  ? formatDistance(item.distance_m)
+                  : 'Zona de atención'
+              }
+              selected={item.entity_id === neighborhood.selectedEntityId}
               onPress={() => openEntity(item.entity_id, item.entity_type)}
             />
           ))}
