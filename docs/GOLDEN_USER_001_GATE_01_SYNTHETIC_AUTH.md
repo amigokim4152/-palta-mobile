@@ -1,87 +1,87 @@
-# Golden User 001 — Gate 01A Synthetic Auth
+# Golden User 001 — Server Fixture Provisioning
 
-Status: `RUNTIME_CONNECTED` — dev-only mobile path is implemented; server provisioning and live restart-cycle evidence remain `NOT VERIFIED`.
+Status: `UTILITY_ONLY` — this document describes optional server-side provisioning for a synthetic development identity. It is **not** a mobile Auth bypass, does **not** split Gate 01, and does **not** allow progression to Gate 02.
 
-## Why this path exists
+## Gate 01 remains unchanged
 
-Golden User 001 must be able to exercise the real Palta account/session/RLS/runtime path without waiting for Apple/Google provider setup or repeatedly opening an email magic link.
+Golden User Gate 01 is governed by:
 
-This is not a mock session. The development login must create a real Supabase Auth session and then pass through the same canonical Palta account resolver, owner RLS, SecureStore persistence, logout, and restore path as normal authentication.
+- `docs/GOLDEN_USER_001_RUNBOOK.md`
+- `docs/GOLDEN_USER_001_GATE_01_AUTH_HANDOFF.md`
 
-## Gate split
+Gate 01 becomes `E2E_VERIFIED` only after the real mobile runtime completes the configured Auth flow against `palta-dev`, restores the same canonical account after app termination/relaunch, logs out, and signs in again to the same account.
 
-- **Gate 01A — Synthetic Auth E2E**: fixed synthetic development user signs in through real Supabase password Auth. Passing 01A allows Golden User 001 to continue to Gate 02.
-- **Gate 01B — Real Provider Smoke**: Apple, Google, and production email/deep-link paths are verified separately before release. 01B does not block product-domain Golden User progression after 01A is E2E verified.
+A server-created fixture or password session is not evidence for that requirement.
 
-## Implemented mobile path
+## Purpose of the fixture utility
 
-On `integration/golden-user-001-v1`:
+`apps/mobile/scripts/provision-golden-user.mjs` is developer/admin tooling for creating or resetting a controlled synthetic Auth user when server/account/RLS tests need a stable fixture.
 
-- `createSupabaseAuthPort.native.ts` exposes a development-only Golden User login action.
-- It calls `supabase.auth.signInWithPassword`, so the returned session/JWT is real Supabase Auth state.
-- The existing `SupabaseAuthAdapter` still resolves the canonical `PaltaUserId` by checking `public.palta_account` under owner RLS.
-- Existing SecureStore session persistence and Auth state subscription are reused.
-- `AuthGate` exposes `Golden User 001로 테스트 로그인` only when development configuration explicitly enables it.
-- Signed-in development builds continue to show Gate 01 identity evidence (`Palta ID`, `Auth ID`).
+It is outside the mobile runtime contract. Mobile application code must not import it, invoke it, or receive its admin credentials.
 
-## Production guard
-
-Synthetic login is unavailable unless all conditions are true:
-
-- `EXPO_PUBLIC_ENABLE_GOLDEN_USER_AUTH=true`
-- environment is not `production`/`prod`
-- synthetic email and password are supplied to the local development build
-
-No Supabase secret/service-role key is accepted by mobile code.
-
-## Server provisioning
-
-`apps/mobile/scripts/provision-golden-user.mjs` is the trusted-server provisioning command.
-
-It requires server-only environment variables:
+The provisioning command requires server-only environment variables:
 
 - `SUPABASE_URL`
 - `SUPABASE_SECRET_KEY` (`sb_secret_...`)
 - `GOLDEN_USER_EMAIL`
 - `GOLDEN_USER_PASSWORD`
 
-It uses the Supabase Auth Admin API to create or update the synthetic user, confirms the email, resets the synthetic password idempotently, and writes only non-sensitive authorization metadata:
+The committed `apps/mobile/.env.golden.example` contains only placeholders for the secret/password. Real values must remain uncommitted and server/developer-side only.
 
-- `synthetic=true`
-- `persona_id=golden-user-001`
-- `environment=development`
+The provisioning utility may:
 
-The secret key and password are never printed.
+1. create or locate the synthetic Supabase Auth user through the Admin API,
+2. confirm/reset the synthetic account for controlled test preparation,
+3. write non-sensitive fixture metadata such as `synthetic=true`, `persona_id=golden-user-001`, and `environment=development`,
+4. rely on the existing server-owned `auth.users` → `public.palta_account` bootstrap trigger.
 
 Do not replace this with direct SQL insertion into `auth.users`.
 
-## Local development configuration
+## Mobile security boundary
 
-The committed `.env.example` keeps synthetic Auth disabled and contains no synthetic password.
+The following are prohibited in the mobile runtime, including development builds:
 
-A local ignored env may set:
+- `SUPABASE_SECRET_KEY`, service-role keys, JWT secrets, or other admin credentials,
+- passwords/secrets/tokens carried in `EXPO_PUBLIC_*`,
+- `EXPO_PUBLIC_GOLDEN_USER_PASSWORD`,
+- a `signInAsGoldenUser` password shortcut,
+- `supabase.auth.signInWithPassword(...)` as a hidden Golden User bypass.
 
-```text
-EXPO_PUBLIC_ENABLE_GOLDEN_USER_AUTH=true
-EXPO_PUBLIC_GOLDEN_USER_EMAIL=<same synthetic email provisioned on server>
-EXPO_PUBLIC_GOLDEN_USER_PASSWORD=<synthetic development password>
-```
+`scripts/check-mobile-auth-secrets.mjs` enforces this boundary in CI.
 
-These values are for development builds only. The synthetic password is therefore treated as a test credential, never a production credential.
+The mobile app uses only the public Supabase URL and publishable key, then follows the configured user-facing provider path through the existing Auth adapter/provider boundary.
 
-## Gate 01A Definition of Done
+## Current provider state
 
-All items must be evidenced before changing 01A to `E2E_VERIFIED`:
+At the latest `palta-dev` public Auth-settings verification:
 
-1. Golden User is provisioned through Supabase Auth Admin API in `palta-dev`.
-2. Exactly one matching `auth.users` row exists.
-3. Exactly one matching `public.palta_account` row exists through the server bootstrap trigger.
-4. Development Auth screen shows the Golden User test button.
-5. Button login succeeds and exposes one canonical `PaltaUserId`.
-6. App terminate/relaunch restores the same session and `PaltaUserId`.
-7. Logout returns to signed-out Auth.
-8. Golden User login again returns the same `PaltaUserId`.
-9. Owner RLS still prevents access to another account.
-10. Mobile typecheck/CI and secret-boundary checks pass.
+- Email Auth: enabled and required by CI
+- Apple Auth: currently disabled; button stays hidden until the provider is configured
+- Google Auth: currently disabled; button stays hidden until the provider is configured
 
-Until these are complete, Gate 01A remains `RUNTIME_CONNECTED`, not `E2E_VERIFIED`.
+Therefore the presently available live Gate 01 user path is email passwordless Auth. Apple/Google must be smoke-tested after their provider credentials are enabled.
+
+## Development identity evidence
+
+Signed-in development builds display a small Gate 01 evidence panel containing only:
+
+- canonical `Palta ID`
+- Supabase `Auth ID`
+- session expiry when available
+
+It intentionally does **not** display access tokens, refresh tokens, passwords, or admin material.
+
+Use the displayed `Palta ID` to compare the initial login, app relaunch, logout/login-again cycle. This display makes verification easier; it does not replace the E2E interaction itself.
+
+## What this utility can and cannot prove
+
+Server fixture provisioning can support deterministic database/account tests, but by itself it cannot prove:
+
+- the mobile signed-out screen,
+- email/OAuth callback/deep-link behavior,
+- SecureStore restoration after process termination,
+- mobile logout UX,
+- provider-specific identity linking,
+- the complete Golden User Gate 01 Definition of Done.
+
+Until the actual runtime evidence exists, Gate 01 remains `RUNTIME_CONNECTED`, not `E2E_VERIFIED`, and Gate 02 remains blocked.
