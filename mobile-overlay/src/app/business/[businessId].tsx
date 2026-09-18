@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Pressable, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 import type { BusinessCapability } from '../../../../src/business/businessActionPolicy';
 import { enqueueMutation } from '../../../../src/mobile/offlineMutationQueue';
 import {
@@ -15,12 +15,14 @@ import { ScreenFrame } from '../../components/ScreenFrame';
 import { BusinessActionBar } from '../../components/business/BusinessActionBar';
 import { SectionHeading } from '../../components/common/SectionHeading';
 import { useAsyncResource } from '../../hooks/useAsyncResource';
+import { useLocalization } from '../../providers/LocalizationProvider';
 import { mobileRuntime } from '../../services/paltaClient';
 import { useMutationQueueStore } from '../../services/useMutationQueueStore';
 
 export default function BusinessDetailScreen() {
   const { businessId } = useLocalSearchParams<{ businessId: string }>();
   const queueStore = useMutationQueueStore();
+  const { t } = useLocalization();
   const [submitting, setSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState<string | null>(null);
 
@@ -64,15 +66,9 @@ export default function BusinessDetailScreen() {
             now: new Date().toISOString(),
           }),
         );
-        setSubmitMessage(
-          'Guardamos tu solicitud. Palta volverá a enviarla cuando recupere conexión.',
-        );
+        setSubmitMessage(t('business.quoteQueued'));
       } else {
-        setSubmitMessage(
-          error instanceof Error
-            ? `No se pudo enviar: ${error.message}`
-            : 'No se pudo enviar la solicitud.',
-        );
+        setSubmitMessage(t('business.sendFailed'));
       }
     } finally {
       setSubmitting(false);
@@ -93,7 +89,7 @@ export default function BusinessDetailScreen() {
       case 'coupon':
       case 'pricing':
         setSubmitMessage(
-          `La acción "${capability}" ya está definida en el contrato, pero su adapter concreto aún no está conectado.`,
+          t('business.adapterPending', { capability }),
         );
         return;
     }
@@ -101,15 +97,15 @@ export default function BusinessDetailScreen() {
 
   if (state.status === 'loading' && !state.data) {
     return (
-      <ScreenFrame title="Negocio">
-        <LoadingState label="Cargando negocio…" />
+      <ScreenFrame title={t('business.genericTitle')}>
+        <LoadingState label={t('business.loading')} />
       </ScreenFrame>
     );
   }
 
   if (state.status === 'error' && !state.data) {
     return (
-      <ScreenFrame title="Negocio">
+      <ScreenFrame title={t('business.genericTitle')}>
         <ErrorState message={state.message} onRetry={() => void refresh()} />
       </ScreenFrame>
     );
@@ -118,8 +114,8 @@ export default function BusinessDetailScreen() {
   const business = state.data;
   if (!business) {
     return (
-      <ScreenFrame title="Negocio">
-        <Text>No hay datos disponibles.</Text>
+      <ScreenFrame title={t('business.genericTitle')}>
+        <Text>{t('business.noData')}</Text>
       </ScreenFrame>
     );
   }
@@ -133,14 +129,14 @@ export default function BusinessDetailScreen() {
     >
       <View style={{ gap: 14 }}>
         <Text>
-          Verificación: {business.verification_status}. Los datos públicos
-          pueden verse; cupones y ofertas controladas requieren propietario
-          verificado.
+          {t('business.verificationNote', {
+            status: business.verification_status,
+          })}
         </Text>
 
         <SectionHeading
-          title="¿Qué quieres hacer?"
-          subtitle="Palta muestra sólo acciones que este negocio puede ofrecer."
+          title={t('business.actionTitle')}
+          subtitle={t('business.actionSubtitle')}
         />
 
         <BusinessActionBar
@@ -155,7 +151,7 @@ export default function BusinessDetailScreen() {
         />
 
         {submitting ? (
-          <Text style={{ opacity: 0.62 }}>Enviando solicitud…</Text>
+          <Text style={{ opacity: 0.62 }}>{t('business.sendingQuote')}</Text>
         ) : null}
 
         {submitMessage ? (
@@ -166,7 +162,9 @@ export default function BusinessDetailScreen() {
           <ErrorState message={state.message} onRetry={() => void refresh()} />
         ) : null}
 
-        <Text style={{ opacity: 0.55 }}>Canonical ID: {business.id}</Text>
+        <Text style={{ opacity: 0.55 }}>
+          {t('business.canonicalId', { id: business.id })}
+        </Text>
       </View>
     </ScreenFrame>
   );
