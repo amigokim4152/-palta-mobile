@@ -4,6 +4,14 @@
 
 This package is a GitHub-ready staging layer extracted from the current Palta Foundation, Product Core, Experience Foundation, and Infrastructure Master. It does **not** replace those source-of-truth documents and it does not choose a mobile UI framework yet.
 
+## Required reading before feature work
+
+Before adding or changing a user-visible Palta feature, read the relevant repository contracts first.
+
+For every user-visible surface, localized API field, search flow, notification, message, public-data surface, business surface, Community, Market, Care, Health, Transport, or future module, `docs/LOCALIZATION_RUNTIME_V1.md` is mandatory.
+
+Feature branches must not create their own locale provider, language persistence, translated canonical enum, per-language duplicate domain objects, or screen-local machine-translation path. Language changes presentation; it must not silently change Chile region, currency, timezone, eligibility, policy jurisdiction, or canonical entity identity.
+
 ## First executable product loop
 
 `DISCOVER -> ACT -> HOME -> FOLLOW-UP`
