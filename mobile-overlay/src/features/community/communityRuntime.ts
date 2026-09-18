@@ -77,7 +77,10 @@ const previewRuntime: CommunityRuntime = {
   async reactToPost(_spaceId, postId) { const original = previewData.feed.find((item) => item.id === postId)?.reactionCount ?? 0; reactionOverrides.set(postId, (reactionOverrides.get(postId) ?? original) + 1); },
 };
 
-function usePreview(): boolean { return !process.env.EXPO_PUBLIC_PALTA_API_BASE_URL; }
+function usePreview(): boolean {
+  return process.env.EXPO_PUBLIC_PALTA_PREVIEW === '1'
+    || !process.env.EXPO_PUBLIC_PALTA_API_BASE_URL;
+}
 function client() { if (mobileRuntime.status !== 'ready') throw new Error(mobileRuntime.message); return mobileRuntime.client; }
 
 const sharedApiRuntime: CommunityRuntime = {
