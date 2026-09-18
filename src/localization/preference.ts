@@ -64,7 +64,9 @@ export function resolveSignedInLocalePreference(
   }
 
   return {
-    locale: resolvePreferredLocale({ deviceLocales: input.deviceLocales }),
+    locale: resolvePreferredLocale(
+      input.deviceLocales ? { deviceLocales: input.deviceLocales } : {},
+    ),
     promoteLocalToAccount: false,
   };
 }
