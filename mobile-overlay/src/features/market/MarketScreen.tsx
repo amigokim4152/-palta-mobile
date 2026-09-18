@@ -73,8 +73,7 @@ function formatAge(listing: MarketPublicListing) {
   if (minutes < 60) return `hace ${minutes} min`;
   const hours = Math.floor(minutes / 60);
   if (hours < 24) return `hace ${hours} h`;
-  const days = Math.floor(hours / 24);
-  return `hace ${days} d`;
+  return `hace ${Math.floor(hours / 24)} d`;
 }
 
 function ListingRow({
@@ -103,11 +102,9 @@ function ListingRow({
         </View>
       )}
       <View style={styles.listingBody}>
-        <View style={styles.titleLine}>
-          <Text numberOfLines={2} style={styles.listingTitle}>
-            {listing.title}
-          </Text>
-        </View>
+        <Text numberOfLines={2} style={styles.listingTitle}>
+          {listing.title}
+        </Text>
         <Text style={styles.listingMeta}>
           {listing.location.comunaName}
           {typeof listing.distanceKm === 'number'
@@ -174,8 +171,7 @@ export function MarketScreen() {
     runtime.read
       .discover(request as DiscoverMarketListingsQuery)
       .then((page) => {
-        if (!active) return;
-        setListings(page.items);
+        if (active) setListings(page.items);
       })
       .catch(() => {
         if (!active) return;
@@ -196,25 +192,32 @@ export function MarketScreen() {
       <View style={styles.topBar}>
         <View style={styles.headingBlock}>
           <Text style={styles.heading}>Mercado</Text>
-          <View style={styles.locationLine}>
-            <Text style={styles.locationText}>{areaLabel} · cerca de ti</Text>
+          <Text style={styles.locationText}>{areaLabel} · cerca de ti</Text>
+        </View>
+        {runtime.mode === 'development_preview' ? (
+          <View style={styles.previewBadge}>
+            <Text style={styles.previewBadgeText}>Vista previa</Text>
           </View>
-        </View>
-        <View style={styles.topActions}>
-          {runtime.mode === 'development_preview' ? (
-            <View style={styles.previewBadge}>
-              <Text style={styles.previewBadgeText}>Vista previa</Text>
-            </View>
-          ) : null}
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Mis publicaciones"
-            onPress={() => router.push('/market/my-listings')}
-            style={styles.myListingsButton}
-          >
-            <Text style={styles.myListingsButtonText}>Mis ventas</Text>
-          </Pressable>
-        </View>
+        ) : null}
+      </View>
+
+      <View style={styles.activityActions}>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => router.push('/market/transactions')}
+          style={styles.activityButton}
+        >
+          <Text style={styles.activityButtonTitle}>Mis compras</Text>
+          <Text style={styles.activityButtonSub}>Acuerdos y seguimiento</Text>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => router.push('/market/my-listings')}
+          style={styles.activityButton}
+        >
+          <Text style={styles.activityButtonTitle}>Mis ventas</Text>
+          <Text style={styles.activityButtonSub}>Reservas y entregas</Text>
+        </Pressable>
       </View>
 
       <Text style={styles.verticalIntro}>¿Qué estás buscando?</Text>
@@ -229,14 +232,11 @@ export function MarketScreen() {
           return (
             <Pressable
               accessibilityRole="button"
-              onPress={() => {
-                if (selected) return;
-                router.push(`/market/${item.key}`);
-              }}
+              onPress={() => router.push(`/market/${item.key}`)}
               style={({ pressed }) => [
                 styles.verticalCard,
                 selected && styles.verticalCardSelected,
-                pressed && !selected && styles.pressed,
+                pressed && styles.pressed,
               ]}
             >
               <Text
@@ -301,7 +301,9 @@ export function MarketScreen() {
 
       <View style={styles.sectionLine}>
         <Text style={styles.sectionTitle}>Usados cerca de ti</Text>
-        <Text style={styles.sortText}>Más recientes</Text>
+        <Pressable onPress={() => router.push('/market/secondhand')}>
+          <Text style={styles.viewMoreText}>Ver y comparar</Text>
+        </Pressable>
       </View>
     </View>
   );
@@ -345,7 +347,7 @@ export function MarketScreen() {
         accessibilityRole="button"
         accessibilityLabel="Vender en Mercado"
         onPress={() => router.push('/market/sell')}
-        style={({ pressed }) => [styles.sellButton, pressed && styles.sellButtonPressed]}
+        style={({ pressed }) => [styles.sellButton, pressed && styles.pressed]}
       >
         <Text style={styles.sellPlus}>＋</Text>
         <Text style={styles.sellText}>Vender</Text>
@@ -355,14 +357,8 @@ export function MarketScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: paltaTheme.color.canvas,
-  },
-  content: {
-    paddingHorizontal: 18,
-    paddingBottom: 104,
-  },
+  safeArea: { flex: 1, backgroundColor: paltaTheme.color.canvas },
+  content: { paddingHorizontal: 18, paddingBottom: 104 },
   topBar: {
     paddingTop: 10,
     flexDirection: 'row',
@@ -378,18 +374,12 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: -0.6,
   },
-  locationLine: {
-    minHeight: 32,
-    marginTop: 3,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
   locationText: {
+    marginTop: 3,
     color: paltaTheme.color.textSecondary,
     fontSize: 14,
     fontWeight: '600',
   },
-  topActions: { alignItems: 'flex-end', gap: 7 },
   previewBadge: {
     borderRadius: paltaTheme.radius.pill,
     backgroundColor: paltaTheme.color.brandSoft,
@@ -401,31 +391,38 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
   },
-  myListingsButton: {
-    minHeight: 34,
-    justifyContent: 'center',
-    borderRadius: paltaTheme.radius.pill,
+  activityActions: {
+    marginTop: 14,
+    flexDirection: 'row',
+    gap: 9,
+  },
+  activityButton: {
+    flex: 1,
+    minHeight: 61,
+    borderRadius: 15,
     borderWidth: 1,
     borderColor: paltaTheme.color.border,
     backgroundColor: paltaTheme.color.surface,
     paddingHorizontal: 12,
+    paddingVertical: 10,
   },
-  myListingsButtonText: {
+  activityButtonTitle: {
     color: paltaTheme.color.textPrimary,
-    fontSize: 12,
-    fontWeight: '700',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  activityButtonSub: {
+    marginTop: 4,
+    color: paltaTheme.color.textMuted,
+    fontSize: 10,
   },
   verticalIntro: {
-    marginTop: 16,
+    marginTop: 18,
     color: paltaTheme.color.textSecondary,
     fontSize: 13,
     fontWeight: '700',
   },
-  verticalRow: {
-    paddingTop: 9,
-    paddingBottom: 2,
-    gap: 9,
-  },
+  verticalRow: { paddingTop: 9, paddingBottom: 2, gap: 9 },
   verticalCard: {
     width: 142,
     minHeight: 82,
@@ -473,11 +470,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     paddingVertical: 0,
   },
-  categoryRow: {
-    paddingTop: 14,
-    paddingBottom: 3,
-    gap: 8,
-  },
+  categoryRow: { paddingTop: 14, paddingBottom: 3, gap: 8 },
   categoryChip: {
     minHeight: 38,
     justifyContent: 'center',
@@ -496,9 +489,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
-  categoryChipTextSelected: {
-    color: '#FFFFFF',
-  },
+  categoryChipTextSelected: { color: '#FFFFFF' },
   sectionLine: {
     marginTop: 22,
     paddingBottom: 7,
@@ -511,10 +502,10 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '800',
   },
-  sortText: {
-    color: paltaTheme.color.textSecondary,
-    fontSize: 13,
-    fontWeight: '600',
+  viewMoreText: {
+    color: paltaTheme.color.brandPrimary,
+    fontSize: 12,
+    fontWeight: '800',
   },
   listingRow: {
     minHeight: 146,
@@ -524,9 +515,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: paltaTheme.color.divider,
   },
-  pressed: {
-    opacity: 0.72,
-  },
+  pressed: { opacity: 0.76 },
   listingImage: {
     width: 118,
     height: 118,
@@ -539,14 +528,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
   },
-  listingBody: {
-    flex: 1,
-    minHeight: 118,
-    paddingTop: 1,
-  },
-  titleLine: {
-    minHeight: 43,
-  },
+  listingBody: { flex: 1, minHeight: 118, paddingTop: 1 },
   listingTitle: {
     color: paltaTheme.color.textPrimary,
     fontSize: 16,
@@ -554,7 +536,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   listingMeta: {
-    marginTop: 3,
+    marginTop: 5,
     color: paltaTheme.color.textMuted,
     fontSize: 12,
     lineHeight: 16,
@@ -571,9 +553,7 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '800',
   },
-  freePrice: {
-    color: paltaTheme.color.brandPrimary,
-  },
+  freePrice: { color: paltaTheme.color.brandPrimary },
   statusChip: {
     borderRadius: paltaTheme.radius.pill,
     backgroundColor: paltaTheme.color.surfaceMuted,
@@ -591,10 +571,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     gap: 10,
   },
-  engagement: {
-    color: paltaTheme.color.textMuted,
-    fontSize: 12,
-  },
+  engagement: { color: paltaTheme.color.textMuted, fontSize: 12 },
   emptyState: {
     paddingVertical: 56,
     alignItems: 'center',
@@ -638,19 +615,11 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 5 },
     elevation: 4,
   },
-  sellButtonPressed: {
-    opacity: 0.84,
-    transform: [{ scale: 0.98 }],
-  },
   sellPlus: {
     color: '#FFFFFF',
     fontSize: 19,
     fontWeight: '700',
     marginRight: 4,
   },
-  sellText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '800',
-  },
+  sellText: { color: '#FFFFFF', fontSize: 15, fontWeight: '800' },
 });
