@@ -6,7 +6,8 @@
   "vars": {
     "MAP_VERSION": "2026.09.17.1",
     "MAP_OBJECT_KEY": "palta/cl/maps/basemap/versions/2026.09.17.1/basemap.pmtiles",
-    "BUSINESS_OBJECT_KEY": "palta/cl/local-business/current/businesses.json"
+    "BUSINESS_OBJECT_KEY": "palta/cl/local-business/current/businesses.json",
+    "LOCAL_PLACE_OBJECT_KEY": "palta/cl/local-place/current/places.json"
   },
   "r2_buckets": [
     {
