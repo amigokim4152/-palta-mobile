@@ -116,7 +116,14 @@ export async function handleCommunityRequest(input: {
     if (!(error instanceof Error)) throw error;
     if (error.message === 'IDEMPOTENCY_KEY_OPERATION_CONFLICT' || error.message === 'COMMUNITY_MEMBERSHIP_INVALID_TRANSITION') return json({ error: error.message }, 409);
     if (error.message === 'COMMUNITY_SPACE_NOT_FOUND') return json({ error: 'NOT_FOUND' }, 404);
-    if (error.message === 'COMMUNITY_INVITE_REQUIRED' || error.message === 'COMMUNITY_MEMBERSHIP_BLOCKED' || error.message === 'COMMUNITY_MEMBERSHIP_MANAGE_FORBIDDEN' || error.message === 'COMMUNITY_MEMBERSHIP_ROLE_ASSIGN_FORBIDDEN') return json({ error: error.message }, 403);
+    if (
+      error.message === 'COMMUNITY_INVITE_REQUIRED' ||
+      error.message === 'COMMUNITY_MEMBERSHIP_BLOCKED' ||
+      error.message === 'COMMUNITY_MEMBERSHIP_MANAGE_FORBIDDEN' ||
+      error.message === 'COMMUNITY_MEMBERSHIP_ROLE_ASSIGN_FORBIDDEN' ||
+      error.message === 'COMMUNITY_READ_FORBIDDEN' ||
+      error.message === 'COMMUNITY_INTERACTION_FORBIDDEN'
+    ) return json({ error: error.message }, 403);
     if (error.message === 'SCHOOL_ITEM_RECIPIENT_NOT_ACTIVE' || error.message === 'SCHOOL_ITEM_SOURCE_POST_INVALID') return json({ error: error.message }, 409);
     if (error.message === 'COMMUNITY_MEMBERSHIP_ROLE_REQUIRED' || error.message.startsWith('SCHOOL_ITEM_')) return json({ error: error.message }, 400);
     throw error;
