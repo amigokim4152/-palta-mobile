@@ -114,8 +114,11 @@ export function MarketScreen() {
   const [listings, setListings] = useState<MarketPublicListing[]>([]);
   const [loading, setLoading] = useState(Boolean(runtime.read));
   const [loadError, setLoadError] = useState<string | undefined>(
-    runtime.read ? undefined : runtime.unavailableReason,
+    runtime.read ? undefined : 'Mercado no está disponible en este momento.',
   );
+  const areaLabel =
+    runtime.publicArea?.comunaName ??
+    (runtime.mode === 'development_preview' ? 'Vitacura' : 'Tu zona');
 
   useEffect(() => {
     if (!runtime.read) return;
@@ -155,10 +158,9 @@ export function MarketScreen() {
       <View style={styles.topBar}>
         <View style={styles.headingBlock}>
           <Text style={styles.heading}>Mercado</Text>
-          <Pressable style={styles.locationButton}>
-            <Text style={styles.locationText}>Vitacura · cerca de mí</Text>
-            <Text style={styles.locationChevron}>⌄</Text>
-          </Pressable>
+          <View style={styles.locationLine}>
+            <Text style={styles.locationText}>{areaLabel} · cerca de ti</Text>
+          </View>
         </View>
         <View style={styles.topActions}>
           {runtime.mode === 'development_preview' ? (
@@ -217,9 +219,7 @@ export function MarketScreen() {
 
       <View style={styles.sectionLine}>
         <Text style={styles.sectionTitle}>Cerca de ti</Text>
-        <Pressable>
-          <Text style={styles.sortText}>Más recientes ⌄</Text>
-        </Pressable>
+        <Text style={styles.sortText}>Más recientes</Text>
       </View>
     </View>
   );
@@ -232,11 +232,6 @@ export function MarketScreen() {
     <View style={styles.integrationState}>
       <Text style={styles.emptyTitle}>Mercado no está disponible</Text>
       <Text style={styles.emptyBody}>{loadError}</Text>
-      {runtime.mode === 'unavailable' ? (
-        <Text style={styles.integrationHint}>
-          Falta instalar el adaptador de datos de Mercado en este runtime.
-        </Text>
-      ) : null}
     </View>
   ) : (
     <View style={styles.emptyState}>
@@ -301,21 +296,16 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: -0.6,
   },
-  locationButton: {
+  locationLine: {
     minHeight: 32,
     marginTop: 3,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
   },
   locationText: {
     color: paltaTheme.color.textSecondary,
     fontSize: 14,
     fontWeight: '600',
-  },
-  locationChevron: {
-    color: paltaTheme.color.textSecondary,
-    fontSize: 16,
   },
   topActions: { alignItems: 'flex-end', gap: 7 },
   previewBadge: {
@@ -511,13 +501,6 @@ const styles = StyleSheet.create({
     marginTop: 8,
     color: paltaTheme.color.textSecondary,
     lineHeight: 20,
-    textAlign: 'center',
-  },
-  integrationHint: {
-    marginTop: 10,
-    color: paltaTheme.color.textMuted,
-    fontSize: 11,
-    lineHeight: 16,
     textAlign: 'center',
   },
   sellButton: {
