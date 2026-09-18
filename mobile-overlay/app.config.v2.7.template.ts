@@ -6,6 +6,8 @@ const config: ExpoConfig = {
   scheme: 'palta',
   plugins: [
     'expo-router',
+    'expo-sqlite',
+    'expo-secure-store',
     [
       'expo-location',
       {
