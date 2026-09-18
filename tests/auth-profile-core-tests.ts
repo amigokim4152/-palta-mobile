@@ -11,9 +11,9 @@ const {
   paltaUserIdFromAuthBrokerUserId,
 } = await import('../src/auth/accountModel.js');
 const {
-  AccountResolutionError,
+  CanonicalAccountResolutionError,
   resolveCanonicalAccount,
-} = await import('../src/auth/accountResolver.js');
+} = await import('../src/auth/canonicalAccount.js');
 const {
   initialOnboardingPrompts,
   validateProfilePrompt,
@@ -81,7 +81,7 @@ try {
   });
 } catch (error) {
   missingCanonicalRejected =
-    error instanceof AccountResolutionError && error.code === 'account_missing';
+    error instanceof CanonicalAccountResolutionError && error.code === 'account_missing';
 }
 assert(
   missingCanonicalRejected,
