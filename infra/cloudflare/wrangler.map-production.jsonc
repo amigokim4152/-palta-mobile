@@ -1,11 +1,12 @@
 {
   "name": "palta-map-edge",
-  "main": "src/index-v16.ts",
+  "main": "src/index-v17.ts",
   "compatibility_date": "2026-09-18",
   "workers_dev": true,
   "vars": {
     "MAP_VERSION": "2026.09.17.1",
-    "MAP_OBJECT_KEY": "palta/cl/maps/basemap/versions/2026.09.17.1/basemap.pmtiles"
+    "MAP_OBJECT_KEY": "palta/cl/maps/basemap/versions/2026.09.17.1/basemap.pmtiles",
+    "BUSINESS_OBJECT_KEY": "palta/cl/local-business/current/businesses.json"
   },
   "r2_buckets": [
     {
