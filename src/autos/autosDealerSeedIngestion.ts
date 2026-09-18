@@ -32,6 +32,17 @@ export const CAVEM_CENTRO_DIRECTORY = {
   grantsBidCapability: false,
 } as const;
 
+export function validateDealerDirectorySnapshot(
+  snapshot: AutosDealerDirectorySnapshot,
+): { valid: boolean; reasons: readonly string[] } {
+  const reasons: string[] = [];
+  if (snapshot.sourceUrl !== CAVEM_CENTRO_DIRECTORY.url) reasons.push('unexpected_source_url');
+  if (!/^[a-f0-9]{64}$/i.test(snapshot.contentSha256)) reasons.push('invalid_sha256');
+  if (snapshot.status === 'rejected') reasons.push('snapshot_rejected');
+  if (!Number.isFinite(Date.parse(snapshot.collectedAt))) reasons.push('invalid_collected_at');
+  return { valid: reasons.length === 0, reasons };
+}
+
 export function normalizeDealerWebsite(value: string | undefined): string | undefined {
   if (!value) return undefined;
   const trimmed = value.trim();
@@ -39,6 +50,8 @@ export function normalizeDealerWebsite(value: string | undefined): string | unde
   const withProtocol = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
   try {
     const url = new URL(withProtocol);
+    url.protocol = 'https:';
+    url.hostname = url.hostname.replace(/^www\./i, '').toLowerCase();
     url.hash = '';
     url.search = '';
     url.pathname = url.pathname === '/' ? '' : url.pathname.replace(/\/$/, '');
@@ -51,7 +64,8 @@ export function normalizeDealerWebsite(value: string | undefined): string | unde
 export function candidatesFromDealerDirectorySnapshot(
   snapshot: AutosDealerDirectorySnapshot,
 ): readonly AutosDealerSeedCandidate[] {
-  if (snapshot.status === 'rejected') return [];
+  const validation = validateDealerDirectorySnapshot(snapshot);
+  if (!validation.valid) return [];
 
   const candidates: AutosDealerSeedCandidate[] = [];
   const seen = new Set<string>();
@@ -59,13 +73,14 @@ export function candidatesFromDealerDirectorySnapshot(
   for (const record of snapshot.records) {
     const displayName = record.displayName.trim().replace(/\s+/g, ' ');
     if (!displayName) continue;
+    const website = normalizeDealerWebsite(record.website);
 
     const candidate: AutosDealerSeedCandidate = {
       source: 'cavem_public_directory',
       sourceRecordId: record.sourceRecordId,
       sourceRef: `${snapshot.sourceUrl}#${encodeURIComponent(record.sourceRecordId)}`,
       displayName,
-      ...(normalizeDealerWebsite(record.website) ? { website: normalizeDealerWebsite(record.website)! } : {}),
+      ...(website ? { website } : {}),
       ...(record.comuna?.trim() ? { comuna: record.comuna.trim() } : {}),
       discoveredAt: snapshot.collectedAt,
     };
@@ -87,9 +102,10 @@ export type CanonicalBusinessMatch = {
 };
 
 function host(value: string | undefined): string {
-  if (!value) return '';
+  const normalized = normalizeDealerWebsite(value);
+  if (!normalized) return '';
   try {
-    return new URL(normalizeDealerWebsite(value) ?? value).hostname.replace(/^www\./, '').toLowerCase();
+    return new URL(normalized).hostname.toLowerCase();
   } catch {
     return '';
   }
