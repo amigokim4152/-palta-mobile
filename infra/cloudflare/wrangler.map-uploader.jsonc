@@ -1,0 +1,12 @@
+{
+  "name": "palta-map-uploader",
+  "main": "src/upload.ts",
+  "compatibility_date": "2026-09-18",
+  "workers_dev": true,
+  "r2_buckets": [
+    {
+      "binding": "MAPS",
+      "bucket_name": "narevu-data"
+    }
+  ]
+}
