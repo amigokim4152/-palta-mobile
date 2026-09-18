@@ -1,0 +1,48 @@
+name: Palta Mobile Runtime Shell
+
+on:
+  push:
+    branches:
+      - 'integration/**'
+    paths:
+      - 'apps/mobile/**'
+      - 'mobile-overlay/**'
+      - 'scripts/sync-mobile-runtime.mjs'
+      - '.github/workflows/mobile-runtime-shell-check.yml'
+  pull_request:
+    paths:
+      - 'apps/mobile/**'
+      - 'mobile-overlay/**'
+      - 'scripts/sync-mobile-runtime.mjs'
+      - '.github/workflows/mobile-runtime-shell-check.yml'
+
+jobs:
+  mobile-runtime-shell:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/mobile/package-lock.json
+
+      - name: Materialize current mobile overlay
+        run: node scripts/sync-mobile-runtime.mjs
+
+      - name: Install mobile dependencies
+        run: npm ci --prefix apps/mobile
+
+      - name: Typecheck generated mobile runtime
+        run: npm --prefix apps/mobile exec -- tsc --noEmit -p apps/mobile/tsconfig.json
+
+      - name: Resolve Expo public config
+        run: |
+          cd apps/mobile
+          npx expo config --type public > /tmp/palta-expo-config.json
+          grep -q 'cl.somospalta.app' /tmp/palta-expo-config.json
+          grep -q '"scheme": "palta"' /tmp/palta-expo-config.json
