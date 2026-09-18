@@ -1,5 +1,5 @@
 import type { HomeApiItem } from '../api/paltaApiClient.js';
-import type { HomeCandidate } from '../core/contracts.js';
+import type { Domain, HomeCandidate } from '../core/contracts.js';
 
 const kindMap: Record<HomeApiItem['kind'], HomeCandidate['kind']> = {
   action: 'action',
@@ -9,6 +9,25 @@ const kindMap: Record<HomeApiItem['kind'], HomeCandidate['kind']> = {
   content: 'content',
 };
 
+function domainFromSource(source: string): Domain {
+  const known: Domain[] = [
+    'home',
+    'local',
+    'community',
+    'market',
+    'play',
+    'mobility',
+    'health',
+    'school',
+    'vehicle',
+    'pets',
+    'public-life',
+    'news',
+    'weather',
+  ];
+  return known.includes(source as Domain) ? (source as Domain) : 'other';
+}
+
 export function projectHomeApiItem(
   item: HomeApiItem,
   defaults: {
@@ -17,9 +36,23 @@ export function projectHomeApiItem(
     urgency?: 0 | 1 | 2 | 3 | 4;
   } = {},
 ): HomeCandidate {
+  const action = item.care_track_id
+    ? {
+        label: 'Ver seguimiento',
+        target: `/care/${encodeURIComponent(item.care_track_id)}`,
+        kind: 'internal' as const,
+      }
+    : item.action_target
+      ? {
+          label: item.action_label ?? 'Ver',
+          target: item.action_target,
+          kind: item.action_kind ?? ('internal' as const),
+        }
+      : undefined;
+
   return {
     id: item.id,
-    domain: item.source_domain === 'news' ? 'news' : 'other',
+    domain: domainFromSource(item.source_domain),
     kind: kindMap[item.kind],
     title: item.title,
     ...(item.body ? { summary: item.body } : {}),
@@ -35,14 +68,6 @@ export function projectHomeApiItem(
     freshness: 'current',
     dedupeKey: item.care_track_id ?? item.related_entity_id ?? item.id,
     deliveryHint: item.delivery,
-    ...(item.care_track_id
-      ? {
-          action: {
-            label: 'Ver seguimiento',
-            target: `/care/${encodeURIComponent(item.care_track_id)}`,
-            kind: 'internal',
-          } as const,
-        }
-      : {}),
+    ...(action ? { action } : {}),
   };
 }
