@@ -37,12 +37,16 @@ git rev-parse --verify "$REF" >/dev/null 2>&1 || fail "Cannot resolve $REF after
 
 SOURCE_PATH="mobile-overlay/src/hooks/useAsyncResource.ts"
 DEST_PATH="$APP_DIR/src/hooks/useAsyncResource.ts"
+SMOKE_PATH="dev/mock-api/smoke.mjs"
 git cat-file -e "$REF:$SOURCE_PATH" 2>/dev/null || fail "Recovery source missing: $SOURCE_PATH"
+git cat-file -e "$REF:$SMOKE_PATH" 2>/dev/null || fail "Recovery smoke test missing: $SMOKE_PATH"
 
 mkdir -p "$(dirname "$DEST_PATH")"
 TMP_SOURCE="$(mktemp /tmp/palta-useAsyncResource.XXXXXX)"
-trap 'rm -f "$TMP_SOURCE"' EXIT
+TMP_SMOKE="$(mktemp /tmp/palta-smoke.XXXXXX.mjs)"
+trap 'rm -f "$TMP_SOURCE" "$TMP_SMOKE"' EXIT
 git show "$REF:$SOURCE_PATH" > "$TMP_SOURCE"
+git show "$REF:$SMOKE_PATH" > "$TMP_SMOKE"
 
 if [ -f "$DEST_PATH" ] && ! cmp -s "$TMP_SOURCE" "$DEST_PATH"; then
   BACKUP_DIR="/tmp/palta-simulator-backup-$(date +%Y%m%d-%H%M%S)"
@@ -73,7 +77,7 @@ else
   sleep 1
 fi
 
-if ! node "$ROOT/dev/mock-api/smoke.mjs"; then
+if ! node "$TMP_SMOKE"; then
   echo "--- mock API log ---" >&2
   tail -80 /tmp/palta-mock-api.log 2>/dev/null || true
   fail "Mock API smoke test failed."
