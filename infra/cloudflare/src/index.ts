@@ -1,6 +1,6 @@
 type R2RangeLike =
-  | { offset: number; length: number }
-  | { suffix: number };
+  | { offset?: number; length?: number; suffix?: never }
+  | { suffix: number; offset?: never; length?: never };
 
 type R2ObjectLike = {
   size: number;
@@ -62,18 +62,24 @@ function contentRange(
   range: R2RangeLike,
   total: number,
 ): { value: string; length: number } {
-  if ('suffix' in range) {
-    const length = Math.min(range.suffix, total);
-    const start = total - length;
+  if (typeof range.suffix === 'number') {
+    const length = Math.min(Math.max(range.suffix, 0), total);
+    const start = Math.max(total - length, 0);
     return {
-      value: `bytes ${start}-${total - 1}/${total}`,
+      value: `bytes ${start}-${Math.max(total - 1, 0)}/${total}`,
       length,
     };
   }
 
-  const length = Math.min(range.length, total - range.offset);
+  // Cloudflare R2 can omit offset when a ranged read starts at byte 0,
+  // and it can omit length when the request means "from offset to EOF".
+  const offset = Math.min(Math.max(range.offset ?? 0, 0), total);
+  const requestedLength = range.length ?? Math.max(total - offset, 0);
+  const length = Math.min(Math.max(requestedLength, 0), Math.max(total - offset, 0));
+  const end = length > 0 ? offset + length - 1 : offset;
+
   return {
-    value: `bytes ${range.offset}-${range.offset + length - 1}/${total}`,
+    value: `bytes ${offset}-${end}/${total}`,
     length,
   };
 }
