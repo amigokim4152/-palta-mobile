@@ -1,6 +1,10 @@
 import http from 'node:http';
 import { randomUUID } from 'node:crypto';
 import { getDevelopmentWeatherHome } from './live-weather.mjs';
+import {
+  getVitacuraBenefitsSource,
+  getVitacuraNewsSource,
+} from './live-vitacura.mjs';
 
 const host = process.env.PALTA_MOCK_HOST ?? '127.0.0.1';
 const port = Number(process.env.PALTA_MOCK_PORT ?? '8787');
@@ -69,16 +73,20 @@ const server = http.createServer(async (req, res) => {
     const url = new URL(req.url, `http://${req.headers.host ?? `${host}:${port}`}`);
 
     if (req.method === 'GET' && url.pathname === '/health') {
-      return json(res, 200, { ok: true, service: 'palta-mock-api', version: '0.4.0' });
+      return json(res, 200, { ok: true, service: 'palta-mock-api', version: '0.5.0' });
     }
 
     if (req.method === 'GET' && url.pathname === '/v1/home') {
       const observedAt = new Date().toISOString();
-      const weather = await getDevelopmentWeatherHome({
-        latitude: devLatitude,
-        longitude: devLongitude,
-        localityLabel: devLocality,
-      });
+      const [weather, benefits, news] = await Promise.all([
+        getDevelopmentWeatherHome({
+          latitude: devLatitude,
+          longitude: devLongitude,
+          localityLabel: devLocality,
+        }),
+        getVitacuraBenefitsSource(),
+        getVitacuraNewsSource(),
+      ]);
 
       return json(res, 200, {
         generated_at: observedAt,
@@ -87,8 +95,8 @@ const server = http.createServer(async (req, res) => {
           weather.sourceState,
           { source_domain: 'mobility', data_mode: 'demo', observed_at: observedAt },
           { source_domain: 'care', data_mode: 'demo', observed_at: observedAt },
-          { source_domain: 'public-life', data_mode: 'demo', observed_at: observedAt },
-          { source_domain: 'news', data_mode: 'demo', observed_at: observedAt },
+          benefits.sourceState,
+          news.sourceState,
         ],
         glance: [
           ...(weather.glance ? [weather.glance] : []),
@@ -120,22 +128,8 @@ const server = http.createServer(async (req, res) => {
             delivery: 'home',
             care_track_id: 'care-demo-1',
           },
-          {
-            id: 'home-benefit-demo-1',
-            kind: 'useful_today',
-            title: 'Beneficio municipal cerca de ti',
-            body: 'Aquí aparecerán beneficios vigentes solo después de verificar comuna, fecha y relevancia.',
-            source_domain: 'public-life',
-            delivery: 'home',
-          },
-          {
-            id: 'home-news-demo-1',
-            kind: 'content',
-            title: 'Resumen local de hoy',
-            body: 'Las noticias locales ocuparán este espacio solo cuando Home esté poco cargado y sean útiles para tu zona.',
-            source_domain: 'news',
-            delivery: 'home',
-          },
+          ...(benefits.item ? [benefits.item] : []),
+          ...news.items,
         ],
       });
     }
