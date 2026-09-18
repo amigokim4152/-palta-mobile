@@ -1,3 +1,4 @@
+import { conversationHttpContract } from '../messaging/conversationHttpContract.js';
 import { PaltaApiError, type FetchLike } from './paltaApiClient.js';
 
 export type MessageApiActor = {
@@ -129,10 +130,24 @@ function expectObject(value: unknown, label: string): Record<string, unknown> {
   return value as Record<string, unknown>;
 }
 
+function assertConversationPayload(
+  result: Record<string, unknown>,
+  label: string,
+): ConversationApiItem {
+  if (
+    typeof result.conversation_id !== 'string' ||
+    typeof result.conversation_type !== 'string' ||
+    typeof result.last_sequence !== 'number'
+  ) {
+    throw new Error(`${label} returned invalid payload`);
+  }
+  return result as ConversationApiItem;
+}
+
 /**
- * Shared Messaging Core HTTP adapter. Local Business and other product surfaces
- * only navigate into Messaging; conversation identity, messages, read state and
- * authorization remain owned by the shared core.
+ * Shared Messaging Core HTTP adapter. Product surfaces only navigate into
+ * Messaging; conversation identity, messages, read state and authorization
+ * remain owned by the shared core.
  */
 export class MessagingApiClient {
   private readonly baseUrl: string;
@@ -171,21 +186,25 @@ export class MessagingApiClient {
   }
 
   async openBusinessConversation(businessId: string): Promise<ConversationApiItem> {
+    const path = conversationHttpContract.openBusinessConversation(businessId);
     const result = expectObject(
-      await this.request(
-        `/v1/messages/businesses/${encodeURIComponent(businessId)}/conversation`,
-        { method: 'POST', body: {} },
-      ),
+      await this.request(path, { method: 'POST', body: {} }),
       'POST /v1/messages/businesses/{businessId}/conversation',
     );
-    if (
-      typeof result.conversation_id !== 'string' ||
-      typeof result.conversation_type !== 'string' ||
-      typeof result.last_sequence !== 'number'
-    ) {
-      throw new Error('Open business conversation returned invalid payload');
+    return assertConversationPayload(result, 'Open business conversation');
+  }
+
+  async openDirectUserConversation(counterpartUserId: string): Promise<ConversationApiItem> {
+    const path = conversationHttpContract.openDirectUserConversation(counterpartUserId);
+    const result = expectObject(
+      await this.request(path, { method: 'POST', body: {} }),
+      'POST /v1/messages/users/{userId}/conversation',
+    );
+    const conversation = assertConversationPayload(result, 'Open direct user conversation');
+    if (conversation.conversation_type !== 'direct') {
+      throw new Error('Open direct user conversation returned a non-direct conversation');
     }
-    return result as ConversationApiItem;
+    return conversation;
   }
 
   async listConversationInbox(input: {
