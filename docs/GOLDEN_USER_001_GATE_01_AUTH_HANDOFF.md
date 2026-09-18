@@ -38,6 +38,8 @@ Relevant Core files:
 - `src/ports/authPort.ts`
 - `tests/auth-account-resolution-tests.ts`
 
+Auth state subscriptions have separate state/error channels. If a provider session exists but canonical Palta account resolution fails, that failure is surfaced to the runtime error UI instead of being disguised as a normal `signed_out` event.
+
 ## Implemented mobile runtime
 
 Source of Truth remains `mobile-overlay/src`; generated runtime is materialized into `apps/mobile/src`.
@@ -49,10 +51,11 @@ Implemented controls and states:
 - Google OAuth button
 - email passwordless link flow
 - PKCE callback handling (`palta://auth/callback`)
+- callback-code single-flight/deduplication so WebBrowser + Linking cannot exchange the same one-time PKCE code twice
 - SecureStore session persistence
 - AppState token auto-refresh lifecycle
 - loading/progress UI
-- visible configuration/provider/account errors
+- visible configuration/provider/account-resolution errors
 - retry
 - logout
 - signed-in app gate
@@ -119,20 +122,20 @@ This verifies the server bootstrap invariant and negative owner-RLS boundary wit
 
 ## Latest automated verification evidence
 
-Configuration-hardening baseline: `2aae9ebc8f9dd1e3264952ff34c7c7fb5027eaff` (`ci: validate canonical public env example`).
+Latest Auth runtime hardening baseline: `159eaa041547c9aba349195314c13dc0c9e689c7` (`fix: deduplicate mobile PKCE callback exchange`).
 
 Successful GitHub Actions on that baseline:
 
-- Palta Core Check run `35335940242`
+- Palta Core Check run `35336379487`
   - TypeScript typecheck: PASS
   - Core tests, including canonical Auth/account resolution: PASS
-- Palta Core CI run `35335940202`
+- Palta Core CI run `35336379489`
   - `npm ci`: PASS
   - `npm run verify`: PASS
   - canonical `.env.example` validation: PASS as part of `verify`
   - mobile Auth secret/environment-binding guard: PASS as part of `verify`
-  - PostgreSQL migration preflight: PASS
-- Palta Mobile Runtime Shell run `35335940196`
+  - PostgreSQL migration preflight and migration/RLS invariants: PASS
+- Palta Mobile Runtime Shell run `35336379458`
   - launcher shell syntax: PASS
   - mobile Auth credential boundary: PASS
   - mobile overlay materialization: PASS
@@ -151,9 +154,9 @@ Successful GitHub Actions on that baseline:
 | 5 | Sign out clears local session and returns to Auth | `NOT VERIFIED` | UI/runtime path implemented; device interaction not executed |
 | 6 | Sign in again resolves same account | `NOT VERIFIED` | Requires live provider/device cycle |
 | 7 | User A cannot read user B account | `VERIFIED` | Real `palta-dev` two-user transaction/RLS negative test |
-| 8 | Missing/invalid config fails visibly and safely | `PARTIALLY VERIFIED` | fail-closed adapter + canonical env validation + visible error UI verified statically; live invalid-config interaction not executed |
+| 8 | Missing/invalid config and account resolution fail visibly/safely | `PARTIALLY VERIFIED` | fail-closed config + explicit subscription error channel + error UI typechecked; live failure interaction not executed |
 | 9 | No private/admin key bundled in mobile | `VERIFIED` | publishable-only contract + mobile credential/environment-binding CI guard |
-| 10 | Applicable TypeScript/tests/migrations pass | `VERIFIED` | runs `35335940242`, `35335940202`, `35335940196` |
+| 10 | Applicable TypeScript/tests/migrations pass | `VERIFIED` | runs `35336379487`, `35336379489`, `35336379458` |
 | 11 | Runbook changes to E2E_VERIFIED only with runtime evidence | `VERIFIED` | remains `RUNTIME_CONNECTED` |
 
 ## Current Supabase advisor findings outside Gate 01
@@ -165,11 +168,13 @@ These are not modified inside Gate 01 because PostGIS relocation from `public` i
 Track these separately during database/platform hardening:
 
 - `business_registration_intake`: RLS enabled, no policies; current anon/authenticated CRUD grants were verified absent
+- `business_registration_intake_existing_business_id_fkey`: performance advisor reports no covering index; handle with the Local Business/data migration rather than Auth Gate 01
 - `spatial_ref_sys`: extension-owned public table advisor finding
 - PostGIS installed in `public`: advisor warning; requires planned relocation strategy
 - `st_estimatedextent(...)`: PostGIS SECURITY DEFINER execute warnings for anon/authenticated
+- unused-index notices on the low-traffic development database are not grounds to delete indexes before workload evidence exists
 
-The rule is: fix with a tested PostGIS migration plan, not an ad-hoc Gate 01 schema change.
+The rule is: fix with a tested database/PostGIS migration plan, not an ad-hoc Gate 01 schema change.
 
 ## Remaining Gate 01 execution
 
