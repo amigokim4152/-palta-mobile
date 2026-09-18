@@ -12,12 +12,12 @@ This is the executable completion path for Somos Palta. A feature is complete on
 
 Every gate uses exactly one of these states:
 
-- `DOCUMENTED` — product/architecture intent exists only.
-- `CORE_CODE` — provider-neutral/core implementation exists but is not proven in the mobile runtime.
-- `RUNTIME_CONNECTED` — runtime adapter/provider is connected, but the complete user flow is not yet proven.
-- `USER_FLOW_WORKING` — the user can complete the interaction in the app.
-- `E2E_VERIFIED` — interaction, canonical persistence, restart/session restoration, permissions, and downstream linkage are verified.
-- `BLOCKED` — the next Golden User action cannot proceed because of a known unresolved blocker.
+- `DOCUMENTED` — product/architecture intent exists only
+- `CORE_CODE` — provider-neutral/core implementation exists but is not proven in the mobile runtime
+- `RUNTIME_CONNECTED` — runtime adapter/provider is connected, but the complete user flow is not yet proven
+- `USER_FLOW_WORKING` — the user can complete the interaction in the app
+- `E2E_VERIFIED` — interaction, canonical persistence, restart/session restoration, permissions, and downstream linkage are verified
+- `BLOCKED` — the next Golden User action cannot proceed because of a known unresolved blocker
 
 Only `E2E_VERIFIED` advances Golden User 001 to the next gate.
 
@@ -53,44 +53,63 @@ Stable test namespace:
 
 ## Gate 01 current state — 2026-09-18
 
-Gate 01 moved from `BLOCKED` to `RUNTIME_CONNECTED` after the missing integration boundaries were filled.
+Gate 01 is `RUNTIME_CONNECTED`. Known implementation blockers have been removed; what remains is real simulator/device/provider evidence.
 
 Verified implementation/data facts:
 
-1. mobile UI Source of Truth remains `mobile-overlay/src`; generated runtime remains generated
+1. mobile UI Source of Truth remains `mobile-overlay/src`; `apps/mobile/src` remains generated
 2. Apple, Google, and email passwordless controls plus loading/error/retry/logout states are connected
 3. Supabase session persistence uses Expo SecureStore and PKCE callback handling
-4. mobile uses a publishable key only; privileged-key patterns are guarded by CI
-5. Auth/Profile Core concepts were reconciled without restoring the older competing persistence model
-6. raw provider subject, Supabase `AuthBrokerUserId`, and canonical `PaltaUserId` are explicit separate identity layers
-7. `palta-dev` now has server-owned canonical `palta_account` bootstrap from `auth.users`
-8. client INSERT on `palta_account` remains denied
-9. real `palta-dev` transaction/RLS test proved user A cannot read user B account
-10. generic Postgres migration preflight, root verify/tests, and generated Expo runtime typecheck all pass
+4. the Auth adapter fails closed when public Supabase configuration is absent or invalid
+5. mobile application source contains no hardcoded Supabase environment binding; CI enforces the boundary
+6. `.env.example` uses the same `EXPO_PUBLIC_ENV` contract as runtime code and is validated by `npm run verify`
+7. Auth/Profile Core concepts were reconciled without restoring the older competing persistence model
+8. raw provider subject, Supabase `AuthBrokerUserId`, and canonical `PaltaUserId` are explicit separate identity layers
+9. `palta-dev` has server-owned canonical `palta_account` bootstrap from `auth.users`
+10. client INSERT on `palta_account` remains denied
+11. real `palta-dev` transaction/RLS test proved user A cannot read user B account
+12. generic PostgreSQL migration preflight, root verify/tests, generated Expo runtime typecheck, and Expo canonical config checks all pass
+13. the macOS iOS launcher now injects the public `palta-dev` development Auth configuration and validates it before launch
 
-Successful implementation verification runs:
+Latest successful verification baseline before these documentation updates:
 
-- Core Check: `35335051087`
-- Core CI + PostgreSQL preflight: `35335051144`
-- Mobile Runtime Shell: `35335051197`
+- commit: `2aae9ebc8f9dd1e3264952ff34c7c7fb5027eaff`
+- Core Check: `35335940242` — SUCCESS
+- Core CI + PostgreSQL preflight: `35335940202` — SUCCESS
+- Mobile Runtime Shell: `35335940196` — SUCCESS
 
-What remains `NOT VERIFIED` is the live mobile/provider cycle itself: fresh signed-out launch, real login, kill/relaunch restoration, logout, and login again to the same canonical account.
+What remains `NOT VERIFIED` is the live mobile/provider cycle itself: fresh signed-out launch, real login, terminate/relaunch restoration, logout, and login again to the same canonical account.
 
 Therefore Gate 01 is **not** `E2E_VERIFIED`, and Gate 02 must not start yet.
 
-## Gate 01 next executable sequence
+## Gate 01 executable sequence
 
-1. launch the generated mobile runtime against `palta-dev`
-2. verify the Auth surface appears with no valid session
-3. complete the selected Golden User provider login
-4. confirm the canonical `PaltaUserId`
-5. terminate and relaunch the app; confirm the same session/account
-6. logout and confirm return to Auth
-7. login again and confirm the same `PaltaUserId`
-8. exercise the remaining configured providers and confirm they do not create unintended duplicate Palta accounts
-9. change Gate 01 to `E2E_VERIFIED` only after the evidence is recorded
+On the development Mac:
+
+```bash
+./scripts/run-ios-mobile.sh
+```
+
+Then execute in order:
+
+1. verify the Auth surface appears with no valid session
+2. complete the selected Golden User provider login against `palta-dev`
+3. confirm and record the canonical `PaltaUserId`
+4. terminate the app
+5. relaunch and confirm the same session/account
+6. sign out and confirm return to Auth
+7. sign in again and confirm the same `PaltaUserId`
+8. exercise remaining configured providers and verify no unintended duplicate Palta account is created
+9. record exact evidence in `docs/GOLDEN_USER_001_GATE_01_AUTH_HANDOFF.md`
+10. change Gate 01 to `E2E_VERIFIED` only after all required evidence exists
 
 If a provider/configuration/deep-link error occurs, stop at that exact failure and fix only that Gate 01 blocker.
+
+## Database hardening scope note
+
+The latest Supabase security-advisor pass contains existing PostGIS/public-schema findings. They are tracked separately and must not be “fixed” by an untested PostGIS relocation/drop while Gate 01 is being verified. `business_registration_intake` currently has RLS enabled and no anon/authenticated CRUD grants, so the no-policy finding does not create client access by itself.
+
+See `docs/GOLDEN_USER_001_GATE_01_AUTH_HANDOFF.md` for the recorded advisor findings and the rule for planned PostGIS hardening.
 
 ## Gate discipline
 
