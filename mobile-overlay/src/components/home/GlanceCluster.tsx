@@ -14,11 +14,15 @@ export function GlanceCluster({
   items,
   columns,
   maxItems,
+  accessibilityLabel,
+  formatMoreLabel,
   onMore,
 }: {
   items: readonly GlanceItem[];
   columns: 1 | 2;
   maxItems: number;
+  accessibilityLabel: string;
+  formatMoreLabel: (hiddenCount: number) => string;
   onMore?: () => void;
 }) {
   const visible = items.slice(0, maxItems);
@@ -26,7 +30,7 @@ export function GlanceCluster({
 
   return (
     <View
-      accessibilityLabel="Información rápida"
+      accessibilityLabel={accessibilityLabel}
       style={{
         flexDirection: 'row',
         flexWrap: 'wrap',
@@ -119,7 +123,7 @@ export function GlanceCluster({
               fontWeight: '700',
             }}
           >
-            생활정보 {hiddenCount}개 더
+            {formatMoreLabel(hiddenCount)}
           </Text>
         </Pressable>
       ) : null}
