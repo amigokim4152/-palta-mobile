@@ -3,6 +3,7 @@ import type {
   PlayDiscoveryItem,
   PlayThemeKey,
 } from './playDiscovery.js';
+import { inferPlayContentKind } from './playContentTaxonomy.js';
 
 export type MunicipalEventPlayInput = Readonly<{
   id: string;
@@ -107,6 +108,12 @@ export function projectMunicipalEventToPlay(input: MunicipalEventPlayInput, cont
   return {
     id: `municipal:${input.id}`,
     sourceKind: 'municipal_event',
+    contentKind: inferPlayContentKind({
+      category: input.category,
+      title: input.title,
+      venue: input.venue,
+      tags,
+    }),
     title: input.title,
     comuna: input.comuna,
     ...(input.venue ? { venue: input.venue } : {}),
