@@ -35,8 +35,11 @@ const queue = [...outletKeys].map((outletKey) => {
   const whatsapp = contact.whatsapp ?? null;
   const phone = contact.phone ?? null;
   const website = contact.website ?? null;
-  const hasContact = Boolean(whatsapp || phone || website);
-  const status = !hasContact
+  // A website is useful evidence/discovery context, but it is not a direct
+  // merchant-contact channel. Only a public business phone/WhatsApp makes the
+  // outlet ready for the later outreach phase.
+  const hasDirectContact = Boolean(whatsapp || phone);
+  const status = !hasDirectContact
     ? 'needs_public_contact'
     : needsIdentityConfirmation
       ? 'ready_for_identity_confirmation'
@@ -63,7 +66,9 @@ const queue = [...outletKeys].map((outletKey) => {
     collectImages: false,
     note: needsIdentityConfirmation
       ? 'Resolve outlet identity/address conflict before asking for publication authorization.'
-      : 'Photos/assets are intentionally excluded. Outreach asks only for factual business/menu authorization.',
+      : hasDirectContact
+        ? 'Photos/assets are intentionally excluded. Outreach asks only for factual business/menu authorization.'
+        : 'Official website may be known, but a public business phone/WhatsApp is still required before direct merchant outreach.',
   };
 });
 
@@ -85,6 +90,7 @@ console.log(JSON.stringify({
     sendActionOwnedBy: 'shared_messaging_core',
     authorizationRequiredBeforeCanonicalMerchantUse: true,
     identityConflictMustBeResolvedBeforeAuthorization: true,
+    directPublicContactRequiredForOutreachReadiness: true,
   },
   counts: {
     totalOutlets: queue.length,
