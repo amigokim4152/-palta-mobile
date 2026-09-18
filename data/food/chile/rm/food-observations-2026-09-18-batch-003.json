@@ -1,0 +1,233 @@
+{
+  "dataset": "palta_food_observations_rm",
+  "observed_at": "2026-09-18",
+  "currency": "CLP",
+  "scope": "Región Metropolitana de Santiago",
+  "records": [
+    {
+      "outlet": {
+        "outlet_key": "cl-rm-providencia-pizzapizza-nueva-providencia-1385",
+        "brand_name": "PizzaPizza",
+        "outlet_name": "Providencia",
+        "address": "Nueva Providencia 1385",
+        "comuna": "Providencia",
+        "region": "Región Metropolitana",
+        "postal_code": "7500000",
+        "identity_status": "platform_only"
+      },
+      "listing": {
+        "platform": "uber_eats",
+        "listing_id": "8mFUUdgRRZuKVSK34h0xfw",
+        "listing_name": "PizzaPizza - Providencia",
+        "url": "https://www.ubereats.com/cl/store/pizzapizza-providencia/8mFUUdgRRZuKVSK34h0xfw",
+        "platform_categories": ["Pizza", "Ambiente familiar"],
+        "delivery_supported": true
+      },
+      "menu_snapshot": {
+        "sections": ["Ahorros exclusivos"],
+        "sample_items": [
+          {"name": "Combo 4 Especialidades", "price_clp": 47700},
+          {"name": "PROMO 2x ármalas a tu gusto", "price_clp": 23900}
+        ]
+      },
+      "evidence": [
+        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/pizzapizza-providencia/8mFUUdgRRZuKVSK34h0xfw", "observed_at": "2026-09-18"}
+      ]
+    },
+    {
+      "outlet": {
+        "outlet_key": "cl-rm-providencia-400-pizzeria-general-flores-24",
+        "brand_name": "400 Pizzeria",
+        "outlet_name": "Providencia",
+        "address": "Calle General Flores 24",
+        "comuna": "Providencia",
+        "region": "Región Metropolitana",
+        "postal_code": "7500000",
+        "identity_status": "platform_only"
+      },
+      "listing": {
+        "platform": "uber_eats",
+        "listing_id": "oozcAtfzUJaB9kL6i3LHkw",
+        "listing_name": "400 Pizzeria - Providencia",
+        "url": "https://www.ubereats.com/cl/store/400-pizzeria-providencia/oozcAtfzUJaB9kL6i3LHkw",
+        "platform_categories": ["Pizza", "Italiana"],
+        "delivery_supported": true,
+        "pickup_supported": true
+      },
+      "menu_snapshot": {
+        "sections": ["Ahorros exclusivos", "Pizzas Clásicas", "Artículos destacados"],
+        "sample_items": [
+          {"name": "Margherita", "price_clp": 13990},
+          {"name": "Prosciutto e Stracciatella", "price_clp": 17990},
+          {"name": "Sapore d'italia", "price_clp": 17990}
+        ]
+      },
+      "evidence": [
+        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/400-pizzeria-providencia/oozcAtfzUJaB9kL6i3LHkw", "observed_at": "2026-09-18"}
+      ]
+    },
+    {
+      "outlet": {
+        "outlet_key": "cl-rm-las-condes-gorilas-cristobal-colon-7435",
+        "brand_name": "Gorilas",
+        "outlet_name": "Las Condes",
+        "address": "Cristobal Colon 7435",
+        "comuna": "Las Condes",
+        "region": "Región Metropolitana",
+        "postal_code": "7550000",
+        "identity_status": "platform_only"
+      },
+      "listing": {
+        "platform": "uber_eats",
+        "listing_id": "0BNeRNNLXPid8uC48ObD2Q",
+        "listing_name": "Gorilas - Las Condes",
+        "url": "https://www.ubereats.com/cl/store/gorilas-las-condes/0BNeRNNLXPid8uC48ObD2Q",
+        "platform_categories": ["Americana", "Hamburguesas", "Sándwich"],
+        "delivery_supported": true,
+        "pickup_supported": true
+      },
+      "menu_snapshot": {
+        "sections": ["Ahorros exclusivos", "Promos"],
+        "sample_items": [
+          {"name": "Promo Original Cheeseburger + Papas Fritas", "price_clp": 12000},
+          {"name": "Combo Godzilla vs King Kong", "price_clp": 15000},
+          {"name": "Promo DingDong", "price_clp": 13000},
+          {"name": "Murdoc", "price_clp": 8290}
+        ]
+      },
+      "evidence": [
+        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/gorilas-las-condes/0BNeRNNLXPid8uC48ObD2Q", "observed_at": "2026-09-18"}
+      ]
+    },
+    {
+      "outlet": {
+        "outlet_key": "cl-rm-las-condes-route66-isidora-goyenechea-2960",
+        "brand_name": "Route66",
+        "outlet_name": "Las Condes",
+        "address": "Isidora Goyenechea 2960",
+        "comuna": "Las Condes",
+        "region": "Región Metropolitana",
+        "postal_code": "7550000",
+        "identity_status": "platform_only"
+      },
+      "listing": {
+        "platform": "uber_eats",
+        "listing_id": "5K2Kg7reR_61qC2YYlHetQ",
+        "listing_name": "Route66 (Las Condes)",
+        "url": "https://www.ubereats.com/cl/store/route66-las-condes/5K2Kg7reR_61qC2YYlHetQ",
+        "platform_categories": ["Hamburguesas", "Ambiente familiar", "Pizza", "Sándwich", "Exclusivo de Uber Eats"],
+        "delivery_supported": true,
+        "pickup_supported": true
+      },
+      "menu_snapshot": {
+        "sections": ["Artículos destacados", "Hamburguesas / Sándwiches"],
+        "sample_items": [
+          {"name": "California Cobb Salad", "price_clp": 14900},
+          {"name": "Classic Chicken Quesadilla", "price_clp": 12900},
+          {"name": "Route 66 Burger Simple", "price_clp": 15990}
+        ]
+      },
+      "evidence": [
+        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/route66-las-condes/5K2Kg7reR_61qC2YYlHetQ", "observed_at": "2026-09-18"}
+      ]
+    },
+    {
+      "outlet": {
+        "outlet_key": "cl-rm-santiago-el-point-empanadas-santa-rosa-231",
+        "brand_name": "El point empanadas",
+        "address": "Avenida Santa Rosa 231",
+        "comuna": "Santiago",
+        "region": "Región Metropolitana",
+        "postal_code": "8320000",
+        "identity_status": "platform_only"
+      },
+      "listing": {
+        "platform": "uber_eats",
+        "listing_id": "viRScUPKWcav1hhN2e33Sg",
+        "listing_name": "El point empanadas",
+        "url": "https://www.ubereats.com/cl/store/el-point-empanadas/viRScUPKWcav1hhN2e33Sg",
+        "platform_categories": ["Apto para niños", "Venezolana", "Americana"],
+        "delivery_supported": true
+      },
+      "menu_snapshot": {
+        "sections": ["Empanadas"],
+        "sample_items": [
+          {"name": "Caraota, queso", "price_clp": 2500},
+          {"name": "Carne molida", "price_clp": 2500},
+          {"name": "Jamon, queso", "price_clp": 2500},
+          {"name": "Pollo, queso", "price_clp": 2500},
+          {"name": "Queso", "price_clp": 2500},
+          {"name": "Cazón", "price_clp": 2900}
+        ]
+      },
+      "evidence": [
+        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/el-point-empanadas/viRScUPKWcav1hhN2e33Sg", "observed_at": "2026-09-18"}
+      ]
+    },
+    {
+      "outlet": {
+        "outlet_key": "review-all-star-burger-manuel-montt-844",
+        "brand_name": "All Star Burger",
+        "outlet_name": "Las Condes",
+        "address": "Avenida Manuel Montt 844",
+        "comuna": "Providencia",
+        "region": "Región Metropolitana",
+        "postal_code": "7500000",
+        "identity_status": "needs_review",
+        "identity_note": "Listing name says Las Condes while the exposed address is in Providencia. Do not auto-merge to a Las Condes outlet."
+      },
+      "listing": {
+        "platform": "uber_eats",
+        "listing_id": "Lg9OCSt3V6u0-0xoiF_uaA",
+        "listing_name": "All Star Burger - Las Condes",
+        "url": "https://www.ubereats.com/cl/store/all-star-burger-las-condes/Lg9OCSt3V6u0-0xoiF_uaA",
+        "platform_categories": ["Opciones veganas", "Gourmet", "Hamburguesas"],
+        "delivery_supported": true
+      },
+      "menu_snapshot": {
+        "sections": ["Ahorros exclusivos", "Hamburguesas"],
+        "sample_items": [
+          {"name": "Guns N' Roses", "price_clp": 14990},
+          {"name": "Brighton Vegan", "price_clp": 11990},
+          {"name": "The Beatles", "price_clp": 11990}
+        ]
+      },
+      "evidence": [
+        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/all-star-burger-las-condes/Lg9OCSt3V6u0-0xoiF_uaA", "observed_at": "2026-09-18"}
+      ]
+    },
+    {
+      "outlet": {
+        "outlet_key": "cl-rm-las-condes-vegs-av-las-condes-7701",
+        "brand_name": "Vegs",
+        "outlet_name": "Las Condes",
+        "address": "Avenida Las Condes 7701",
+        "comuna": "Las Condes",
+        "region": "Región Metropolitana",
+        "postal_code": "7550000",
+        "identity_status": "platform_only"
+      },
+      "listing": {
+        "platform": "uber_eats",
+        "listing_id": "gSvtRvbWTiKc0ZQTfZhipw",
+        "listing_name": "Vegs Las Condes",
+        "url": "https://www.ubereats.com/cl/store/vegs-las-condes/gSvtRvbWTiKc0ZQTfZhipw",
+        "platform_categories": ["Plant Based", "Hamburguesas"],
+        "observed_availability": "closed_on_platform",
+        "closed_on_platform_at": "2025-07-22"
+      },
+      "menu_snapshot": {
+        "sections": ["Hamburguesas Plant Based"],
+        "sample_items": [
+          {"name": "Plant Based Hamburger"},
+          {"name": "Plant Based Cheese Burger"},
+          {"name": "Plant Based BBQ"},
+          {"name": "Plant Based Cheese Jalapeño"}
+        ]
+      },
+      "evidence": [
+        {"kind": "uber_eats", "url": "https://www.ubereats.com/cl/store/vegs-las-condes/gSvtRvbWTiKc0ZQTfZhipw", "observed_at": "2026-09-18"}
+      ]
+    }
+  ]
+}
