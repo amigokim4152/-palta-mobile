@@ -10,7 +10,7 @@
   "r2_buckets": [
     {
       "binding": "MAPS",
-      "bucket_name": "narevu-data"
+      "bucket_name": "palta-data"
     }
   ]
 }
