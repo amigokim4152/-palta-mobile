@@ -4,6 +4,7 @@ import type {
 } from '../../../../src/market/marketApiContract';
 import type { MarketMessageIntent } from '../../../../src/market/marketMessageIntent';
 import type { MarketLocationSummary } from '../../../../src/market/marketPersistenceContract';
+import type { MarketSafetyIntent } from '../../../../src/market/marketSafetyIntent';
 import { createMarketDevelopmentRuntime } from './marketRuntimeDevelopment';
 
 export type MarketRuntimeMode =
@@ -24,6 +25,8 @@ export type MarketRuntime = {
   }) => Promise<string[]>;
   /** Shared Message Core consumes the canonical Mercado handoff intent. */
   openMessageIntent?: (intent: MarketMessageIntent) => Promise<void>;
+  /** Shared Safety/Moderation boundary owns hide/report persistence and audit. */
+  handleSafetyIntent?: (intent: MarketSafetyIntent) => Promise<void>;
   resolveMediaAssetUrl: (mediaAssetId: string) => string | undefined;
   unavailableReason?: string;
 };
