@@ -3,13 +3,13 @@ import path from 'node:path';
 import ts from 'typescript';
 
 const root = process.cwd();
-const discoveryPath = path.join(root, 'mobile-overlay/src/features/business/LocalBusinessDiscoveryScreen.tsx');
+const discoveryPath = path.join(root, 'mobile-overlay/src/features/business/BusinessDiscoveryExperience.tsx');
 const cachePath = path.join(root, 'mobile-overlay/src/features/business/localBusinessDiscoveryCache.ts');
 const asyncResourcePath = path.join(root, 'mobile-overlay/src/hooks/useAsyncResource.ts');
 const mapPath = path.join(root, 'mobile-overlay/src/components/map/NeighborhoodMap.tsx');
 const sheetPath = path.join(root, 'mobile-overlay/src/components/neighborhood/MapResultSheet.tsx');
 const resultCardPath = path.join(root, 'mobile-overlay/src/components/LocalResultCard.tsx');
-const detailPath = path.join(root, 'mobile-overlay/src/app/business/[businessId].tsx');
+const detailPath = path.join(root, 'mobile-overlay/src/features/business/BusinessProfileExperience.tsx');
 const providerPath = path.join(root, 'mobile-overlay/src/app/_layout.tsx');
 
 function assert(condition, message) {
@@ -51,7 +51,6 @@ assert(
   provider.includes('<NeighborhoodStateProvider>') && provider.includes('<Stack'),
   'Discovery state provider must wrap the route stack so detail/Care navigation does not reset discovery context.',
 );
-
 assert(
   discovery.includes("neighborhood.activeFilters.includes(FILTER_VERIFIED)") &&
   discovery.includes("neighborhood.activeFilters.includes(FILTER_OPEN_NOW)"),
@@ -63,7 +62,8 @@ assert(
   'Map must restore the persisted discovery camera when returning from detail/Care.',
 );
 assert(
-  discovery.includes('SELECCIONADO EN EL MAPA') &&
+  discovery.includes('selectedBusiness') &&
+  discovery.includes('En el mapa') &&
   discovery.includes("dispatch({ type: 'set_sheet_snap', snap: 'peek' })"),
   'Map pin selection must open an in-context business preview before navigating away.',
 );
@@ -83,6 +83,10 @@ assert(
   discovery.includes('resultsContent'),
   'Result sheet must overlay a stable map surface rather than resize the map whenever its snap changes.',
 );
+assert(
+  discovery.includes('BusinessDiscoveryShell') && discovery.includes('SearchBar'),
+  'Negocios must use the polished map-led discovery shell instead of the generic developer ScreenFrame.',
+);
 
 assert(
   cache.includes('MAX_ENTRIES = 12') && cache.includes('MAX_AGE_MS = 2 * 60 * 1000'),
@@ -100,7 +104,6 @@ assert(
   asyncResource.includes('}, [enabled, loader]);'),
   'Async resource refresh must not restart merely because an inline empty predicate changed identity.',
 );
-
 assert(
   map.includes('getClusterExpansionZoom') && map.includes('easeTo'),
   'Map clusters must expand smoothly instead of behaving like dead markers.',
@@ -113,14 +116,12 @@ assert(
   map.includes('palta-local-selected-point') && map.includes("['get', 'selected']"),
   'Selected business must have a distinct map layer so list/map selection feels connected.',
 );
-
 assert(
   map.includes("from '../../theme/paltaTheme'") &&
   sheet.includes("from '../../theme/paltaTheme'") &&
   resultCard.includes("from '../theme/paltaTheme'"),
   'Map, sheet and result cards must consume the shared Palta theme rather than drift into a Local Business-only visual system.',
 );
-
 assert(
   sheet.includes('<Animated.View') && sheet.includes('Animated.timing'),
   'Result sheet snap changes must animate instead of jumping between fixed heights.',
@@ -129,12 +130,15 @@ assert(
   sheet.includes('<ScrollView') && sheet.includes('useWindowDimensions'),
   'Result sheet must scroll long result sets and adapt its snap heights to the device.',
 );
-
 assert(
   detail.includes('useNeighborhoodState') &&
-  detail.includes('Volver a negocios') &&
+  detail.includes('accessibilityLabel="Volver a negocios"') &&
   detail.includes('router.back()'),
-  'Business detail must return to the preserved discovery session, not start a new search context.',
+  'Business profile must return to the preserved discovery session, not start a new search context.',
+);
+assert(
+  detail.includes('ProfileHero') && detail.includes('BusinessActionBar'),
+  'Polished Business profile must keep visual identity and primary actions above long-form sections.',
 );
 
-console.log('PASS: Local Business connected discovery experience shell');
+console.log('PASS: Local Business connected polished discovery experience shell');
