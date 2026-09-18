@@ -3,6 +3,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Pressable, Text, TextInput, View } from 'react-native';
 import { ErrorState, LoadingState } from '../../../components/AsyncStateBlock';
 import { ScreenFrame } from '../../../components/ScreenFrame';
+import { getBusinessAuthenticatedRuntime } from '../../../features/business/authenticatedBusinessRuntime';
 import { useAsyncResource } from '../../../hooks/useAsyncResource';
 import { createClientMutationId } from '../../../../../src/api/retryPolicy';
 import { mobileRuntime } from '../../../services/paltaClient';
@@ -23,7 +24,7 @@ export default function BusinessQuoteRequestScreen() {
   const { state, refresh } = useAsyncResource(load);
 
   async function submit() {
-    if (!businessId || mobileRuntime.status !== 'ready') return;
+    if (!businessId) return;
     const cleanDescription = description.trim();
     if (cleanDescription.length < 10) {
       setMessage('Describe un poco más lo que necesitas para que el negocio pueda cotizar.');
@@ -40,10 +41,16 @@ export default function BusinessQuoteRequestScreen() {
       requestedForIso = new Date(parsed).toISOString();
     }
 
+    const authenticatedRuntime = getBusinessAuthenticatedRuntime();
+    if (authenticatedRuntime.status !== 'ready') {
+      setMessage(authenticatedRuntime.message);
+      return;
+    }
+
     setSubmitting(true);
     setMessage(null);
     try {
-      const quote = await mobileRuntime.client.quotes.createQuoteRequest({
+      const quote = await authenticatedRuntime.client.quotes.createQuoteRequest({
         description: cleanDescription,
         recipientBusinessIds: [businessId],
         ...(requestedForIso ? { requestedFor: requestedForIso } : {}),
