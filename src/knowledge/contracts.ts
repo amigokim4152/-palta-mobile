@@ -1,7 +1,6 @@
 export type KnowledgeDomain =
   | 'health'
   | 'pets'
-  | 'news'
   | 'food'
   | 'music'
   | 'art'
@@ -21,6 +20,29 @@ export type KnowledgeKind =
   | 'observation'
   | 'application'
   | 'misconception';
+
+export type KnowledgeContentClass =
+  | 'durable_knowledge'
+  | 'dynamic_observation'
+  | 'public_benefit'
+  | 'public_event'
+  | 'institution_state'
+  | 'news'
+  | 'private_context';
+
+export type KnowledgeStorageLane =
+  | 'canonical_git'
+  | 'dynamic_read_model'
+  | 'public_data_event_core'
+  | 'news_system'
+  | 'private_store';
+
+export interface KnowledgeIngressDecision {
+  contentClass: KnowledgeContentClass;
+  storageLane: KnowledgeStorageLane;
+  eligibleForCanonicalKnowledge: boolean;
+  reason: string;
+}
 
 export type DomainMaturity = 'seed' | 'growing' | 'mature' | 'standalone';
 export type PublicationState = 'draft' | 'in_review' | 'validated' | 'published' | 'withdrawn';
