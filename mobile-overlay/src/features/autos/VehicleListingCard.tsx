@@ -25,9 +25,13 @@ const FUEL_LABEL = {
 export function VehicleListingCard({
   item,
   onPress,
+  saved = false,
+  onToggleSaved,
 }: {
   item: VehicleListingView;
   onPress: () => void;
+  saved?: boolean;
+  onToggleSaved?: () => void;
 }) {
   const { vehicle, listing } = item;
 
@@ -57,7 +61,20 @@ export function VehicleListingCard({
             >
               {listing.title}
             </Text>
-            <Text style={{ fontSize: 18, color: paltaTheme.color.textMuted }}>♡</Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={saved ? 'Quitar de guardados' : 'Guardar auto'}
+              hitSlop={8}
+              onPress={(event) => {
+                event.stopPropagation();
+                onToggleSaved?.();
+              }}
+              style={{ minWidth: 32, minHeight: 32, alignItems: 'center', justifyContent: 'center' }}
+            >
+              <Text style={{ fontSize: 20, color: saved ? paltaTheme.color.brandPrimary : paltaTheme.color.textMuted }}>
+                {saved ? '♥' : '♡'}
+              </Text>
+            </Pressable>
           </View>
 
           <Text style={{ fontSize: 17, fontWeight: '900', color: paltaTheme.color.brandPrimary }}>
