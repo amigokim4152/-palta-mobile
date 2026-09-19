@@ -136,11 +136,37 @@
       "id": "community",
       "source_branch": "integration/community-runtime-v1",
       "integration_mode": "reviewed_snapshot",
-      "integrated_source_sha": "0f5937bebc2af6d0545fa83176b7be5011630ded",
+      "integrated_source_sha": "e863e7e9903eb5785cdc696146c5b6e4d63f7762",
       "owned_paths": [
         "mobile-overlay/src/features/community",
         "mobile-overlay/src/app/(tabs)/community.tsx",
         "mobile-overlay/src/app/community"
+      ],
+      "branch_owned_paths": [
+        "mobile-overlay/src/features/community",
+        "mobile-overlay/src/app/(tabs)/community.tsx",
+        "mobile-overlay/src/app/community",
+        "src/community",
+        "src/api/paltaApiClient.ts",
+        "infra/api/communityBoundary.ts",
+        "infra/api/communityHttp.ts",
+        "infra/api/communityRuntime.ts",
+        "infra/api/paltaIdentityResolver.ts",
+        "infra/api/supabaseCommunityAuthorization.ts"
+      ],
+      "reviewed_contract_paths": [
+        "src/community/communityExperience.ts",
+        "src/community/communityHomeProjection.ts",
+        "src/community/communityMembershipLifecycle.ts",
+        "src/community/communityOutboxDelivery.ts",
+        "src/community/communityOutboxProcessor.ts",
+        "src/community/schoolCommunityHierarchy.ts",
+        "src/community/schoolStructuredContent.ts",
+        "infra/api/communityBoundary.ts",
+        "infra/api/communityHttp.ts",
+        "infra/api/communityRuntime.ts",
+        "infra/api/paltaIdentityResolver.ts",
+        "infra/api/supabaseCommunityAuthorization.ts"
       ]
     },
     {
