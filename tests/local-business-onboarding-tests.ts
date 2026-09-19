@@ -7,6 +7,7 @@ import {
   markOwnerVerified,
   requestOwnerVerification,
   setBusinessPresence,
+  setBusinessPublicContact,
   setServiceSuggestions,
   startNewBusiness,
 } from '../src/business/businessOnboarding.js';
@@ -45,7 +46,11 @@ existing = setBusinessPresence(existing, {
   serviceAreaIds: ['vitacura', 'las-condes'],
 });
 let readiness = evaluateOnboardingReadiness(existing);
-assert(readiness.readyForVerification, 'Minimum profile must be ready for verification.');
+assert(!readiness.readyForVerification, 'Onboarding without a usable public contact must remain incomplete.');
+assert(readiness.missing.includes('public_contact'), 'Missing public contact must be explicit to the UI.');
+existing = setBusinessPublicContact(existing, { whatsapp: '+56911111111' });
+readiness = evaluateOnboardingReadiness(existing);
+assert(readiness.readyForVerification, 'Minimum profile with a usable public contact must be ready for verification.');
 assert(!readiness.readyForPublish, 'Owner-controlled changes must not publish before verification.');
 existing = requestOwnerVerification(existing);
 assert(existing.stage === 'verification' && existing.verificationStatus === 'pending', 'Verification request must enter pending state.');
@@ -73,6 +78,7 @@ mobile = setBusinessPresence(mobile, {
   presenceModes: ['customer_site'],
   serviceAreaIds: ['providencia', 'nunoa'],
 });
+mobile = setBusinessPublicContact(mobile, { phone: '+56220000000' });
 readiness = evaluateOnboardingReadiness(mobile);
 assert(readiness.readyForVerification, 'Customer-site provider must work without a fake storefront pin.');
 
