@@ -1,4 +1,5 @@
 import { mobileRuntime } from '../../services/paltaClient';
+import { useCommunityPreview } from './communityRuntimePolicy';
 import type {
   CommunityApiSchoolItem,
   CreateCommunitySchoolItemInput,
@@ -10,12 +11,6 @@ export interface CommunitySchoolRuntime {
   createItem(spaceId: string, input: CreateCommunitySchoolItemInput): Promise<void>;
 }
 
-function usePreview(): boolean {
-  return process.env.EXPO_PUBLIC_ENV !== 'production' && (
-    process.env.EXPO_PUBLIC_PALTA_PREVIEW === '1' ||
-    !process.env.EXPO_PUBLIC_PALTA_API_BASE_URL
-  );
-}
 
 function client() {
   if (mobileRuntime.status !== 'ready') throw new Error(mobileRuntime.message);
@@ -38,11 +33,11 @@ function toSchoolItem(item: CommunityApiSchoolItem): SchoolStructuredItem {
 
 export const communitySchoolRuntime: CommunitySchoolRuntime = {
   async loadItems(spaceId) {
-    if (usePreview()) return [];
+    if (useCommunityPreview()) return [];
     return (await client().getCommunitySchoolItems(spaceId)).map(toSchoolItem);
   },
   async createItem(spaceId, input) {
-    if (usePreview()) return;
+    if (useCommunityPreview()) return;
     await client().createCommunitySchoolItem(spaceId, input);
   },
 };
