@@ -10,7 +10,9 @@ const DEMO_GLANCE: readonly HomeApiGlanceItem[] = [
 export type HomeDisplayMode = 'development_demo' | 'personalized';
 
 export function homeDisplayMode(environment: string): HomeDisplayMode {
-  return environment === 'development' ? 'development_demo' : 'personalized';
+  return environment === 'development' || environment === 'preview'
+    ? 'development_demo'
+    : 'personalized';
 }
 
 /** Keep development coverage independent of the API's incidental demo flags. */

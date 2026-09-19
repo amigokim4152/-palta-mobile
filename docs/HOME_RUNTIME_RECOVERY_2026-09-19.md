@@ -16,7 +16,7 @@ The runtime already contained the reviewed functional Home screen and both demo 
 
 ## Recovery
 
-The canonical source remains `integration/home-functional-foundation-v1`, now pinned by `manifest/mobile-runtime-composition.json` to its recovery commit. Existing functional Home Core, API contracts, life-card fixtures and entry inventory remain in place. `development` explicitly enables demo coverage and a usable local Home when the API is unavailable. `preview` and `production` render personalized API data and discard demo items. Real API items take precedence over demo items with the same capability key.
+The canonical source remains `integration/home-functional-foundation-v1`, now pinned by `manifest/mobile-runtime-composition.json` to its recovery commit. Existing functional Home Core, API contracts, life-card fixtures and entry inventory remain in place. `development` explicitly enables demo coverage and a usable local Home when the API is unavailable. `preview` and `development` show complete demo coverage; `production` renders personalized API data and discards demo items. Real API items take precedence over demo items with the same capability key.
 
 The first screen shows a small set of urgent and useful items, with the rest and product entries behind `Ver todo`. The existing adaptive layout is retained; hidden glance items can be expanded at large text sizes. Entries without implemented routes remain visible as information rather than buttons.
 

@@ -160,7 +160,7 @@ for (const id of expectedSurfaceIds) {
 
 const home = manifest.surfaces.find((surface) => surface.id === 'home');
 if (home.source_branch !== 'integration/home-functional-foundation-v1' ||
-    home.integrated_source_sha !== '923fb35eafb8fcd35ca66f2ac6438e80659cbfe4') {
+    home.integrated_source_sha !== 'ff1eda626a6114f35d27f4be3697d5f881707059') {
   fail('Home must use the reviewed functional-foundation recovery commit.');
 }
 for (const [file, expectedHash] of Object.entries(home.reviewed_file_sha256 ?? {})) {
