@@ -82,7 +82,9 @@ const closedToday = await json(`/v1/business/${businessId}/operating-rules/quick
 });
 assert(closedToday.response.ok, 'close-today quick action failed');
 assert(closedToday.body.projection.operational_state === 'closed_today', 'close-today must override the normal schedule only for today');
-assert(closedToday.body.rules.dateExceptions.length === 1, 'close-today should persist a date exception');
+const today = closedToday.body.projection.local_date;
+const closedTodayException = closedToday.body.rules.dateExceptions.find((item) => item.date === today);
+assert(closedTodayException?.kind === 'closed_all_day', 'close-today should persist a date exception for today');
 
 const businessAfterClose = await json(`/v1/business/${businessId}`);
 assert(
@@ -96,7 +98,10 @@ const restoredToday = await json(`/v1/business/${businessId}/operating-rules/qui
   body: JSON.stringify({ action: 'clear_today_exception' }),
 });
 assert(restoredToday.response.ok, 'clear-today exception failed');
-assert(restoredToday.body.rules.dateExceptions.length === 0, 'normal-today action must remove only today exception');
+assert(
+  !restoredToday.body.rules.dateExceptions.some((item) => item.date === today),
+  'normal-today action must remove only today exception',
+);
 
 const specialToday = await json(`/v1/business/${businessId}/operating-rules/quick-action`, {
   method: 'POST',
@@ -107,7 +112,8 @@ const specialToday = await json(`/v1/business/${businessId}/operating-rules/quic
   }),
 });
 assert(specialToday.response.ok, 'today custom hours failed');
-assert(specialToday.body.rules.dateExceptions[0]?.kind === 'custom_hours', 'today custom hours should use a date exception');
+const specialTodayException = specialToday.body.rules.dateExceptions.find((item) => item.date === today);
+assert(specialTodayException?.kind === 'custom_hours', 'today custom hours should use a date exception for today');
 
 const temporary = await json(`/v1/business/${businessId}/operating-rules/quick-action`, {
   method: 'POST',
