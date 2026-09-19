@@ -6,15 +6,16 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "build": "tsc",
-    "test": "npm run build && node dist/tests/run-tests.js && node dist/tests/auth-profile-core-tests.js && node dist/tests/auth-profile-persistence-tests.js && node dist/tests/home-functional-contract-tests.js && node dist/tests/care-home-functional-tests.js && node dist/tests/home-cache-policy-tests.js && node dist/tests/scheduled-home-functional-tests.js && node dist/tests/weather-home-functional-tests.js && node dist/tests/public-life-news-functional-tests.js && node dist/tests/public-data-home-integration-tests.js && node dist/tests/public-data-runtime-config-tests.js && node dist/tests/mobility-home-functional-tests.js && node dist/tests/commerce-order-home-functional-tests.js && node dist/tests/community-home-functional-tests.js && node dist/tests/customer-delivery-home-policy-tests.js && node dist/tests/journey-home-functional-tests.js && node dist/tests/home-capability-registry-tests.js && node dist/tests/home-behavior-capability-tests.js && node dist/tests/seasonal-food-home-functional-tests.js && node dist/tests/functional-home-composer-tests.js && node dist/tests/home-functional-api-projection-tests.js",
+    "test": "npm run build && node dist/tests/run-tests.js && node dist/tests/auth-profile-core-tests.js && node dist/tests/auth-profile-persistence-tests.js && node dist/tests/home-functional-contract-tests.js && node dist/tests/care-home-functional-tests.js && node dist/tests/home-cache-policy-tests.js && node dist/tests/scheduled-home-functional-tests.js && node dist/tests/weather-home-functional-tests.js && node dist/tests/public-life-news-functional-tests.js && node dist/tests/public-data-home-integration-tests.js && node dist/tests/public-data-runtime-config-tests.js && node dist/tests/mobility-home-functional-tests.js && node dist/tests/commerce-order-home-functional-tests.js && node dist/tests/community-home-functional-tests.js && node dist/tests/customer-delivery-home-policy-tests.js && node dist/tests/journey-home-functional-tests.js && node dist/tests/home-capability-registry-tests.js && node dist/tests/home-behavior-capability-tests.js && node dist/tests/seasonal-food-home-functional-tests.js && node dist/tests/functional-home-composer-tests.js && node dist/tests/home-functional-api-projection-tests.js && node dist/tests/home-display-policy-tests.js",
     "test:mock": "node scripts/test-mock-api.mjs",
     "mock:api": "node dev/mock-api/server.mjs",
     "mock:smoke": "node dev/mock-api/smoke.mjs",
     "check:independence": "node scripts/check-core-independence.mjs",
-    "verify": "npm run typecheck && npm test && npm run test:mock && npm run check:independence",
+    "verify": "npm run typecheck && npm test && npm run test:mock && npm run check:independence && npm run check:home-runtime-source",
     "preflight:env": "node scripts/preflight-env.mjs",
     "preflight:local": "bash scripts/preflight-local.sh",
-    "check:machine": "bash scripts/machine-readiness-check.sh"
+    "check:machine": "bash scripts/machine-readiness-check.sh",
+    "check:home-runtime-source": "node scripts/check-home-runtime-source.mjs"
   },
   "engines": {
     "node": ">=22"
