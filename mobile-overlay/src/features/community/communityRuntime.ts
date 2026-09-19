@@ -541,12 +541,9 @@ const previewRuntime: CommunityRuntime = {
 };
 
 function usePreview(): boolean {
-  return (
+  return process.env.EXPO_PUBLIC_ENV !== 'production' && (
     process.env.EXPO_PUBLIC_PALTA_PREVIEW === '1' ||
-    (
-      !process.env.EXPO_PUBLIC_PALTA_API_BASE_URL &&
-      process.env.EXPO_PUBLIC_ENV !== 'production'
-    )
+    !process.env.EXPO_PUBLIC_PALTA_API_BASE_URL
   );
 }
 

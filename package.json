@@ -31,7 +31,7 @@
     "check:market-composition": "node scripts/check-market-composition.mjs",
     "check:messaging-runtime": "node scripts/check-messaging-runtime-integration.mjs",
     "check:independence": "node scripts/check-core-independence.mjs",
-    "verify": "npm run typecheck && npm test && npm run mock:operating-readtime-unit && npm run check:independence && npm run check:mobile-hours-source && npm run check:local-business-primary-tab && npm run check:local-business-mobile-detail && npm run check:local-business-corrections-ui && npm run check:local-business-owner-profile && npm run check:local-business-reviews-ui && npm run check:local-business-quote-ui && npm run check:local-business-experience-shell && npm run check:local-business-screen-reference && npm run check:mobile-runtime-shell && npm run check:runtime-composition && npm run check:market-composition && npm run check:messaging-runtime && npm run check:home-runtime-source && npm run check:auth-runtime-stabilization",
+    "verify": "npm run typecheck && npm test && npm run mock:operating-readtime-unit && npm run check:independence && npm run check:mobile-hours-source && npm run check:local-business-primary-tab && npm run check:local-business-mobile-detail && npm run check:local-business-corrections-ui && npm run check:local-business-owner-profile && npm run check:local-business-reviews-ui && npm run check:local-business-quote-ui && npm run check:local-business-experience-shell && npm run check:local-business-screen-reference && npm run check:mobile-runtime-shell && npm run check:runtime-composition && npm run check:market-composition && npm run check:messaging-runtime && npm run check:home-runtime-source && npm run check:auth-runtime-stabilization && npm run check:play-route-integrity",
     "compose:mobile": "node scripts/compose-mobile-runtime.mjs",
     "dev:ios": "bash scripts/run-ios-mobile.sh",
     "test:golden:ios": "bash scripts/run-golden-user-ios.sh",
@@ -41,7 +41,8 @@
     "preflight:local": "bash scripts/preflight-local.sh",
     "check:machine": "bash scripts/machine-readiness-check.sh",
     "check:home-runtime-source": "node scripts/check-home-runtime-source.mjs",
-    "check:auth-runtime-stabilization": "node scripts/check-auth-runtime-stabilization.mjs"
+    "check:auth-runtime-stabilization": "node scripts/check-auth-runtime-stabilization.mjs",
+    "check:play-route-integrity": "node scripts/check-play-route-integrity.mjs"
   },
   "engines": {
     "node": ">=22"

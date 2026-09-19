@@ -143,7 +143,7 @@
       "id": "community",
       "source_branch": "integration/community-runtime-v1",
       "integration_mode": "reviewed_snapshot",
-      "integrated_source_sha": "18a497559e0e1097eb6e884d72370be24322b080",
+      "integrated_source_sha": "04c0efabf63b14b03c6bae96b733adfa62b1dbbb",
       "owned_paths": [
         "mobile-overlay/src/features/community",
         "mobile-overlay/src/app/(tabs)/community.tsx",
@@ -173,8 +173,15 @@
         "infra/api/communityHttp.ts",
         "infra/api/communityRuntime.ts",
         "infra/api/paltaIdentityResolver.ts",
-        "infra/api/supabaseCommunityAuthorization.ts"
-      ]
+        "infra/api/supabaseCommunityAuthorization.ts",
+        "mobile-overlay/src/features/community/communityMembershipRuntime.ts",
+        "mobile-overlay/src/features/community/communitySchoolRuntime.ts"
+      ],
+      "reviewed_file_sha256": {
+        "mobile-overlay/src/features/community/communityRuntime.ts": "67da2510dc0964b123b2b20eacd461edc4b69de67f38bf37fc7d03c70fb42f68",
+        "mobile-overlay/src/features/community/communityMembershipRuntime.ts": "23bb1e57ba0a21becde7c46756b52b2e1c61e635f503d756a9697a03b82ee8f7",
+        "mobile-overlay/src/features/community/communitySchoolRuntime.ts": "d4dd4ca118f3fea7a3bc3b93f3e6c77cff85512dd4bc8c160781e353f2fa32c6"
+      }
     },
     {
       "id": "market",

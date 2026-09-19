@@ -1,0 +1,17 @@
+# Five-tab composed runtime audit · 2026-09-19
+
+This is a source and composed-bundle audit of `apps/mobile/src` after `compose-mobile-runtime.mjs`. Simulator interaction is still pending.
+
+| Tab | Route | Loading / error / empty | Demo and data state | Primary CTA, detail and back | Localization / accessibility / layout | Mock, dead action, placeholder |
+| --- | --- | --- | --- | --- | --- | --- |
+| Inicio | `/(tabs)/home` imports `HomeScreen` | Loading and retryable error in personalized mode; development/preview retain demo on partial or unavailable API; quiet state | Existing API Life Inbox with explicit development/preview completion; production filters demo | API-provided action targets; compact `Ver todo`; detail navigation depends on API targets; tab return preserves route | Spanish Home copy; adaptive glance columns, stacked metadata and scalable text; `ScreenFrame` scroll | Demo life cards and entry inventory are labelled; missing destination entries are informational rows. No new dead button found. |
+| Negocios | `/(tabs)/businesses` opens `BusinessDiscoveryExperience` | Loading, retryable error, empty result | Canonical Local Search API and MapLibre; development uses location/map style fallback, not a second map engine | Search, current location, pin preview, business detail; detail uses `router.back()` | Spanish copy; accessibility roles on primary controls; full-bleed map and draggable sheet | Local API may use mock server in development. Map camera and glyphs need simulator inspection; no unnecessary map changes made. |
+| Comunidad | `/(tabs)/community` opens `CommunityScreen` | Loading text, error text, and empty feed/membership copy; error has no retry button | Explicit preview fixtures only outside production; otherwise shared API | Filter, community/post detail; detail routes exist, back needs simulator check | Spanish copy; roles/labels on cards; `ScreenFrame` scroll | Preview fixture exists. **Medium:** load error lacks direct retry. Production preview leakage fixed in three runtime adapters. |
+| Mercado | `/(tabs)/market` opens `MarketScreen` | Loading, error, empty list; error has no direct retry | Installed runtime chooses HTTP or development preview | Sell, browse, transactions, listing detail routes exist; back needs simulator check | Spanish copy; roles on major actions; safe area and list layout | Preview fixture exists. **High:** shared bootstrap still accepts preview flag in production; handled in shell phase. **Medium:** retry and localized copy need work. |
+| Panorama | `/(tabs)/play` opens `PlayScreen` | Synchronous preview/empty cards; no async live-data loading or error state | `__DEV__` fixtures; production source list currently empty | Intent chips and in-screen detail modal; business detail route exists; modal close is back action | Spanish copy, scalable text, touch targets, `ScreenFrame` scroll | **High fixed:** `/map` and `/search` did not exist; dead CTAs removed in Play Source of Truth. **Medium:** live production source and shared search/map destination remain product/runtime work. |
+
+## Remaining product decisions
+
+- Panorama needs an agreed shared Search and Map destination before map/search CTAs return.
+- Production Panorama needs a canonical live source port and freshness policy; development fixtures are not production content.
+- Community and Mercado retry behavior and broader multilingual content are medium-priority improvements.

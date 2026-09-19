@@ -163,14 +163,27 @@ if (home.source_branch !== 'integration/home-functional-foundation-v1' ||
     home.integrated_source_sha !== 'ff1eda626a6114f35d27f4be3697d5f881707059') {
   fail('Home must use the reviewed functional-foundation recovery commit.');
 }
-for (const [file, expectedHash] of Object.entries(home.reviewed_file_sha256 ?? {})) {
-  const fullPath = path.join(root, normalizeRepoPath(file));
-  if (!fs.existsSync(fullPath)) fail(`Missing reviewed Home file: ${file}`);
-  const actualHash = createHash('sha256').update(fs.readFileSync(fullPath)).digest('hex');
-  if (actualHash !== expectedHash) fail(`Reviewed Home file differs from the pinned source: ${file}`);
+for (const surface of manifest.surfaces) {
+  for (const [file, expectedHash] of Object.entries(surface.reviewed_file_sha256 ?? {})) {
+    const fullPath = path.join(root, normalizeRepoPath(file));
+    if (!fs.existsSync(fullPath)) fail(`Missing reviewed ${surface.id} file: ${file}`);
+    const actualHash = createHash('sha256').update(fs.readFileSync(fullPath)).digest('hex');
+    if (actualHash !== expectedHash) fail(`Reviewed ${surface.id} file differs from the pinned source: ${file}`);
+  }
 }
 if (Object.keys(home.reviewed_file_sha256 ?? {}).length < 4) {
   fail('Home source pin must cover screen, demo inventory and display policy.');
+}
+const community = manifest.surfaces.find((surface) => surface.id === 'community');
+if (community.integrated_source_sha !== '04c0efabf63b14b03c6bae96b733adfa62b1dbbb' ||
+    Object.keys(community.reviewed_file_sha256 ?? {}).length !== 3) {
+  fail('Community production preview boundary must use the reviewed source commit.');
+}
+for (const file of Object.keys(community.reviewed_file_sha256)) {
+  const source = fs.readFileSync(path.join(root, file), 'utf8');
+  if (!source.includes("return process.env.EXPO_PUBLIC_ENV !== 'production' && (")) {
+    fail(`Community preview must be disabled in production: ${file}`);
+  }
 }
 
 const routeAssertions = [
