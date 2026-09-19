@@ -21,6 +21,9 @@ export type MapFeature = {
   coordinate: GeoPoint;
   title: string;
   categoryKey?: string;
+  verificationStatus?: string;
+  operationalState?: string;
+  markerTier?: 'anchor' | 'local' | 'detail';
   selected?: boolean;
 };
 

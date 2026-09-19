@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { router } from 'expo-router';
 import { Pressable, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { MapFeature } from '../../../../src/adapters/mapCore';
 import {
   EmptyState,
@@ -28,8 +29,22 @@ function formatDistance(distanceM?: number): string | undefined {
   return `${(distanceM / 1000).toFixed(1).replace('.', ',')} km`;
 }
 
+function isOpenNow(operationalState?: string): boolean {
+  return operationalState === 'open_now' || operationalState === 'open';
+}
+
+function operationalLabel(operationalState?: string): string | undefined {
+  if (isOpenNow(operationalState)) return 'Abierto ahora';
+  if (operationalState === 'closed_now' || operationalState === 'closed') {
+    return 'Cerrado ahora';
+  }
+  if (operationalState === 'temporarily_closed') return 'Cerrado temporalmente';
+  return undefined;
+}
+
 export function NeighborhoodScreen() {
   const { state: neighborhood, dispatch } = useNeighborhoodState();
+  const insets = useSafeAreaInsets();
   const [locationBusy, setLocationBusy] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
 
@@ -66,24 +81,49 @@ export function NeighborhoodScreen() {
         ) {
           return false;
         }
+        if (
+          neighborhood.activeFilters.includes('open_now') &&
+          !isOpenNow(item.operational_state)
+        ) {
+          return false;
+        }
         return true;
       }),
     [state.data, neighborhood.activeFilters],
   );
 
+  const displayResults = useMemo(() => {
+    const selectedId = neighborhood.selectedEntityId;
+    if (!selectedId) return visibleResults;
+    const selected = visibleResults.find((item) => item.entity_id === selectedId);
+    if (!selected) return visibleResults;
+    return [
+      selected,
+      ...visibleResults.filter((item) => item.entity_id !== selectedId),
+    ];
+  }, [visibleResults, neighborhood.selectedEntityId]);
+
   const mapFeatures = useMemo<MapFeature[]>(
     () =>
-      visibleResults.map((item) => ({
-        id: item.entity_id,
-        entityType: item.entity_type,
-        coordinate: {
-          latitude: item.location.lat,
-          longitude: item.location.lng,
-        },
-        title: item.name,
-        ...(item.category_key ? { categoryKey: item.category_key } : {}),
-        selected: item.entity_id === neighborhood.selectedEntityId,
-      })),
+      visibleResults
+        .filter((item) => item.location !== undefined)
+        .map((item) => ({
+          id: item.entity_id,
+          entityType: item.entity_type,
+          coordinate: {
+            latitude: item.location!.lat,
+            longitude: item.location!.lng,
+          },
+          title: item.name,
+          ...(item.category_key ? { categoryKey: item.category_key } : {}),
+          ...(item.verification_status
+            ? { verificationStatus: item.verification_status }
+            : {}),
+          ...(item.operational_state
+            ? { operationalState: item.operational_state }
+            : {}),
+          selected: item.entity_id === neighborhood.selectedEntityId,
+        })),
     [visibleResults, neighborhood.selectedEntityId],
   );
 
@@ -173,151 +213,156 @@ export function NeighborhoodScreen() {
   }
 
   return (
-    <ScreenFrame
-      title="Tu barrio"
-      subtitle="Ubicación activa · editable"
-      scroll={false}
-    >
-      <View style={{ flex: 1 }}>
-        <View style={{ minHeight: 250, flex: 1 }}>
-          {mobileRuntime.status === 'ready' &&
-          mobileRuntime.mapStyleUrl ? (
-            <NeighborhoodMap
-              mapStyle={mobileRuntime.mapStyleUrl}
-              features={mapFeatures}
-              initialCenter={neighborhood.effectiveLocation}
-              onSelectEntity={(entityId) =>
-                dispatch({ type: 'select_entity', entityId })
-              }
-              onViewportChanged={(center, zoom, userInteraction) =>
-                dispatch({
-                  type: 'set_viewport_center',
-                  center,
-                  zoom,
-                  userInteraction,
-                })
-              }
-            />
-          ) : (
-            <View
-              style={{
-                flex: 1,
-                alignItems: 'center',
-                justifyContent: 'center',
-                borderWidth: 1,
-              }}
-            >
-              <Text>Map Core preparado</Text>
-              <Text style={{ marginTop: 6, opacity: 0.6 }}>
-                Falta conectar EXPO_PUBLIC_MAP_STYLE_URL.
-              </Text>
-            </View>
-          )}
+    <View style={{ flex: 1, backgroundColor: '#F3F5F2' }}>
+      {mobileRuntime.status === 'ready' && mobileRuntime.mapStyleUrl ? (
+        <NeighborhoodMap
+          mapStyle={mobileRuntime.mapStyleUrl}
+          features={mapFeatures}
+          initialCenter={neighborhood.effectiveLocation}
+          onSelectEntity={(entityId) =>
+            dispatch({ type: 'select_entity', entityId })
+          }
+          onViewportChanged={(center, zoom, userInteraction) =>
+            dispatch({
+              type: 'set_viewport_center',
+              center,
+              zoom,
+              userInteraction,
+            })
+          }
+        />
+      ) : (
+        <View
+          style={{
+            flex: 1,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Text>Map Core preparado</Text>
+          <Text style={{ marginTop: 6, opacity: 0.6 }}>
+            Falta conectar EXPO_PUBLIC_MAP_STYLE_URL.
+          </Text>
+        </View>
+      )}
 
-          {neighborhood.mapMovedSinceSearch ? (
-            <Pressable
-              onPress={() =>
-                dispatch({
-                  type: 'search_current_viewport',
-                  resultIds: visibleResults.map((item) => item.entity_id),
-                })
-              }
-              style={{
-                position: 'absolute',
-                alignSelf: 'center',
-                top: 14,
-                paddingHorizontal: 14,
-                paddingVertical: 9,
-                borderWidth: 1,
-                borderRadius: 999,
-                backgroundColor: 'white',
-              }}
-            >
-              <Text style={{ fontWeight: '700' }}>Buscar en esta zona</Text>
-            </Pressable>
-          ) : null}
+      {neighborhood.mapMovedSinceSearch ? (
+        <Pressable
+          onPress={() =>
+            dispatch({
+              type: 'search_current_viewport',
+              resultIds: visibleResults.map((item) => item.entity_id),
+            })
+          }
+          style={{
+            position: 'absolute',
+            alignSelf: 'center',
+            top: insets.top + 10,
+            paddingHorizontal: 16,
+            minHeight: 38,
+            justifyContent: 'center',
+            borderWidth: 1,
+            borderColor: 'rgba(49,67,56,0.18)',
+            borderRadius: 999,
+            backgroundColor: 'rgba(255,255,255,0.96)',
+            shadowColor: '#000000',
+            shadowOpacity: 0.08,
+            shadowRadius: 8,
+            shadowOffset: { width: 0, height: 2 },
+          }}
+        >
+          <Text style={{ fontSize: 13, fontWeight: '700' }}>
+            Buscar en esta zona
+          </Text>
+        </Pressable>
+      ) : null}
+
+      <MapResultSheet
+        snap={neighborhood.sheetSnap}
+        onSnapChange={(snap) => dispatch({ type: 'set_sheet_snap', snap })}
+      >
+        <View
+          style={{
+            flexDirection: 'row',
+            gap: 8,
+            paddingBottom: 10,
+          }}
+        >
+          <FilterChip
+            label="Abierto ahora"
+            selected={neighborhood.activeFilters.includes('open_now')}
+            onPress={() => {
+              const next = neighborhood.activeFilters.includes('open_now')
+                ? neighborhood.activeFilters.filter(
+                    (item) => item !== 'open_now',
+                  )
+                : [...neighborhood.activeFilters, 'open_now'];
+              dispatch({ type: 'set_filters', filters: next });
+            }}
+          />
+          <FilterChip
+            label="Verificado"
+            selected={neighborhood.activeFilters.includes('verified')}
+            onPress={() => {
+              const next = neighborhood.activeFilters.includes('verified')
+                ? neighborhood.activeFilters.filter(
+                    (item) => item !== 'verified',
+                  )
+                : [...neighborhood.activeFilters, 'verified'];
+              dispatch({ type: 'set_filters', filters: next });
+            }}
+          />
         </View>
 
-        <MapResultSheet
-          snap={neighborhood.sheetSnap}
-          onSnapChange={(snap) =>
-            dispatch({ type: 'set_sheet_snap', snap })
-          }
-        >
-          <View
-            style={{
-              flexDirection: 'row',
-              gap: 8,
-              paddingBottom: 10,
-            }}
-          >
-            <FilterChip
-              label="Abierto ahora"
-              selected={neighborhood.activeFilters.includes('open_now')}
-              onPress={() => {
-                const next = neighborhood.activeFilters.includes('open_now')
-                  ? neighborhood.activeFilters.filter(
-                      (item) => item !== 'open_now',
-                    )
-                  : [...neighborhood.activeFilters, 'open_now'];
-                dispatch({ type: 'set_filters', filters: next });
-              }}
-            />
-            <FilterChip
-              label="Verificado"
-              selected={neighborhood.activeFilters.includes('verified')}
-              onPress={() => {
-                const next = neighborhood.activeFilters.includes('verified')
-                  ? neighborhood.activeFilters.filter(
-                      (item) => item !== 'verified',
-                    )
-                  : [...neighborhood.activeFilters, 'verified'];
-                dispatch({ type: 'set_filters', filters: next });
-              }}
-            />
-          </View>
+        <Text style={{ fontSize: 13, fontWeight: '700', opacity: 0.6 }}>
+          CERCA DE TI
+        </Text>
 
-          <Text style={{ fontSize: 13, fontWeight: '700', opacity: 0.6 }}>
-            CERCA DE TI
-          </Text>
+        {state.status === 'loading' && !state.data ? (
+          <LoadingState label="Buscando cerca…" />
+        ) : null}
 
-          {state.status === 'loading' && !state.data ? (
-            <LoadingState label="Buscando cerca…" />
-          ) : null}
+        {state.status === 'error' && !state.data ? (
+          <ErrorState message={state.message} onRetry={() => void refresh()} />
+        ) : null}
 
-          {state.status === 'error' && !state.data ? (
-            <ErrorState message={state.message} onRetry={() => void refresh()} />
-          ) : null}
+        {state.status === 'empty' ? (
+          <EmptyState
+            title="No encontramos resultados aquí"
+            body="Puedes mover el mapa o cambiar la búsqueda."
+          />
+        ) : null}
 
-          {state.status === 'empty' ? (
-            <EmptyState
-              title="No encontramos resultados aquí"
-              body="Puedes mover el mapa o cambiar la búsqueda."
-            />
-          ) : null}
+        {state.data && state.data.length > 0 && visibleResults.length === 0 ? (
+          <EmptyState
+            title="No hay resultados con estos filtros"
+            body="Prueba quitar un filtro para ver más lugares cercanos."
+          />
+        ) : null}
 
-          {visibleResults.map((item) => (
-            <LocalResultCard
-              key={item.entity_id}
-              name={item.name}
-              meta={[
-                item.category_key,
-                item.verification_status === 'verified'
-                  ? 'Verificado'
-                  : undefined,
-              ]
-                .filter(Boolean)
-                .join(' · ')}
-              distance={formatDistance(item.distance_m)}
-              onPress={() => openEntity(item.entity_id, item.entity_type)}
-            />
-          ))}
+        {displayResults.map((item) => (
+          <LocalResultCard
+            key={item.entity_id}
+            name={item.name}
+            meta={[
+              operationalLabel(item.operational_state),
+              item.category_key,
+              item.verification_status === 'verified' ? 'Verificado' : undefined,
+            ]
+              .filter(Boolean)
+              .join(' · ')}
+            distance={
+              item.location ? formatDistance(item.distance_m) : 'Atiende por zona'
+            }
+            selected={item.entity_id === neighborhood.selectedEntityId}
+            onPress={() => openEntity(item.entity_id, item.entity_type)}
+          />
+        ))}
 
-          {state.status === 'error' && state.data ? (
-            <ErrorState message={state.message} onRetry={() => void refresh()} />
-          ) : null}
-        </MapResultSheet>
-      </View>
-    </ScreenFrame>
+        {state.status === 'error' && state.data ? (
+          <ErrorState message={state.message} onRetry={() => void refresh()} />
+        ) : null}
+      </MapResultSheet>
+    </View>
   );
 }

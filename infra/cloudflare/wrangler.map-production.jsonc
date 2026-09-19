@@ -1,0 +1,16 @@
+{
+  "name": "palta-map-edge",
+  "main": "src/index-v18.ts",
+  "compatibility_date": "2026-09-18",
+  "workers_dev": true,
+  "vars": {
+    "MAP_VERSION": "2026.09.17.1",
+    "MAP_OBJECT_KEY": "palta/cl/maps/basemap/versions/2026.09.17.1/basemap.pmtiles"
+  },
+  "r2_buckets": [
+    {
+      "binding": "MAPS",
+      "bucket_name": "palta-data"
+    }
+  ]
+}

@@ -1,0 +1,115 @@
+name: Palta Map Production Check
+
+on:
+  pull_request:
+    paths:
+      - 'infra/cloudflare/**'
+      - 'scripts/deploy-chile-map-production.sh'
+      - 'scripts/redeploy-chile-map-edge.sh'
+      - 'scripts/run-ios-production-map-safe.sh'
+      - 'scripts/inspect-local-place-data.mjs'
+      - 'scripts/inspect-local-place-summary.sh'
+      - 'scripts/probe-legacy-local-places.mjs'
+      - 'mobile-overlay/src/app/map/**'
+      - 'mobile-overlay/src/components/map/**'
+      - 'mobile-overlay/src/features/neighborhood/**'
+      - 'apps/mobile/src/components/map/**'
+      - 'apps/mobile/src/features/neighborhood/**'
+      - 'apps/mobile/package.json'
+      - 'apps/mobile/package-lock.json'
+      - 'src/adapters/mapCore.ts'
+      - 'src/map/mapFeatureCollection.ts'
+      - 'src/map/mapMarkerPolicy.ts'
+      - 'mobile-overlay/.env.example'
+      - '.github/workflows/map-production-check.yml'
+  push:
+    branches:
+      - 'integration/map-production-cl-v1'
+    paths:
+      - 'infra/cloudflare/**'
+      - 'scripts/deploy-chile-map-production.sh'
+      - 'scripts/redeploy-chile-map-edge.sh'
+      - 'scripts/run-ios-production-map-safe.sh'
+      - 'scripts/inspect-local-place-data.mjs'
+      - 'scripts/inspect-local-place-summary.sh'
+      - 'scripts/probe-legacy-local-places.mjs'
+      - 'mobile-overlay/src/app/map/**'
+      - 'mobile-overlay/src/components/map/**'
+      - 'mobile-overlay/src/features/neighborhood/**'
+      - 'apps/mobile/src/components/map/**'
+      - 'apps/mobile/src/features/neighborhood/**'
+      - 'apps/mobile/package.json'
+      - 'apps/mobile/package-lock.json'
+      - 'src/adapters/mapCore.ts'
+      - 'src/map/mapFeatureCollection.ts'
+      - 'src/map/mapMarkerPolicy.ts'
+      - 'mobile-overlay/.env.example'
+      - '.github/workflows/map-production-check.yml'
+
+concurrency:
+  group: palta-map-production-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  cloudflare-production:
+    name: Cloudflare production edge
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Script syntax
+        run: |
+          bash -n scripts/deploy-chile-map-production.sh
+          bash -n scripts/redeploy-chile-map-edge.sh
+          bash -n scripts/run-ios-production-map-safe.sh
+          bash -n scripts/inspect-local-place-summary.sh
+          node --check scripts/inspect-local-place-data.mjs
+          node --check scripts/probe-legacy-local-places.mjs
+      - name: Production Worker dry-run
+        run: npx --yes wrangler@4.133.0 deploy --dry-run --config infra/cloudflare/wrangler.map-production.jsonc
+      - name: Multipart uploader dry-run
+        run: npx --yes wrangler@4.133.0 deploy --dry-run --config infra/cloudflare/wrangler.map-uploader.jsonc --var UPLOAD_TOKEN:ci-only
+      - name: Inspect live Chile map metadata
+        run: |
+          node <<'NODE'
+          const url = 'https://palta-map-edge.kimeuisin.workers.dev/maps/cl/metadata.json';
+          const response = await fetch(url, { cache: 'no-store' });
+          if (!response.ok) throw new Error(`metadata ${response.status}`);
+          const value = await response.json();
+          const vectorLayers = Array.isArray(value?.metadata?.vector_layers)
+            ? value.metadata.vector_layers.map((layer) => ({
+                id: layer?.id,
+                minzoom: layer?.minzoom,
+                maxzoom: layer?.maxzoom,
+                fields: layer?.fields ?? {},
+              }))
+            : [];
+          console.log(JSON.stringify({
+            pmtiles_version: value.pmtiles_version,
+            min_zoom: value.min_zoom,
+            max_zoom: value.max_zoom,
+            bounds: value.bounds,
+            center: value.center,
+            vector_layers: vectorLayers,
+          }, null, 2));
+          NODE
+      - name: Probe legacy local places shape
+        continue-on-error: true
+        run: node scripts/probe-legacy-local-places.mjs
+
+  mobile-map-typecheck:
+    name: Mobile map typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install mobile dependencies
+        working-directory: apps/mobile
+        run: npm ci
+      - name: Typecheck mobile map runtime
+        working-directory: apps/mobile
+        run: npx tsc --noEmit

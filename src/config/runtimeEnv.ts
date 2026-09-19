@@ -1,8 +1,11 @@
 export type RuntimeEnv = {
   apiBaseUrl: string;
-  mapStyleUrl?: string;
+  mapStyleUrl: string;
   environment: 'development' | 'preview' | 'production';
 };
+
+export const DEFAULT_PALTA_MAP_STYLE_URL =
+  'https://palta-map-edge.kimeuisin.workers.dev/maps/cl/style.json';
 
 function isPrivateIpv4(hostname: string): boolean {
   const parts = hostname.split('.').map(Number);
@@ -61,7 +64,8 @@ export function parseRuntimeEnv(
   }
 
   const environment = rawEnvironment as RuntimeEnv['environment'];
-  const mapStyleUrl = input.EXPO_PUBLIC_MAP_STYLE_URL;
+  const mapStyleUrl =
+    input.EXPO_PUBLIC_MAP_STYLE_URL ?? DEFAULT_PALTA_MAP_STYLE_URL;
 
   return {
     apiBaseUrl: validatedUrl(
@@ -70,14 +74,10 @@ export function parseRuntimeEnv(
       environment,
     ),
     environment,
-    ...(mapStyleUrl
-      ? {
-          mapStyleUrl: validatedUrl(
-            mapStyleUrl,
-            'EXPO_PUBLIC_MAP_STYLE_URL',
-            environment,
-          ),
-        }
-      : {}),
+    mapStyleUrl: validatedUrl(
+      mapStyleUrl,
+      'EXPO_PUBLIC_MAP_STYLE_URL',
+      environment,
+    ),
   };
 }
