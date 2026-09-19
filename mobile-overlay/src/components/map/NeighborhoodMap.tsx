@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import {
   Camera,
   GeoJSONSource,
@@ -45,6 +45,15 @@ export function NeighborhoodMap({
   const cameraRef = useRef<CameraRef>(null);
   const sourceRef = useRef<GeoJSONSourceRef>(null);
   const data = toPointFeatureCollection(features);
+
+  useEffect(() => {
+    cameraRef.current?.easeTo({
+      center: [initialCenter.longitude, initialCenter.latitude],
+      zoom: initialZoom,
+      duration: 240,
+      easing: 'ease',
+    });
+  }, [initialCenter.latitude, initialCenter.longitude, initialZoom]);
 
   return (
     <Map
@@ -171,6 +180,7 @@ export function NeighborhoodMap({
           layout={{
             'text-field': ['get', 'point_count_abbreviated'],
             'text-size': 12,
+            'text-font': ['Noto Sans'],
           }}
           paint={{ 'text-color': paltaTheme.color.surface }}
         />
