@@ -35,7 +35,19 @@ export class ExpoLocationAdapter implements DeviceLocationPort {
       throw new Error(LOCATION_PERMISSION_REQUIRED_MESSAGE);
     }
 
-    // Prefer a recent last-known fix to make Neighborhood open quickly.
+    // An explicit "use my location" action must prefer a fresh fix so that
+    // Simulator/location changes and real user movement are reflected immediately.
+    try {
+      const current = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+
+      return normalizeExpoLocation(current);
+    } catch {
+      // If a fresh fix is temporarily unavailable, a recent accurate fix is a
+      // better fallback than exposing a native location error to the user.
+    }
+
     try {
       const lastKnown = await Location.getLastKnownPositionAsync({
         maxAge: 30_000,
@@ -46,18 +58,10 @@ export class ExpoLocationAdapter implements DeviceLocationPort {
         return normalizeExpoLocation(lastKnown);
       }
     } catch {
-      // A missing last-known fix must not block a fresh location attempt.
+      // Fall through to the user-facing unavailable message.
     }
 
-    try {
-      const current = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
-      });
-
-      return normalizeExpoLocation(current);
-    } catch {
-      throw new Error(LOCATION_UNAVAILABLE_MESSAGE);
-    }
+    throw new Error(LOCATION_UNAVAILABLE_MESSAGE);
   }
 }
 
