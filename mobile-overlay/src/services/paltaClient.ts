@@ -8,7 +8,7 @@ import type { AuthPort } from '../../../src/ports/authPort';
 import { createSupabaseAuthPort } from '../adapters/createSupabaseAuthPort';
 
 const SHARED_DEV_MAP_STYLE_URL =
-  'https://palta-edge-preflight.kimeuisin.workers.dev/maps/style.json';
+  'https://palta-map-edge.kimeuisin.workers.dev/maps/cl/style.json';
 
 /**
  * Mobile uses the canonical API client directly. Do not mirror its methods in a
