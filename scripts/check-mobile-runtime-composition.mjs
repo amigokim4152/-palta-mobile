@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { createHash } from 'node:crypto';
 
 const root = process.cwd();
 const manifestPath = path.join(root, 'manifest/mobile-runtime-composition.json');
@@ -155,6 +156,21 @@ for (const surface of manifest.surfaces) {
 const expectedSurfaceIds = ['home', 'negocios', 'community'];
 for (const id of expectedSurfaceIds) {
   if (!ids.has(id)) fail(`Missing required composed surface: ${id}`);
+}
+
+const home = manifest.surfaces.find((surface) => surface.id === 'home');
+if (home.source_branch !== 'integration/home-functional-foundation-v1' ||
+    home.integrated_source_sha !== '923fb35eafb8fcd35ca66f2ac6438e80659cbfe4') {
+  fail('Home must use the reviewed functional-foundation recovery commit.');
+}
+for (const [file, expectedHash] of Object.entries(home.reviewed_file_sha256 ?? {})) {
+  const fullPath = path.join(root, normalizeRepoPath(file));
+  if (!fs.existsSync(fullPath)) fail(`Missing reviewed Home file: ${file}`);
+  const actualHash = createHash('sha256').update(fs.readFileSync(fullPath)).digest('hex');
+  if (actualHash !== expectedHash) fail(`Reviewed Home file differs from the pinned source: ${file}`);
+}
+if (Object.keys(home.reviewed_file_sha256 ?? {}).length < 4) {
+  fail('Home source pin must cover screen, demo inventory and display policy.');
 }
 
 const routeAssertions = [

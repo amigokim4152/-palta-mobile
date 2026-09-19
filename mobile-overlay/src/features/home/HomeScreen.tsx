@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { router, useNavigation } from 'expo-router';
 import { Linking, Pressable, Text, View } from 'react-native';
 import type {
@@ -18,7 +18,9 @@ import { SummaryListRow } from '../../components/home/SummaryListRow';
 import { useAsyncResource } from '../../hooks/useAsyncResource';
 import { mobileRuntime } from '../../services/paltaClient';
 import { paltaTheme } from '../../theme/paltaTheme';
-import { missingLegacyLifeCardDemoItems } from './demoLegacyLifeCards';
+import { homeDisplayMode, prepareHomeDisplay } from '../../../../src/home/homeDisplayPolicy';
+import { LEGACY_LIFE_CARD_DEMO_ITEMS } from './demoLegacyLifeCards';
+import { DEMO_HOME_ENTRIES } from './demoHomeEntries';
 
 const DETAILED_SEASONAL_FOOD_KEYS = new Set([
   'today.seasonal_fruit',
@@ -353,6 +355,12 @@ function ContextAction({
 export function HomeScreen() {
   const adaptive = useAdaptiveExperience();
   const navigation = useNavigation();
+  const [showAllDemo, setShowAllDemo] = useState(false);
+  const [showAllGlance, setShowAllGlance] = useState(false);
+  const environment = mobileRuntime.status === 'ready'
+    ? mobileRuntime.environment
+    : process.env.EXPO_PUBLIC_ENV ?? 'development';
+  const developmentDemo = homeDisplayMode(environment) === 'development_demo';
 
   const loadHome = useCallback(async () => {
     if (mobileRuntime.status !== 'ready') {
@@ -370,7 +378,7 @@ export function HomeScreen() {
     return unsubscribe;
   }, [navigation, refresh]);
 
-  if (state.status === 'loading' && !state.data) {
+  if (state.status === 'loading' && !state.data && !developmentDemo) {
     return (
       <ScreenFrame title="Palta">
         <LoadingState label="Actualizando tu día…" />
@@ -378,7 +386,7 @@ export function HomeScreen() {
     );
   }
 
-  if (state.status === 'error' && !state.data) {
+  if (state.status === 'error' && !state.data && !developmentDemo) {
     return (
       <ScreenFrame title="Palta">
         <ErrorState message={state.message} onRetry={() => void refresh()} />
@@ -386,8 +394,8 @@ export function HomeScreen() {
     );
   }
 
-  const data = state.data;
-  if (!data) {
+  const data = prepareHomeDisplay(state.data, environment, LEGACY_LIFE_CARD_DEMO_ITEMS);
+  if (!state.data && !developmentDemo) {
     return (
       <ScreenFrame title="Palta">
         <Text allowFontScaling>No hay información disponible.</Text>
@@ -397,15 +405,8 @@ export function HomeScreen() {
 
   const context = data.context;
   const localityLabel = context?.locality.label ?? data.locality_label ?? 'Tu zona';
-  const demoMode =
-    data.demo_mode === true ||
-    (data.glance ?? []).some((item) => item.data_mode === 'demo') ||
-    data.items.some((item) => item.data_mode === 'demo');
-
-  const completeDemoItems = demoMode
-    ? missingLegacyLifeCardDemoItems(data.items)
-    : [];
-  const homeItems = demoMode ? [...data.items, ...completeDemoItems] : data.items;
+  const demoMode = developmentDemo;
+  const homeItems = data.items;
 
   const nowItems = homeItems.filter((item) => itemSurface(item) === 'now');
   const inProgressItems = homeItems.filter(
@@ -557,14 +558,15 @@ export function HomeScreen() {
           <GlanceCluster
             items={glanceItems}
             columns={adaptive.layout.columns}
-            maxItems={adaptive.layout.maxInitialGlanceItems}
+            maxItems={showAllGlance ? glanceItems.length : adaptive.layout.maxInitialGlanceItems}
+            onMore={() => setShowAllGlance(true)}
           />
         ) : null}
 
         {nowItems.length > 0 ? (
           <View style={{ gap: 10 }}>
             <SectionLabel>AHORA</SectionLabel>
-            {nowItems.map((item) => (
+            {(demoMode && !showAllDemo ? nowItems.slice(0, 2) : nowItems).map((item) => (
               <ActionSurface
                 key={item.id}
                 eyebrow={`${domainLabel(item.source_domain).toUpperCase()} · AHORA`}
@@ -617,7 +619,7 @@ export function HomeScreen() {
             {compactLifeItems.length > 0 ? (
               <CompactLifeSummary items={compactLifeItems} />
             ) : null}
-            {usefulTodayItems.map((item) => (
+            {(demoMode && !showAllDemo ? usefulTodayItems.slice(0, 6) : usefulTodayItems).map((item) => (
               <SummaryListRow
                 key={item.id}
                 title={item.title}
@@ -632,6 +634,31 @@ export function HomeScreen() {
                 stackMeta={!adaptive.layout.allowHorizontalMetadataCompression}
               />
             ))}
+          </View>
+        ) : null}
+
+        {demoMode ? (
+          <View style={{ gap: 6 }}>
+            <SectionLabel>EXPLORA PALTA</SectionLabel>
+            {(showAllDemo ? DEMO_HOME_ENTRIES : DEMO_HOME_ENTRIES.slice(0, 5)).map((entry) => (
+              <SummaryListRow
+                key={entry.capabilityKey}
+                title={entry.title}
+                detail={adaptive.textScaleClass === 'accessibility' ? undefined : entry.detail}
+                onPress={entry.target ? () => void openTarget(entry.target, 'internal') : undefined}
+                stackMeta={!adaptive.layout.allowHorizontalMetadataCompression}
+              />
+            ))}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={showAllDemo ? 'Mostrar menos funciones' : 'Ver todas las funciones y tarjetas de ejemplo'}
+              onPress={() => setShowAllDemo((shown) => !shown)}
+              style={{ minHeight: paltaTheme.touch.minimum, justifyContent: 'center' }}
+            >
+              <Text allowFontScaling style={{ color: paltaTheme.color.brandPrimary, fontWeight: '700' }}>
+                {showAllDemo ? 'Ver menos' : 'Ver todo'}
+              </Text>
+            </Pressable>
           </View>
         ) : null}
 

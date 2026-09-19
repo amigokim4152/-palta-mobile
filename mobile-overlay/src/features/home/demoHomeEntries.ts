@@ -15,12 +15,12 @@ export type DemoHomeEntry = {
  * capability itself.
  */
 export const DEMO_HOME_ENTRIES: readonly DemoHomeEntry[] = [
-  { capabilityKey: 'entry.search', title: 'Buscar', detail: 'Buscar en Palta', target: '/search' },
+  { capabilityKey: 'entry.search', title: 'Buscar', detail: 'Buscar en Palta' },
   { capabilityKey: 'entry.nearby', title: 'Cerca de mí', detail: 'Lugares y actividad útil cerca' },
-  { capabilityKey: 'entry.local_business', title: 'Negocios', detail: 'Comercios y servicios locales', target: '/(tabs)/neighborhood' },
+  { capabilityKey: 'entry.local_business', title: 'Negocios', detail: 'Comercios y servicios locales', target: '/(tabs)/businesses' },
   { capabilityKey: 'entry.real_estate', title: 'Propiedades', detail: 'Compra, arriendo y vivienda' },
   { capabilityKey: 'entry.community', title: 'Comunidad', detail: 'Tus comunidades y barrio', target: '/(tabs)/community' },
-  { capabilityKey: 'entry.map', title: 'Mapa', detail: 'Mapa compartido de Palta', target: '/map' },
+  { capabilityKey: 'entry.map', title: 'Mapa', detail: 'Mapa compartido de Palta' },
   { capabilityKey: 'entry.health', title: 'Salud', detail: 'Salud, atención y seguimiento' },
   { capabilityKey: 'entry.pets', title: 'Mascotas', detail: 'Vida, cuidados y trámites de tus mascotas' },
   { capabilityKey: 'entry.education', title: 'Colegio y educación', detail: 'Colegio, cursos y vida escolar' },

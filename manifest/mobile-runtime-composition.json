@@ -32,7 +32,7 @@
       "id": "home",
       "source_branch": "integration/home-functional-foundation-v1",
       "integration_mode": "reviewed_snapshot",
-      "integrated_source_sha": "9e9cac7f59a0ce5de03de66c757284499072b443",
+      "integrated_source_sha": "923fb35eafb8fcd35ca66f2ac6438e80659cbfe4",
       "owned_paths": [
         "mobile-overlay/src/features/home",
         "mobile-overlay/src/components/home/ActionSurface.tsx",
@@ -66,8 +66,15 @@
         "src/home/adapters/publicLifeNewsFunctionalAdapters.ts",
         "src/api/homeApiContract.ts",
         "src/api/publicDataApiClient.ts",
-        "src/api/publicDataApiContract.ts"
-      ]
+        "src/api/publicDataApiContract.ts",
+        "src/home/homeDisplayPolicy.ts"
+      ],
+      "reviewed_file_sha256": {
+        "mobile-overlay/src/features/home/HomeScreen.tsx": "8d37587ffa3183b726b3b78f07d9856421fa8c5f8c479d8623129324eb7449c7",
+        "mobile-overlay/src/features/home/demoHomeEntries.ts": "50f64b95360925f14b6d06542e4040bdbeab3a86d7735857dd5c967799fffa7e",
+        "mobile-overlay/src/features/home/demoLegacyLifeCards.ts": "90291e73f6d58a3ff2253af3dc7c8602c54435f79d1dafd90e5b150590717ec1",
+        "src/home/homeDisplayPolicy.ts": "d1c6cf9c4bad3857a759eadb46ff0db7aefe68eaec7f7383755553f027c4db01"
+      }
     },
     {
       "id": "negocios",

@@ -5,12 +5,12 @@ function demoItem(
   sourceDomain: string,
   title: string,
   body: string,
-  surface: 'now' | 'useful_today' = 'useful_today',
+  surface: 'now' | 'in_progress' | 'upcoming' | 'useful_today' = 'useful_today',
 ): HomeApiItem {
   return {
     id: `legacy-life-demo:${capabilityKey}`,
     capability_key: capabilityKey,
-    kind: surface === 'now' ? 'alert' : 'content',
+    kind: surface === 'now' ? 'alert' : surface === 'in_progress' ? 'status' : 'content',
     title,
     body,
     source_domain: sourceDomain,
@@ -31,6 +31,10 @@ function demoItem(
  * when the current Home payload does not already contain that capability.
  */
 export const LEGACY_LIFE_CARD_DEMO_ITEMS: readonly HomeApiItem[] = [
+  demoItem('progress.quote', 'care', 'Cotización en curso', 'Ejemplo: una solicitud enviada y sus respuestas quedan a mano.', 'in_progress'),
+  demoItem('progress.reservation', 'care', 'Reserva en seguimiento', 'Ejemplo: revisa confirmación y próximos pasos.', 'in_progress'),
+  demoItem('upcoming.school', 'school', 'Próximo compromiso escolar', 'Ejemplo: actividad o documento pendiente de tu familia.', 'upcoming'),
+  demoItem('upcoming.appointment', 'health', 'Próxima cita', 'Ejemplo: hora reservada y preparación necesaria.', 'upcoming'),
   demoItem('glance.precipitation', 'weather', 'Precipitación', 'Ejemplo: probabilidad de lluvia en las próximas horas.'),
   demoItem('glance.uv', 'weather', 'Índice UV', 'Ejemplo: nivel UV actual y máximo previsto para hoy.'),
 
