@@ -1,5 +1,6 @@
 export type RuntimeEnv = {
   apiBaseUrl: string;
+  publicDataApiBaseUrl?: string;
   mapStyleUrl?: string;
   environment: 'development' | 'preview' | 'production';
 };
@@ -61,6 +62,7 @@ export function parseRuntimeEnv(
   }
 
   const environment = rawEnvironment as RuntimeEnv['environment'];
+  const publicDataApiBaseUrl = input.EXPO_PUBLIC_PUBLIC_DATA_API_BASE_URL;
   const mapStyleUrl = input.EXPO_PUBLIC_MAP_STYLE_URL;
 
   return {
@@ -70,6 +72,15 @@ export function parseRuntimeEnv(
       environment,
     ),
     environment,
+    ...(publicDataApiBaseUrl
+      ? {
+          publicDataApiBaseUrl: validatedUrl(
+            publicDataApiBaseUrl,
+            'EXPO_PUBLIC_PUBLIC_DATA_API_BASE_URL',
+            environment,
+          ),
+        }
+      : {}),
     ...(mapStyleUrl
       ? {
           mapStyleUrl: validatedUrl(

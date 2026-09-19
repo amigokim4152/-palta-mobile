@@ -1,5 +1,9 @@
+import type { PublicDataApiClient } from '../../../src/api/publicDataApiClient';
 import { parseRuntimeEnv } from '../../../src/config/runtimeEnv';
-import { createPaltaApiClient } from '../../../src/api/paltaApiFactory';
+import {
+  createPaltaApiClient,
+  createPublicDataApiClient,
+} from '../../../src/api/paltaApiFactory';
 import type { AuthPort } from '../../../src/ports/authPort';
 import { createSupabaseAuthPort } from '../adapters/createSupabaseAuthPort';
 
@@ -17,6 +21,7 @@ export type MobileRuntime =
   | {
       status: 'ready';
       client: MobilePaltaClient;
+      publicDataClient?: PublicDataApiClient;
       environment: string;
       mapStyleUrl?: string;
     }
@@ -38,6 +43,8 @@ export function createMobileRuntime(auth?: AuthPort): MobileRuntime {
     const env = parseRuntimeEnv({
       EXPO_PUBLIC_PALTA_API_BASE_URL:
         process.env.EXPO_PUBLIC_PALTA_API_BASE_URL,
+      EXPO_PUBLIC_PUBLIC_DATA_API_BASE_URL:
+        process.env.EXPO_PUBLIC_PUBLIC_DATA_API_BASE_URL,
       EXPO_PUBLIC_MAP_STYLE_URL: process.env.EXPO_PUBLIC_MAP_STYLE_URL,
       EXPO_PUBLIC_ENV: process.env.EXPO_PUBLIC_ENV,
     });
@@ -75,6 +82,20 @@ export function createMobileRuntime(auth?: AuthPort): MobileRuntime {
       ...(auth ? { auth } : {}),
     });
 
+    const publicDataClient = env.publicDataApiBaseUrl
+      ? createPublicDataApiClient({
+          baseUrl: env.publicDataApiBaseUrl,
+          fetch: async (input, init) => {
+            const response = await fetch(input, init);
+            return {
+              ok: response.ok,
+              status: response.status,
+              json: () => response.json(),
+            };
+          },
+        })
+      : undefined;
+
     // Local Business consumes the shared Map Core. In development, use the
     // currently verified Palta style endpoint when no local env override is
     // present so an already-running simulator can render MapLibre immediately.
@@ -86,6 +107,7 @@ export function createMobileRuntime(auth?: AuthPort): MobileRuntime {
     return {
       status: 'ready',
       client,
+      ...(publicDataClient ? { publicDataClient } : {}),
       environment: env.environment,
       ...(mapStyleUrl ? { mapStyleUrl } : {}),
     };

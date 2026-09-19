@@ -24,6 +24,7 @@ import {
   BusinessServicesApiClient,
 } from './businessServicesApiClient.js';
 import { MessagingApiClient } from './messagingApiClient.js';
+import { PublicDataApiClient } from './publicDataApiClient.js';
 import {
   PaltaApiClient,
   type FetchLike,
@@ -134,4 +135,14 @@ export function createPaltaApiClient(input: {
   });
 
   return client;
+}
+
+export function createPublicDataApiClient(input: {
+  baseUrl: string;
+  fetch: FetchLike;
+}): PublicDataApiClient {
+  return new PublicDataApiClient({
+    baseUrl: input.baseUrl,
+    fetch: input.fetch,
+  });
 }

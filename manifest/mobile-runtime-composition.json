@@ -32,13 +32,41 @@
       "id": "home",
       "source_branch": "integration/home-functional-foundation-v1",
       "integration_mode": "reviewed_snapshot",
-      "integrated_source_sha": "e2e3f1749f4fb073d760f1f9b91cefc62ab0b84e",
+      "integrated_source_sha": "9e9cac7f59a0ce5de03de66c757284499072b443",
       "owned_paths": [
-        "mobile-overlay/src/features/home/HomeScreen.tsx",
+        "mobile-overlay/src/features/home",
         "mobile-overlay/src/components/home/ActionSurface.tsx",
         "mobile-overlay/src/components/home/GlanceCluster.tsx",
         "mobile-overlay/src/components/home/SummaryListRow.tsx",
         "mobile-overlay/src/app/(tabs)/home.tsx"
+      ],
+      "branch_owned_paths": [
+        "mobile-overlay/src/features/home",
+        "mobile-overlay/src/components/home/ActionSurface.tsx",
+        "mobile-overlay/src/components/home/GlanceCluster.tsx",
+        "mobile-overlay/src/components/home/SummaryListRow.tsx",
+        "mobile-overlay/src/app/(tabs)/home.tsx",
+        "mobile-overlay/src/services/paltaClient.ts",
+        "src/home",
+        "src/api/homeApiContract.ts",
+        "src/api/publicDataApiClient.ts",
+        "src/api/publicDataApiContract.ts",
+        "src/api/paltaApiClient.ts",
+        "src/api/paltaApiFactory.ts",
+        "src/config/runtimeEnv.ts"
+      ],
+      "reviewed_contract_paths": [
+        "src/home/homeFunctionalContract.ts",
+        "src/home/homeCachePolicy.ts",
+        "src/home/functionalHomeComposer.ts",
+        "src/home/homeBehaviorCapabilityRegistry.ts",
+        "src/home/homeBehaviorProfile.ts",
+        "src/home/homeEventBridge.ts",
+        "src/home/publicDataHomeBridge.ts",
+        "src/home/adapters/publicLifeNewsFunctionalAdapters.ts",
+        "src/api/homeApiContract.ts",
+        "src/api/publicDataApiClient.ts",
+        "src/api/publicDataApiContract.ts"
       ]
     },
     {

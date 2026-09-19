@@ -46,8 +46,8 @@ export function GlanceCluster({
             disabled={!item.onPress}
             style={{
               width: basis,
-              minHeight: 50,
-              paddingVertical: 7,
+              minHeight: paltaTheme.touch.minimum,
+              paddingVertical: 5,
               paddingLeft: isLeftColumn ? 0 : 12,
               paddingRight: isLeftColumn ? 12 : 0,
               borderRightWidth: isLeftColumn ? 1 : 0,
@@ -79,8 +79,8 @@ export function GlanceCluster({
               <Text
                 allowFontScaling
                 style={{
-                  fontSize: 17,
-                  lineHeight: 22,
+                  fontSize: 16,
+                  lineHeight: 20,
                   fontWeight: '700',
                   color: item.exceptional
                     ? paltaTheme.color.warning
@@ -93,8 +93,8 @@ export function GlanceCluster({
                 <Text
                   allowFontScaling
                   style={{
-                    fontSize: 12,
-                    lineHeight: 17,
+                    fontSize: 11,
+                    lineHeight: 15,
                     color: paltaTheme.color.textSecondary,
                   }}
                 >

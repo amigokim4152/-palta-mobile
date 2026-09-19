@@ -1,3 +1,15 @@
+import type { HomeApiResponse } from './homeApiContract.js';
+export type {
+  HomeApiContext,
+  HomeApiCorrectionReason,
+  HomeApiDataMode,
+  HomeApiGlanceItem,
+  HomeApiItem,
+  HomeApiResponse,
+  HomeApiSubject,
+  HomeApiSurface,
+} from './homeApiContract.js';
+
 import type { PaltaLocale } from '../localization/locales.js';
 import type { BusinessCapability } from '../business/businessActionPolicy.js';
 import type {
@@ -11,19 +23,6 @@ export type FetchLike = (
   input: string,
   init?: { method?: string; headers?: Record<string, string>; body?: string },
 ) => Promise<{ ok: boolean; status: number; json(): Promise<unknown> }>;
-
-export type HomeApiItem = {
-  id: string;
-  kind: 'action' | 'status' | 'alert' | 'useful_today' | 'content';
-  title: string;
-  body?: string;
-  source_domain: string;
-  delivery: 'home' | 'home_notify' | 'urgent';
-  care_track_id?: string;
-  related_entity_id?: string;
-};
-
-export type HomeApiResponse = { generated_at?: string; items: HomeApiItem[] };
 
 export type LocalSearchItem = {
   entity_id: string;
@@ -329,8 +328,28 @@ export class PaltaApiClient {
   }
 
   async getHome(locale = 'es-CL'): Promise<HomeApiResponse> {
-    const payload = expectObject(await this.request(`/v1/home?locale=${encodeURIComponent(locale)}`), 'GET /v1/home');
-    if (!Array.isArray(payload.items)) throw new Error('GET /v1/home payload missing items[]');
+    const payload = expectObject(
+      await this.request(`/v1/home?locale=${encodeURIComponent(locale)}`),
+      'GET /v1/home',
+    );
+    if (!Array.isArray(payload.items)) {
+      throw new Error('GET /v1/home payload missing items[]');
+    }
+    if (payload.glance !== undefined && !Array.isArray(payload.glance)) {
+      throw new Error('GET /v1/home glance must be an array when present');
+    }
+    if (payload.context !== undefined) {
+      expectObject(payload.context, 'GET /v1/home context');
+    }
+    if (payload.quiet_state !== undefined) {
+      expectObject(payload.quiet_state, 'GET /v1/home quiet_state');
+    }
+    if (
+      payload.contract_version !== undefined &&
+      payload.contract_version !== 'functional-home-v1'
+    ) {
+      throw new Error('GET /v1/home returned unsupported contract_version');
+    }
     return payload as HomeApiResponse;
   }
 
