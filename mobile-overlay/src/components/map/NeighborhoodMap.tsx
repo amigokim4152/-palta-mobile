@@ -170,6 +170,7 @@ export function NeighborhoodMap({
           filter={['has', 'point_count']}
           layout={{
             'text-field': ['get', 'point_count_abbreviated'],
+            'text-font': ['Noto Sans'],
             'text-size': 12,
           }}
           paint={{ 'text-color': paltaTheme.color.surface }}
