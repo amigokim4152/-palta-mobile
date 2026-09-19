@@ -341,17 +341,35 @@ const conditionalRange = await fetch(mapUrl, {
   },
 });
 assert(
-  conditionalRange.status === 206,
-  `Conditional range expected 206, got ${conditionalRange.status}`,
-);
-assert(
-  conditionalRange.headers.get('content-range') === `bytes 0-15/${fullSize}`,
-  `Unexpected conditional Content-Range: ${conditionalRange.headers.get('content-range')}`,
+  conditionalRange.status === 304,
+  `Matching conditional range expected 304, got ${conditionalRange.status}`,
 );
 const conditionalBody = new Uint8Array(await conditionalRange.arrayBuffer());
 assert(
-  conditionalBody.byteLength === 16,
-  `Conditional range expected 16 bytes, got ${conditionalBody.byteLength}`,
+  conditionalBody.byteLength === 0,
+  `304 conditional range must not contain a body, got ${conditionalBody.byteLength} bytes`,
+);
+
+const changedConditionalRange = await fetch(mapUrl, {
+  headers: {
+    Range: 'bytes=0-15',
+    'If-None-Match': '"palta-stale-etag"',
+  },
+});
+assert(
+  changedConditionalRange.status === 206,
+  `Changed conditional range expected 206, got ${changedConditionalRange.status}`,
+);
+assert(
+  changedConditionalRange.headers.get('content-range') === `bytes 0-15/${fullSize}`,
+  `Unexpected changed conditional Content-Range: ${changedConditionalRange.headers.get('content-range')}`,
+);
+const changedConditionalBody = new Uint8Array(
+  await changedConditionalRange.arrayBuffer(),
+);
+assert(
+  changedConditionalBody.byteLength === 16,
+  `Changed conditional range expected 16 bytes, got ${changedConditionalBody.byteLength}`,
 );
 
 const suffix = await fetch(mapUrl, {

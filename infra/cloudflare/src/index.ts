@@ -606,16 +606,29 @@ async function serveR2Object(
       return new Response(null, { status: 416, headers });
     }
 
-    // Range reads must not inherit If-None-Match / If-Modified-Since.
-    // MapLibre can revalidate a cached PMTiles archive while requesting a
-    // byte range; forwarding both conditions to R2 yields a bodyless object
-    // that the old worker translated into HTTP 412.
-    const object = await env.MAPS.get(key, { range });
-    if (!object || !('body' in object)) {
+    // MapLibre Native may send If-None-Match together with Range when a
+    // previously cached PMTiles byte range is revalidated. Preserve that
+    // validator: unchanged data becomes 304, while changed content
+    // continues as a normal 206 response.
+    const object = await env.MAPS.get(key, {
+      onlyIf: request.headers,
+      range,
+    });
+    if (!object) {
       return new Response('Not found', { status: 404, headers });
     }
 
     applyObjectHeaders(object, headers);
+
+    if (!('body' in object)) {
+      if (
+        request.headers.has('If-None-Match') ||
+        request.headers.has('If-Modified-Since')
+      ) {
+        return new Response(null, { status: 304, headers });
+      }
+      return new Response(null, { status: 412, headers });
+    }
     const end = range.offset + range.length - 1;
     headers.set(
       'Content-Range',
