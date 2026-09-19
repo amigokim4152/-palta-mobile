@@ -1,4 +1,5 @@
 import React, { useState, type ReactNode } from 'react';
+import { router } from 'expo-router';
 import {
   ActivityIndicator,
   Linking,
@@ -12,7 +13,7 @@ import {
 import { useAuthRuntime } from '../../providers/AuthRuntimeProvider';
 import { useLocalization } from '../../providers/LocalizationProvider';
 
-export function AuthGate({ children }: { children: ReactNode }) {
+export function AuthGate({ children, qaMode = false }: { children: ReactNode; qaMode?: boolean }) {
   const { t } = useLocalization();
   const {
     state,
@@ -108,6 +109,11 @@ export function AuthGate({ children }: { children: ReactNode }) {
   return (
     <View style={styles.screen}>
       <View style={styles.card}>
+        {qaMode ? (
+          <Pressable accessibilityRole="button" onPress={() => router.back()} style={styles.secondaryButton}>
+            <Text style={styles.secondaryButtonText}>{t('common.back')}</Text>
+          </Pressable>
+        ) : null}
         <Text style={styles.title}>Somos Palta</Text>
         <Text style={styles.subtitle}>{t('auth.signInOrSignUp')}</Text>
 

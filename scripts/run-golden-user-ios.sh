@@ -23,6 +23,7 @@ esac
 
 export PALTA_RUNTIME_MODE="gate01_auth"
 export EXPO_PUBLIC_ENV="development"
+export EXPO_PUBLIC_PALTA_ENTRY_MODE="auth_qa"
 export EXPO_PUBLIC_GOLDEN_USER_EMAIL="$EMAIL"
 
 echo "[Golden User 001] Gate 01 Auth-isolated runtime enabled."

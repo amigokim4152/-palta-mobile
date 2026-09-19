@@ -6,10 +6,16 @@ const layout = read('mobile-overlay/src/app/_layout.tsx');
 const provider = read('mobile-overlay/src/providers/AuthRuntimeProvider.tsx');
 const gate = read('mobile-overlay/src/features/auth/AuthGate.tsx');
 const catalog = read('src/localization/uiCatalog.ts');
+const policy = read('src/runtime/appEntryPolicy.ts');
+const qaRoute = read('mobile-overlay/src/app/dev/auth.tsx');
 
-assert(layout.includes("process.env.EXPO_PUBLIC_PALTA_PREVIEW === '1' &&") &&
-  layout.includes("process.env.EXPO_PUBLIC_ENV !== 'production'"),
-  'Production must never bypass AuthGate through the Preview flag.');
+assert(layout.includes('resolveAppEntryPolicy({') && layout.includes('developmentBuild: __DEV__') &&
+  layout.includes("entryPolicy === 'app'"),
+  'Root layout must use the tested entry policy and production build state.');
+assert(policy.includes("options.environment === 'production'"),
+  'Production must always require AuthGate.');
+assert(qaRoute.includes('<AuthGate qaMode>') && layout.includes("router.push('/dev/auth')"),
+  'Development Home must offer an explicit Auth QA route using the existing AuthGate.');
 assert(provider.includes("error.code === 'oauth_cancelled'") &&
   provider.includes("setState({ status: 'signed_out' })"),
   'Provider cancellation must return to a usable signed-out state.');
@@ -26,4 +32,5 @@ assert(gate.includes("state.code === 'configuration_error'") &&
   gate.includes("state.code === 'account_bootstrap_missing'"),
   'Auth configuration and canonical-account failures must remain distinguishable.');
 
+await import('../dist/tests/app-entry-policy-tests.js');
 console.log('PASS: Auth preview boundary, cancellation and localized UI source');
