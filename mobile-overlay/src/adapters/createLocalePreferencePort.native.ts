@@ -1,9 +1,5 @@
 import type { PaltaLocale } from '../../../src/localization/index';
 
-const PALTA_DEV_URL = 'https://rqbpbauhkdgsrkbwmkmg.supabase.co';
-const PALTA_DEV_PUBLISHABLE_KEY =
-  'sb_publishable_QEHIwvil9m4lyE6kJ1ba6w_CjA9_XXh';
-
 export interface RemoteLocalePreference {
   preferredLocale: string;
   explicit: boolean;
@@ -15,11 +11,24 @@ export interface LocalePreferencePort {
 }
 
 function config() {
+  const url = process.env.EXPO_PUBLIC_SUPABASE_URL?.trim();
+  const key = process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim();
+
+  if (!url || !key) {
+    throw new Error('supabase_public_config_required');
+  }
+
+  if (!url.startsWith('https://') || !url.endsWith('.supabase.co')) {
+    throw new Error('supabase_public_url_invalid');
+  }
+
+  if (!key.startsWith('sb_publishable_')) {
+    throw new Error('supabase_publishable_key_invalid');
+  }
+
   return {
-    url: process.env.EXPO_PUBLIC_SUPABASE_URL || PALTA_DEV_URL,
-    key:
-      process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
-      PALTA_DEV_PUBLISHABLE_KEY,
+    url: url.replace(/\/$/, ''),
+    key,
   };
 }
 
