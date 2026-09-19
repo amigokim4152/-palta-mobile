@@ -19,7 +19,7 @@ type R2BucketLike = {
     key: string,
     options?: {
       onlyIf?: Headers;
-      range?: Headers;
+      range?: Headers | R2RangeLike;
     },
   ): Promise<R2ObjectBodyLike | R2ObjectLike | null>;
 };
@@ -541,6 +541,43 @@ async function decodePmtilesMetadata(
   };
 }
 
+function parseByteRange(
+  value: string,
+  total: number,
+): { offset: number; length: number } | null {
+  const match = /^bytes=(\d*)-(\d*)$/.exec(value.trim());
+  if (!match) return null;
+
+  const startText = match[1];
+  const endText = match[2];
+
+  if (!startText && !endText) return null;
+
+  if (!startText) {
+    const suffix = Number(endText);
+    if (!Number.isSafeInteger(suffix) || suffix <= 0) return null;
+    const length = Math.min(suffix, total);
+    return { offset: Math.max(total - length, 0), length };
+  }
+
+  const start = Number(startText);
+  if (!Number.isSafeInteger(start) || start < 0 || start >= total) {
+    return null;
+  }
+
+  if (!endText) {
+    return { offset: start, length: total - start };
+  }
+
+  const requestedEnd = Number(endText);
+  if (!Number.isSafeInteger(requestedEnd) || requestedEnd < start) {
+    return null;
+  }
+
+  const end = Math.min(requestedEnd, total - 1);
+  return { offset: start, length: end - start + 1 };
+}
+
 async function serveR2Object(
   request: Request,
   env: Env,
@@ -556,23 +593,53 @@ async function serveR2Object(
     return new Response(null, { status: 200, headers });
   }
 
+  const rangeHeader = request.headers.get('Range');
+
+  if (rangeHeader) {
+    const head = await env.MAPS.head(key);
+    if (!head) return new Response('Not found', { status: 404, headers });
+
+    const range = parseByteRange(rangeHeader, head.size);
+    if (!range) {
+      applyObjectHeaders(head, headers);
+      headers.set('Content-Range', `bytes */${head.size}`);
+      return new Response(null, { status: 416, headers });
+    }
+
+    // Range reads must not inherit If-None-Match / If-Modified-Since.
+    // MapLibre can revalidate a cached PMTiles archive while requesting a
+    // byte range; forwarding both conditions to R2 yields a bodyless object
+    // that the old worker translated into HTTP 412.
+    const object = await env.MAPS.get(key, { range });
+    if (!object || !('body' in object)) {
+      return new Response('Not found', { status: 404, headers });
+    }
+
+    applyObjectHeaders(object, headers);
+    const end = range.offset + range.length - 1;
+    headers.set(
+      'Content-Range',
+      `bytes ${range.offset}-${end}/${head.size}`,
+    );
+    headers.set('Content-Length', String(range.length));
+    return new Response(object.body, { status: 206, headers });
+  }
+
   const object = await env.MAPS.get(key, {
     onlyIf: request.headers,
-    range: request.headers,
   });
 
   if (!object) return new Response('Not found', { status: 404, headers });
   applyObjectHeaders(object, headers);
 
   if (!('body' in object)) {
+    if (
+      request.headers.has('If-None-Match') ||
+      request.headers.has('If-Modified-Since')
+    ) {
+      return new Response(null, { status: 304, headers });
+    }
     return new Response(null, { status: 412, headers });
-  }
-
-  if (object.range) {
-    const resolved = contentRange(object.range, object.size);
-    headers.set('Content-Range', resolved.value);
-    headers.set('Content-Length', String(resolved.length));
-    return new Response(object.body, { status: 206, headers });
   }
 
   headers.set('Content-Length', String(object.size));

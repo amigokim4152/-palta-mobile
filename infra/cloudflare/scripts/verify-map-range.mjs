@@ -331,6 +331,29 @@ assert(body.byteLength === 16, `Expected 16 bytes, got ${body.byteLength}`);
 const magic = new TextDecoder().decode(body.slice(0, 7));
 assert(magic === 'PMTiles', `Unexpected PMTiles magic: ${JSON.stringify(magic)}`);
 
+const etag = head.headers.get('etag');
+assert(etag, 'HEAD missing ETag');
+
+const conditionalRange = await fetch(mapUrl, {
+  headers: {
+    Range: 'bytes=0-15',
+    'If-None-Match': etag,
+  },
+});
+assert(
+  conditionalRange.status === 206,
+  `Conditional range expected 206, got ${conditionalRange.status}`,
+);
+assert(
+  conditionalRange.headers.get('content-range') === `bytes 0-15/${fullSize}`,
+  `Unexpected conditional Content-Range: ${conditionalRange.headers.get('content-range')}`,
+);
+const conditionalBody = new Uint8Array(await conditionalRange.arrayBuffer());
+assert(
+  conditionalBody.byteLength === 16,
+  `Conditional range expected 16 bytes, got ${conditionalBody.byteLength}`,
+);
+
 const suffix = await fetch(mapUrl, {
   headers: { Range: 'bytes=-16' },
 });
