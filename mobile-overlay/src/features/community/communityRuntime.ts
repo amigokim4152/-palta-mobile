@@ -1,4 +1,5 @@
 import { mobileRuntime } from '../../services/paltaClient';
+import { useCommunityPreview } from './communityRuntimePolicy';
 import type {
   CommunityApiCard,
   CommunityApiComment,
@@ -540,12 +541,6 @@ const previewRuntime: CommunityRuntime = {
   },
 };
 
-function usePreview(): boolean {
-  return process.env.EXPO_PUBLIC_ENV !== 'production' && (
-    process.env.EXPO_PUBLIC_PALTA_PREVIEW === '1' ||
-    !process.env.EXPO_PUBLIC_PALTA_API_BASE_URL
-  );
-}
 
 function client() {
   if (mobileRuntime.status !== 'ready') throw new Error(mobileRuntime.message);
@@ -554,36 +549,36 @@ function client() {
 
 const sharedApiRuntime: CommunityRuntime = {
   async loadTab() {
-    const data = usePreview() ? await previewRuntime.loadTab() : await client().getCommunityTab();
+    const data = useCommunityPreview() ? await previewRuntime.loadTab() : await client().getCommunityTab();
     return rememberTab(data);
   },
   async loadSpace(spaceId) {
-    return usePreview()
+    return useCommunityPreview()
       ? previewRuntime.loadSpace(spaceId)
       : enrichRemoteSpace(await client().getCommunitySpace(spaceId));
   },
   async loadPost(spaceId, postId) {
-    return usePreview()
+    return useCommunityPreview()
       ? previewRuntime.loadPost(spaceId, postId)
       : (await client().getCommunityPost(spaceId, postId)) as CommunityThreadData;
   },
   async joinSpace(spaceId) {
-    return usePreview()
+    return useCommunityPreview()
       ? previewRuntime.joinSpace(spaceId)
       : client().joinCommunitySpace(spaceId);
   },
   async addComment(spaceId, postId, body) {
-    return usePreview()
+    return useCommunityPreview()
       ? previewRuntime.addComment(spaceId, postId, body)
       : client().addCommunityComment(spaceId, postId, body);
   },
   async reactToPost(spaceId, postId) {
-    return usePreview()
+    return useCommunityPreview()
       ? previewRuntime.reactToPost(spaceId, postId)
       : client().reactToCommunityPost(spaceId, postId, 'helpful');
   },
   async acknowledgePost(spaceId, postId) {
-    return usePreview()
+    return useCommunityPreview()
       ? previewRuntime.acknowledgePost(spaceId, postId)
       : client().reactToCommunityPost(spaceId, postId, 'acknowledged');
   },
