@@ -407,14 +407,15 @@ export function FoodDiscoveryExperience() {
   }
 
   function openMap() {
-    const path = [
-      '/local-businesses/food/map',
-      `?categoryId=${encodeURIComponent(categoryId)}`,
-      `&q=${encodeURIComponent(submittedQuery)}`,
-      `&fulfillment=${encodeURIComponent(fulfillmentFilter)}`,
-      `&open=${openNowOnly ? '1' : '0'}`,
-    ].join('');
-    router.push(path);
+    router.push({
+      pathname: '/local-businesses/food/map',
+      params: {
+        categoryId,
+        q: submittedQuery,
+        fulfillment: fulfillmentFilter,
+        open: openNowOnly ? '1' : '0',
+      },
+    });
   }
 
   if (!neighborhood.effectiveLocation) {
