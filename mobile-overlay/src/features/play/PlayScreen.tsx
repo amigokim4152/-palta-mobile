@@ -366,7 +366,6 @@ function DiscoveryDetail({ item, onClose }: { item: PlayDiscoveryItem | null; on
                     onPress={() => void Linking.openURL(primaryAction.url)}
                   />
                 ) : null}
-                <PaltaButton label="Ver en mapa" variant="secondary" onPress={() => { onClose(); router.push('/map'); }} />
                 {sourceUrl && sourceUrl !== primaryAction?.url ? (
                   <PaltaButton label="Ver fuente oficial" variant={primaryAction ? 'secondary' : 'primary'} onPress={() => void Linking.openURL(sourceUrl)} />
                 ) : null}
@@ -383,12 +382,10 @@ function CardSection({
   theme,
   items,
   onOpenItem,
-  showMapAction = false,
 }: {
   theme: PanoramaIntentKey;
   items: readonly PlayDiscoveryItem[];
   onOpenItem: (item: PlayDiscoveryItem) => void;
-  showMapAction?: boolean;
 }) {
   const copy = sectionCopy[theme];
   const heroItem = items[0];
@@ -409,7 +406,6 @@ function CardSection({
           {remainingItems.map((item) => <DiscoveryCard key={item.id} item={item} onPress={() => onOpenItem(item)} />)}
         </ScrollView>
       ) : null}
-      {showMapAction ? <PaltaButton label="Ver cerca de mí en el mapa" variant="secondary" onPress={() => router.push('/map')} /> : null}
     </View>
   );
 }
@@ -509,17 +505,12 @@ export function PlayScreen() {
     <ScreenFrame
       title={PANORAMA_LABEL}
       subtitle="Qué hacer hoy, cerca de ti"
-      action={
-        <Pressable accessibilityRole="button" onPress={() => router.push('/map')} style={{ minHeight: paltaTheme.touch.minimum, paddingHorizontal: 12, justifyContent: 'center', borderRadius: paltaTheme.radius.control, borderWidth: 1, borderColor: paltaTheme.color.border }}>
-          <Text allowFontScaling style={{ fontWeight: '800' }}>Mapa</Text>
-        </Pressable>
-      }
     >
       <View style={{ gap: 30, paddingBottom: paltaTheme.spacing.xxl }}>
-        <Pressable accessibilityRole="button" onPress={() => router.push('/search')} style={{ minHeight: 58, paddingHorizontal: paltaTheme.spacing.md, paddingVertical: paltaTheme.spacing.sm, borderRadius: paltaTheme.radius.prominent, backgroundColor: paltaTheme.color.surfaceMuted, justifyContent: 'center', gap: 3 }}>
+        <View style={{ minHeight: 58, paddingHorizontal: paltaTheme.spacing.md, paddingVertical: paltaTheme.spacing.sm, borderRadius: paltaTheme.radius.prominent, backgroundColor: paltaTheme.color.surfaceMuted, justifyContent: 'center', gap: 3 }}>
           <Text allowFontScaling style={{ fontSize: 12, color: paltaTheme.color.textSecondary }}>{locality ? `${locality} · Santiago` : 'Tu zona'}</Text>
           <Text allowFontScaling style={{ fontSize: 17, fontWeight: '800', color: paltaTheme.color.textPrimary }}>¿Qué quieres hacer hoy?</Text>
-        </Pressable>
+        </View>
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingRight: 18 }}>
           {themeOptions.map((option) => <FilterChip key={option.key} label={option.label} selected={!selectedKind && selectedIntent === option.key} onPress={() => chooseIntent(option.key)} />)}
@@ -527,7 +518,7 @@ export function PlayScreen() {
 
         {__DEV__ ? <Text allowFontScaling style={{ fontSize: 11, color: paltaTheme.color.textMuted }}>Vista previa visual · los datos marcados como ejemplo no se publican en producción.</Text> : null}
 
-        <CardSection theme="today" items={feed.todayPublic.items} onOpenItem={openItem} showMapAction />
+        <CardSection theme="today" items={feed.todayPublic.items} onOpenItem={openItem} />
 
         <View style={{ gap: paltaTheme.spacing.sm }}>
           <SectionHeading title="¿Qué te gustaría hacer?" subtitle="Elige el tipo de panorama; priorizamos zona, fecha y tus intereses explícitos, nunca la comisión." />
@@ -547,7 +538,6 @@ export function PlayScreen() {
             theme={selectedIntent}
             items={selectedIntentItems}
             onOpenItem={openItem}
-            showMapAction={selectedIntent === 'nearby'}
           />
         ) : null}
 
@@ -556,7 +546,7 @@ export function PlayScreen() {
 
         <View style={{ gap: paltaTheme.spacing.md }}>
           <SectionHeading title="Más panoramas" subtitle="Museos, bibliotecas, ferias, naturaleza, granjas, tours, estadías y más se incorporan con la misma lógica local." />
-          <PaltaButton label="Ver todo" variant="secondary" onPress={() => router.push('/search')} />
+          <Text allowFontScaling style={{ color: paltaTheme.color.textSecondary }}>Seguimos incorporando panoramas verificados de tu zona.</Text>
         </View>
       </View>
 
