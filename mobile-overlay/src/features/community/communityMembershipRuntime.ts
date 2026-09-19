@@ -1,4 +1,5 @@
 import { mobileRuntime } from '../../services/paltaClient';
+import { useCommunityPreview } from './communityRuntimePolicy';
 import type {
   CommunityApiMembershipManagement,
   CommunityMembershipDecision,
@@ -54,12 +55,6 @@ function clone(data: CommunityMembershipManagementData): CommunityMembershipMana
   };
 }
 
-function usePreview(): boolean {
-  return process.env.EXPO_PUBLIC_ENV !== 'production' && (
-    process.env.EXPO_PUBLIC_PALTA_PREVIEW === '1' ||
-    !process.env.EXPO_PUBLIC_PALTA_API_BASE_URL
-  );
-}
 
 function client() {
   if (mobileRuntime.status !== 'ready') throw new Error(mobileRuntime.message);
@@ -68,12 +63,12 @@ function client() {
 
 const runtime: CommunityMembershipRuntime = {
   async load(spaceId) {
-    if (usePreview()) return clone(previewFor(spaceId));
+    if (useCommunityPreview()) return clone(previewFor(spaceId));
     return client().getCommunityMembershipManagement(spaceId);
   },
 
   async decide(input) {
-    if (!usePreview()) {
+    if (!useCommunityPreview()) {
       await client().updateCommunityMembership(input);
       return;
     }
