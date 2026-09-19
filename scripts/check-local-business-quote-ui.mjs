@@ -69,7 +69,7 @@ assert(
   'Polished Business Profile quote action must open the quote request form instead of sending a placeholder request.',
 );
 assert(
-  quote.includes('mobileRuntime.client.quotes.createQuoteRequest') &&
+  quote.includes('authenticatedRuntime.client.quotes.createQuoteRequest') &&
   quote.includes('recipientBusinessIds: [businessId]') &&
   quote.includes('quote.care_track_id'),
   'Quote form must use quote orchestration and navigate with the Shared Care Track returned by the server.',
@@ -103,8 +103,8 @@ assert(
   'Verified owner home must surface only real quote work from the business-scoped inbox.',
 );
 assert(
-  ownerQuote.includes('mobileRuntime.client.quotes.getBusinessInbox(businessId)') &&
-    ownerQuote.includes('mobileRuntime.client.quotes.submitBusinessResponse') &&
+  ownerQuote.includes('authenticatedRuntime.client.quotes.getBusinessInbox(businessId)') &&
+    ownerQuote.includes('authenticatedRuntime.client.quotes.submitBusinessResponse') &&
     ownerQuote.includes('Aquí sólo ves la solicitud y la respuesta de tu propio negocio'),
   'Owner quote inbox must let the business respond while explaining the cross-business privacy boundary.',
 );
