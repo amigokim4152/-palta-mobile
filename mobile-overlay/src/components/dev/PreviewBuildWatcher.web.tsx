@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 
-const PREVIEW_ENABLED = process.env.EXPO_PUBLIC_PALTA_PREVIEW === '1';
+const PREVIEW_ENABLED = process.env.EXPO_PUBLIC_PALTA_PREVIEW === '1' &&
+  process.env.EXPO_PUBLIC_ENV !== 'production';
 const CURRENT_BUILD_ID = process.env.EXPO_PUBLIC_PALTA_BUILD_SHA ?? 'local';
 const RAW_BASE_URL =
   process.env.EXPO_PUBLIC_PALTA_WEB_BASE_URL ?? process.env.EXPO_BASE_URL ?? '';

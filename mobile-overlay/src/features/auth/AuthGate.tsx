@@ -30,6 +30,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
   const [email, setEmail] = useState(goldenUserEmail);
   const [testMagicLink, setTestMagicLink] = useState('');
   const [testLinkError, setTestLinkError] = useState('');
+  const [showEvidence, setShowEvidence] = useState(false);
 
   const openTestMagicLink = async () => {
     const link = testMagicLink.trim();
@@ -56,6 +57,16 @@ export function AuthGate({ children }: { children: ReactNode }) {
       <View style={styles.appContainer}>
         {children}
         {showGate01Evidence ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={showEvidence ? 'Ocultar verificación Gate 01' : 'Mostrar verificación Gate 01'}
+            onPress={() => setShowEvidence((visible) => !visible)}
+            style={styles.evidenceToggle}
+          >
+            <Text style={styles.evidenceTitle}>Gate 01</Text>
+          </Pressable>
+        ) : null}
+        {showGate01Evidence && showEvidence ? (
           <View style={styles.evidencePanel}>
             <Text style={styles.evidenceTitle}>Gate 01 · 개발 검증</Text>
             <Text style={styles.evidenceLabel}>Canonical account</Text>
@@ -330,7 +341,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 12,
     right: 12,
-    bottom: 20,
+    top: 94,
     zIndex: 100,
     gap: 3,
     padding: 10,
@@ -338,6 +349,16 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.96)',
     borderWidth: 1,
     borderColor: '#D9D9D2',
+  },
+  evidenceToggle: {
+    position: 'absolute',
+    top: 48,
+    left: 16,
+    minHeight: 38,
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.92)',
   },
   evidenceTitle: { fontSize: 12, fontWeight: '700' },
   evidenceLabel: { marginTop: 2, fontSize: 10, color: '#66665F' },

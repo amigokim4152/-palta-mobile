@@ -32,7 +32,8 @@ export function MarketRuntimeBootstrap() {
   useEffect(() => {
     let dispose: (() => void) | undefined;
 
-    if (process.env.EXPO_PUBLIC_PALTA_PREVIEW === '1') {
+    if (process.env.EXPO_PUBLIC_PALTA_PREVIEW === '1' &&
+        process.env.EXPO_PUBLIC_ENV !== 'production') {
       dispose = installMarketRuntime(createMarketPreviewRuntime());
       return () => {
         dispose?.();
