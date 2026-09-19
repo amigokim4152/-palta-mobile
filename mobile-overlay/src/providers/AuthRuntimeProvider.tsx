@@ -176,7 +176,11 @@ export function AuthRuntimeProvider({ children }: { children: ReactNode }) {
         const authState = await portResult.port.signInWithOAuth(provider);
         setState(toRuntimeState(authState));
       } catch (error) {
-        setState(visibleError(error));
+        if (error instanceof AuthPortError && error.code === 'oauth_cancelled') {
+          setState({ status: 'signed_out' });
+        } else {
+          setState(visibleError(error));
+        }
       } finally {
         setBusy(false);
       }

@@ -22,7 +22,8 @@ function RuntimeShell() {
 }
 
 export default function RootLayout() {
-  const preview = process.env.EXPO_PUBLIC_PALTA_PREVIEW === '1';
+  const preview = process.env.EXPO_PUBLIC_PALTA_PREVIEW === '1' &&
+    process.env.EXPO_PUBLIC_ENV !== 'production';
 
   return (
     <AuthRuntimeProvider>

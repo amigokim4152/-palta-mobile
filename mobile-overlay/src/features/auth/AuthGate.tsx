@@ -10,8 +10,10 @@ import {
 } from 'react-native';
 
 import { useAuthRuntime } from '../../providers/AuthRuntimeProvider';
+import { useLocalization } from '../../providers/LocalizationProvider';
 
 export function AuthGate({ children }: { children: ReactNode }) {
+  const { t } = useLocalization();
   const {
     state,
     capabilities,
@@ -44,7 +46,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
     return (
       <View style={styles.centered}>
         <ActivityIndicator />
-        <Text style={styles.helper}>로그인 상태를 확인하고 있습니다.</Text>
+        <Text style={styles.helper}>{t('auth.checkingSession')}</Text>
       </View>
     );
   }
@@ -75,12 +77,12 @@ export function AuthGate({ children }: { children: ReactNode }) {
         ) : null}
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="로그아웃"
+          accessibilityLabel={t('auth.signOut')}
           disabled={busy}
           onPress={() => void signOut()}
           style={styles.signOutButton}
         >
-          <Text style={styles.signOutText}>{busy ? '처리 중…' : '로그아웃'}</Text>
+          <Text style={styles.signOutText}>{busy ? t('common.processing') : t('auth.signOut')}</Text>
         </Pressable>
       </View>
     );
@@ -96,19 +98,23 @@ export function AuthGate({ children }: { children: ReactNode }) {
     <View style={styles.screen}>
       <View style={styles.card}>
         <Text style={styles.title}>Somos Palta</Text>
-        <Text style={styles.subtitle}>로그인 또는 회원가입</Text>
+        <Text style={styles.subtitle}>{t('auth.signInOrSignUp')}</Text>
 
         {state.status === 'error' ? (
           <View style={styles.errorBox}>
-            <Text style={styles.errorText}>{state.message}</Text>
-            {state.code ? <Text style={styles.errorCode}>{state.code}</Text> : null}
+            <Text style={styles.errorText}>
+              {state.code === 'configuration_error' ? t('auth.errorConfiguration') :
+                state.code === 'account_bootstrap_missing' || state.code === 'account_lookup_failed'
+                  ? t('auth.errorAccount') : t('auth.errorGeneral')}
+            </Text>
+            {showGate01Evidence && state.code ? <Text style={styles.errorCode}>{state.code}</Text> : null}
             <Pressable
               accessibilityRole="button"
               disabled={busy}
               onPress={() => void retry()}
               style={styles.secondaryButton}
             >
-              <Text style={styles.secondaryButtonText}>다시 시도</Text>
+              <Text style={styles.secondaryButtonText}>{t('common.retry')}</Text>
             </Pressable>
           </View>
         ) : null}
@@ -116,8 +122,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
         {state.status === 'email_sent' ? (
           <View style={styles.noticeBox}>
             <Text style={styles.noticeText}>
-              {state.email} 주소로 로그인 링크를 보냈습니다. 같은 기기에서 링크를
-              열면 Palta로 돌아옵니다.
+              {t('auth.emailLinkSent')} {state.email}. {t('auth.openSameDevice')}
             </Text>
           </View>
         ) : null}
@@ -170,7 +175,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
             onPress={() => void signInWithOAuth('apple')}
             style={styles.primaryButton}
           >
-            <Text style={styles.primaryButtonText}>Apple로 계속</Text>
+            <Text style={styles.primaryButtonText}>{t('auth.continueApple')}</Text>
           </Pressable>
         ) : null}
 
@@ -181,7 +186,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
             onPress={() => void signInWithOAuth('google')}
             style={styles.primaryButton}
           >
-            <Text style={styles.primaryButtonText}>Google로 계속</Text>
+            <Text style={styles.primaryButtonText}>{t('auth.continueGoogle')}</Text>
           </Pressable>
         ) : null}
 
@@ -197,7 +202,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
               inputMode="email"
               keyboardType="email-address"
               onChangeText={setEmail}
-              placeholder="이메일"
+              placeholder={t('auth.email')}
               style={styles.input}
               value={email}
             />
@@ -210,7 +215,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
                 (busy || !email.trim()) && styles.disabled,
               ]}
             >
-              <Text style={styles.secondaryButtonText}>이메일 링크 보내기</Text>
+              <Text style={styles.secondaryButtonText}>{t('auth.sendEmailLink')}</Text>
             </Pressable>
           </>
         ) : null}
@@ -218,7 +223,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
         {busy ? (
           <View style={styles.busyRow}>
             <ActivityIndicator />
-            <Text style={styles.helper}>처리 중입니다.</Text>
+            <Text style={styles.helper}>{t('common.processing')}</Text>
           </View>
         ) : null}
       </View>
