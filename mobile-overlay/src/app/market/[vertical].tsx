@@ -7,6 +7,13 @@ import {
 import { ScreenFrame } from '../../components/ScreenFrame';
 import { SectionHeading } from '../../components/common/SectionHeading';
 
+const MARKET_VERTICAL_TITLES: Record<MarketVerticalKey, string> = {
+  secondhand: 'Usados',
+  vehicles: 'Autos',
+  property: 'Propiedades',
+  local_produce: 'Productos locales',
+};
+
 export default function MarketVerticalScreen() {
   const { vertical, mode } = useLocalSearchParams<{
     vertical: MarketVerticalKey;
@@ -25,18 +32,19 @@ export default function MarketVerticalScreen() {
   }
 
   const createMode = mode === 'create';
+  const verticalTitle = MARKET_VERTICAL_TITLES[definition.key];
 
   return (
     <ScreenFrame
-      title={definition.title}
+      title={verticalTitle}
       subtitle={createMode ? 'Publicar' : 'Explorar'}
     >
       <View style={{ gap: 16 }}>
         <SectionHeading
           title={
             createMode
-              ? `Publicar en ${definition.title}`
-              : `Explorar ${definition.title}`
+              ? `Publicar en ${verticalTitle}`
+              : `Explorar ${verticalTitle}`
           }
           subtitle={
             createMode
